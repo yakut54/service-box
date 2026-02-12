@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,6 +15,23 @@ Route::get('/health', function () {
         'status' => 'ok',
         'service' => 'ServiceBox API',
         'timestamp' => now()->toIso8601String(),
-        'stage' => 'Step 2 - Laravel Setup',
+        'stage' => 'Step 7 - Authentication',
+        'database' => \DB::connection()->getDatabaseName(),
     ]);
+});
+
+// ============================================================================
+// AUTH API
+// ============================================================================
+Route::prefix('auth')->group(function () {
+    // Public
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+
+    // Protected (Bearer token)
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/refresh', [AuthController::class, 'refresh']);
+    });
 });
