@@ -3,10 +3,15 @@
 /.env
 /storage/*.key
 /storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitkeep
 /storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
 /storage/framework/views/*
+!/storage/framework/views/.gitkeep
 /storage/logs/*
+!/storage/logs/.gitkeep
 /bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
