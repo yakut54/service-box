@@ -52,7 +52,7 @@ class Shop extends Model
 
         static::creating(function ($shop) {
             if (empty($shop->schema_name)) {
-                $shop->schema_name = 'shop_' . Str::random(12);
+                $shop->schema_name = 'shop_' . strtolower(Str::random(12));
             }
 
             if (empty($shop->api_key)) {
