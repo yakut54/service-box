@@ -4,6 +4,7 @@ import { useShopStore } from '@/stores/shop'
 import { useCartStore } from '@/stores/cart'
 import Catalog from '@/components/Catalog.vue'
 import ProductDetail from '@/components/ProductDetail.vue'
+import Cart from '@/components/Cart.vue'
 
 type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'cart' | 'checkout' | 'success'
 
@@ -36,9 +37,15 @@ function handleProductSelect(product: any) {
   currentView.value = 'product'
 }
 
+const previousView = ref<WidgetView>('catalog')
+
 function handleBack() {
   currentView.value = 'catalog'
   selectedProduct.value = null
+}
+
+function handleCartBack() {
+  currentView.value = previousView.value
 }
 
 function handleBooking(product: any) {
@@ -67,7 +74,7 @@ function navigate(view: WidgetView) {
       <button
         v-if="!cartStore.isEmpty"
         class="sb-cart-btn"
-        @click="navigate('cart')"
+        @click="previousView = currentView; navigate('cart')"
       >
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
@@ -119,6 +126,14 @@ function navigate(view: WidgetView) {
         :product="selectedProduct"
         @back="handleBack"
         @booking="handleBooking"
+      />
+    </div>
+
+    <!-- Cart -->
+    <div v-else-if="currentView === 'cart'" class="sb-content">
+      <Cart
+        @back="handleCartBack"
+        @checkout="navigate('checkout')"
       />
     </div>
   </div>
