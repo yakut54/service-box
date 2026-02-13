@@ -531,7 +531,7 @@
 }
 
 .sb-product-btn {
-  margin: 8px 16px 16px;
+  margin: auto 16px 16px;
   border-radius: var(--sb-radius);
 }
 
