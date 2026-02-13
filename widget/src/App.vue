@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useShopStore } from '@/stores/shop'
+import { useCartStore } from '@/stores/cart'
 import Catalog from '@/components/Catalog.vue'
+import ProductDetail from '@/components/ProductDetail.vue'
 
 type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'cart' | 'checkout' | 'success'
 
 const shopStore = useShopStore()
+const cartStore = useCartStore()
 const currentView = ref<WidgetView>('loading')
 const widgetEl = ref<HTMLElement | null>(null)
 const selectedProduct = ref<any>(null)
 
 onMounted(async () => {
+  cartStore.init(shopStore.shopId)
   await shopStore.loadConfig()
 
   if (shopStore.error) {
@@ -29,8 +33,17 @@ watch(() => shopStore.shop, () => {
 
 function handleProductSelect(product: any) {
   selectedProduct.value = product
-  // W3: add to cart for physical/digital
-  // W4: navigate to booking for services
+  currentView.value = 'product'
+}
+
+function handleBack() {
+  currentView.value = 'catalog'
+  selectedProduct.value = null
+}
+
+function handleBooking(product: any) {
+  selectedProduct.value = product
+  currentView.value = 'booking'
 }
 
 function navigate(view: WidgetView) {
@@ -49,9 +62,21 @@ function navigate(view: WidgetView) {
         class="sb-logo"
       />
       <span class="sb-shop-name">{{ shopStore.shop?.name }}</span>
+
+      <!-- Cart button -->
+      <button
+        v-if="!cartStore.isEmpty"
+        class="sb-cart-btn"
+        @click="navigate('cart')"
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+        </svg>
+        <span class="sb-cart-count">{{ cartStore.count }}</span>
+      </button>
     </header>
 
-    <!-- Loading state (shop config loading) -->
+    <!-- Loading state -->
     <div v-if="currentView === 'loading'" class="sb-content">
       <div class="sb-header">
         <div class="sb-skeleton" style="width: 36px; height: 36px; border-radius: 50%;"></div>
@@ -69,7 +94,7 @@ function navigate(view: WidgetView) {
       </div>
     </div>
 
-    <!-- Error state (shop not found) -->
+    <!-- Error state -->
     <div v-else-if="currentView === 'error'" class="sb-content">
       <div class="sb-empty">
         <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,6 +111,15 @@ function navigate(view: WidgetView) {
     <!-- Catalog -->
     <div v-else-if="currentView === 'catalog'" class="sb-content">
       <Catalog @select="handleProductSelect" />
+    </div>
+
+    <!-- Product Detail -->
+    <div v-else-if="currentView === 'product' && selectedProduct" class="sb-content">
+      <ProductDetail
+        :product="selectedProduct"
+        @back="handleBack"
+        @booking="handleBooking"
+      />
     </div>
   </div>
 </template>
