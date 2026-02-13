@@ -44,6 +44,20 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
+  function $reset() {
+    orders.value = []
+    stats.value = {
+      total_orders: 0,
+      total_revenue: 0,
+      pending_orders: 0,
+      paid_orders: 0,
+      completed_orders: 0,
+      cancelled_orders: 0,
+      average_order_value: 0,
+    }
+    loading.value = false
+  }
+
   return {
     orders,
     stats,
@@ -53,5 +67,6 @@ export const useOrdersStore = defineStore('orders', () => {
     fetchOrders,
     fetchStats,
     updateStatus,
+    $reset,
   }
 })

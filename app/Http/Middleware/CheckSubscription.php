@@ -34,14 +34,14 @@ class CheckSubscription
     private function handleExpiredSubscription(Request $request, $shop): Response
     {
         $readOnlyEndpoints = [
-            'GET:/admin/shop',
-            'GET:/admin/orders',
-            'GET:/admin/orders/*',
-            'GET:/admin/products',
-            'GET:/admin/products/*',
-            'GET:/admin/bookings',
-            'GET:/admin/bookings/*',
-            'GET:/admin/customers/*/orders',
+            'GET:api/admin/shop',
+            'GET:api/admin/orders',
+            'GET:api/admin/orders/*',
+            'GET:api/admin/products',
+            'GET:api/admin/products/*',
+            'GET:api/admin/bookings',
+            'GET:api/admin/bookings/*',
+            'GET:api/admin/customers/*/orders',
         ];
 
         $method = $request->method();

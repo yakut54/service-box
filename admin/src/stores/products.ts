@@ -31,6 +31,11 @@ export const useProductsStore = defineStore('products', () => {
     products.value = products.value.filter(p => p.id !== id)
   }
 
+  function $reset() {
+    products.value = []
+    loading.value = false
+  }
+
   return {
     products,
     loading,
@@ -38,5 +43,6 @@ export const useProductsStore = defineStore('products', () => {
     categories,
     fetchProducts,
     deleteProduct,
+    $reset,
   }
 })

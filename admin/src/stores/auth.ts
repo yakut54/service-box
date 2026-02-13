@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api, ApiError } from '@/lib/api'
+import { useProductsStore } from '@/stores/products'
+import { useOrdersStore } from '@/stores/orders'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<any>(null)
@@ -117,6 +119,10 @@ export const useAuthStore = defineStore('auth', () => {
     shop.value = null
     token.value = null
     api.setToken(null)
+
+    // Очищаем данные других сторов чтобы не утекали между аккаунтами
+    useProductsStore().$reset()
+    useOrdersStore().$reset()
   }
 
   return {
