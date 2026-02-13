@@ -5,6 +5,8 @@ import { useCartStore } from '@/stores/cart'
 import Catalog from '@/components/Catalog.vue'
 import ProductDetail from '@/components/ProductDetail.vue'
 import Cart from '@/components/Cart.vue'
+import Checkout from '@/components/Checkout.vue'
+import OrderSuccess from '@/components/OrderSuccess.vue'
 
 type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'cart' | 'checkout' | 'success'
 
@@ -13,6 +15,7 @@ const cartStore = useCartStore()
 const currentView = ref<WidgetView>('loading')
 const widgetEl = ref<HTMLElement | null>(null)
 const selectedProduct = ref<any>(null)
+const completedOrder = ref<any>(null)
 
 onMounted(async () => {
   cartStore.init(shopStore.shopId)
@@ -51,6 +54,11 @@ function handleCartBack() {
 function handleBooking(product: any) {
   selectedProduct.value = product
   currentView.value = 'booking'
+}
+
+function handleOrderSuccess(order: any) {
+  completedOrder.value = order
+  currentView.value = 'success'
 }
 
 function navigate(view: WidgetView) {
@@ -134,6 +142,22 @@ function navigate(view: WidgetView) {
       <Cart
         @back="handleCartBack"
         @checkout="navigate('checkout')"
+      />
+    </div>
+
+    <!-- Checkout -->
+    <div v-else-if="currentView === 'checkout'" class="sb-content sb-grid-container">
+      <Checkout
+        @back="navigate('cart')"
+        @success="handleOrderSuccess"
+      />
+    </div>
+
+    <!-- Order Success -->
+    <div v-else-if="currentView === 'success'" class="sb-content">
+      <OrderSuccess
+        :order="completedOrder"
+        @back="navigate('catalog')"
       />
     </div>
 
