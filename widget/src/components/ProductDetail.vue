@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { formatPrice } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart'
 
@@ -10,8 +10,6 @@ const emit = defineEmits<{
 }>()
 
 const cartStore = useCartStore()
-const quantity = ref(1)
-const addedToCart = ref(false)
 
 const isService = computed(() => props.product.type === 'service')
 const isPhysical = computed(() => props.product.type === 'physical')
@@ -22,12 +20,8 @@ const maxStock = computed(() => {
 })
 
 const isOutOfStock = computed(() => isPhysical.value && maxStock.value === 0)
-
+const inCart = computed(() => cartStore.hasItem(props.product.id))
 const inCartQty = computed(() => cartStore.getItemQuantity(props.product.id))
-const canAddMore = computed(() => {
-  if (!isPhysical.value) return true
-  return inCartQty.value + quantity.value <= maxStock.value
-})
 
 const badge = computed(() => {
   const p = props.product
@@ -41,21 +35,16 @@ const badge = computed(() => {
   return null
 })
 
-function decrementQty() {
-  if (quantity.value > 1) quantity.value--
-}
-
-function incrementQty() {
-  if (isPhysical.value && quantity.value >= maxStock.value) return
-  quantity.value++
-}
-
 function handleAddToCart() {
-  for (let i = 0; i < quantity.value; i++) {
-    cartStore.addItem(props.product)
-  }
-  addedToCart.value = true
-  setTimeout(() => { addedToCart.value = false }, 2000)
+  cartStore.addItem(props.product)
+}
+
+function handleIncrement() {
+  cartStore.updateQuantity(props.product.id, inCartQty.value + 1)
+}
+
+function handleDecrement() {
+  cartStore.updateQuantity(props.product.id, inCartQty.value - 1)
 }
 
 function handleBooking() {
@@ -130,39 +119,36 @@ function handleBooking() {
             </button>
           </template>
 
-          <!-- Physical/Digital: quantity + add to cart -->
+          <!-- Physical/Digital -->
           <template v-else>
-            <div v-if="!isOutOfStock && !isService" class="sb-quantity-row sb-mb-2">
-              <div class="sb-quantity">
-                <button class="sb-quantity-btn" @click="decrementQty" :disabled="quantity <= 1">-</button>
-                <span class="sb-quantity-value">{{ quantity }}</span>
-                <button class="sb-quantity-btn" @click="incrementQty" :disabled="isPhysical && quantity >= maxStock">+</button>
+            <!-- Already in cart: show quantity controls -->
+            <template v-if="inCart">
+              <div class="sb-quantity-row sb-mb-2">
+                <div class="sb-quantity">
+                  <button class="sb-quantity-btn" @click="handleDecrement">-</button>
+                  <span class="sb-quantity-value">{{ inCartQty }}</span>
+                  <button class="sb-quantity-btn" @click="handleIncrement" :disabled="isPhysical && inCartQty >= maxStock">+</button>
+                </div>
+                <span class="sb-detail-total">{{ formatPrice(product.price * inCartQty) }}</span>
               </div>
-              <span class="sb-detail-total">{{ formatPrice(product.price * quantity) }}</span>
-            </div>
-
-            <button
-              class="sb-btn sb-btn-primary sb-btn-block"
-              :disabled="isOutOfStock || !canAddMore"
-              @click="handleAddToCart"
-            >
-              <template v-if="addedToCart">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <p class="sb-detail-in-cart">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                Добавлено!
-              </template>
-              <template v-else-if="isOutOfStock">
-                Нет в наличии
-              </template>
-              <template v-else>
-                В корзину
-              </template>
-            </button>
+                В корзине: {{ inCartQty }} шт. на {{ formatPrice(product.price * inCartQty) }}
+              </p>
+            </template>
 
-            <p v-if="inCartQty > 0 && !addedToCart" class="sb-detail-in-cart">
-              Уже в корзине: {{ inCartQty }} шт.
-            </p>
+            <!-- Not in cart: add button -->
+            <template v-else>
+              <button
+                class="sb-btn sb-btn-primary sb-btn-block"
+                :disabled="isOutOfStock"
+                @click="handleAddToCart"
+              >
+                {{ isOutOfStock ? 'Нет в наличии' : 'В корзину' }}
+              </button>
+            </template>
           </template>
         </div>
       </div>
