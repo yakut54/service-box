@@ -30,6 +30,10 @@ class SetShopFromAuth
         TenantService::setContext($shop);
         $request->attributes->set('shop', $shop);
 
-        return $next($request);
+        $response = $next($request);
+
+        TenantService::resetContext();
+
+        return $response;
     }
 }

@@ -23,7 +23,11 @@ const digitalDetails = ref({ delivery_type: 'download', access_days: null as num
 const serviceDetails = ref({ duration_minutes: 60, max_concurrent: 1 })
 
 onMounted(async () => {
-  await productsStore.fetchProducts()
+  try {
+    await productsStore.fetchProducts()
+  } catch {
+    // Категории не загрузились — не критично, продолжаем
+  }
   if (isEditing.value) {
     loading.value = true
     try {
