@@ -90,8 +90,9 @@ class ProductController extends Controller
      *
      * GET /api/admin/products/{product}
      */
-    public function show(Product $product): JsonResponse
+    public function show(string $product): JsonResponse
     {
+        $product = Product::findOrFail($product);
         $product->loadDetails();
 
         return response()->json([
@@ -104,8 +105,10 @@ class ProductController extends Controller
      *
      * PUT /api/admin/products/{product}
      */
-    public function update(UpdateProductRequest $request, Product $product): JsonResponse
+    public function update(UpdateProductRequest $request, string $product): JsonResponse
     {
+        $product = Product::findOrFail($product);
+
         $product->update($request->only([
             'type',
             'name',
@@ -133,8 +136,9 @@ class ProductController extends Controller
      *
      * DELETE /api/admin/products/{product}
      */
-    public function destroy(Product $product): JsonResponse
+    public function destroy(string $product): JsonResponse
     {
+        $product = Product::findOrFail($product);
         $product->delete();
 
         return response()->json([

@@ -37,7 +37,10 @@ onMounted(async () => {
       if (p.physical) physicalDetails.value = { sku: p.physical.sku || '', stock_quantity: p.physical.stock_quantity, weight_grams: p.physical.weight_grams }
       if (p.digital) digitalDetails.value = { delivery_type: p.digital.delivery_type, access_days: p.digital.access_days, download_url: p.digital.download_url || '' }
       if (p.service) serviceDetails.value = { duration_minutes: p.service.duration_minutes, max_concurrent: p.service.max_concurrent }
-    } catch { error.value = 'Товар не найден' }
+    } catch (e: any) {
+      console.error('ProductEdit load error:', e)
+      error.value = e?.message || 'Товар не найден'
+    }
     loading.value = false
   }
 })

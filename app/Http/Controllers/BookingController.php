@@ -108,9 +108,9 @@ class BookingController extends Controller
     /**
      * Get single booking
      */
-    public function show(Booking $booking): JsonResponse
+    public function show(string $booking): JsonResponse
     {
-        $booking->load(['service', 'master', 'customer']);
+        $booking = Booking::with(['service', 'master', 'customer'])->findOrFail($booking);
 
         return response()->json([
             'data' => $booking,
@@ -122,8 +122,9 @@ class BookingController extends Controller
      *
      * PATCH /api/admin/bookings/{booking}/status
      */
-    public function updateStatus(Request $request, Booking $booking): JsonResponse
+    public function updateStatus(Request $request, string $booking): JsonResponse
     {
+        $booking = Booking::findOrFail($booking);
         $request->validate([
             'status' => 'required|in:pending,confirmed,completed,cancelled,no_show',
         ]);

@@ -37,8 +37,9 @@ class CustomerController extends Controller
     /**
      * Get single customer with orders
      */
-    public function show(Customer $customer): JsonResponse
+    public function show(string $customer): JsonResponse
     {
+        $customer = Customer::findOrFail($customer);
         $customer->load(['orders' => function ($q) {
             $q->with('items')->latest('created_at');
         }]);

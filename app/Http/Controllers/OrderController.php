@@ -105,9 +105,9 @@ class OrderController extends Controller
     /**
      * Get single order
      */
-    public function show(Order $order): JsonResponse
+    public function show(string $order): JsonResponse
     {
-        $order->load(['items.product', 'customer']);
+        $order = Order::with(['items.product', 'customer'])->findOrFail($order);
 
         return response()->json([
             'data' => $order,
@@ -119,8 +119,9 @@ class OrderController extends Controller
      *
      * PATCH /api/admin/orders/{order}/status
      */
-    public function updateStatus(Request $request, Order $order): JsonResponse
+    public function updateStatus(Request $request, string $order): JsonResponse
     {
+        $order = Order::with('items.product')->findOrFail($order);
         $request->validate([
             'status' => 'required|in:pending,paid,processing,completed,cancelled',
         ]);
