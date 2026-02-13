@@ -3,6 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -47,4 +49,13 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
 
     // Products
     Route::apiResource('products', ProductController::class);
+
+    // Orders
+    Route::get('/orders/stats', [OrderController::class, 'stats']);
+    Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);
+    Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
+
+    // Customers
+    Route::get('/customers', [CustomerController::class, 'index']);
+    Route::get('/customers/{customer}', [CustomerController::class, 'show']);
 });
