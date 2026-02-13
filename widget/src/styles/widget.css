@@ -50,7 +50,31 @@
   font-family: inherit;
   cursor: pointer;
   border: none;
-  background: none;
+  background: transparent;
+}
+
+.sb-widget button.sb-btn-primary {
+  background: var(--sb-primary);
+  color: #fff;
+}
+
+.sb-widget button.sb-btn-primary:hover {
+  background: var(--sb-primary-hover);
+}
+
+.sb-widget button.sb-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sb-widget button.sb-btn-secondary {
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  border: 1px solid var(--sb-border);
+}
+
+.sb-widget button.sb-btn-secondary:hover {
+  background: var(--sb-bg-muted);
 }
 
 .sb-widget input,
