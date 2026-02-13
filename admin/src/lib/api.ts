@@ -49,9 +49,9 @@ class ApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Unknown error' }))
 
-      if (response.status === 401) {
+      // Auto-clear token on 401 (but don't redirect — let the router guard handle it)
+      if (response.status === 401 && this.token) {
         this.setToken(null)
-        window.location.href = '/login'
       }
 
       throw new ApiError(response.status, error.message || 'Request failed')
