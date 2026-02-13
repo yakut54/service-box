@@ -43,6 +43,27 @@ Route::prefix('auth')->group(function () {
 });
 
 // ============================================================================
+// WIDGET API (Public, X-Shop-ID header, no auth)
+// ============================================================================
+Route::prefix('widget')->middleware('tenant')->group(function () {
+    // Shop info
+    Route::get('/shop', [ShopController::class, 'getPublicInfo']);
+
+    // Products (read-only)
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/{product}', [ProductController::class, 'show']);
+
+    // Orders (widget can create orders)
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
+
+    // Bookings (widget can create bookings)
+    Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+});
+
+// ============================================================================
 // ADMIN API (Bearer token + Shop context + Subscription check)
 // ============================================================================
 Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription'])->group(function () {
@@ -67,12 +88,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::apiResource('bookings', BookingController::class)->only(['index', 'store', 'show']);
     Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
 
-    // Subscription
+});
+
+// Subscription & Telegram (no subscription check — accessible even when expired)
+Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop'])->group(function () {
     Route::get('/subscription', [PaymentController::class, 'getSubscriptionInfo']);
     Route::get('/subscription/payments', [PaymentController::class, 'getPaymentHistory']);
     Route::post('/subscription/create-payment', [PaymentController::class, 'createSubscriptionPayment']);
 
-    // Telegram
     Route::post('/telegram/generate-code', [TelegramController::class, 'generateCode']);
     Route::get('/telegram/status', [TelegramController::class, 'status']);
     Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect']);
