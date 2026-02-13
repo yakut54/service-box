@@ -483,6 +483,11 @@
   flex-direction: column;
   overflow: hidden;
   padding: 0;
+  height: 100%;
+}
+
+.sb-grid .sb-product-card {
+  min-height: 0;
 }
 
 .sb-product-image {
@@ -509,7 +514,6 @@
 
 .sb-product-body {
   padding: 12px 16px 8px;
-  flex: 1;
   cursor: pointer;
 }
 
