@@ -59,7 +59,7 @@ const buttonLabel = computed(() => {
     </div>
 
     <button
-      class="sb-btn sb-btn-primary sb-btn-block sb-product-btn"
+      class="sb-btn sb-btn-primary sb-product-btn"
       :disabled="isOutOfStock"
       @click="emit('select', product)"
     >
