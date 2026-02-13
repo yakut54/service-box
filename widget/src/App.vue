@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useShopStore } from '@/stores/shop'
+import Catalog from '@/components/Catalog.vue'
 
 type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'cart' | 'checkout' | 'success'
 
 const shopStore = useShopStore()
 const currentView = ref<WidgetView>('loading')
 const widgetEl = ref<HTMLElement | null>(null)
+const selectedProduct = ref<any>(null)
 
 onMounted(async () => {
   await shopStore.loadConfig()
@@ -25,8 +27,10 @@ watch(() => shopStore.shop, () => {
   }
 })
 
-function formatPrice(kopecks: number): string {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
+function handleProductSelect(product: any) {
+  selectedProduct.value = product
+  // W3: add to cart for physical/digital
+  // W4: navigate to booking for services
 }
 
 function navigate(view: WidgetView) {
@@ -47,7 +51,7 @@ function navigate(view: WidgetView) {
       <span class="sb-shop-name">{{ shopStore.shop?.name }}</span>
     </header>
 
-    <!-- Loading state -->
+    <!-- Loading state (shop config loading) -->
     <div v-if="currentView === 'loading'" class="sb-content">
       <div class="sb-header">
         <div class="sb-skeleton" style="width: 36px; height: 36px; border-radius: 50%;"></div>
@@ -59,13 +63,13 @@ function navigate(view: WidgetView) {
             <div class="sb-skeleton sb-skeleton-image"></div>
             <div class="sb-skeleton sb-skeleton-title"></div>
             <div class="sb-skeleton sb-skeleton-text" style="width: 40%;"></div>
-            <div class="sb-skeleton sb-skeleton-btn" style="margin-top: 12px;"></div>
+            <div class="sb-skeleton sb-skeleton-btn" style="margin-top: 12px; width: 100%;"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Error state -->
+    <!-- Error state (shop not found) -->
     <div v-else-if="currentView === 'error'" class="sb-content">
       <div class="sb-empty">
         <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,15 +83,9 @@ function navigate(view: WidgetView) {
       </div>
     </div>
 
-    <!-- Catalog (placeholder — full implementation in W2) -->
+    <!-- Catalog -->
     <div v-else-if="currentView === 'catalog'" class="sb-content">
-      <div class="sb-empty">
-        <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
-        <p class="sb-empty-title">Каталог</p>
-        <p class="sb-empty-text">Виджет подключён к магазину «{{ shopStore.shop?.name }}». Каталог товаров появится в следующем обновлении.</p>
-      </div>
+      <Catalog @select="handleProductSelect" />
     </div>
   </div>
 </template>
