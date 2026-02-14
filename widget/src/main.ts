@@ -2,7 +2,7 @@ import { createApp, type App as VueApp } from 'vue'
 import { createPinia } from 'pinia'
 import AppComponent from './App.vue'
 import { useShopStore } from './stores/shop'
-import './styles/widget.css'
+import widgetCss from './styles/widget.css?inline'
 
 interface WidgetOptions {
   shopId: string
@@ -45,6 +45,18 @@ function init(options: WidgetOptions | string): WidgetInstance {
     document.body.appendChild(container)
   }
 
+  // Create Shadow DOM for style isolation
+  const shadow = container.attachShadow({ mode: 'open' })
+
+  // Inject styles into shadow root
+  const style = document.createElement('style')
+  style.textContent = widgetCss
+  shadow.appendChild(style)
+
+  // Create mount point inside shadow
+  const mountEl = document.createElement('div')
+  shadow.appendChild(mountEl)
+
   // Create Vue app
   const app = createApp(AppComponent)
   const pinia = createPinia()
@@ -55,7 +67,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
   shopStore.shopId = opts.shopId
   shopStore.apiUrl = apiUrl
 
-  app.mount(container)
+  app.mount(mountEl)
 
   return {
     app,
