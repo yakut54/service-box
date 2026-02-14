@@ -38,9 +38,14 @@ watch(() => shopStore.shop, () => {
   }
 })
 
+function scrollToTop() {
+  widgetEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 function handleProductSelect(product: any) {
   selectedProduct.value = product
   currentView.value = 'product'
+  scrollToTop()
 }
 
 const previousView = ref<WidgetView>('catalog')
@@ -48,29 +53,35 @@ const previousView = ref<WidgetView>('catalog')
 function handleBack() {
   currentView.value = 'catalog'
   selectedProduct.value = null
+  scrollToTop()
 }
 
 function handleCartBack() {
   currentView.value = previousView.value
+  scrollToTop()
 }
 
 function handleBooking(product: any) {
   selectedProduct.value = product
   currentView.value = 'booking'
+  scrollToTop()
 }
 
 function handleOrderSuccess(order: any) {
   completedOrder.value = order
   currentView.value = 'success'
+  scrollToTop()
 }
 
 function handleBookingSuccess(booking: any) {
   completedBooking.value = booking
   currentView.value = 'booking-success'
+  scrollToTop()
 }
 
 function navigate(view: WidgetView) {
   currentView.value = view
+  scrollToTop()
 }
 </script>
 
