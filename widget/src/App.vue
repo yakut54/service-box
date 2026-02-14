@@ -7,8 +7,10 @@ import ProductDetail from '@/components/ProductDetail.vue'
 import Cart from '@/components/Cart.vue'
 import Checkout from '@/components/Checkout.vue'
 import OrderSuccess from '@/components/OrderSuccess.vue'
+import BookingCalendar from '@/components/BookingCalendar.vue'
+import BookingSuccess from '@/components/BookingSuccess.vue'
 
-type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'cart' | 'checkout' | 'success'
+type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'booking-success' | 'cart' | 'checkout' | 'success'
 
 const shopStore = useShopStore()
 const cartStore = useCartStore()
@@ -16,6 +18,7 @@ const currentView = ref<WidgetView>('loading')
 const widgetEl = ref<HTMLElement | null>(null)
 const selectedProduct = ref<any>(null)
 const completedOrder = ref<any>(null)
+const completedBooking = ref<any>(null)
 
 onMounted(async () => {
   cartStore.init(shopStore.shopId)
@@ -59,6 +62,11 @@ function handleBooking(product: any) {
 function handleOrderSuccess(order: any) {
   completedOrder.value = order
   currentView.value = 'success'
+}
+
+function handleBookingSuccess(booking: any) {
+  completedBooking.value = booking
+  currentView.value = 'booking-success'
 }
 
 function navigate(view: WidgetView) {
@@ -134,6 +142,24 @@ function navigate(view: WidgetView) {
         :product="selectedProduct"
         @back="handleBack"
         @booking="handleBooking"
+      />
+    </div>
+
+    <!-- Booking Calendar -->
+    <div v-else-if="currentView === 'booking' && selectedProduct" class="sb-content">
+      <BookingCalendar
+        :product="selectedProduct"
+        @back="handleBack"
+        @success="handleBookingSuccess"
+      />
+    </div>
+
+    <!-- Booking Success -->
+    <div v-else-if="currentView === 'booking-success'" class="sb-content">
+      <BookingSuccess
+        :booking="completedBooking"
+        :product="selectedProduct"
+        @back="navigate('catalog')"
       />
     </div>
 
