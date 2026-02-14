@@ -57,7 +57,12 @@ function handleBack() {
 }
 
 function handleCartBack() {
-  currentView.value = previousView.value
+  // If cart is empty, always go to catalog (not back to checkout)
+  if (cartStore.isEmpty) {
+    currentView.value = 'catalog'
+  } else {
+    currentView.value = previousView.value
+  }
   scrollToTop()
 }
 
