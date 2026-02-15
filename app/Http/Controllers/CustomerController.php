@@ -40,9 +40,14 @@ class CustomerController extends Controller
     public function show(string $customer): JsonResponse
     {
         $customer = Customer::findOrFail($customer);
-        $customer->load(['orders' => function ($q) {
-            $q->with('items')->latest('created_at');
-        }]);
+        $customer->load([
+            'orders' => function ($q) {
+                $q->with('items')->latest('created_at');
+            },
+            'bookings' => function ($q) {
+                $q->with(['service', 'master'])->latest('start_time');
+            },
+        ]);
 
         return response()->json([
             'data' => $customer,

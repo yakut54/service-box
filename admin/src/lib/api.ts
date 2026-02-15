@@ -218,6 +218,10 @@ class ApiClient {
     return this.request<any>(`/admin/bookings/available-slots?${query}`)
   }
 
+  async getMasters() {
+    return this.request<{ data: any[] }>('/admin/bookings/masters')
+  }
+
   // ==========================================
   // SUBSCRIPTION
   // ==========================================

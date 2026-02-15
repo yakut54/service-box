@@ -4,7 +4,14 @@ import { useShopStore } from '@/stores/shop'
 import { debounce } from '@/lib/utils'
 import ProductCard from './ProductCard.vue'
 
-const emit = defineEmits<{ select: [product: any] }>()
+const props = defineProps<{
+  activeCategory?: string
+}>()
+
+const emit = defineEmits<{
+  select: [product: any]
+  'categories-loaded': [categories: string[]]
+}>()
 
 const shopStore = useShopStore()
 const products = ref<any[]>([])
@@ -70,6 +77,18 @@ onMounted(async () => {
   }
   loading.value = false
 })
+
+// Watch activeCategory prop from sidebar
+watch(() => props.activeCategory, (cat) => {
+  if (cat !== undefined) {
+    filterCategory.value = cat
+  }
+})
+
+// Emit categories to parent (for sidebar) when products load
+watch(categories, (cats) => {
+  emit('categories-loaded', cats)
+}, { immediate: true })
 
 const onSearchInput = debounce(() => {
   // Local filtering — no API call needed

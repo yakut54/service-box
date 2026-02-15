@@ -1,0 +1,295 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useShopStore } from '@/stores/shop'
+import { formatPrice, formatPhone, cleanPhone, isPhoneValid } from '@/lib/utils'
+
+const emit = defineEmits<{ back: [] }>()
+
+const shopStore = useShopStore()
+const orders = ref<any[]>([])
+const loading = ref(false)
+const phone = ref('')
+const searched = ref(false)
+const error = ref('')
+
+// OTP state
+type Step = 'phone' | 'code' | 'results'
+const step = ref<Step>('phone')
+const otpCode = ref('')
+const otpSending = ref(false)
+const otpError = ref('')
+const devCode = ref('')
+const phoneToken = ref('')
+
+const PHONE_KEY = 'sb-customer-phone'
+const TOKEN_KEY = 'sb-phone-token'
+
+const statusLabels: Record<string, string> = {
+  pending: 'Ожидает',
+  paid: 'Оплачен',
+  processing: 'В работе',
+  completed: 'Завершён',
+  cancelled: 'Отменён',
+}
+
+const statusBadge: Record<string, string> = {
+  pending: 'sb-badge-warning',
+  paid: 'sb-badge-success',
+  processing: 'sb-badge-info',
+  completed: 'sb-badge-success',
+  cancelled: 'sb-badge-danger',
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+const phoneValid = ref(false)
+
+function onPhoneInput(e: Event) {
+  const input = e.target as HTMLInputElement
+  const cursor = input.selectionStart ?? 0
+  const oldLen = input.value.length
+  phone.value = formatPhone(input.value)
+  phoneValid.value = isPhoneValid(phone.value)
+  const newLen = phone.value.length
+  const pos = Math.max(0, cursor + (newLen - oldLen))
+  requestAnimationFrame(() => input.setSelectionRange(pos, pos))
+}
+
+function rawPhone(): string {
+  return '+' + cleanPhone(phone.value)
+}
+
+// Check for existing valid token on mount
+onMounted(() => {
+  const saved = localStorage.getItem(`${PHONE_KEY}:${shopStore.shopId}`)
+  const savedToken = localStorage.getItem(`${TOKEN_KEY}:${shopStore.shopId}`)
+
+  if (saved) {
+    phone.value = formatPhone(saved)
+    phoneValid.value = isPhoneValid(phone.value)
+  }
+
+  if (saved && savedToken) {
+    phoneToken.value = savedToken
+    step.value = 'results'
+    loadOrders()
+  }
+})
+
+async function requestCode() {
+  if (!isPhoneValid(phone.value)) return
+
+  otpSending.value = true
+  otpError.value = ''
+  devCode.value = ''
+
+  try {
+    const resp = await shopStore.getApi().requestPhoneCode(rawPhone())
+    devCode.value = resp._dev_code || ''
+    step.value = 'code'
+    otpCode.value = ''
+  } catch (e: any) {
+    otpError.value = e.message || 'Не удалось отправить код'
+  }
+  otpSending.value = false
+}
+
+async function verifyCode() {
+  if (otpCode.value.length !== 4) return
+
+  otpSending.value = true
+  otpError.value = ''
+
+  try {
+    const resp = await shopStore.getApi().verifyPhoneCode(rawPhone(), otpCode.value)
+    phoneToken.value = resp.token
+
+    // Save for reuse
+    localStorage.setItem(`${PHONE_KEY}:${shopStore.shopId}`, rawPhone())
+    localStorage.setItem(`${TOKEN_KEY}:${shopStore.shopId}`, resp.token)
+
+    step.value = 'results'
+    loadOrders()
+  } catch (e: any) {
+    otpError.value = e.message || 'Неверный код'
+  }
+  otpSending.value = false
+}
+
+async function loadOrders() {
+  loading.value = true
+  error.value = ''
+  searched.value = true
+
+  try {
+    const resp = await shopStore.getApi().getOrdersByPhone(rawPhone(), phoneToken.value)
+    orders.value = resp.data
+  } catch (e: any) {
+    if (e.status === 401) {
+      // Token expired — go back to phone step
+      phoneToken.value = ''
+      localStorage.removeItem(`${TOKEN_KEY}:${shopStore.shopId}`)
+      step.value = 'phone'
+      error.value = 'Сессия истекла. Подтвердите телефон заново.'
+    } else {
+      error.value = e.message || 'Ошибка загрузки'
+    }
+  }
+  loading.value = false
+}
+
+function resetPhone() {
+  step.value = 'phone'
+  phoneToken.value = ''
+  orders.value = []
+  searched.value = false
+  error.value = ''
+  otpError.value = ''
+  localStorage.removeItem(`${TOKEN_KEY}:${shopStore.shopId}`)
+}
+</script>
+
+<template>
+  <div>
+    <div class="sb-flex sb-items-center sb-gap-3 sb-mb-4">
+      <button class="sb-btn sb-btn-ghost" @click="emit('back')">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <h2 class="sb-title" style="margin-bottom: 0;">Мои заказы</h2>
+    </div>
+
+    <!-- Step 1: Phone input -->
+    <div v-if="step === 'phone'" class="sb-card sb-mb-4">
+      <p class="sb-subtitle sb-mb-2">Введите номер телефона, чтобы найти свои заказы</p>
+      <div class="sb-flex sb-gap-2">
+        <div class="sb-field-wrap" style="flex: 1;">
+          <input
+            :value="phone"
+            type="tel"
+            class="sb-input"
+            :class="{ 'sb-input-success': phoneValid }"
+            placeholder="+7 (___) ___-__-__"
+            @input="onPhoneInput"
+            @keyup.enter="requestCode"
+          />
+          <svg v-if="phoneValid" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </div>
+        <button class="sb-btn sb-btn-primary" @click="requestCode" :disabled="otpSending || !phoneValid">
+          {{ otpSending ? '...' : 'Получить код' }}
+        </button>
+      </div>
+      <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
+      <p v-if="error" class="sb-error-text sb-mt-2">{{ error }}</p>
+      <p style="font-size: 12px; color: var(--sb-text-muted); margin-top: 8px;">
+        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; vertical-align: -1px; margin-right: 4px;">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        Мы отправим SMS-код для подтверждения
+      </p>
+    </div>
+
+    <!-- Step 2: OTP code input -->
+    <div v-else-if="step === 'code'" class="sb-card sb-mb-4">
+      <p style="font-size: 15px; font-weight: 600; color: var(--sb-text); margin-bottom: 4px;">Введите код подтверждения</p>
+      <p class="sb-subtitle sb-mb-4">Код отправлен на {{ phone }}</p>
+
+      <!-- Dev code hint -->
+      <div v-if="devCode" style="padding: 8px 12px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--sb-radius); margin-bottom: 12px; font-size: 13px; color: var(--sb-warning);">
+        DEV: код — <strong>{{ devCode }}</strong>
+      </div>
+
+      <div class="sb-flex sb-gap-2">
+        <input
+          v-model="otpCode"
+          type="text"
+          inputmode="numeric"
+          maxlength="4"
+          class="sb-input"
+          :class="{ 'sb-input-success': otpCode.length === 4 }"
+          placeholder="0000"
+          style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: 700; max-width: 180px;"
+          @keyup.enter="verifyCode"
+        />
+        <button class="sb-btn sb-btn-primary" @click="verifyCode" :disabled="otpSending || otpCode.length !== 4">
+          {{ otpSending ? '...' : 'Подтвердить' }}
+        </button>
+      </div>
+      <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
+      <div class="sb-flex sb-items-center sb-gap-3 sb-mt-4">
+        <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="requestCode" :disabled="otpSending">
+          Отправить повторно
+        </button>
+        <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="step = 'phone'">
+          Изменить номер
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Results -->
+    <template v-else-if="step === 'results'">
+      <!-- Verified phone bar -->
+      <div class="sb-card sb-mb-4" style="padding: 12px 16px;">
+        <div class="sb-flex sb-items-center sb-justify-between">
+          <div class="sb-flex sb-items-center sb-gap-2">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--sb-success);">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <span style="font-size: 14px; color: var(--sb-text);">{{ phone }}</span>
+            <span class="sb-badge sb-badge-success" style="font-size: 11px;">Подтверждён</span>
+          </div>
+          <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 12px;" @click="resetPhone">
+            Сменить
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loading" class="sb-empty">
+        <div class="sb-skeleton" style="width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 16px;"></div>
+        <p class="sb-empty-text">Загрузка заказов...</p>
+      </div>
+
+      <!-- Error -->
+      <div v-else-if="error" class="sb-empty">
+        <p class="sb-empty-title">Ошибка</p>
+        <p class="sb-empty-text">{{ error }}</p>
+      </div>
+
+      <!-- No orders -->
+      <div v-else-if="searched && orders.length === 0" class="sb-empty">
+        <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        <p class="sb-empty-title">Заказов не найдено</p>
+        <p class="sb-empty-text">По этому номеру телефона заказов пока нет</p>
+      </div>
+
+      <!-- Orders list -->
+      <div v-else-if="orders.length > 0" class="sb-flex sb-flex-col sb-gap-3">
+        <div v-for="order in orders" :key="order.id" class="sb-card">
+          <div class="sb-flex sb-items-center sb-justify-between sb-mb-2">
+            <span style="font-size: 14px; font-weight: 600; color: var(--sb-text);">#{{ order.id?.slice(0, 8) }}</span>
+            <span :class="['sb-badge', statusBadge[order.status] || 'sb-badge-info']">{{ statusLabels[order.status] || order.status }}</span>
+          </div>
+
+          <!-- Items -->
+          <div v-if="order.items?.length" style="margin-bottom: 8px;">
+            <div v-for="item in order.items" :key="item.id" class="sb-flex sb-justify-between sb-items-center" style="padding: 4px 0; font-size: 14px;">
+              <span style="color: var(--sb-text);">{{ item.product_name }} <span style="color: var(--sb-text-muted);">&times;{{ item.quantity }}</span></span>
+              <span style="font-weight: 500; color: var(--sb-text);">{{ formatPrice(item.price * item.quantity) }}</span>
+            </div>
+          </div>
+
+          <hr class="sb-divider" />
+
+          <div class="sb-flex sb-justify-between sb-items-center">
+            <span class="sb-subtitle">{{ formatDate(order.created_at) }}</span>
+            <span class="sb-price">{{ formatPrice(order.total_price) }}</span>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>

@@ -36,6 +36,11 @@ class Customer extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
     public function getTotalSpentRublesAttribute(): float
     {
         return $this->total_spent / 100;

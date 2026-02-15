@@ -204,6 +204,57 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Widget: get bookings by customer phone
+     *
+     * GET /api/widget/bookings?phone=xxx
+     */
+    public function widgetBookingsByPhone(Request $request): JsonResponse
+    {
+        // Phone comes from verified token (injected by VerifyPhoneToken middleware)
+        $phone = $request->verified_phone ?? $request->phone;
+
+        $bookings = Booking::with(['service', 'master'])
+            ->where('customer_phone', $phone)
+            ->latest('start_time')
+            ->limit(50)
+            ->get()
+            ->map(function ($booking) {
+                // Strip sensitive data for widget display
+                return [
+                    'id' => $booking->id,
+                    'status' => $booking->status,
+                    'start_time' => $booking->start_time,
+                    'end_time' => $booking->end_time,
+                    'notes' => $booking->notes,
+                    'service' => $booking->service ? [
+                        'id' => $booking->service->id,
+                        'name' => $booking->service->name,
+                    ] : null,
+                    'master' => $booking->master ? [
+                        'id' => $booking->master->id,
+                        'name' => $booking->master->name,
+                    ] : null,
+                ];
+            });
+
+        return response()->json([
+            'data' => $bookings,
+        ]);
+    }
+
+    /**
+     * Get list of active masters
+     */
+    public function masters(): JsonResponse
+    {
+        $masters = Master::active()->orderBy('sort_order')->get();
+
+        return response()->json([
+            'data' => $masters,
+        ]);
+    }
+
     protected function findAvailableMaster(Carbon $startTime, Carbon $endTime): ?string
     {
         $masters = Master::active()->get();

@@ -92,4 +92,34 @@ export class WidgetApi {
   async getBooking(id: string) {
     return this.request<{ data: any }>(`/widget/bookings/${id}`)
   }
+
+  // Phone verification (OTP)
+  async requestPhoneCode(phone: string) {
+    return this.request<{ message: string; masked_phone: string; expires_in: number; _dev_code?: string }>('/widget/phone/request-code', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    })
+  }
+
+  async verifyPhoneCode(phone: string, code: string) {
+    return this.request<{ message: string; token: string; expires_in: number }>('/widget/phone/verify', {
+      method: 'POST',
+      body: JSON.stringify({ phone, code }),
+    })
+  }
+
+  // Customer history (by phone, requires verified token)
+  async getOrdersByPhone(phone: string, token: string) {
+    const query = new URLSearchParams({ phone }).toString()
+    return this.request<{ data: any[] }>(`/widget/orders?${query}`, {
+      headers: { 'X-Phone-Token': token },
+    })
+  }
+
+  async getBookingsByPhone(phone: string, token: string) {
+    const query = new URLSearchParams({ phone }).toString()
+    return this.request<{ data: any[] }>(`/widget/bookings?${query}`, {
+      headers: { 'X-Phone-Token': token },
+    })
+  }
 }
