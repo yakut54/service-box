@@ -26,8 +26,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /var/www/servicebox
-            git pull
+            cd /var/www/servicebox || mkdir -p /var/www/servicebox && cd /var/www/servicebox
             docker compose pull
             docker compose build
             docker compose up -d
