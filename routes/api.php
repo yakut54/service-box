@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
-        'service' => 'ServiceBox API',
+        'service' => 'ServiceBox API v2', // ← тут меняем
         'timestamp' => now()->toIso8601String(),
         'database' => \DB::connection()->getDatabaseName(),
     ]);
