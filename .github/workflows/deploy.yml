@@ -18,6 +18,18 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 31.128.39.216
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "./"
+          target: "/var/www/servicebox"
+          rm: true
+          overwrite: true
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -26,7 +38,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /var/www/servicebox || mkdir -p /var/www/servicebox && cd /var/www/servicebox
+            cd /var/www/servicebox
             docker compose pull
             docker compose build
             docker compose up -d
