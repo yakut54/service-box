@@ -13,9 +13,14 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API + WEB Routes
 |--------------------------------------------------------------------------
 */
+
+// Главная страница (временная заглушка)
+Route::get('/', function () {
+    return view('welcome');
+});
 
 // Health Check
 Route::get('/health', function () {
@@ -100,7 +105,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::get('/bookings/masters', [BookingController::class, 'masters']);
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
     Route::apiResource('bookings', BookingController::class)->only(['index', 'store', 'show']);
-    Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);
+    Route::patch('/bookings/{booking}', [BookingController::class, 'updateStatus']);
 
 });
 
