@@ -62,6 +62,11 @@ const router = createRouter({
           component: () => import('@/views/CustomersView.vue'),
         },
         {
+          path: 'customers/:id',
+          name: 'customer-detail',
+          component: () => import('@/views/CustomerDetailView.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),

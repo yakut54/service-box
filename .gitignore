@@ -1,5 +1,7 @@
 /vendor/
 /node_modules/
+widget/node_modules/
+admin/node_modules/
 /.env
 /storage/*.key
 /storage/framework/cache/data/*
@@ -19,3 +21,7 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+nul
+admin/dist/
+.phpstorm.meta.php
+_ide_helper.php

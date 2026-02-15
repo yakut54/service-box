@@ -8,6 +8,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TelegramController;
+use App\Http\Controllers\WidgetPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,6 +62,18 @@ Route::prefix('widget')->middleware('tenant')->group(function () {
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+
+    // Phone verification (OTP)
+    Route::post('/phone/request-code', [WidgetPhoneVerificationController::class, 'requestCode'])
+        ->middleware('rate.phone');
+    Route::post('/phone/verify', [WidgetPhoneVerificationController::class, 'verify'])
+        ->middleware('rate.phone');
+
+    // Phone-protected lookups (require verified phone token)
+    Route::middleware('verify.phone')->group(function () {
+        Route::get('/orders', [OrderController::class, 'widgetOrdersByPhone']);
+        Route::get('/bookings', [BookingController::class, 'widgetBookingsByPhone']);
+    });
 });
 
 // ============================================================================
@@ -84,6 +97,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::get('/customers/{customer}', [CustomerController::class, 'show']);
 
     // Bookings
+    Route::get('/bookings/masters', [BookingController::class, 'masters']);
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
     Route::apiResource('bookings', BookingController::class)->only(['index', 'store', 'show']);
     Route::patch('/bookings/{booking}/status', [BookingController::class, 'updateStatus']);

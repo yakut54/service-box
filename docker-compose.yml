@@ -11,7 +11,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_KEY: base64:SoHc9GQtz6PjZUERJqeijXxjiTCBvlFR3mkr/u0UyD8=
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432

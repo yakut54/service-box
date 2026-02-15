@@ -7,8 +7,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         api: __DIR__.'/../routes/api.php',
-        apiPrefix: 'api',
         health: '/up',
+        apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware) {
         // CORS for frontend
@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify.telegram' => \App\Http\Middleware\VerifyTelegramWebhook::class,
             'verify.yookassa' => \App\Http\Middleware\VerifyYooKassaWebhook::class,
             'enforce.https' => \App\Http\Middleware\EnforceHttps::class,
+            'rate.phone' => \App\Http\Middleware\RateLimitPhoneLookup::class,
+            'verify.phone' => \App\Http\Middleware\VerifyPhoneToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

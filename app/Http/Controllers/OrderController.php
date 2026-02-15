@@ -150,6 +150,42 @@ class OrderController extends Controller
     }
 
     /**
+     * Widget: get orders by customer phone
+     *
+     * GET /api/widget/orders?phone=xxx
+     */
+    public function widgetOrdersByPhone(Request $request): JsonResponse
+    {
+        // Phone comes from verified token (injected by VerifyPhoneToken middleware)
+        $phone = $request->verified_phone ?? $request->phone;
+
+        $orders = Order::with('items')
+            ->where('customer_phone', $phone)
+            ->latest('created_at')
+            ->limit(50)
+            ->get()
+            ->map(function ($order) {
+                // Strip sensitive data for widget display
+                return [
+                    'id' => $order->id,
+                    'status' => $order->status,
+                    'total_price' => $order->total_price,
+                    'created_at' => $order->created_at,
+                    'items' => $order->items->map(fn ($item) => [
+                        'id' => $item->id,
+                        'product_name' => $item->product_name,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                    ]),
+                ];
+            });
+
+        return response()->json([
+            'data' => $orders,
+        ]);
+    }
+
+    /**
      * Get order statistics
      */
     public function stats(Request $request): JsonResponse

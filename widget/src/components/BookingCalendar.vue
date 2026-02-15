@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useShopStore } from '@/stores/shop'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, formatPhone, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
 
 const props = defineProps<{ product: any }>()
 const emit = defineEmits<{ back: []; success: [booking: any] }>()
@@ -31,6 +31,7 @@ const form = ref({
 })
 
 const formErrors = ref<Record<string, string>>({})
+const formTouched = ref<Record<string, boolean>>({})
 
 const durationMinutes = computed(() => props.product?.service?.duration_minutes ?? 60)
 
