@@ -209,39 +209,33 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside))
         </div>
 
         <!-- Day cells -->
-        <div class="grid grid-cols-7">
-          <button
+        <div class="grid grid-cols-7 gap-y-0.5">
+          <div
             v-for="(cell, i) in cells" :key="i"
-            type="button"
-            :disabled="isDisabled(cell.date)"
-            @click="selectDay(cell.date)"
-            :class="[
-              'relative flex items-center justify-center rounded-full text-[13px] font-medium',
-              'w-9 h-9 mx-auto transition-all duration-100',
-              // outside month
-              !cell.cur ? 'text-gray-300 dark:text-gray-700' : '',
-              // disabled
-              isDisabled(cell.date) ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
-              // SELECTED — filled circle
-              isSel(cell.date)
-                ? 'bg-primary-600 text-white shadow-md shadow-primary-500/40 scale-110 z-10'
-                : '',
-              // TODAY ring (not selected)
-              isToday(cell.date) && !isSel(cell.date)
-                ? 'ring-2 ring-primary-500 ring-offset-1 dark:ring-offset-gray-900'
-                : '',
-              // weekend tint (current month, not selected, not disabled)
-              cell.cur && isWeekend(cell.date) && !isSel(cell.date) && !isDisabled(cell.date)
-                ? 'text-rose-500 dark:text-rose-400'
-                : '',
-              // hover
-              !isSel(cell.date) && !isDisabled(cell.date)
-                ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                : '',
-            ]"
+            class="flex items-center justify-center"
           >
-            {{ cell.date.getDate() }}
-          </button>
+            <button
+              type="button"
+              :disabled="isDisabled(cell.date)"
+              @click="selectDay(cell.date)"
+              :class="[
+                'flex items-center justify-center rounded-full text-[13px] font-medium w-7 h-7 transition-all duration-100',
+                !cell.cur ? 'text-gray-300 dark:text-gray-700' : '',
+                isDisabled(cell.date) ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                isSel(cell.date)
+                  ? 'bg-primary-600 text-white'
+                  : isToday(cell.date)
+                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-bold'
+                    : cell.cur && isWeekend(cell.date) && !isDisabled(cell.date)
+                      ? 'text-rose-500 dark:text-rose-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      : !isDisabled(cell.date)
+                        ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                        : '',
+              ]"
+            >
+              {{ cell.date.getDate() }}
+            </button>
+          </div>
         </div>
 
         <!-- Footer -->
