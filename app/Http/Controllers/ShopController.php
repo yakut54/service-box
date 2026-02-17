@@ -64,19 +64,24 @@ class ShopController extends Controller
             ], 404);
         }
 
-        $shop->update($request->only([
-            'name',
-            'domain',
-            'widget_config',
-            'yookassa_shop_id',
-            'yookassa_secret_key',
-            'robokassa_login',
-            'robokassa_password1',
-            'robokassa_password2',
-            'payment_provider',
-            'telegram_bot_token',
-            'telegram_chat_id',
-        ]));
+        $validated = $request->validate([
+            'name'              => 'sometimes|string|max:255',
+            'domain'            => 'sometimes|nullable|string|max:255',
+            'widget_config'     => 'sometimes|array',
+            'yookassa_shop_id'  => 'sometimes|nullable|string',
+            'yookassa_secret_key' => 'sometimes|nullable|string',
+            'robokassa_login'   => 'sometimes|nullable|string',
+            'robokassa_password1' => 'sometimes|nullable|string',
+            'robokassa_password2' => 'sometimes|nullable|string',
+            'payment_provider'  => 'sometimes|nullable|string',
+            'telegram_bot_token' => 'sometimes|nullable|string',
+            'telegram_chat_id'  => 'sometimes|nullable|string',
+            'work_start'        => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
+            'work_end'          => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
+            'slot_duration'     => 'sometimes|integer|in:10,15,20,30,45,60',
+        ]);
+
+        $shop->update($validated);
 
         return response()->json($shop);
     }

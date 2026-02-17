@@ -7,6 +7,8 @@ use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Master;
 use App\Models\Product;
+use App\Models\Shop;
+use App\Services\TenantService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -168,9 +170,22 @@ class BookingController extends Controller
             ]);
         }
 
+        // Load shop work hours (from request attr for admin, or via TenantService for widget)
+        $shop = $request->attributes->get('shop');
+        if (!$shop && TenantService::getCurrentShopId()) {
+            $shop = Shop::find(TenantService::getCurrentShopId());
+        }
+
+        $workStartTime = $shop?->work_start ?? '09:00';
+        $workEndTime   = $shop?->work_end   ?? '20:00';
+        $slotStep      = $shop?->slot_duration ?? 30;
+
+        [$startH, $startM] = array_map('intval', explode(':', $workStartTime));
+        [$endH,   $endM]   = array_map('intval', explode(':', $workEndTime));
+
         $slots = [];
-        $workStart = $date->copy()->setTime(9, 0);
-        $workEnd = $date->copy()->setTime(20, 0);
+        $workStart = $date->copy()->setTime($startH, $startM);
+        $workEnd   = $date->copy()->setTime($endH, $endM);
 
         $current = $workStart->copy();
         while ($current->lessThan($workEnd)) {
@@ -192,7 +207,7 @@ class BookingController extends Controller
                 ];
             }
 
-            $current->addMinutes(30);
+            $current->addMinutes($slotStep);
         }
 
         return response()->json([

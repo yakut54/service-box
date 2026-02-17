@@ -30,12 +30,16 @@ class Shop extends Model
         'subscription_plan',
         'subscription_expires_at',
         'widget_config',
+        'work_start',
+        'work_end',
+        'slot_duration',
     ];
 
     protected $casts = [
         'telegram_bot_connected' => 'boolean',
         'subscription_expires_at' => 'datetime',
         'widget_config' => 'array',
+        'slot_duration' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

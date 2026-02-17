@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import CustomSelect from '@/components/CustomSelect.vue'
 
 const authStore = useAuthStore()
 
@@ -34,18 +35,72 @@ async function generateTelegramCode() {
   }
   generatingCode.value = false
 }
+
+// ── Work hours ───────────────────────────────────────────────
+const workStart = ref('09:00')
+const workEnd = ref('20:00')
+const slotDuration = ref(30)
+const savingHours = ref(false)
+const hoursSuccess = ref(false)
+const hoursError = ref('')
+
+const slotOptions = [
+  { value: 10, label: '10 минут' },
+  { value: 15, label: '15 минут' },
+  { value: 20, label: '20 минут' },
+  { value: 30, label: '30 минут' },
+  { value: 45, label: '45 минут' },
+  { value: 60, label: '1 час' },
+]
+
+onMounted(() => {
+  if (authStore.shop) {
+    workStart.value = authStore.shop.work_start || '09:00'
+    workEnd.value = authStore.shop.work_end || '20:00'
+    slotDuration.value = authStore.shop.slot_duration || 30
+  }
+})
+
+async function saveWorkHours() {
+  if (workStart.value >= workEnd.value) {
+    hoursError.value = 'Время начала должно быть раньше времени окончания'
+    return
+  }
+  savingHours.value = true
+  hoursError.value = ''
+  hoursSuccess.value = false
+  try {
+    const updated = await api.updateShop({
+      work_start: workStart.value,
+      work_end: workEnd.value,
+      slot_duration: slotDuration.value,
+    })
+    // Update store so values stay after save
+    if (authStore.shop) {
+      authStore.shop.work_start = updated.work_start
+      authStore.shop.work_end = updated.work_end
+      authStore.shop.slot_duration = updated.slot_duration
+    }
+    hoursSuccess.value = true
+    setTimeout(() => hoursSuccess.value = false, 3000)
+  } catch (e: any) {
+    hoursError.value = e.message || 'Ошибка сохранения'
+  } finally {
+    savingHours.value = false
+  }
+}
 </script>
 
 <template>
   <div class="max-w-2xl">
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Настройки</h1>
-      <p class="text-gray-500 mt-1">Управление магазином</p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Настройки</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-1">Управление магазином</p>
     </div>
 
     <!-- Shop info -->
     <div class="card mb-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Информация о магазине</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Информация о магазине</h2>
       <div class="space-y-4">
         <div>
           <label class="label">Название магазина</label>
@@ -58,10 +113,10 @@ async function generateTelegramCode() {
         <div>
           <label class="label">Тарифный план</label>
           <div class="flex items-center gap-3">
-            <span class="badge bg-primary-100 text-primary-800 text-sm px-3 py-1">
+            <span class="badge bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 text-sm px-3 py-1">
               {{ authStore.shop?.subscription_plan?.toUpperCase() || 'MICRO' }}
             </span>
-            <span class="text-sm text-gray-500">
+            <span class="text-sm text-gray-500 dark:text-gray-400">
               Действует до: {{ authStore.shop?.subscription_expires_at
                 ? new Date(authStore.shop.subscription_expires_at).toLocaleDateString('ru-RU')
                 : 'бессрочно' }}
@@ -73,8 +128,8 @@ async function generateTelegramCode() {
 
     <!-- Widget code -->
     <div class="card mb-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Код виджета</h2>
-      <p class="text-gray-500 text-sm mb-4">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Код виджета</h2>
+      <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">
         Скопируйте этот код и вставьте перед закрывающим тегом &lt;/body&gt; на вашем сайте:
       </p>
       <div class="relative">
@@ -94,25 +149,25 @@ async function generateTelegramCode() {
 
     <!-- Telegram -->
     <div class="card mb-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Telegram уведомления</h2>
-      <div v-if="authStore.shop?.telegram_bot_connected" class="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
-        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Telegram уведомления</h2>
+      <div v-if="authStore.shop?.telegram_bot_connected" class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
         <div>
-          <div class="font-medium text-green-800">Telegram подключён</div>
-          <div class="text-sm text-green-600">Вы будете получать уведомления о новых заказах</div>
+          <div class="font-medium text-green-800 dark:text-green-300">Telegram подключён</div>
+          <div class="text-sm text-green-600 dark:text-green-400">Вы будете получать уведомления о новых заказах</div>
         </div>
       </div>
       <div v-else class="space-y-4">
-        <p class="text-gray-500 text-sm">
+        <p class="text-gray-500 dark:text-gray-400 text-sm">
           Подключите Telegram для получения уведомлений о новых заказах и записях.
         </p>
-        <div v-if="telegramCode" class="p-4 bg-blue-50 rounded-lg">
-          <div class="text-sm text-blue-800 mb-2">1. Откройте бота <strong>@ServiceBoxBot</strong></div>
-          <div class="text-sm text-blue-800 mb-2">2. Отправьте команду /start</div>
-          <div class="text-sm text-blue-800">3. Введите код: <span class="font-mono font-bold text-lg">{{ telegramCode }}</span></div>
-          <div class="text-xs text-blue-600 mt-2">Код действителен 10 минут</div>
+        <div v-if="telegramCode" class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div class="text-sm text-blue-800 dark:text-blue-300 mb-2">1. Откройте бота <strong>@sb_widget_bot</strong></div>
+          <div class="text-sm text-blue-800 dark:text-blue-300 mb-2">2. Отправьте команду: <span class="font-mono">/start {{ telegramCode }}</span></div>
+          <div class="text-sm text-blue-800 dark:text-blue-300">3. Бот ответит подтверждением</div>
+          <div class="text-xs text-blue-600 dark:text-blue-400 mt-2">Код действителен 10 минут</div>
         </div>
         <button v-if="!telegramCode" @click="generateTelegramCode" :disabled="generatingCode" class="btn-primary">
           {{ generatingCode ? 'Генерация...' : 'Получить код подключения' }}
@@ -121,29 +176,62 @@ async function generateTelegramCode() {
       </div>
     </div>
 
+    <!-- Work hours -->
+    <div class="card mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Рабочие часы</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Время работы и шаг слотов для записи</p>
+
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="label">Начало рабочего дня</label>
+          <input v-model="workStart" type="time" class="input" />
+        </div>
+        <div>
+          <label class="label">Конец рабочего дня</label>
+          <input v-model="workEnd" type="time" class="input" />
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="label">Шаг слота (интервал записи)</label>
+        <select v-model.number="slotDuration" class="input">
+          <option v-for="opt in slotOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+
+      <div v-if="hoursError" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ hoursError }}</div>
+      <div v-if="hoursSuccess" class="mb-3 text-sm text-green-600 dark:text-green-400">Сохранено!</div>
+
+      <button @click="saveWorkHours" :disabled="savingHours" class="btn-primary">
+        {{ savingHours ? 'Сохранение...' : 'Сохранить' }}
+      </button>
+    </div>
+
     <!-- Payment settings -->
     <div class="card mb-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Платёжная система</h2>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Платёжная система</h2>
       <div class="space-y-4">
         <div>
           <label class="label">Провайдер</label>
-          <select class="input" disabled>
-            <option value="yookassa">YooKassa</option>
-          </select>
+          <CustomSelect
+            model-value="yookassa"
+            :options="[{ value: 'yookassa', label: 'YooKassa' }]"
+            disabled
+          />
         </div>
         <div v-if="authStore.shop?.yookassa_shop_id">
           <label class="label">Shop ID</label>
           <input type="text" :value="authStore.shop.yookassa_shop_id" class="input" disabled />
         </div>
-        <p class="text-sm text-gray-500">Для изменения платёжных настроек обратитесь в поддержку.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Для изменения платёжных настроек обратитесь в поддержку.</p>
       </div>
     </div>
 
     <!-- Widget customization -->
     <div class="card">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Внешний вид виджета</h2>
-      <div class="py-8 text-center text-gray-500">
-        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Внешний вид виджета</h2>
+      <div class="py-8 text-center text-gray-500 dark:text-gray-400">
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
         </svg>
