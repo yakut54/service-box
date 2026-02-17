@@ -50,16 +50,20 @@ class MasterController extends Controller
     /**
      * GET /api/admin/masters/{master}
      */
-    public function show(Master $master): JsonResponse
+    public function show(string $master): JsonResponse
     {
+        $master = Master::findOrFail($master);
+
         return response()->json(['data' => $master]);
     }
 
     /**
      * PUT /api/admin/masters/{master}
      */
-    public function update(Request $request, Master $master): JsonResponse
+    public function update(Request $request, string $master): JsonResponse
     {
+        $master = Master::findOrFail($master);
+
         $data = $request->validate([
             'name'           => 'sometimes|required|string|max:255',
             'phone'          => 'nullable|string|max:20',
@@ -78,8 +82,9 @@ class MasterController extends Controller
     /**
      * DELETE /api/admin/masters/{master}
      */
-    public function destroy(Master $master): JsonResponse
+    public function destroy(string $master): JsonResponse
     {
+        $master = Master::findOrFail($master);
         $master->delete();
 
         return response()->json(['message' => 'Мастер удалён'], 200);
