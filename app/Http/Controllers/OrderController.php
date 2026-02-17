@@ -190,21 +190,80 @@ class OrderController extends Controller
      */
     public function stats(Request $request): JsonResponse
     {
-        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
-        $dateTo = $request->input('date_to', now()->endOfMonth()->toDateString());
+        $period = $request->input('period', 'month');
+
+        $dateFrom = match ($period) {
+            'today' => now()->startOfDay()->toDateTimeString(),
+            'week'  => now()->startOfWeek()->toDateTimeString(),
+            default => now()->startOfMonth()->toDateTimeString(),
+        };
+        $dateTo = now()->toDateTimeString();
+
+        // Also get previous period for comparison
+        $prevFrom = match ($period) {
+            'today' => now()->subDay()->startOfDay()->toDateTimeString(),
+            'week'  => now()->subWeek()->startOfWeek()->toDateTimeString(),
+            default => now()->subMonth()->startOfMonth()->toDateTimeString(),
+        };
+        $prevTo = match ($period) {
+            'today' => now()->subDay()->endOfDay()->toDateTimeString(),
+            'week'  => now()->subWeek()->endOfWeek()->toDateTimeString(),
+            default => now()->subMonth()->endOfMonth()->toDateTimeString(),
+        };
 
         $baseQuery = Order::query()->whereBetween('created_at', [$dateFrom, $dateTo]);
+        $prevQuery = Order::query()->whereBetween('created_at', [$prevFrom, $prevTo]);
+
+        $revenue     = (clone $baseQuery)->where('status', '!=', 'cancelled')->sum('total_price');
+        $prevRevenue = (clone $prevQuery)->where('status', '!=', 'cancelled')->sum('total_price');
+        $orders      = (clone $baseQuery)->count();
+        $prevOrders  = (clone $prevQuery)->count();
 
         $stats = [
-            'total_orders' => (clone $baseQuery)->count(),
-            'total_revenue' => (clone $baseQuery)->where('status', '!=', 'cancelled')->sum('total_price'),
-            'pending_orders' => (clone $baseQuery)->where('status', 'pending')->count(),
-            'paid_orders' => (clone $baseQuery)->where('status', 'paid')->count(),
-            'completed_orders' => (clone $baseQuery)->where('status', 'completed')->count(),
-            'cancelled_orders' => (clone $baseQuery)->where('status', 'cancelled')->count(),
-            'average_order_value' => (clone $baseQuery)->where('status', '!=', 'cancelled')->avg('total_price'),
+            'total_orders'       => $orders,
+            'total_revenue'      => $revenue,
+            'pending_orders'     => (clone $baseQuery)->where('status', 'pending')->count(),
+            'paid_orders'        => (clone $baseQuery)->where('status', 'paid')->count(),
+            'completed_orders'   => (clone $baseQuery)->where('status', 'completed')->count(),
+            'cancelled_orders'   => (clone $baseQuery)->where('status', 'cancelled')->count(),
+            'average_order_value'=> (clone $baseQuery)->where('status', '!=', 'cancelled')->avg('total_price'),
+            'prev_revenue'       => $prevRevenue,
+            'prev_orders'        => $prevOrders,
         ];
 
         return response()->json($stats);
+    }
+
+    /**
+     * Get daily chart data for revenue + orders
+     *
+     * GET /api/admin/orders/chart?days=30
+     */
+    public function chart(Request $request): JsonResponse
+    {
+        $days = min((int) $request->input('days', 30), 90);
+        $from = now()->subDays($days - 1)->startOfDay();
+
+        $rows = Order::query()
+            ->selectRaw("DATE(created_at) as date, COUNT(*) as orders, SUM(CASE WHEN status != 'cancelled' THEN total_price ELSE 0 END) as revenue")
+            ->where('created_at', '>=', $from)
+            ->groupByRaw('DATE(created_at)')
+            ->orderBy('date')
+            ->get()
+            ->keyBy('date');
+
+        // Fill all days (including zero-data days)
+        $result = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = now()->subDays($i)->toDateString();
+            $row  = $rows->get($date);
+            $result[] = [
+                'date'    => $date,
+                'orders'  => $row ? (int) $row->orders : 0,
+                'revenue' => $row ? (int) $row->revenue : 0,
+            ];
+        }
+
+        return response()->json(['data' => $result]);
     }
 }

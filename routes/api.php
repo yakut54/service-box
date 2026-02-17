@@ -96,6 +96,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
 
     // Orders
     Route::get('/orders/stats', [OrderController::class, 'stats']);
+    Route::get('/orders/chart', [OrderController::class, 'chart']);
     Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);
     Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
 

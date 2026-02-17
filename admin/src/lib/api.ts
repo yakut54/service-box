@@ -166,6 +166,12 @@ class ApiClient {
     return this.request<any>(`/admin/orders/stats${query}`)
   }
 
+  async getOrderChart(days = 30) {
+    return this.request<{ data: Array<{ date: string; orders: number; revenue: number }> }>(
+      `/admin/orders/chart?days=${days}`
+    )
+  }
+
   async updateOrderStatus(id: string, status: string) {
     return this.request<{ message: string; data: any }>(`/admin/orders/${id}/status`, {
       method: 'PATCH',
