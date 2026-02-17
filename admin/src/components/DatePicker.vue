@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * DatePicker — кастомный datepicker с поддержкой dark mode.
- * v-model: string в формате 'YYYY-MM-DD' (совместим с нативным type="date")
- * prop min: строка 'YYYY-MM-DD', дни до неё — недоступны
- */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const props = withDefaults(defineProps<{
@@ -12,7 +7,7 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   disabled?: boolean
 }>(), {
-  placeholder: 'Выберите дату',
+  placeholder: 'Дата',
 })
 
 const emit = defineEmits<{
@@ -20,10 +15,9 @@ const emit = defineEmits<{
   'change': [v: string]
 }>()
 
-// ─── Calendar state ──────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const open      = ref(false)
-const today     = new Date()
+const today = new Date()
 today.setHours(0, 0, 0, 0)
 
 function parseYMD(s: string | undefined): Date | null {
@@ -34,94 +28,68 @@ function parseYMD(s: string | undefined): Date | null {
 }
 
 function toYMD(d: Date): string {
-  const y  = d.getFullYear()
-  const m  = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${dd}`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-// Cursor = year+month currently shown
+const SHORT_MONTHS = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек']
+const MONTH_FULL   = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
+const DOW          = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+const open     = ref(false)
 const selected = computed(() => parseYMD(props.modelValue))
 const minDate  = computed(() => parseYMD(props.min))
 
-const _cursorInit = selected.value ?? today
-const cursor = ref<Date>(new Date(_cursorInit.getFullYear(), _cursorInit.getMonth(), 1))
+const _init   = selected.value ?? today
+const cursor  = ref<Date>(new Date(_init.getFullYear(), _init.getMonth(), 1))
 
-// Keep cursor in sync when modelValue changes externally
 watch(() => props.modelValue, (v) => {
   const d = parseYMD(v)
   if (d) cursor.value = new Date(d.getFullYear(), d.getMonth(), 1)
 })
 
-// ─── Computed calendar cells ─────────────────────────────────────────────────
+// ─── Display ─────────────────────────────────────────────────────────────────
 
-const MONTH_NAMES = [
-  'Январь','Февраль','Март','Апрель','Май','Июнь',
-  'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь',
-]
-const DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
+const displayValue = computed(() => {
+  const d = selected.value
+  if (!d) return ''
+  return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`
+})
 
 const headerLabel = computed(() =>
-  `${MONTH_NAMES[cursor.value.getMonth()]} ${cursor.value.getFullYear()}`
+  `${MONTH_FULL[cursor.value.getMonth()]} ${cursor.value.getFullYear()}`
 )
+
+// ─── Calendar cells ───────────────────────────────────────────────────────────
 
 const cells = computed(() => {
   const year  = cursor.value.getFullYear()
   const month = cursor.value.getMonth()
-  const first = new Date(year, month, 1)
   const last  = new Date(year, month + 1, 0)
+  let startDow = new Date(year, month, 1).getDay()
+  startDow = startDow === 0 ? 6 : startDow - 1
 
-  // Monday-first: 0=Mon … 6=Sun
-  let startDow = first.getDay() // 0=Sun
-  startDow = (startDow === 0 ? 6 : startDow - 1) // convert to Mon-first
-
-  const days: Array<{ date: Date; current: boolean }> = []
-
-  // Pad from prev month
-  for (let i = startDow - 1; i >= 0; i--) {
-    days.push({ date: new Date(year, month, -i), current: false })
-  }
-
-  // Current month
-  for (let d = 1; d <= last.getDate(); d++) {
-    days.push({ date: new Date(year, month, d), current: true })
-  }
-
-  // Pad to next month (fill row)
-  const remainder = days.length % 7
-  if (remainder !== 0) {
-    for (let d = 1; d <= 7 - remainder; d++) {
-      days.push({ date: new Date(year, month + 1, d), current: false })
-    }
-  }
-
+  const days: Array<{ date: Date; cur: boolean }> = []
+  for (let i = startDow - 1; i >= 0; i--)
+    days.push({ date: new Date(year, month, -i), cur: false })
+  for (let d = 1; d <= last.getDate(); d++)
+    days.push({ date: new Date(year, month, d), cur: true })
+  const rem = days.length % 7
+  if (rem) for (let d = 1; d <= 7 - rem; d++)
+    days.push({ date: new Date(year, month + 1, d), cur: false })
   return days
 })
 
-function isDisabled(d: Date) {
-  if (minDate.value && d < minDate.value) return true
-  return false
-}
+const isDisabled = (d: Date) => !!(minDate.value && d < minDate.value)
+const isToday    = (d: Date) => d.getTime() === today.getTime()
+const isSel      = (d: Date) => selected.value ? d.getTime() === selected.value.getTime() : false
+const isWeekend  = (d: Date) => d.getDay() === 0 || d.getDay() === 6
 
-function isToday(d: Date) {
-  return d.getTime() === today.getTime()
-}
+// ─── Actions ─────────────────────────────────────────────────────────────────
 
-function isSelected(d: Date) {
-  return selected.value ? d.getTime() === selected.value.getTime() : false
-}
-
-// ─── Navigation ──────────────────────────────────────────────────────────────
-
-function prevMonth() {
-  cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() - 1, 1)
-}
-
-function nextMonth() {
-  cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() + 1, 1)
-}
-
-// ─── Selection ───────────────────────────────────────────────────────────────
+function prevMonth() { cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() - 1, 1) }
+function nextMonth() { cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() + 1, 1) }
 
 function selectDay(d: Date) {
   if (isDisabled(d)) return
@@ -136,156 +104,139 @@ function clearDate() {
   emit('change', '')
 }
 
-// ─── Display value ───────────────────────────────────────────────────────────
-
-const displayValue = computed(() => {
-  const d = selected.value
-  if (!d) return ''
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
-})
-
-// ─── Close on outside click ──────────────────────────────────────────────────
+// ─── Close on outside click ───────────────────────────────────────────────────
 
 const root = ref<HTMLElement | null>(null)
-
-function handleOutside(e: MouseEvent) {
-  if (root.value && !root.value.contains(e.target as Node)) {
-    open.value = false
-  }
+const onOutside = (e: MouseEvent) => {
+  if (root.value && !root.value.contains(e.target as Node)) open.value = false
 }
-
-onMounted(()  => document.addEventListener('mousedown', handleOutside))
-onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutside))
-
-// ─── Weekend check ────────────────────────────────────────────────────────────
-function isWeekend(d: Date) {
-  return d.getDay() === 0 || d.getDay() === 6
-}
+onMounted(() => document.addEventListener('mousedown', onOutside))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside))
 </script>
 
 <template>
   <div ref="root" class="relative">
 
-    <!-- Trigger button -->
+    <!-- ─── Trigger ─────────────────────────────────────────────────────────── -->
     <button
       type="button"
       :disabled="disabled"
       @click="open = !open"
       :class="[
-        'input flex items-center gap-2 text-left w-full select-none',
+        'input flex items-center gap-2 w-full h-10 text-sm select-none overflow-hidden',
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-        open ? 'ring-2 ring-primary-500 border-primary-500' : '',
+        open ? '!ring-2 !ring-primary-500 !border-primary-500' : '',
       ]"
     >
-      <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
+      <!-- calendar icon -->
+      <svg class="w-4 h-4 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="3.5" width="16" height="15" rx="2"/>
+        <path d="M6 2v3M14 2v3M2 8h16"/>
       </svg>
-      <span :class="displayValue ? 'text-gray-900 dark:text-white' : 'text-gray-400'">
+
+      <!-- value or placeholder -->
+      <span class="flex-1 truncate text-left" :class="displayValue ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'">
         {{ displayValue || placeholder }}
       </span>
-      <span class="flex-1"/>
-      <!-- Clear button -->
-      <span
+
+      <!-- clear -->
+      <button
         v-if="modelValue"
+        type="button"
         @click.stop="clearDate"
-        class="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded p-0.5 -mr-1 transition-colors"
-        title="Очистить"
+        class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" d="M4 4l8 8M12 4l-8 8"/>
         </svg>
-      </span>
+      </button>
     </button>
 
-    <!-- Dropdown -->
+    <!-- ─── Popup ────────────────────────────────────────────────────────────── -->
     <Transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 translate-y-1 scale-95"
+      enter-active-class="transition duration-[160ms] ease-[cubic-bezier(.2,.8,.4,1)]"
+      enter-from-class="opacity-0 -translate-y-2 scale-[.97]"
       enter-to-class="opacity-100 translate-y-0 scale-100"
-      leave-active-class="transition duration-100 ease-in"
+      leave-active-class="transition duration-[100ms] ease-in"
       leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-1 scale-95"
+      leave-to-class="opacity-0 -translate-y-2 scale-[.97]"
     >
       <div
         v-if="open"
-        class="absolute z-50 mt-1.5 w-72 origin-top-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/40 p-4 select-none"
+        class="absolute z-50 mt-1.5 origin-top-left
+               bg-white dark:bg-gray-900
+               border border-gray-200 dark:border-gray-700
+               rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/50
+               p-3 w-[268px] select-none"
       >
-        <!-- Header: prev / month-year / next -->
-        <div class="flex items-center justify-between mb-3">
+
+        <!-- Month nav -->
+        <div class="flex items-center mb-3 gap-1">
           <button
-            type="button"
-            @click="prevMonth"
-            class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            type="button" @click="prevMonth"
+            class="w-8 h-8 flex items-center justify-center rounded-lg
+                   text-gray-400 hover:text-gray-700 dark:hover:text-gray-200
+                   hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 12L6 8l4-4"/>
             </svg>
           </button>
 
-          <span class="text-sm font-semibold text-gray-900 dark:text-white">
+          <span class="flex-1 text-center text-sm font-semibold text-gray-900 dark:text-white">
             {{ headerLabel }}
           </span>
 
           <button
-            type="button"
-            @click="nextMonth"
-            class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            type="button" @click="nextMonth"
+            class="w-8 h-8 flex items-center justify-center rounded-lg
+                   text-gray-400 hover:text-gray-700 dark:hover:text-gray-200
+                   hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            <svg class="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 4l4 4-4 4"/>
             </svg>
           </button>
         </div>
 
-        <!-- Days of week -->
-        <div class="grid grid-cols-7 mb-1">
+        <!-- Day-of-week header -->
+        <div class="grid grid-cols-7 mb-0.5">
           <div
-            v-for="dow in DOW"
-            :key="dow"
-            :class="[
-              'text-center text-xs font-medium pb-2',
-              dow === 'Сб' || dow === 'Вс' ? 'text-red-400 dark:text-red-400' : 'text-gray-400 dark:text-gray-500',
-            ]"
-          >
-            {{ dow }}
-          </div>
+            v-for="(d, i) in DOW" :key="d"
+            :class="['text-center text-[11px] font-semibold py-1 tracking-wide',
+              i >= 5 ? 'text-red-400' : 'text-gray-400 dark:text-gray-600']"
+          >{{ d }}</div>
         </div>
 
         <!-- Day cells -->
-        <div class="grid grid-cols-7 gap-y-0.5">
+        <div class="grid grid-cols-7">
           <button
-            v-for="(cell, i) in cells"
-            :key="i"
+            v-for="(cell, i) in cells" :key="i"
             type="button"
             :disabled="isDisabled(cell.date)"
             @click="selectDay(cell.date)"
             :class="[
-              'h-9 w-full flex items-center justify-center rounded-xl text-sm font-medium transition-all',
-              // not current month — muted
-              !cell.current ? 'text-gray-300 dark:text-gray-700' : '',
+              'relative flex items-center justify-center rounded-full text-[13px] font-medium',
+              'w-9 h-9 mx-auto transition-all duration-100',
+              // outside month
+              !cell.cur ? 'text-gray-300 dark:text-gray-700' : '',
               // disabled
-              isDisabled(cell.date) ? 'cursor-not-allowed opacity-40' : 'cursor-pointer',
-              // weekend color (current month only, not selected, not disabled)
-              cell.current && isWeekend(cell.date) && !isSelected(cell.date) && !isDisabled(cell.date)
-                ? 'text-red-500 dark:text-red-400' : '',
-              // selected
-              isSelected(cell.date)
-                ? 'bg-primary-600 text-white shadow-md shadow-primary-600/30 scale-105'
+              isDisabled(cell.date) ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+              // SELECTED — filled circle
+              isSel(cell.date)
+                ? 'bg-primary-600 text-white shadow-md shadow-primary-500/40 scale-110 z-10'
                 : '',
-              // today (not selected)
-              isToday(cell.date) && !isSelected(cell.date) && !isDisabled(cell.date)
-                ? 'ring-2 ring-primary-500 ring-offset-1 dark:ring-offset-gray-900 text-primary-600 dark:text-primary-400'
+              // TODAY ring (not selected)
+              isToday(cell.date) && !isSel(cell.date)
+                ? 'ring-2 ring-primary-500 ring-offset-1 dark:ring-offset-gray-900'
                 : '',
-              // hover (not selected, not disabled)
-              !isSelected(cell.date) && !isDisabled(cell.date) && cell.current
+              // weekend tint (current month, not selected, not disabled)
+              cell.cur && isWeekend(cell.date) && !isSel(cell.date) && !isDisabled(cell.date)
+                ? 'text-rose-500 dark:text-rose-400'
+                : '',
+              // hover
+              !isSel(cell.date) && !isDisabled(cell.date)
                 ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                : '',
-              // non-current hover
-              !isSelected(cell.date) && !isDisabled(cell.date) && !cell.current
-                ? 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                 : '',
             ]"
           >
@@ -293,31 +244,24 @@ function isWeekend(d: Date) {
           </button>
         </div>
 
-        <!-- Footer: Сегодня / Очистить -->
-        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs font-medium">
+        <!-- Footer -->
+        <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <button
             type="button"
-            v-if="modelValue"
-            @click="clearDate"
-            class="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-          >
-            Удалить
-          </button>
-          <span v-else/>
+            v-if="modelValue" @click="clearDate"
+            class="text-xs font-medium text-rose-500 hover:text-rose-600 dark:text-rose-400 transition-colors px-1"
+          >Удалить</button>
+          <span v-else class="text-xs text-transparent">—</span>
+
           <button
             type="button"
             @click="selectDay(today)"
             :disabled="isDisabled(today)"
-            :class="[
-              'transition-colors',
-              isDisabled(today)
-                ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed'
-                : 'text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300',
-            ]"
-          >
-            Сегодня
-          </button>
+            class="text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 transition-colors px-1
+                   disabled:opacity-30 disabled:cursor-not-allowed"
+          >Сегодня</button>
         </div>
+
       </div>
     </Transition>
   </div>
