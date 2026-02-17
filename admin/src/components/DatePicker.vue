@@ -44,10 +44,8 @@ function toYMD(d: Date): string {
 const selected = computed(() => parseYMD(props.modelValue))
 const minDate  = computed(() => parseYMD(props.min))
 
-const cursor = ref<Date>(() => {
-  const init = selected.value ?? today
-  return new Date(init.getFullYear(), init.getMonth(), 1)
-}())
+const _cursorInit = selected.value ?? today
+const cursor = ref<Date>(new Date(_cursorInit.getFullYear(), _cursorInit.getMonth(), 1))
 
 // Keep cursor in sync when modelValue changes externally
 watch(() => props.modelValue, (v) => {
