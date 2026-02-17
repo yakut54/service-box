@@ -7,6 +7,7 @@ const props = defineProps<{ product: any }>()
 const emit = defineEmits<{
   back: []
   booking: [product: any]
+  goToCart: []
 }>()
 
 const cartStore = useCartStore()
@@ -66,10 +67,10 @@ function handleBooking() {
       <!-- Image -->
       <div class="sb-detail-image">
         <img
-          v-if="product.image_url"
-          :src="product.image_url"
-          :alt="product.name"
-          class="sb-detail-img"
+            v-if="product.image_url"
+            :src="product.image_url"
+            :alt="product.name"
+            class="sb-detail-img"
         />
         <div v-else class="sb-detail-img-placeholder">
           <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,20 +132,26 @@ function handleBooking() {
                 </div>
                 <span class="sb-detail-total">{{ formatPrice(product.price * inCartQty) }}</span>
               </div>
-              <p class="sb-detail-in-cart">
+              <p class="sb-detail-in-cart sb-mb-4">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
                 В корзине: {{ inCartQty }} шт. на {{ formatPrice(product.price * inCartQty) }}
               </p>
+              <button class="sb-btn sb-btn-primary sb-btn-block" @click="emit('goToCart')">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:-2px;margin-right:6px;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+                </svg>
+                Перейти в корзину
+              </button>
             </template>
 
             <!-- Not in cart: add button -->
             <template v-else>
               <button
-                class="sb-btn sb-btn-primary sb-btn-block"
-                :disabled="isOutOfStock"
-                @click="handleAddToCart"
+                  class="sb-btn sb-btn-primary sb-btn-block"
+                  :disabled="isOutOfStock"
+                  @click="handleAddToCart"
               >
                 {{ isOutOfStock ? 'Нет в наличии' : 'В корзину' }}
               </button>

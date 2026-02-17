@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { debounce } from '@/lib/utils'
 import ProductCard from './ProductCard.vue'
+import SbSelect from './SbSelect.vue'
 
 const props = defineProps<{
   activeCategory?: string
@@ -55,6 +56,11 @@ const filteredProducts = computed(() => {
 const showSearch = computed(() => shopStore.config.show_search !== false)
 const showCategories = computed(() => shopStore.config.show_categories !== false && categories.value.length > 0)
 
+const categoryOptions = computed(() => [
+  { value: '', label: 'Все категории' },
+  ...categories.value.map(c => ({ value: c, label: c })),
+])
+
 const typeFilters = [
   { value: '', label: 'Все' },
   { value: 'service', label: 'Услуги' },
@@ -101,42 +107,42 @@ function handleSelect(product: any) {
 
 <template>
   <div class="sb-catalog sb-grid-container">
-    <!-- Filters -->
+    <!-- Filters: one row -->
     <div v-if="!loading && products.length > 0" class="sb-catalog-filters">
-      <input
-        v-if="showSearch"
-        v-model="search"
-        @input="onSearchInput"
-        type="text"
-        class="sb-input sb-catalog-search"
-        placeholder="Поиск товаров и услуг..."
-        aria-label="Поиск"
-      />
-
-      <div class="sb-filter-row">
-        <!-- Type filter chips -->
-        <div v-if="activeTypeFilters.length > 2" class="sb-chips">
-          <button
-            v-for="f in activeTypeFilters"
-            :key="f.value"
-            :class="['sb-chip', filterType === f.value ? 'sb-chip-active' : '']"
-            @click="filterType = f.value"
-          >
-            {{ f.label }}
-          </button>
-        </div>
-
-        <!-- Category filter -->
-        <select
-          v-if="showCategories"
-          v-model="filterCategory"
-          class="sb-input sb-catalog-category"
-          aria-label="Категория"
-        >
-          <option value="">Все категории</option>
-          <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-        </select>
+      <!-- Search with icon -->
+      <div v-if="showSearch" class="sb-search-wrap">
+        <svg class="sb-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          v-model="search"
+          @input="onSearchInput"
+          type="text"
+          class="sb-input sb-catalog-search"
+          placeholder="Поиск товаров и услуг..."
+          aria-label="Поиск"
+        />
       </div>
+
+      <!-- Type filter chips -->
+      <div v-if="activeTypeFilters.length > 2" class="sb-chips">
+        <button
+          v-for="f in activeTypeFilters"
+          :key="f.value"
+          :class="['sb-chip', filterType === f.value ? 'sb-chip-active' : '']"
+          @click="filterType = f.value"
+        >
+          {{ f.label }}
+        </button>
+      </div>
+
+      <!-- Category custom select -->
+      <SbSelect
+        v-if="showCategories"
+        v-model="filterCategory"
+        :options="categoryOptions"
+        placeholder="Все категории"
+      />
     </div>
 
     <!-- Loading skeleton -->

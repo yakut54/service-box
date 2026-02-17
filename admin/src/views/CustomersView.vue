@@ -49,24 +49,24 @@ onMounted(() => { loadCustomers() })
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Клиенты</h1>
-        <p class="text-gray-500 mt-1">{{ totalCustomers }} клиентов</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Клиенты</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ totalCustomers }} клиентов</p>
       </div>
     </div>
 
     <!-- Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
       <div class="card">
-        <div class="text-sm text-gray-500">Всего клиентов</div>
-        <div class="text-2xl font-bold text-gray-900 mt-1">{{ totalCustomers }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Всего клиентов</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ totalCustomers }}</div>
       </div>
       <div class="card">
-        <div class="text-sm text-gray-500">Общая выручка</div>
-        <div class="text-2xl font-bold text-green-600 mt-1">{{ formatPrice(totalRevenue) }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Общая выручка</div>
+        <div class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{{ formatPrice(totalRevenue) }}</div>
       </div>
       <div class="card">
-        <div class="text-sm text-gray-500">Средний чек</div>
-        <div class="text-2xl font-bold text-gray-900 mt-1">{{ formatPrice(avgOrderValue) }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Средний чек</div>
+        <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ formatPrice(avgOrderValue) }}</div>
       </div>
     </div>
 
@@ -92,11 +92,11 @@ onMounted(() => { loadCustomers() })
 
     <!-- Empty -->
     <div v-else-if="customers.length === 0" class="card py-12 text-center">
-      <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
-      <h3 class="text-lg font-medium text-gray-900 mb-2">Нет клиентов</h3>
-      <p class="text-gray-500">Клиенты появятся после первого заказа или записи</p>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Нет клиентов</h3>
+      <p class="text-gray-500 dark:text-gray-400">Клиенты появятся после первого заказа или записи</p>
     </div>
 
     <!-- Table -->
@@ -117,25 +117,25 @@ onMounted(() => { loadCustomers() })
           <tbody>
             <tr v-for="c in sortedCustomers" :key="c.id">
               <td>
-                <RouterLink :to="`/customers/${c.id}`" class="font-medium text-gray-900 hover:text-primary-600">
+                <RouterLink :to="`/customers/${c.id}`" class="font-medium text-gray-900 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
                   {{ c.name || 'Без имени' }}
                 </RouterLink>
               </td>
               <td>
-                <a v-if="c.phone" :href="`tel:${c.phone}`" class="text-primary-600 hover:text-primary-700">{{ c.phone }}</a>
-                <span v-else class="text-gray-400">—</span>
+                <a v-if="c.phone" :href="`tel:${c.phone}`" class="text-primary-600 dark:text-primary-400 hover:text-primary-700">{{ c.phone }}</a>
+                <span v-else class="text-gray-400 dark:text-gray-500">—</span>
               </td>
               <td>
-                <a v-if="c.email" :href="`mailto:${c.email}`" class="text-gray-600 hover:text-primary-600 text-sm">{{ c.email }}</a>
-                <span v-else class="text-gray-400">—</span>
+                <a v-if="c.email" :href="`mailto:${c.email}`" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 text-sm">{{ c.email }}</a>
+                <span v-else class="text-gray-400 dark:text-gray-500">—</span>
               </td>
               <td>
-                <span class="font-medium">{{ c.total_orders || 0 }}</span>
+                <span class="font-medium dark:text-gray-200">{{ c.total_orders || 0 }}</span>
               </td>
               <td>
-                <span class="font-semibold text-gray-900">{{ formatPrice(c.total_spent || 0) }}</span>
+                <span class="font-semibold text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</span>
               </td>
-              <td class="text-sm text-gray-500">
+              <td class="text-sm text-gray-500 dark:text-gray-400">
                 {{ formatDate(c.last_order_at) }}
               </td>
               <td>

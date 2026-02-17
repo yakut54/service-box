@@ -35,14 +35,14 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span class="text-white font-bold text-3xl">S</span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-900">ServiceBox</h1>
-        <p class="text-gray-500 mt-1">Войдите в свой аккаунт</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">ServiceBox</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Войдите в свой аккаунт</p>
       </div>
 
       <div class="card">
@@ -66,7 +66,7 @@ async function handleSubmit() {
           </button>
         </form>
 
-        <p class="mt-6 text-center text-sm text-gray-500">
+        <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           Нет аккаунта?
           <RouterLink to="/register" class="text-primary-600 hover:text-primary-700 font-medium">Зарегистрироваться</RouterLink>
         </p>

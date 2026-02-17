@@ -116,6 +116,19 @@ function clearCategory() {
   catOpen.value = false
 }
 
+function onCatEnter() {
+  const q = catSearch.value.trim()
+  if (!q) {
+    catOpen.value = false
+    return
+  }
+  if (filteredCategories.value.length > 0) {
+    selectCategory(filteredCategories.value[0])
+  } else {
+    selectCategory(q)
+  }
+}
+
 // ── Image preview ───────────────────────────────────────────
 const imageError = ref(false)
 
@@ -214,11 +227,11 @@ async function handleSubmit() {
 <template>
   <div class="max-w-2xl">
     <div class="mb-6">
-      <button @click="router.back()" class="text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">
+      <button @click="router.back()" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-2 flex items-center gap-1">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
         Назад
       </button>
-      <h1 class="text-2xl font-bold text-gray-900">{{ isEditing ? 'Редактировать товар' : 'Новый товар' }}</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ isEditing ? 'Редактировать товар' : 'Новый товар' }}</h1>
     </div>
 
     <div v-if="loading" class="card py-12 text-center">
@@ -230,7 +243,7 @@ async function handleSubmit() {
 
       <!-- ══════════ ОСНОВНАЯ ИНФОРМАЦИЯ ══════════ -->
       <div class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Основная информация</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Основная информация</h2>
         <div class="space-y-4">
           <!-- Тип товара -->
           <div>
@@ -241,11 +254,11 @@ async function handleSubmit() {
                 :key="key"
                 type="button"
                 @click="form.type = key"
-                :class="['p-4 rounded-lg border-2 text-center transition-all', form.type === key ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50']"
+                :class="['p-4 rounded-lg border-2 text-center transition-all', form.type === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700']"
               >
                 <div class="text-2xl mb-1">{{ cfg.icon }}</div>
                 <div class="text-sm font-semibold">{{ cfg.label }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">{{ cfg.desc }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ cfg.desc }}</div>
               </button>
             </div>
           </div>
@@ -267,7 +280,7 @@ async function handleSubmit() {
             <label for="price" class="label">Цена (руб) *</label>
             <div class="relative">
               <input id="price" v-model.number="form.price" type="number" min="0" step="0.01" class="input pr-12" :placeholder="currentTypeConfig.pricePlaceholder" />
-              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">₽</span>
+              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
             </div>
           </div>
 
@@ -281,6 +294,7 @@ async function handleSubmit() {
                 @input="catSearch = ($event.target as HTMLInputElement).value"
                 @focus="onCatFocus"
                 @blur="onCatBlur"
+                @keydown.enter.prevent="onCatEnter"
                 type="text"
                 class="input pr-16"
                 placeholder="Выберите или введите новую"
@@ -291,7 +305,7 @@ async function handleSubmit() {
                   v-if="form.category"
                   type="button"
                   @mousedown.prevent="clearCategory"
-                  class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                  class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -304,20 +318,20 @@ async function handleSubmit() {
             <!-- Dropdown -->
             <div
               v-if="catOpen && (filteredCategories.length > 0 || showNewCategoryHint)"
-              class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+              class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto"
             >
               <button
                 v-for="cat in filteredCategories"
                 :key="cat"
                 type="button"
                 @mousedown.prevent="selectCategory(cat)"
-                :class="['w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 hover:text-primary-700 transition-colors', form.category === cat ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700']"
+                :class="['w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-700 dark:hover:text-primary-300 transition-colors', form.category === cat ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium' : 'text-gray-700 dark:text-gray-300']"
               >
                 {{ cat }}
               </button>
               <div
                 v-if="showNewCategoryHint"
-                class="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-100"
+                class="px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700"
               >
                 <span class="text-primary-600 font-medium">Enter</span> — создать «{{ catSearch.trim() }}»
               </div>
@@ -333,7 +347,7 @@ async function handleSubmit() {
               <img
                 :src="form.image_url"
                 @error="imageError = true"
-                class="h-24 w-24 object-cover rounded-lg border border-gray-200"
+                class="h-24 w-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                 alt="Превью"
               />
             </div>
@@ -347,15 +361,15 @@ async function handleSubmit() {
               <div class="w-11 h-6 bg-gray-200 peer-checked:bg-primary-600 rounded-full transition-colors"></div>
               <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
             </div>
-            <span class="text-gray-700">Показывать в каталоге</span>
+            <span class="text-gray-700 dark:text-gray-300">Показывать в каталоге</span>
           </label>
         </div>
       </div>
 
       <!-- ══════════ ФИЗИЧЕСКИЙ ТОВАР ══════════ -->
       <div v-if="form.type === 'physical'" class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-1">Параметры физического товара</h2>
-        <p class="text-sm text-gray-500 mb-4">Склад, габариты и характеристики</p>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Параметры физического товара</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Склад, габариты и характеристики</p>
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -396,24 +410,24 @@ async function handleSubmit() {
 
       <!-- ══════════ ЦИФРОВОЙ ТОВАР ══════════ -->
       <div v-if="form.type === 'digital'" class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-1">Параметры цифрового товара</h2>
-        <p class="text-sm text-gray-500 mb-4">Способ доставки и доступ</p>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Параметры цифрового товара</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Способ доставки и доступ</p>
         <div class="space-y-4">
           <div>
             <label class="label">Тип доставки</label>
             <div class="grid grid-cols-3 gap-2">
               <button type="button" @click="digitalDetails.delivery_type = 'download'"
-                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'download' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 hover:border-gray-300']">
+                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'download' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
                 <div class="text-lg mb-0.5">⬇️</div>
                 Скачивание
               </button>
               <button type="button" @click="digitalDetails.delivery_type = 'link'"
-                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'link' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 hover:border-gray-300']">
+                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'link' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
                 <div class="text-lg mb-0.5">🔗</div>
                 Ссылка
               </button>
               <button type="button" @click="digitalDetails.delivery_type = 'code'"
-                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'code' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 hover:border-gray-300']">
+                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'code' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
                 <div class="text-lg mb-0.5">🔑</div>
                 Код активации
               </button>
@@ -443,25 +457,25 @@ async function handleSubmit() {
 
       <!-- ══════════ УСЛУГА ══════════ -->
       <div v-if="form.type === 'service'" class="card">
-        <h2 class="text-lg font-semibold text-gray-900 mb-1">Параметры услуги</h2>
-        <p class="text-sm text-gray-500 mb-4">Длительность и расписание</p>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Параметры услуги</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Длительность и расписание</p>
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="label">Длительность (мин) *</label>
               <input v-model.number="serviceDetails.duration_minutes" type="number" min="5" step="5" class="input" placeholder="60" />
-              <p class="text-xs text-gray-400 mt-1">Шаг: 5 минут</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Шаг: 5 минут</p>
             </div>
             <div>
               <label class="label">Перерыв между записями (мин)</label>
               <input v-model.number="serviceDetails.break_minutes" type="number" min="0" step="5" class="input" placeholder="0" />
-              <p class="text-xs text-gray-400 mt-1">Время на подготовку</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Время на подготовку</p>
             </div>
           </div>
           <div>
             <label class="label">Макс. одновременных записей</label>
             <input v-model.number="serviceDetails.max_concurrent" type="number" min="1" class="input" placeholder="1" />
-            <p class="text-xs text-gray-400 mt-1">Сколько клиентов одновременно могут быть записаны</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Сколько клиентов одновременно могут быть записаны</p>
           </div>
           <label class="flex items-center gap-3 cursor-pointer select-none">
             <div class="relative">
@@ -470,8 +484,8 @@ async function handleSubmit() {
               <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
             </div>
             <div>
-              <span class="text-gray-700">Требуется предоплата</span>
-              <p class="text-xs text-gray-400">Клиент должен оплатить при записи</p>
+              <span class="text-gray-700 dark:text-gray-300">Требуется предоплата</span>
+              <p class="text-xs text-gray-400 dark:text-gray-500">Клиент должен оплатить при записи</p>
             </div>
           </label>
         </div>

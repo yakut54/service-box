@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useOrdersStore } from '@/stores/orders'
+import CustomSelect from '@/components/CustomSelect.vue'
 
 const ordersStore = useOrdersStore()
 const filterStatus = ref('')
@@ -11,6 +12,15 @@ function formatPrice(kopecks: number): string {
 }
 
 const statusLabels: Record<string, string> = { pending: 'Ожидает', paid: 'Оплачен', processing: 'В работе', completed: 'Завершён', cancelled: 'Отменён' }
+
+const statusOptions = [
+  { value: '', label: 'Все статусы' },
+  { value: 'pending', label: 'Ожидают' },
+  { value: 'paid', label: 'Оплачены' },
+  { value: 'processing', label: 'В работе' },
+  { value: 'completed', label: 'Завершены' },
+  { value: 'cancelled', label: 'Отменены' },
+]
 
 onMounted(() => { ordersStore.fetchOrders() })
 
@@ -30,8 +40,8 @@ function formatDate(dateStr: string) {
   <div>
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Заказы</h1>
-        <p class="text-gray-500 mt-1">{{ ordersStore.orders.length }} заказов</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Заказы</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ ordersStore.orders.length }} заказов</p>
       </div>
     </div>
 
@@ -40,14 +50,7 @@ function formatDate(dateStr: string) {
         <div class="flex-1">
           <input v-model="searchQuery" @input="applyFilters" type="text" class="input" placeholder="Поиск по клиенту..." />
         </div>
-        <select v-model="filterStatus" @change="applyFilters" class="input w-full sm:w-48">
-          <option value="">Все статусы</option>
-          <option value="pending">Ожидают</option>
-          <option value="paid">Оплачены</option>
-          <option value="processing">В работе</option>
-          <option value="completed">Завершены</option>
-          <option value="cancelled">Отменены</option>
-        </select>
+        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="statusOptions" class="w-full sm:w-48" />
       </div>
     </div>
 
@@ -56,8 +59,8 @@ function formatDate(dateStr: string) {
     </div>
 
     <div v-else-if="ordersStore.orders.length === 0" class="card py-12 text-center">
-      <h3 class="text-lg font-medium text-gray-900 mb-2">Нет заказов</h3>
-      <p class="text-gray-500">Заказы появятся, когда клиенты начнут покупать</p>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Нет заказов</h3>
+      <p class="text-gray-500 dark:text-gray-400">Заказы появятся, когда клиенты начнут покупать</p>
     </div>
 
     <div v-else class="card overflow-hidden p-0">
@@ -70,16 +73,16 @@ function formatDate(dateStr: string) {
             <tr v-for="order in ordersStore.orders" :key="order.id">
               <td><RouterLink :to="`/orders/${order.id}`" class="text-primary-600 hover:text-primary-700 font-medium">#{{ order.id.slice(0, 8) }}</RouterLink></td>
               <td>
-                <div class="font-medium text-gray-900">{{ order.customer_name }}</div>
-                <div class="text-sm text-gray-500">{{ order.customer_phone }}</div>
+                <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer_name }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">{{ order.customer_phone }}</div>
               </td>
               <td>
-                <div class="text-sm">{{ order.items?.length || 0 }} поз.</div>
-                <div class="text-xs text-gray-500 line-clamp-1">{{ order.items?.map((i: any) => i.product_name).join(', ') }}</div>
+                <div class="text-sm dark:text-gray-200">{{ order.items?.length || 0 }} поз.</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{{ order.items?.map((i: any) => i.product_name).join(', ') }}</div>
               </td>
-              <td class="font-semibold">{{ formatPrice(order.total_price) }}</td>
+              <td class="font-semibold dark:text-gray-100">{{ formatPrice(order.total_price) }}</td>
               <td><span :class="`badge-${order.status}`">{{ statusLabels[order.status] || order.status }}</span></td>
-              <td class="text-sm text-gray-500">{{ formatDate(order.created_at) }}</td>
+              <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(order.created_at) }}</td>
               <td>
                 <RouterLink :to="`/orders/${order.id}`" class="btn-ghost btn-sm">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>

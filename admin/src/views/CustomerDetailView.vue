@@ -37,7 +37,7 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-4xl">
-    <button @click="router.back()" class="text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1">
+    <button @click="router.back()" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4 flex items-center gap-1">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
       Назад к клиентам
     </button>
@@ -47,7 +47,7 @@ onMounted(async () => {
     </div>
 
     <div v-else-if="!customer" class="card py-12 text-center">
-      <h2 class="text-xl font-semibold text-gray-900 mb-2">Клиент не найден</h2>
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Клиент не найден</h2>
       <RouterLink to="/customers" class="btn-primary">Все клиенты</RouterLink>
     </div>
 
@@ -55,39 +55,39 @@ onMounted(async () => {
       <!-- Header -->
       <div class="flex items-start justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">{{ customer.name || 'Без имени' }}</h1>
-          <p class="text-gray-500 mt-1">Клиент с {{ formatDateShort(customer.created_at) }}</p>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ customer.name || 'Без имени' }}</h1>
+          <p class="text-gray-500 dark:text-gray-400 mt-1">Клиент с {{ formatDateShort(customer.created_at) }}</p>
         </div>
       </div>
 
       <!-- Stats + Contact -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div class="card">
-          <div class="text-sm text-gray-500">Контакты</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400">Контакты</div>
           <div class="mt-2 space-y-2">
             <div v-if="customer.phone">
-              <div class="text-xs text-gray-400">Телефон</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500">Телефон</div>
               <a :href="`tel:${customer.phone}`" class="font-medium text-primary-600">{{ customer.phone }}</a>
             </div>
             <div v-if="customer.email">
-              <div class="text-xs text-gray-400">Email</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500">Email</div>
               <a :href="`mailto:${customer.email}`" class="font-medium text-primary-600">{{ customer.email }}</a>
             </div>
             <div v-if="customer.notes">
-              <div class="text-xs text-gray-400">Заметка</div>
-              <div class="text-sm text-gray-700">{{ customer.notes }}</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500">Заметка</div>
+              <div class="text-sm text-gray-700 dark:text-gray-300">{{ customer.notes }}</div>
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="text-sm text-gray-500">Заказов</div>
-          <div class="text-2xl font-bold text-gray-900 mt-1">{{ customer.total_orders || 0 }}</div>
-          <div class="text-xs text-gray-400 mt-1">Последний: {{ formatDateShort(customer.last_order_at) }}</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400">Заказов</div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ customer.total_orders || 0 }}</div>
+          <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Последний: {{ formatDateShort(customer.last_order_at) }}</div>
         </div>
         <div class="card">
-          <div class="text-sm text-gray-500">Потрачено</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400">Потрачено</div>
           <div class="text-2xl font-bold text-green-600 mt-1">{{ formatPrice(customer.total_spent || 0) }}</div>
-          <div v-if="customer.total_orders" class="text-xs text-gray-400 mt-1">
+          <div v-if="customer.total_orders" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Средний чек: {{ formatPrice(Math.round((customer.total_spent || 0) / customer.total_orders)) }}
           </div>
         </div>
@@ -95,28 +95,28 @@ onMounted(async () => {
 
       <!-- Orders -->
       <div class="card mb-6">
-        <h3 class="font-semibold text-gray-900 mb-4">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-4">
           История заказов
-          <span class="text-gray-400 font-normal text-sm ml-1">({{ customer.orders?.length || 0 }})</span>
+          <span class="text-gray-400 dark:text-gray-500 font-normal text-sm ml-1">({{ customer.orders?.length || 0 }})</span>
         </h3>
 
-        <div v-if="!customer.orders?.length" class="text-gray-500 text-sm py-4 text-center">Нет заказов</div>
+        <div v-if="!customer.orders?.length" class="text-gray-500 dark:text-gray-400 text-sm py-4 text-center">Нет заказов</div>
 
-        <div v-else class="divide-y divide-gray-100">
+        <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
           <div v-for="order in customer.orders" :key="order.id" class="py-3 flex items-center justify-between">
             <div class="flex items-center gap-3 min-w-0">
               <RouterLink :to="`/orders/${order.id}`" class="text-primary-600 hover:text-primary-700 font-medium text-sm shrink-0">
                 #{{ order.id.slice(0, 8) }}
               </RouterLink>
               <div class="min-w-0">
-                <div class="text-sm text-gray-700 truncate">
+                <div class="text-sm text-gray-700 dark:text-gray-300 truncate">
                   {{ order.items?.map((i: any) => i.product_name).join(', ') || '—' }}
                 </div>
-                <div class="text-xs text-gray-400">{{ formatDate(order.created_at) }}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(order.created_at) }}</div>
               </div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
-              <span class="font-semibold text-sm">{{ formatPrice(order.total_price) }}</span>
+              <span class="font-semibold text-sm dark:text-gray-200">{{ formatPrice(order.total_price) }}</span>
               <span :class="`badge-${order.status}`">{{ orderStatusLabels[order.status] || order.status }}</span>
             </div>
           </div>
@@ -125,18 +125,18 @@ onMounted(async () => {
 
       <!-- Bookings -->
       <div v-if="customer.bookings" class="card">
-        <h3 class="font-semibold text-gray-900 mb-4">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-4">
           История записей
-          <span class="text-gray-400 font-normal text-sm ml-1">({{ customer.bookings?.length || 0 }})</span>
+          <span class="text-gray-400 dark:text-gray-500 font-normal text-sm ml-1">({{ customer.bookings?.length || 0 }})</span>
         </h3>
 
-        <div v-if="!customer.bookings?.length" class="text-gray-500 text-sm py-4 text-center">Нет записей</div>
+        <div v-if="!customer.bookings?.length" class="text-gray-500 dark:text-gray-400 text-sm py-4 text-center">Нет записей</div>
 
-        <div v-else class="divide-y divide-gray-100">
+        <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
           <div v-for="booking in customer.bookings" :key="booking.id" class="py-3 flex items-center justify-between">
             <div class="min-w-0">
-              <div class="font-medium text-sm text-gray-900">{{ booking.service?.name || '—' }}</div>
-              <div class="text-xs text-gray-500">
+              <div class="font-medium text-sm text-gray-900 dark:text-gray-100">{{ booking.service?.name || '—' }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">
                 {{ formatDate(booking.start_time) }}
                 <span v-if="booking.master"> &middot; {{ booking.master.name }}</span>
               </div>

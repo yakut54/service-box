@@ -51,14 +51,14 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span class="text-white font-bold text-3xl">S</span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-900">Создать магазин</h1>
-        <p class="text-gray-500 mt-1">Начните принимать заказы уже сегодня</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Создать магазин</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Начните принимать заказы уже сегодня</p>
       </div>
 
       <div class="card">
@@ -97,23 +97,23 @@ async function handleSubmit() {
           </button>
         </form>
 
-        <p class="mt-6 text-center text-sm text-gray-500">
+        <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
           Уже есть аккаунт?
           <RouterLink to="/login" class="text-primary-600 hover:text-primary-700 font-medium">Войти</RouterLink>
         </p>
       </div>
 
-      <div class="mt-8 grid grid-cols-3 gap-4 text-center text-sm text-gray-500">
+      <div class="mt-8 grid grid-cols-3 gap-4 text-center text-sm text-gray-500 dark:text-gray-400">
         <div>
-          <div class="font-semibold text-gray-900">Бесплатно</div>
+          <div class="font-semibold text-gray-900 dark:text-white">Бесплатно</div>
           <div>14 дней</div>
         </div>
         <div>
-          <div class="font-semibold text-gray-900">Без %</div>
+          <div class="font-semibold text-gray-900 dark:text-white">Без %</div>
           <div>с продаж</div>
         </div>
         <div>
-          <div class="font-semibold text-gray-900">1 минута</div>
+          <div class="font-semibold text-gray-900 dark:text-white">1 минута</div>
           <div>настройка</div>
         </div>
       </div>
