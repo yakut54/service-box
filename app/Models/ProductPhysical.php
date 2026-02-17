@@ -22,6 +22,10 @@ class ProductPhysical extends Model
         'length_cm',
         'width_cm',
         'height_cm',
+        'color',
+        'brand',
+        'material',
+        'dimensions',
     ];
 
     protected $casts = [

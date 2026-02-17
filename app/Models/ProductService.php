@@ -18,12 +18,16 @@ class ProductService extends Model
         'duration_minutes',
         'max_concurrent',
         'requires_booking',
+        'break_minutes',
+        'requires_prepayment',
     ];
 
     protected $casts = [
         'duration_minutes' => 'integer',
         'max_concurrent' => 'integer',
         'requires_booking' => 'boolean',
+        'break_minutes' => 'integer',
+        'requires_prepayment' => 'boolean',
     ];
 
     public function product()

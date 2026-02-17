@@ -19,11 +19,14 @@ class ProductDigital extends Model
         'access_days',
         'download_url',
         'file_size_bytes',
+        'file_size_mb',
+        'file_format',
     ];
 
     protected $casts = [
         'access_days' => 'integer',
         'file_size_bytes' => 'integer',
+        'file_size_mb' => 'float',
     ];
 
     public function product()

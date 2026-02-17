@@ -264,7 +264,8 @@ async function handleSubmit() {
           <div class="sb-field">
             <label class="sb-label">Телефон *</label>
             <input
-              v-model="form.phone"
+              :value="form.phone"
+              @input="form.phone = formatPhone(($event.target as HTMLInputElement).value)"
               type="tel"
               class="sb-input"
               :class="{ 'sb-input-error': formErrors.phone }"
