@@ -91,8 +91,7 @@ const currentPlan = computed(() => PLANS.find(p => p.id === subscription.value?.
 const selectedPlanData = computed(() => PLANS.find(p => p.id === selectedPlan.value)!)
 
 const totalPrice = computed(() => {
-  const plan   = selectedPlanData.value
-  const period = PERIODS.find(p => p.months === selectedPeriod.value)!
+  const plan = selectedPlanData.value
   if (selectedPeriod.value >= 12) {
     return plan.priceMonth * 10 // 2 months free
   }
