@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useOrdersStore } from '@/stores/orders'
@@ -63,9 +63,13 @@ async function loadTodayBookings() {
 }
 
 // ── SVG Chart ────────────────────────────────────────────────
-const CHART_W = 600
-const CHART_H = 120
-const PADDING = { top: 10, right: 10, bottom: 24, left: 48 }
+const CHART_W   = 600
+const PADDING   = { top: 16, right: 10, bottom: 28, left: 48 }
+
+// Dynamic height — fills the card's available space via ResizeObserver
+const chartContainer    = ref<HTMLElement | null>(null)
+const CHART_H           = ref(160)
+let chartResizeObserver: ResizeObserver | null = null
 
 const chartPoints = computed(() => {
   const data = chartData.value
@@ -73,7 +77,7 @@ const chartPoints = computed(() => {
 
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1)
   const innerW = CHART_W - PADDING.left - PADDING.right
-  const innerH = CHART_H - PADDING.top - PADDING.bottom
+  const innerH = CHART_H.value - PADDING.top - PADDING.bottom
   const barW = Math.max(2, innerW / data.length - 2)
 
   const bars = data.map((d, i) => {
@@ -100,7 +104,7 @@ const chartPoints = computed(() => {
 const yLabels = computed(() => {
   const max = chartPoints.value.maxRevenue
   if (!max) return []
-  const innerH = CHART_H - PADDING.top - PADDING.bottom
+  const innerH = CHART_H.value - PADDING.top - PADDING.bottom
   return [0, 0.25, 0.5, 0.75, 1].map(frac => ({
     y: PADDING.top + innerH * (1 - frac),
     label: formatPrice(max * frac),
@@ -195,6 +199,21 @@ onMounted(async () => {
     loadChart(),
     loadTodayBookings(),
   ])
+
+  // Start observing chart container height after data loads
+  if (chartContainer.value) {
+    chartResizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const h = entry.contentRect.height
+        if (h > 60) CHART_H.value = h
+      }
+    })
+    chartResizeObserver.observe(chartContainer.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  chartResizeObserver?.disconnect()
 })
 </script>
 
@@ -367,59 +386,80 @@ onMounted(async () => {
       </div>
 
       <!-- ── Revenue Chart ─────────────────────────────────────── -->
-      <div class="lg:col-span-3 card">
-        <div class="flex items-center justify-between mb-4">
+      <div class="lg:col-span-3 card flex flex-col">
+        <div class="flex items-center justify-between mb-3 flex-shrink-0">
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка по дням</h2>
           <span class="text-xs text-gray-400">последние {{ chartDays[period] }} дней</span>
         </div>
 
-        <div v-if="loadingChart" class="flex items-center justify-center h-32 text-gray-400">
+        <div v-if="loadingChart" class="flex-1 flex items-center justify-center text-gray-400">
           Загрузка...
         </div>
 
-        <div v-else-if="chartData.every(d => d.revenue === 0)" class="flex items-center justify-center h-32 text-gray-400 text-sm">
+        <div v-else-if="chartData.every(d => d.revenue === 0)" class="flex-1 flex items-center justify-center text-gray-400 text-sm">
           Нет данных за период
         </div>
 
-        <div v-else class="relative" @mouseleave="hideTooltip">
-          <svg
-            :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
-            class="w-full"
-            :style="`height: ${CHART_H}px`"
-            @mousemove.stop
-          >
-            <line
-              v-for="yl in yLabels" :key="yl.y"
-              :x1="PADDING.left" :y1="yl.y"
-              :x2="CHART_W - PADDING.right" :y2="yl.y"
-              stroke="currentColor" class="text-gray-100 dark:text-gray-800" stroke-width="1"
-            />
-            <text
-              v-for="yl in yLabels" :key="`yl-${yl.y}`"
-              :x="PADDING.left - 4" :y="yl.y + 4"
-              text-anchor="end" class="fill-gray-400" style="font-size: 9px"
-            >{{ yl.label }}</text>
-            <rect
-              v-for="bar in chartPoints.bars" :key="bar.date"
-              :x="bar.x" :y="bar.y" :width="bar.w" :height="bar.h" rx="2"
-              class="fill-primary-500 dark:fill-primary-400 hover:fill-primary-600 dark:hover:fill-primary-300 transition-colors cursor-pointer"
-              @mouseenter="showTooltip($event, bar)"
-            />
-            <text
-              v-for="xl in chartPoints.labels" :key="`xl-${xl.x}`"
-              :x="xl.x" :y="CHART_H - 4"
-              text-anchor="middle" class="fill-gray-400" style="font-size: 9px"
-            >{{ xl.label }}</text>
-          </svg>
+        <div v-else class="flex-1 flex flex-col min-h-0">
+          <!-- Chart area — grows to fill available space -->
+          <div ref="chartContainer" class="flex-1 relative min-h-[120px]" @mouseleave="hideTooltip">
+            <svg
+              :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
+              class="w-full h-full"
+              preserveAspectRatio="none"
+              @mousemove.stop
+            >
+              <line
+                v-for="yl in yLabels" :key="yl.y"
+                :x1="PADDING.left" :y1="yl.y"
+                :x2="CHART_W - PADDING.right" :y2="yl.y"
+                stroke="currentColor" class="text-gray-100 dark:text-gray-800" stroke-width="1"
+              />
+              <text
+                v-for="yl in yLabels" :key="`yl-${yl.y}`"
+                :x="PADDING.left - 4" :y="yl.y + 4"
+                text-anchor="end" class="fill-gray-400" style="font-size: 9px"
+                vector-effect="non-scaling-stroke"
+              >{{ yl.label }}</text>
+              <rect
+                v-for="bar in chartPoints.bars" :key="bar.date"
+                :x="bar.x" :y="bar.y" :width="bar.w" :height="bar.h" rx="2"
+                class="fill-primary-500 dark:fill-primary-400 hover:fill-primary-600 dark:hover:fill-primary-300 transition-colors cursor-pointer"
+                @mouseenter="showTooltip($event, bar)"
+              />
+              <text
+                v-for="xl in chartPoints.labels" :key="`xl-${xl.x}`"
+                :x="xl.x" :y="CHART_H.valueOf() - 4"
+                text-anchor="middle" class="fill-gray-400" style="font-size: 9px"
+                vector-effect="non-scaling-stroke"
+              >{{ xl.label }}</text>
+            </svg>
 
-          <div
-            v-if="tooltip"
-            class="absolute pointer-events-none z-10 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg"
-            :style="`left: ${Math.min(tooltip.x, CHART_W - 120)}px; top: ${tooltip.y - 60}px; transform: translateX(-50%)`"
-          >
-            <div class="font-medium">{{ new Date(tooltip.bar.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) }}</div>
-            <div class="text-primary-300">{{ formatPriceFull(tooltip.bar.revenue) }}</div>
-            <div class="text-gray-300">{{ tooltip.bar.orders }} заказов</div>
+            <div
+              v-if="tooltip"
+              class="absolute pointer-events-none z-10 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg"
+              :style="`left: ${Math.min(tooltip.x, 400)}px; top: ${Math.max(tooltip.y - 60, 4)}px; transform: translateX(-50%)`"
+            >
+              <div class="font-medium">{{ new Date(tooltip.bar.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) }}</div>
+              <div class="text-primary-300">{{ formatPriceFull(tooltip.bar.revenue) }}</div>
+              <div class="text-gray-300">{{ tooltip.bar.orders }} заказов</div>
+            </div>
+          </div>
+
+          <!-- Summary row below the chart -->
+          <div class="flex-shrink-0 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 grid grid-cols-3 gap-4">
+            <div>
+              <p class="text-xs text-gray-400 mb-0.5">Всего выручка</p>
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ formatPriceFull(stats.total_revenue || 0) }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 mb-0.5">Заказов</p>
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ stats.total_orders || 0 }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 mb-0.5">Средний чек</p>
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ formatPriceFull(stats.average_order_value || 0) }}</p>
+            </div>
           </div>
         </div>
       </div>
