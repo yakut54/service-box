@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendTelegramMessage as SendTelegramMessageJob;
 use App\Models\Shop;
 use App\Models\TelegramMessage;
 use Illuminate\Support\Facades\Log;
@@ -40,8 +41,10 @@ class TelegramService
             'status' => 'pending',
         ]);
 
-        // TODO: Dispatch to queue for async sending
-        Log::info('Telegram notification created', [
+        // Dispatch job to send message via Bot API
+        SendTelegramMessageJob::dispatch($telegramMessage->id);
+
+        Log::info('Telegram notification queued', [
             'message_id' => $telegramMessage->id,
             'shop_id' => $shop->id,
             'type' => $type,

@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
+use App\Models\Order;
+use App\Models\Shop;
 use App\Services\TelegramService;
+use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class TelegramController extends Controller
@@ -69,9 +74,201 @@ class TelegramController extends Controller
      */
     public function webhook(Request $request): JsonResponse
     {
-        Log::info('Telegram webhook received', ['update' => $request->all()]);
+        $update = $request->all();
+        Log::info('Telegram webhook received', ['update' => $update]);
 
-        // TODO: Full webhook handling (commands, callback queries)
+        try {
+            // ── Handle /start command ──────────────────────────────────
+            if (isset($update['message'])) {
+                $this->handleMessage($update['message']);
+            }
+
+            // ── Handle inline keyboard callback ───────────────────────
+            if (isset($update['callback_query'])) {
+                $this->handleCallbackQuery($update['callback_query']);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Telegram webhook error', ['error' => $e->getMessage()]);
+        }
+
         return response()->json(['ok' => true]);
+    }
+
+    // ── Private handlers ──────────────────────────────────────────────
+
+    private function handleMessage(array $message): void
+    {
+        $text   = $message['text'] ?? '';
+        $chatId = $message['chat']['id'] ?? null;
+
+        if (!$chatId) {
+            return;
+        }
+
+        // /start CODE — connect bot to shop
+        if (str_starts_with($text, '/start')) {
+            $parts = explode(' ', $text, 2);
+            $code  = $parts[1] ?? null;
+
+            if (!$code) {
+                $this->sendReply($chatId, 'Отправьте код из настроек ServiceBox: /start КОД');
+                return;
+            }
+
+            $shop = TelegramService::verifyConnectionCode(strtoupper($code));
+
+            if (!$shop) {
+                $this->sendReply($chatId, 'Код неверный или истёк. Сгенерируйте новый в настройках ServiceBox.');
+                return;
+            }
+
+            TelegramService::connectTelegram($shop, $chatId);
+
+            $this->sendReply(
+                $chatId,
+                "✅ Бот успешно подключён к магазину *{$shop->name}*!\n\nТеперь вы будете получать уведомления о новых заказах и записях."
+            );
+        }
+    }
+
+    private function handleCallbackQuery(array $callbackQuery): void
+    {
+        $callbackId = $callbackQuery['id'];
+        $chatId     = $callbackQuery['message']['chat']['id'] ?? null;
+        $data       = $callbackQuery['data'] ?? null;
+
+        if (!$chatId || !$data) {
+            return;
+        }
+
+        // Format: "entity:action:uuid"  e.g. "order:confirm:abc123"
+        $parts = explode(':', $data, 3);
+        if (count($parts) !== 3) {
+            $this->answerCallback($callbackId, 'Неизвестная команда');
+            return;
+        }
+
+        [$entityType, $action, $entityId] = $parts;
+
+        // Find shop by chat_id
+        $shop = Shop::where('telegram_chat_id', $chatId)
+            ->where('telegram_bot_connected', true)
+            ->first();
+
+        if (!$shop) {
+            $this->answerCallback($callbackId, 'Магазин не найден');
+            return;
+        }
+
+        // Set tenant context for this shop
+        TenantService::setContext($shop);
+
+        try {
+            match ($entityType) {
+                'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $chatId),
+                'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $chatId),
+                default   => $this->answerCallback($callbackId, 'Неизвестный тип'),
+            };
+        } finally {
+            TenantService::resetContext();
+        }
+    }
+
+    private function handleOrderAction(string $callbackId, string $orderId, string $action, int $chatId): void
+    {
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            $this->answerCallback($callbackId, 'Заказ не найден');
+            return;
+        }
+
+        $newStatus = match ($action) {
+            'confirm' => 'processing',
+            'cancel'  => 'cancelled',
+            default   => null,
+        };
+
+        if (!$newStatus) {
+            $this->answerCallback($callbackId, 'Неизвестное действие');
+            return;
+        }
+
+        $order->update(['status' => $newStatus]);
+
+        $label = $newStatus === 'processing' ? '✅ Подтверждён' : '❌ Отменён';
+        $this->answerCallback($callbackId, "Заказ {$label}");
+
+        $shortId = substr($orderId, 0, 8);
+        $this->sendReply($chatId, "Заказ #{$shortId} — {$label}");
+
+        Log::info('Order status updated via Telegram', [
+            'order_id' => $orderId,
+            'status'   => $newStatus,
+        ]);
+    }
+
+    private function handleBookingAction(string $callbackId, string $bookingId, string $action, int $chatId): void
+    {
+        $booking = Booking::find($bookingId);
+
+        if (!$booking) {
+            $this->answerCallback($callbackId, 'Запись не найдена');
+            return;
+        }
+
+        $newStatus = match ($action) {
+            'confirm' => 'confirmed',
+            'cancel'  => 'cancelled',
+            default   => null,
+        };
+
+        if (!$newStatus) {
+            $this->answerCallback($callbackId, 'Неизвестное действие');
+            return;
+        }
+
+        $booking->update(['status' => $newStatus]);
+
+        $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
+        $this->answerCallback($callbackId, "Запись {$label}");
+
+        $date = \Carbon\Carbon::parse($booking->start_time)->format('d.m H:i');
+        $this->sendReply($chatId, "Запись {$date} ({$booking->customer_name}) — {$label}");
+
+        Log::info('Booking status updated via Telegram', [
+            'booking_id' => $bookingId,
+            'status'     => $newStatus,
+        ]);
+    }
+
+    // ── Telegram Bot API helpers ──────────────────────────────────────
+
+    private function sendReply(int $chatId, string $text): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+            'chat_id'    => $chatId,
+            'text'       => $text,
+            'parse_mode' => 'Markdown',
+        ]);
+    }
+
+    private function answerCallback(string $callbackId, string $text): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/answerCallbackQuery", [
+            'callback_query_id' => $callbackId,
+            'text'              => $text,
+            'show_alert'        => false,
+        ]);
     }
 }
