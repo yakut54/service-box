@@ -79,6 +79,7 @@ Route::prefix('widget')->middleware('tenant')->group(function () {
     Route::middleware('verify.phone')->group(function () {
         Route::get('/orders', [OrderController::class, 'widgetOrdersByPhone']);
         Route::get('/bookings', [BookingController::class, 'widgetBookingsByPhone']);
+        Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'widgetCancel']);
     });
 });
 

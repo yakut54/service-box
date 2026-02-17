@@ -259,6 +259,33 @@ class BookingController extends Controller
     }
 
     /**
+     * Cancel booking from widget
+     *
+     * PATCH /api/widget/bookings/{id}/cancel
+     */
+    public function widgetCancel(Request $request, string $booking): JsonResponse
+    {
+        $phone = $request->verified_phone ?? $request->phone;
+
+        $booking = Booking::findOrFail($booking);
+
+        // Ensure booking belongs to this phone
+        if ($booking->customer_phone !== $phone) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!in_array($booking->status, ['pending', 'confirmed'])) {
+            return response()->json([
+                'message' => 'Запись нельзя отменить (статус: ' . $booking->status . ')',
+            ], 422);
+        }
+
+        $booking->update(['status' => 'cancelled']);
+
+        return response()->json(['message' => 'Запись отменена', 'status' => 'cancelled']);
+    }
+
+    /**
      * Get list of active masters
      */
     public function masters(): JsonResponse

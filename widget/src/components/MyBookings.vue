@@ -158,6 +158,37 @@ function resetPhone() {
   otpError.value = ''
   localStorage.removeItem(`${TOKEN_KEY}:${shopStore.shopId}`)
 }
+
+// ── Cancel booking ────────────────────────────────────────────
+const cancelTarget = ref<any | null>(null)
+const cancelling = ref(false)
+const cancelError = ref('')
+
+function canCancel(booking: any) {
+  return ['pending', 'confirmed'].includes(booking.status) && !isPast(booking.start_time)
+}
+
+function openCancelConfirm(booking: any) {
+  cancelTarget.value = booking
+  cancelError.value = ''
+}
+
+async function doCancel() {
+  if (!cancelTarget.value) return
+  cancelling.value = true
+  cancelError.value = ''
+  try {
+    await shopStore.getApi().cancelBooking(cancelTarget.value.id, rawPhone(), phoneToken.value)
+    // Update locally
+    const idx = bookings.value.findIndex(b => b.id === cancelTarget.value.id)
+    if (idx !== -1) bookings.value[idx] = { ...bookings.value[idx], status: 'cancelled' }
+    cancelTarget.value = null
+  } catch (e: any) {
+    cancelError.value = e.message || 'Ошибка отмены'
+  } finally {
+    cancelling.value = false
+  }
+}
 </script>
 
 <template>
@@ -309,8 +340,42 @@ function resetPhone() {
           </div>
 
           <div v-if="booking.notes" class="sb-subtitle sb-mt-2" style="font-style: italic;">{{ booking.notes }}</div>
+
+          <!-- Cancel button -->
+          <div v-if="canCancel(booking)" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sb-border);">
+            <button
+              class="sb-btn sb-btn-ghost"
+              style="color: var(--sb-danger); border: 1px solid var(--sb-danger); padding: 6px 14px; font-size: 13px;"
+              @click="openCancelConfirm(booking)"
+            >
+              Отменить запись
+            </button>
+          </div>
         </div>
       </div>
     </template>
+
+    <!-- Cancel confirm modal -->
+    <div v-if="cancelTarget" style="position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;">
+      <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.5);" @click="cancelTarget = null" />
+      <div style="position: relative; background: var(--sb-bg); border-radius: var(--sb-radius-lg); padding: 24px; max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <p style="font-size: 17px; font-weight: 700; color: var(--sb-text); margin-bottom: 8px;">Отменить запись?</p>
+        <p style="font-size: 14px; color: var(--sb-text-muted); margin-bottom: 20px;">
+          {{ cancelTarget.service?.name }} — {{ formatDate(cancelTarget.start_time) }}, {{ formatTime(cancelTarget.start_time) }}
+        </p>
+        <p v-if="cancelError" style="font-size: 13px; color: var(--sb-danger); margin-bottom: 12px;">{{ cancelError }}</p>
+        <div class="sb-flex sb-gap-2">
+          <button class="sb-btn sb-btn-ghost" style="flex: 1;" @click="cancelTarget = null">Назад</button>
+          <button
+            class="sb-btn"
+            style="flex: 1; background: var(--sb-danger); color: #fff;"
+            :disabled="cancelling"
+            @click="doCancel"
+          >
+            {{ cancelling ? 'Отмена...' : 'Да, отменить' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

@@ -122,4 +122,12 @@ export class WidgetApi {
       headers: { 'X-Phone-Token': token },
     })
   }
+
+  async cancelBooking(bookingId: string, phone: string, token: string) {
+    const query = new URLSearchParams({ phone }).toString()
+    return this.request<{ message: string; status: string }>(
+      `/widget/bookings/${bookingId}/cancel?${query}`,
+      { method: 'PATCH', headers: { 'X-Phone-Token': token } }
+    )
+  }
 }
