@@ -3,6 +3,7 @@ import { onMounted, ref, computed, watch } from 'vue'
 import { useBookingsStore } from '@/stores/bookings'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
+import DatePicker from '@/components/DatePicker.vue'
 import { formatPhone } from '@/lib/utils'
 
 const bookingsStore = useBookingsStore()
@@ -264,7 +265,7 @@ onMounted(() => {
       <div class="flex flex-col sm:flex-row gap-4">
         <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-44" />
         <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-48" />
-        <input v-model="filterDate" @change="applyFilters" type="date" class="input w-full sm:w-44" />
+        <DatePicker v-model="filterDate" @change="applyFilters" placeholder="Дата" class="w-full sm:w-44" />
         <button v-if="filterStatus || filterMaster || filterDate" @click="filterStatus = ''; filterMaster = ''; filterDate = ''; applyFilters()" class="btn-ghost btn-sm whitespace-nowrap">
           Сбросить
         </button>
@@ -524,7 +525,7 @@ onMounted(() => {
           <!-- Date -->
           <div>
             <label class="label">Дата <span class="text-red-500">*</span></label>
-            <input v-model="modalForm.date" type="date" class="input" :min="new Date().toISOString().split('T')[0]" />
+            <DatePicker v-model="modalForm.date" :min="new Date().toISOString().split('T')[0]" placeholder="Выберите дату" />
           </div>
 
           <!-- Slots -->
