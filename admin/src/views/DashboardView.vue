@@ -150,6 +150,35 @@ function hideTooltip() {
   tooltip.value = null
 }
 
+// ── Order status breakdown ────────────────────────────────────
+const statusBreakdown = computed(() => {
+  const total = stats.value.total_orders || 1 // avoid div/0
+  return [
+    { key: 'pending',    label: 'Ожидают',   color: 'bg-yellow-400', count: stats.value.pending_orders   || 0 },
+    { key: 'paid',       label: 'Оплачены',  color: 'bg-blue-500',   count: stats.value.paid_orders      || 0 },
+    { key: 'completed',  label: 'Завершены', color: 'bg-green-500',  count: stats.value.completed_orders || 0 },
+    { key: 'cancelled',  label: 'Отменены',  color: 'bg-red-400',    count: stats.value.cancelled_orders || 0 },
+  ].map(s => ({ ...s, pct: Math.round((s.count / total) * 100) }))
+})
+
+// ── Top products by revenue ───────────────────────────────────
+const topProducts = computed(() => {
+  const map = new Map<string, { name: string; revenue: number; count: number }>()
+  for (const order of ordersStore.orders) {
+    if (order.status === 'cancelled') continue
+    for (const item of (order.items || [])) {
+      const key = item.product_name
+      const existing = map.get(key) || { name: key, revenue: 0, count: 0 }
+      existing.revenue += (item.price || 0) * (item.quantity || 1)
+      existing.count   += item.quantity || 1
+      map.set(key, existing)
+    }
+  }
+  return [...map.values()]
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5)
+})
+
 // ── Init ─────────────────────────────────────────────────────
 const recentOrders = computed(() => ordersStore.orders.slice(0, 5))
 
@@ -261,88 +290,140 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Revenue Chart -->
-    <div class="card">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка по дням</h2>
-        <span class="text-xs text-gray-400">последние {{ chartDays[period] }} дней</span>
+    <!-- Chart row: left panel + chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+      <!-- ── Left panel ───────────────────────────────────────── -->
+      <div class="lg:col-span-2 flex flex-col gap-4">
+
+        <!-- Order status breakdown -->
+        <div class="card flex-1">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Статусы заказов</h2>
+
+          <div v-if="loadingStats" class="space-y-3">
+            <div v-for="i in 4" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+          </div>
+
+          <div v-else-if="!stats.total_orders" class="py-4 text-sm text-gray-400 text-center">
+            Нет заказов за период
+          </div>
+
+          <div v-else class="space-y-3">
+            <div v-for="s in statusBreakdown" :key="s.key" class="flex items-center gap-3">
+              <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', s.color]"/>
+              <span class="text-sm text-gray-600 dark:text-gray-400 w-24 flex-shrink-0">{{ s.label }}</span>
+              <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  :class="['h-full rounded-full transition-all duration-500', s.color]"
+                  :style="`width: ${s.pct}%`"
+                />
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white w-6 text-right flex-shrink-0">{{ s.count }}</span>
+            </div>
+
+            <!-- Total -->
+            <div class="pt-2 mt-1 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs text-gray-400">
+              <span>Всего за период</span>
+              <span class="font-medium text-gray-700 dark:text-gray-300">{{ stats.total_orders }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top products -->
+        <div class="card flex-1">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Топ товаров</h2>
+
+          <div v-if="ordersStore.loading" class="space-y-3">
+            <div v-for="i in 4" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+          </div>
+
+          <div v-else-if="topProducts.length === 0" class="py-4 text-sm text-gray-400 text-center">
+            Нет данных
+          </div>
+
+          <div v-else class="space-y-3">
+            <div
+              v-for="(p, idx) in topProducts"
+              :key="p.name"
+              class="flex items-center gap-2"
+            >
+              <span class="text-xs font-semibold text-gray-300 dark:text-gray-600 w-4 text-right flex-shrink-0">{{ idx + 1 }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-0.5 gap-2">
+                  <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ p.name }}</span>
+                  <span class="text-xs font-semibold text-gray-900 dark:text-white flex-shrink-0">{{ formatPrice(p.revenue) }}</span>
+                </div>
+                <div class="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    class="h-full bg-primary-500 dark:bg-primary-400 rounded-full transition-all duration-500"
+                    :style="`width: ${Math.round((p.revenue / topProducts[0].revenue) * 100)}%`"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <div v-if="loadingChart" class="flex items-center justify-center h-32 text-gray-400">
-        Загрузка...
-      </div>
+      <!-- ── Revenue Chart ─────────────────────────────────────── -->
+      <div class="lg:col-span-3 card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка по дням</h2>
+          <span class="text-xs text-gray-400">последние {{ chartDays[period] }} дней</span>
+        </div>
 
-      <div v-else-if="chartData.every(d => d.revenue === 0)" class="flex items-center justify-center h-32 text-gray-400 text-sm">
-        Нет данных за период
-      </div>
+        <div v-if="loadingChart" class="flex items-center justify-center h-32 text-gray-400">
+          Загрузка...
+        </div>
 
-      <div v-else class="relative" @mouseleave="hideTooltip">
-        <svg
-          :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
-          class="w-full"
-          :style="`height: ${CHART_H}px`"
-          @mousemove.stop
-        >
-          <!-- Y grid lines -->
-          <line
-            v-for="yl in yLabels"
-            :key="yl.y"
-            :x1="PADDING.left"
-            :y1="yl.y"
-            :x2="CHART_W - PADDING.right"
-            :y2="yl.y"
-            stroke="currentColor"
-            class="text-gray-100 dark:text-gray-800"
-            stroke-width="1"
-          />
+        <div v-else-if="chartData.every(d => d.revenue === 0)" class="flex items-center justify-center h-32 text-gray-400 text-sm">
+          Нет данных за период
+        </div>
 
-          <!-- Y labels -->
-          <text
-            v-for="yl in yLabels"
-            :key="`yl-${yl.y}`"
-            :x="PADDING.left - 4"
-            :y="yl.y + 4"
-            text-anchor="end"
-            class="fill-gray-400"
-            style="font-size: 9px"
-          >{{ yl.label }}</text>
+        <div v-else class="relative" @mouseleave="hideTooltip">
+          <svg
+            :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
+            class="w-full"
+            :style="`height: ${CHART_H}px`"
+            @mousemove.stop
+          >
+            <line
+              v-for="yl in yLabels" :key="yl.y"
+              :x1="PADDING.left" :y1="yl.y"
+              :x2="CHART_W - PADDING.right" :y2="yl.y"
+              stroke="currentColor" class="text-gray-100 dark:text-gray-800" stroke-width="1"
+            />
+            <text
+              v-for="yl in yLabels" :key="`yl-${yl.y}`"
+              :x="PADDING.left - 4" :y="yl.y + 4"
+              text-anchor="end" class="fill-gray-400" style="font-size: 9px"
+            >{{ yl.label }}</text>
+            <rect
+              v-for="bar in chartPoints.bars" :key="bar.date"
+              :x="bar.x" :y="bar.y" :width="bar.w" :height="bar.h" rx="2"
+              class="fill-primary-500 dark:fill-primary-400 hover:fill-primary-600 dark:hover:fill-primary-300 transition-colors cursor-pointer"
+              @mouseenter="showTooltip($event, bar)"
+            />
+            <text
+              v-for="xl in chartPoints.labels" :key="`xl-${xl.x}`"
+              :x="xl.x" :y="CHART_H - 4"
+              text-anchor="middle" class="fill-gray-400" style="font-size: 9px"
+            >{{ xl.label }}</text>
+          </svg>
 
-          <!-- Bars -->
-          <rect
-            v-for="bar in chartPoints.bars"
-            :key="bar.date"
-            :x="bar.x"
-            :y="bar.y"
-            :width="bar.w"
-            :height="bar.h"
-            rx="2"
-            class="fill-primary-500 dark:fill-primary-400 hover:fill-primary-600 dark:hover:fill-primary-300 transition-colors cursor-pointer"
-            @mouseenter="showTooltip($event, bar)"
-          />
-
-          <!-- X labels -->
-          <text
-            v-for="xl in chartPoints.labels"
-            :key="`xl-${xl.x}`"
-            :x="xl.x"
-            :y="CHART_H - 4"
-            text-anchor="middle"
-            class="fill-gray-400"
-            style="font-size: 9px"
-          >{{ xl.label }}</text>
-        </svg>
-
-        <!-- Tooltip -->
-        <div
-          v-if="tooltip"
-          class="absolute pointer-events-none z-10 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg"
-          :style="`left: ${Math.min(tooltip.x, CHART_W - 120)}px; top: ${tooltip.y - 60}px; transform: translateX(-50%)`"
-        >
-          <div class="font-medium">{{ new Date(tooltip.bar.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) }}</div>
-          <div class="text-primary-300">{{ formatPriceFull(tooltip.bar.revenue) }}</div>
-          <div class="text-gray-300">{{ tooltip.bar.orders }} заказов</div>
+          <div
+            v-if="tooltip"
+            class="absolute pointer-events-none z-10 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg"
+            :style="`left: ${Math.min(tooltip.x, CHART_W - 120)}px; top: ${tooltip.y - 60}px; transform: translateX(-50%)`"
+          >
+            <div class="font-medium">{{ new Date(tooltip.bar.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) }}</div>
+            <div class="text-primary-300">{{ formatPriceFull(tooltip.bar.revenue) }}</div>
+            <div class="text-gray-300">{{ tooltip.bar.orders }} заказов</div>
+          </div>
         </div>
       </div>
+
     </div>
 
     <!-- Bottom row: today bookings + recent orders -->
