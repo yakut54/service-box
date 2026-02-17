@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Master;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class MasterController extends Controller
+{
+    /**
+     * GET /api/admin/masters
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $query = Master::query();
+
+        if ($request->has('active')) {
+            $query->where('is_active', filter_var($request->active, FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $masters = $query->orderBy('sort_order')->orderBy('name')->get();
+
+        return response()->json([
+            'data' => $masters,
+            'count' => $masters->count(),
+        ]);
+    }
+
+    /**
+     * POST /api/admin/masters
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name'           => 'required|string|max:255',
+            'phone'          => 'nullable|string|max:20',
+            'email'          => 'nullable|email|max:255',
+            'specialization' => 'nullable|string|max:255',
+            'avatar_url'     => 'nullable|url|max:1000',
+            'is_active'      => 'boolean',
+            'sort_order'     => 'integer|min:0',
+        ]);
+
+        $master = Master::create($data);
+
+        return response()->json(['data' => $master], 201);
+    }
+
+    /**
+     * GET /api/admin/masters/{master}
+     */
+    public function show(Master $master): JsonResponse
+    {
+        return response()->json(['data' => $master]);
+    }
+
+    /**
+     * PUT /api/admin/masters/{master}
+     */
+    public function update(Request $request, Master $master): JsonResponse
+    {
+        $data = $request->validate([
+            'name'           => 'sometimes|required|string|max:255',
+            'phone'          => 'nullable|string|max:20',
+            'email'          => 'nullable|email|max:255',
+            'specialization' => 'nullable|string|max:255',
+            'avatar_url'     => 'nullable|url|max:1000',
+            'is_active'      => 'boolean',
+            'sort_order'     => 'integer|min:0',
+        ]);
+
+        $master->update($data);
+
+        return response()->json(['data' => $master]);
+    }
+
+    /**
+     * DELETE /api/admin/masters/{master}
+     */
+    public function destroy(Master $master): JsonResponse
+    {
+        $master->delete();
+
+        return response()->json(['message' => 'Мастер удалён'], 200);
+    }
+}

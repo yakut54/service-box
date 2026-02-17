@@ -218,7 +218,33 @@ class ApiClient {
     return this.request<any>(`/admin/bookings/available-slots?${query}`)
   }
 
-  async getMasters() {
+  async getMasters(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ data: any[]; count: number }>(`/admin/masters${query}`)
+  }
+
+  async createMaster(data: Record<string, any>) {
+    return this.request<{ data: any }>('/admin/masters', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateMaster(id: string, data: Record<string, any>) {
+    return this.request<{ data: any }>(`/admin/masters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteMaster(id: string) {
+    return this.request<{ message: string }>(`/admin/masters/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // legacy: used by BookingsView for slot-master dropdown
+  async getBookingMasters() {
     return this.request<{ data: any[] }>('/admin/bookings/masters')
   }
 

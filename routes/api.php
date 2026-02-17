@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\MasterController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
@@ -106,6 +107,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
     Route::apiResource('bookings', BookingController::class)->only(['index', 'store', 'show']);
     Route::patch('/bookings/{booking}', [BookingController::class, 'updateStatus']);
+
+    // Masters
+    Route::apiResource('masters', MasterController::class);
 
 });
 
