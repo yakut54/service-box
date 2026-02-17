@@ -418,7 +418,7 @@ onBeforeUnmount(() => {
               <text
                 v-for="yl in yLabels" :key="`yl-${yl.y}`"
                 :x="PADDING.left - 4" :y="yl.y + 4"
-                text-anchor="end" class="fill-gray-400" style="font-size: 9px"
+                text-anchor="end" class="fill-gray-400" style="font-size: 7px"
                 vector-effect="non-scaling-stroke"
               >{{ yl.label }}</text>
               <rect
@@ -430,7 +430,7 @@ onBeforeUnmount(() => {
               <text
                 v-for="xl in chartPoints.labels" :key="`xl-${xl.x}`"
                 :x="xl.x" :y="CHART_H.valueOf() - 4"
-                text-anchor="middle" class="fill-gray-400" style="font-size: 9px"
+                text-anchor="middle" class="fill-gray-400" style="font-size: 7px"
                 vector-effect="non-scaling-stroke"
               >{{ xl.label }}</text>
             </svg>
@@ -449,16 +449,16 @@ onBeforeUnmount(() => {
           <!-- Summary row below the chart -->
           <div class="flex-shrink-0 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 grid grid-cols-3 gap-4">
             <div>
-              <p class="text-xs text-gray-400 mb-0.5">Всего выручка</p>
-              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ formatPriceFull(stats.total_revenue || 0) }}</p>
+              <p class="text-xs text-gray-400 mb-1">Всего выручка</p>
+              <p class="text-base font-bold text-gray-900 dark:text-white">{{ formatPriceFull(stats.total_revenue || 0) }}</p>
             </div>
             <div>
-              <p class="text-xs text-gray-400 mb-0.5">Заказов</p>
-              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ stats.total_orders || 0 }}</p>
+              <p class="text-xs text-gray-400 mb-1">Заказов</p>
+              <p class="text-base font-bold text-gray-900 dark:text-white">{{ stats.total_orders || 0 }}</p>
             </div>
             <div>
-              <p class="text-xs text-gray-400 mb-0.5">Средний чек</p>
-              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ formatPriceFull(stats.average_order_value || 0) }}</p>
+              <p class="text-xs text-gray-400 mb-1">Средний чек</p>
+              <p class="text-base font-bold text-gray-900 dark:text-white">{{ formatPriceFull(stats.average_order_value || 0) }}</p>
             </div>
           </div>
         </div>
