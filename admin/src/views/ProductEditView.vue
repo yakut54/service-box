@@ -137,13 +137,13 @@ const uploadError  = ref('')
 const fileInputEl  = ref<HTMLInputElement | null>(null)
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-const MAX_BYTES = 2 * 1024 * 1024
+const MAX_BYTES = 1 * 1024 * 1024
 
 watch(() => form.value.image_url, () => { imageError.value = false })
 
 function validateFile(file: File): string | null {
   if (!ALLOWED_TYPES.includes(file.type)) return 'Только JPG, PNG или WEBP'
-  if (file.size > MAX_BYTES) return `Файл слишком большой (макс. 2 МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ)`
+  if (file.size > MAX_BYTES) return `Файл слишком большой (макс. 1 МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ)`
   return null
 }
 
@@ -440,7 +440,7 @@ async function handleSubmit() {
                 <span class="text-primary-600 dark:text-primary-400 font-medium">Нажмите</span>
                 {{ isDragging ? ' или отпустите файл' : ' или перетащите фото' }}
               </p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG, WEBP · до 2 МБ</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG, WEBP · до 1 МБ</p>
             </div>
 
             <!-- URL вручную -->
