@@ -196,6 +196,17 @@ class ApiClient {
   // BOOKINGS
   // ==========================================
 
+  async getBookingStats() {
+    return this.request<{
+      total_bookings: number
+      pending_bookings: number
+      confirmed_bookings: number
+      completed_bookings: number
+      cancelled_bookings: number
+      no_show_bookings: number
+    }>('/admin/bookings/stats')
+  }
+
   async getBookings(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
     return this.request<{ data: any[]; count: number }>(`/admin/bookings${query}`)

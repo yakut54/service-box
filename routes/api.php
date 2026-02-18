@@ -105,6 +105,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::get('/customers/{customer}', [CustomerController::class, 'show']);
 
     // Bookings
+    Route::get('/bookings/stats', [BookingController::class, 'adminStats']);
     Route::get('/bookings/masters', [BookingController::class, 'masters']);
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
     Route::apiResource('bookings', BookingController::class)->only(['index', 'store', 'show']);

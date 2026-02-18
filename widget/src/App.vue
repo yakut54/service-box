@@ -304,116 +304,99 @@ function selectSidebarCategory(cat: string) {
         <!-- Main content -->
         <main class="sb-main" ref="mainEl">
           <div class="sb-main-inner sb-grid-container">
-            <!-- Loading state -->
-            <div v-if="currentView === 'loading'">
-              <div class="sb-grid sb-grid-2 sb-grid-3" style="margin-top: 16px;">
-                <div v-for="i in 6" :key="i" class="sb-card">
-                  <div class="sb-skeleton sb-skeleton-image"></div>
-                  <div class="sb-skeleton sb-skeleton-title"></div>
-                  <div class="sb-skeleton sb-skeleton-text" style="width: 40%;"></div>
-                  <div class="sb-skeleton sb-skeleton-btn" style="margin-top: 12px; width: 100%;"></div>
-                </div>
+
+            <!-- Loading -->
+            <div v-if="currentView === 'loading'" class="sb-grid sb-grid-2 sb-grid-3" style="margin-top: 16px;">
+              <div v-for="i in 6" :key="i" class="sb-card">
+                <div class="sb-skeleton sb-skeleton-image"></div>
+                <div class="sb-skeleton sb-skeleton-title"></div>
+                <div class="sb-skeleton sb-skeleton-text" style="width: 40%;"></div>
+                <div class="sb-skeleton sb-skeleton-btn" style="margin-top: 12px; width: 100%;"></div>
               </div>
             </div>
 
-            <!-- Error state -->
-            <div v-else-if="currentView === 'error'">
-              <div class="sb-empty">
-                <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <p class="sb-empty-title">Не удалось загрузить магазин</p>
-                <p class="sb-empty-text">{{ shopStore.error }}</p>
-                <button class="sb-btn sb-btn-primary sb-mt-4" @click="shopStore.loadConfig().then(() => { if (!shopStore.error) currentView = 'catalog' })">
-                  Попробовать снова
-                </button>
-              </div>
+            <!-- Error -->
+            <div v-else-if="currentView === 'error'" class="sb-empty">
+              <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p class="sb-empty-title">Не удалось загрузить магазин</p>
+              <p class="sb-empty-text">{{ shopStore.error }}</p>
+              <button class="sb-btn sb-btn-primary sb-mt-4" @click="shopStore.loadConfig().then(() => { if (!shopStore.error) currentView = 'catalog' })">
+                Попробовать снова
+              </button>
             </div>
 
             <!-- Catalog -->
-            <div v-else-if="currentView === 'catalog'">
-              <Catalog
-                  :active-category="activeSidebarCategory"
-                  @select="handleProductSelect"
-                  @categories-loaded="handleCategoriesLoaded"
-              />
-            </div>
+            <Catalog
+              v-else-if="currentView === 'catalog'"
+              :active-category="activeSidebarCategory"
+              @select="handleProductSelect"
+              @categories-loaded="handleCategoriesLoaded"
+            />
 
             <!-- Product Detail -->
-            <div v-else-if="currentView === 'product' && selectedProduct">
-              <ProductDetail
-                  :product="selectedProduct"
-                  @back="handleBack"
-                  @booking="handleBooking"
-                  @go-to-cart="navigate('cart')"
-              />
-            </div>
+            <ProductDetail
+              v-else-if="currentView === 'product' && selectedProduct"
+              :product="selectedProduct"
+              @back="handleBack"
+              @booking="handleBooking"
+              @go-to-cart="navigate('cart')"
+            />
 
             <!-- Booking Calendar -->
-            <div v-else-if="currentView === 'booking' && selectedProduct">
-              <BookingCalendar
-                  :product="selectedProduct"
-                  @back="handleBack"
-                  @success="handleBookingSuccess"
-              />
-            </div>
+            <BookingCalendar
+              v-else-if="currentView === 'booking' && selectedProduct"
+              :product="selectedProduct"
+              @back="handleBack"
+              @success="handleBookingSuccess"
+            />
 
             <!-- Booking Success -->
-            <div v-else-if="currentView === 'booking-success'">
-              <BookingSuccess
-                  :booking="completedBooking"
-                  :product="selectedProduct"
-                  @back="navigate('catalog')"
-              />
-            </div>
+            <BookingSuccess
+              v-else-if="currentView === 'booking-success'"
+              :booking="completedBooking"
+              :product="selectedProduct"
+              @back="navigate('catalog')"
+            />
 
             <!-- Cart -->
-            <div v-else-if="currentView === 'cart'">
-              <Cart
-                  @back="handleCartBack"
-                  @checkout="navigate('checkout')"
-              />
-            </div>
+            <Cart
+              v-else-if="currentView === 'cart'"
+              @back="handleCartBack"
+              @checkout="navigate('checkout')"
+            />
 
             <!-- Checkout -->
-            <div v-else-if="currentView === 'checkout'">
-              <Checkout
-                  @back="navigate('cart')"
-                  @success="handleOrderSuccess"
-              />
-            </div>
+            <Checkout
+              v-else-if="currentView === 'checkout'"
+              @back="navigate('cart')"
+              @success="handleOrderSuccess"
+            />
 
             <!-- Order Success -->
-            <div v-else-if="currentView === 'success'">
-              <OrderSuccess
-                  :order="completedOrder"
-                  @back="navigate('catalog')"
-              />
-            </div>
+            <OrderSuccess
+              v-else-if="currentView === 'success'"
+              :order="completedOrder"
+              @back="navigate('catalog')"
+            />
 
             <!-- My Orders -->
-            <div v-else-if="currentView === 'orders'">
-              <MyOrders @back="navigate('catalog')" />
-            </div>
+            <MyOrders v-else-if="currentView === 'orders'" @back="navigate('catalog')" />
 
             <!-- My Bookings -->
-            <div v-else-if="currentView === 'bookings-list'">
-              <MyBookings @back="navigate('catalog')" />
-            </div>
+            <MyBookings v-else-if="currentView === 'bookings-list'" @back="navigate('catalog')" />
 
             <!-- Fallback -->
-            <div v-else>
-              <div class="sb-empty">
-                <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <p class="sb-empty-title">Скоро будет доступно</p>
-                <p class="sb-empty-text">Этот раздел в разработке</p>
-                <button class="sb-btn sb-btn-primary sb-mt-4" @click="navigate('catalog')">
-                  Вернуться в каталог
-                </button>
-              </div>
+            <div v-else class="sb-empty">
+              <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <p class="sb-empty-title">Скоро будет доступно</p>
+              <p class="sb-empty-text">Этот раздел в разработке</p>
+              <button class="sb-btn sb-btn-primary sb-mt-4" @click="navigate('catalog')">Вернуться в каталог</button>
             </div>
+
           </div>
         </main>
 

@@ -286,6 +286,30 @@ class BookingController extends Controller
     }
 
     /**
+     * Booking stats by status (for admin dashboard)
+     *
+     * GET /api/admin/bookings/stats
+     */
+    public function adminStats(): JsonResponse
+    {
+        $counts = Booking::query()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
+        $result = ['total_bookings' => 0];
+
+        foreach ($statuses as $status) {
+            $count = (int) ($counts[$status] ?? 0);
+            $result["{$status}_bookings"] = $count;
+            $result['total_bookings'] += $count;
+        }
+
+        return response()->json($result);
+    }
+
+    /**
      * Get list of active masters
      */
     public function masters(): JsonResponse

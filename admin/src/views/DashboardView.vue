@@ -51,6 +51,29 @@ async function loadChart() {
   loadingChart.value = false
 }
 
+// ── Booking stats ─────────────────────────────────────────────
+const bookingStats = ref<any>({})
+const loadingBookingStats = ref(false)
+
+async function loadBookingStats() {
+  loadingBookingStats.value = true
+  try {
+    bookingStats.value = await api.getBookingStats()
+  } catch { /* ignore */ }
+  loadingBookingStats.value = false
+}
+
+const bookingStatusBreakdown = computed(() => {
+  const total = bookingStats.value.total_bookings || 1
+  return [
+    { key: 'pending',   label: 'Ожидают',     color: 'bg-yellow-400', count: bookingStats.value.pending_bookings   || 0 },
+    { key: 'confirmed', label: 'Подтверждены', color: 'bg-blue-500',   count: bookingStats.value.confirmed_bookings || 0 },
+    { key: 'completed', label: 'Завершены',    color: 'bg-green-500',  count: bookingStats.value.completed_bookings || 0 },
+    { key: 'cancelled', label: 'Отменены',     color: 'bg-red-400',    count: bookingStats.value.cancelled_bookings || 0 },
+    { key: 'no_show',   label: 'Неявка',       color: 'bg-gray-400',   count: bookingStats.value.no_show_bookings   || 0 },
+  ].map(s => ({ ...s, pct: Math.round((s.count / total) * 100) }))
+})
+
 // ── Today's bookings ─────────────────────────────────────────
 const todayBookings = ref<any[]>([])
 
@@ -177,6 +200,7 @@ onMounted(async () => {
     loadStats(),
     loadChart(),
     loadTodayBookings(),
+    loadBookingStats(),
   ])
 
   // Start observing chart container height after data loads
@@ -311,6 +335,34 @@ onMounted(async () => {
             <div class="pt-2 mt-1 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs text-gray-400">
               <span>Всего за период</span>
               <span class="font-medium text-gray-700 dark:text-gray-300">{{ stats.total_orders }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking status breakdown -->
+        <div class="card">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Статусы записей</h2>
+
+          <div v-if="loadingBookingStats" class="space-y-3">
+            <div v-for="i in 4" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+          </div>
+
+          <div v-else-if="!bookingStats.total_bookings" class="py-4 text-sm text-gray-400 text-center">
+            Нет записей
+          </div>
+
+          <div v-else class="space-y-3">
+            <div v-for="s in bookingStatusBreakdown" :key="s.key" class="flex items-center gap-3">
+              <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', s.color]"/>
+              <span class="text-sm text-gray-600 dark:text-gray-400 w-28 flex-shrink-0">{{ s.label }}</span>
+              <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div :class="['h-full rounded-full transition-all duration-500', s.color]" :style="`width: ${s.pct}%`"/>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-white w-6 text-right flex-shrink-0">{{ s.count }}</span>
+            </div>
+            <div class="pt-2 mt-1 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs text-gray-400">
+              <span>Всего записей</span>
+              <span class="font-medium text-gray-700 dark:text-gray-300">{{ bookingStats.total_bookings }}</span>
             </div>
           </div>
         </div>
