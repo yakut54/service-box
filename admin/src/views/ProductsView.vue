@@ -53,16 +53,16 @@ function getStockBadge(product: any) {
 
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Товары и услуги</h1>
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <div class="min-w-0">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white truncate">Товары и услуги</h1>
         <p class="text-gray-500 dark:text-gray-400 mt-1">{{ productsStore.products.length }} позиций</p>
       </div>
-      <RouterLink to="/products/new" class="btn-primary">
+      <RouterLink to="/products/new" class="btn-primary shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        Добавить
+        <span class="hidden sm:inline">Добавить</span>
       </RouterLink>
     </div>
 
