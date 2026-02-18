@@ -61,7 +61,7 @@ async function handleLogout() {
 
       <!-- Shop name -->
       <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-        <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Магазин</p>
+        <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Интернет-Магазин</p>
         <p class="font-medium text-gray-900 dark:text-white truncate">
           {{ authStore.shop?.name || 'Загрузка...' }}
         </p>

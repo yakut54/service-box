@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ServiceBox — Widget Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #00f5c4;
+            --neon2: #f500c4;
+            --neon3: #c4f500;
+            --dark: #030a06;
+            --grid: rgba(0, 245, 196, 0.04);
+            --line: rgba(0, 245, 196, 0.15);
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--dark);
+            color: #c8ffe8;
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: crosshair;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 0;
+        }
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 8s ease-in-out infinite alternate;
+        }
+        .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(0,245,196,0.12) 0%, transparent 70%); top: -100px; left: -100px; }
+        .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(245,0,196,0.08) 0%, transparent 70%); bottom: -50px; right: -50px; animation-delay: -4s; }
+        .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(196,245,0,0.06) 0%, transparent 70%); top: 50%; right: 20%; animation-delay: -2s; }
+        @keyframes orbFloat { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,20px) scale(1.1); } }
+        .corner { position: fixed; width: 60px; height: 60px; pointer-events: none; z-index: 10; }
+        .corner::before, .corner::after { content: ''; position: absolute; background: var(--neon); box-shadow: 0 0 8px var(--neon); }
+        .corner::before { width: 100%; height: 2px; }
+        .corner::after { width: 2px; height: 100%; }
+        .corner-tl { top: 16px; left: 16px; }
+        .corner-tr { top: 16px; right: 16px; transform: scaleX(-1); }
+        .corner-bl { bottom: 16px; left: 16px; transform: scaleY(-1); }
+        .corner-br { bottom: 16px; right: 16px; transform: scale(-1); }
+        .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 80px 40px 120px; }
+        header { display: flex; align-items: center; gap: 16px; margin-bottom: 80px; animation: fadeDown 0.8s ease both; }
+        .logo-mark {
+            width: 48px; height: 48px;
+            border: 2px solid var(--neon);
+            box-shadow: 0 0 20px var(--neon), inset 0 0 20px rgba(0,245,196,0.1);
+            display: grid; place-items: center; position: relative;
+            animation: pulse 3s ease-in-out infinite;
+        }
+        .logo-mark::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(0,245,196,0.4); }
+        .logo-mark svg { color: var(--neon); }
+        .logo-text { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.3em; color: var(--neon); text-shadow: 0 0 20px var(--neon); }
+        .logo-sub { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(0,245,196,0.5); letter-spacing: 0.2em; margin-top: 2px; }
+        .header-right { margin-left: auto; }
+        .status-dot { display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: rgba(0,245,196,0.6); letter-spacing: 0.1em; }
+        .status-dot::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--neon); box-shadow: 0 0 8px var(--neon); animation: blink 1.5s step-end infinite; }
+        @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+        .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: flex-start; margin-bottom: 100px; animation: fadeUp 0.9s ease 0.1s both; }
+        .hero-eyebrow { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--neon); letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 20px; opacity: 0.8; }
+        .hero-eyebrow::before { content: '> '; }
+        .hero-title { font-family: 'Orbitron', monospace; font-size: clamp(28px,4vw,48px); font-weight: 900; line-height: 1.15; color: #fff; margin-bottom: 24px; text-shadow: 0 0 40px rgba(0,245,196,0.3); }
+        .hero-title span { color: var(--neon); text-shadow: 0 0 30px var(--neon); display: inline-block; animation: glitch 5s infinite; }
+        @keyframes glitch {
+            0%,88%,100% { transform:translate(0); }
+            90% { transform:translate(-2px,1px); text-shadow: 2px 0 #f500c4, -2px 0 var(--neon3); }
+            92% { transform:translate(2px,-1px); }
+            94% { transform:translate(0); }
+        }
+        .hero-desc { font-size: 16px; line-height: 1.8; color: rgba(200,255,232,0.55); margin-bottom: 36px; font-weight: 300; }
+        .hero-cta {
+            display: inline-flex; align-items: center; gap: 12px; padding: 14px 32px;
+            background: transparent; border: 1px solid var(--neon); color: var(--neon);
+            font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.2em;
+            text-transform: uppercase; cursor: pointer; position: relative; transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0,245,196,0.2), inset 0 0 20px rgba(0,245,196,0.05);
+            text-decoration: none; overflow: hidden;
+        }
+        .hero-cta::before { content: ''; position: absolute; inset: 0; background: var(--neon); transform: scaleX(0); transform-origin: left; transition: transform 0.3s ease; z-index: -1; }
+        .hero-cta:hover { color: var(--dark); box-shadow: 0 0 50px rgba(0,245,196,0.6); }
+        .hero-cta:hover::before { transform: scaleX(1); }
+        .terminal { background: rgba(0,0,0,0.65); border: 1px solid rgba(0,245,196,0.2); border-radius: 4px; overflow: hidden; box-shadow: 0 0 40px rgba(0,245,196,0.1), 0 40px 80px rgba(0,0,0,0.5); }
+        .terminal-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(0,245,196,0.04); border-bottom: 1px solid rgba(0,245,196,0.1); }
+        .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .terminal-dot:nth-child(1) { background: #ff5f56; box-shadow: 0 0 6px #ff5f56; }
+        .terminal-dot:nth-child(2) { background: #ffbd2e; box-shadow: 0 0 6px #ffbd2e; }
+        .terminal-dot:nth-child(3) { background: #27c93f; box-shadow: 0 0 6px #27c93f; }
+        .terminal-title { margin-left: auto; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(0,245,196,0.35); letter-spacing: 0.1em; }
+        .terminal-body { padding: 20px; font-family: 'Share Tech Mono', monospace; font-size: 12px; line-height: 2.1; }
+        .t-comment { color: rgba(0,245,196,0.3); }
+        .t-key { color: #f500c4; text-shadow: 0 0 8px #f500c4; }
+        .t-val { color: var(--neon3); }
+        .t-str { color: #f59e0b; }
+        .t-cursor { display: inline-block; width: 8px; height: 14px; background: var(--neon); vertical-align: -2px; animation: blink 1s step-end infinite; }
+        .divider { display: flex; align-items: center; gap: 20px; margin: 60px 0 50px; animation: fadeUp 0.8s ease 0.3s both; }
+        .divider-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+        .divider-label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(0,245,196,0.35); letter-spacing: 0.3em; white-space: nowrap; }
+        .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; margin-bottom: 80px; animation: fadeUp 0.8s ease 0.2s both; }
+        .stat-card { background: rgba(0,245,196,0.03); border: 1px solid rgba(0,245,196,0.08); padding: 32px 24px; position: relative; overflow: hidden; transition: all 0.3s ease; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--neon), transparent); transform: scaleX(0); transition: transform 0.4s ease; }
+        .stat-card:hover { background: rgba(0,245,196,0.06); }
+        .stat-card:hover::before { transform: scaleX(1); }
+        .stat-num { font-family: 'Orbitron', monospace; font-size: 36px; font-weight: 900; color: var(--neon); text-shadow: 0 0 30px var(--neon); line-height: 1; margin-bottom: 8px; }
+        .stat-label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(0,245,196,0.4); letter-spacing: 0.2em; text-transform: uppercase; }
+        .stat-sub { font-size: 13px; color: rgba(200,255,232,0.35); margin-top: 4px; font-weight: 300; }
+        .widget-section { animation: fadeUp 0.8s ease 0.4s both; }
+        .section-label { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+        .section-label-text { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(0,245,196,0.45); letter-spacing: 0.3em; text-transform: uppercase; white-space: nowrap; }
+        .section-label-line { flex: 1; height: 1px; background: rgba(0,245,196,0.08); }
+        footer { margin-top: 120px; padding-top: 40px; border-top: 1px solid rgba(0,245,196,0.06); display: flex; align-items: center; justify-content: space-between; animation: fadeUp 0.8s ease 0.5s both; }
+        .footer-copy { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(0,245,196,0.2); letter-spacing: 0.15em; }
+        .footer-id { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: rgba(0,245,196,0.12); letter-spacing: 0.1em; }
+        .data-stream { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 5; pointer-events: none; }
+        .data-line { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: rgba(0,245,196,0.18); letter-spacing: 0.1em; animation: dataScroll 3.5s linear infinite; }
+        .data-line:nth-child(even) { animation-delay: -1.75s; }
+        .data-line:nth-child(3n) { color: rgba(245,0,196,0.12); animation-delay: -0.8s; }
+        @keyframes dataScroll { 0% { opacity:0; transform:translateY(8px); } 20%,80% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-8px); } }
+        @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes pulse { 0%,100% { box-shadow:0 0 20px var(--neon),inset 0 0 20px rgba(0,245,196,0.1); } 50% { box-shadow:0 0 40px var(--neon),inset 0 0 30px rgba(0,245,196,0.2); } }
+        @media (max-width: 768px) {
+            /* Layout */
+            .wrapper { padding: 16px 16px 80px; }
+            .data-stream { display: none; }
+
+            /* Corners — smaller on mobile */
+            .corner { width: 32px; height: 32px; }
+            .corner-tl { top: 10px; left: 10px; }
+            .corner-tr { top: 10px; right: 10px; }
+            .corner-bl { bottom: 10px; left: 10px; }
+            .corner-br { bottom: 10px; right: 10px; }
+
+            /* Header — compact, no overflow */
+            header { margin-bottom: 40px; gap: 10px; }
+            .logo-mark { width: 36px; height: 36px; flex-shrink: 0; }
+            .logo-text { font-size: 11px; letter-spacing: 0.2em; }
+            .logo-sub { font-size: 9px; letter-spacing: 0.1em; }
+            .status-dot { font-size: 9px; letter-spacing: 0.05em; white-space: nowrap; }
+
+            /* Hero — single column, tight */
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 28px;
+                margin-bottom: 48px;
+            }
+            .hero-eyebrow { font-size: 9px; margin-bottom: 12px; letter-spacing: 0.2em; }
+            .hero-title { font-size: 28px; margin-bottom: 14px; }
+            .hero-desc { font-size: 14px; line-height: 1.65; margin-bottom: 24px; }
+            .hero-cta { padding: 12px 24px; font-size: 10px; letter-spacing: 0.15em; width: 100%; justify-content: center; }
+
+            /* Terminal — compact */
+            .terminal-body { padding: 14px; font-size: 11px; line-height: 1.75; }
+            .terminal-bar { padding: 10px 14px; }
+            .terminal-title { font-size: 9px; }
+
+            /* Stats — horizontal 3-in-row, compact */
+            .stats {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1px;
+                margin-bottom: 48px;
+            }
+            .stat-card { padding: 20px 12px; }
+            .stat-num { font-size: 24px; }
+            .stat-label { font-size: 8px; letter-spacing: 0.1em; }
+            .stat-sub { display: none; }
+
+            /* Divider */
+            .divider { margin: 36px 0 32px; }
+            .divider-label { font-size: 9px; letter-spacing: 0.15em; }
+
+            /* Section label */
+            .section-label { margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+            .section-label-text { font-size: 9px; letter-spacing: 0.15em; }
+
+            /* Footer */
+            footer { margin-top: 60px; flex-direction: column; gap: 8px; text-align: center; }
+            .footer-copy { font-size: 9px; }
+            .footer-id { display: none; }
+        }
+
+        /* Extra small */
+        @media (max-width: 380px) {
+            .hero-title { font-size: 24px; }
+            .stats { grid-template-columns: repeat(3,1fr); }
+            .stat-num { font-size: 20px; }
+            .status-dot { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="data-stream" aria-hidden="true">
+    <div class="data-line">SYS_INIT_OK</div>
+    <div class="data-line">WIDGET_V2.4.1</div>
+    <div class="data-line">CONN_SECURE</div>
+    <div class="data-line">API_LIVE</div>
+    <div class="data-line">CART_READY</div>
+    <div class="data-line">AUTH_TOKEN</div>
+    <div class="data-line">CACHE_WARM</div>
+    <div class="data-line">RPC_ACTIVE</div>
+    <div class="data-line">ENCRYPT_ON</div>
+    <div class="data-line">LATENCY_4ms</div>
+</div>
+
+<div class="wrapper">
+    <header>
+        <div class="logo-mark">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+        </div>
+        <div>
+            <div class="logo-text">ServiceBox</div>
+            <div class="logo-sub">WIDGET ENGINE v2.4.1</div>
+        </div>
+        <div class="header-right">
+            <div class="status-dot">SYSTEM ONLINE</div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div>
+            <div class="hero-eyebrow">Embed commerce anywhere</div>
+            <h1 class="hero-title">Виджет нового<br><span>поколения</span></h1>
+            <p class="hero-desc">Встраиваемый магазин с каталогом, корзиной и оформлением заказа. Один тег — полная e-commerce инфраструктура. Shadow DOM, нулевые конфликты.</p>
+            <button id="open-demo-btn" class="hero-cta">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/>
+                </svg>
+                Открыть демо
+            </button>
+        </div>
+
+        <div class="terminal">
+            <div class="terminal-bar">
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <span class="terminal-title">embed.config.js</span>
+            </div>
+            <div class="terminal-body">
+                <div class="t-comment">// Всё что нужно для запуска</div>
+                <div>&nbsp;</div>
+                <div><span style="color:rgba(0,245,196,0.4)">&lt;</span><span class="t-key">div</span></div>
+                <div style="padding-left:18px"><span class="t-str">id</span><span style="color:rgba(0,245,196,0.4)">="</span><span style="color:#fff">servicebox-widget</span><span style="color:rgba(0,245,196,0.4)">"</span></div>
+                <div style="padding-left:18px"><span class="t-str">data-shop-id</span><span style="color:rgba(0,245,196,0.4)">="</span><span style="color:#fff">99e9da3c...</span><span style="color:rgba(0,245,196,0.4)">"</span></div>
+                <div style="padding-left:18px"><span class="t-str">data-theme</span><span style="color:rgba(0,245,196,0.4)">="</span><span style="color:#fff">auto</span><span style="color:rgba(0,245,196,0.4)">"</span> <span class="t-comment">// опц.</span></div>
+                <div><span style="color:rgba(0,245,196,0.4)">&gt;&lt;/</span><span class="t-key">div</span><span style="color:rgba(0,245,196,0.4)">&gt;</span></div>
+                <div>&nbsp;</div>
+                <div><span style="color:rgba(0,245,196,0.4)">&lt;</span><span class="t-key">script</span> <span class="t-str">src</span><span style="color:rgba(0,245,196,0.4)">="</span><span style="color:#fff">widget.js</span><span style="color:rgba(0,245,196,0.4)">"&gt;&lt;/</span><span class="t-key">script</span><span style="color:rgba(0,245,196,0.4)">&gt;</span></div>
+                <div>&nbsp;</div>
+                <div class="t-comment">// Результат:</div>
+                <div id="checks-container"></div>
+                <div><span class="t-cursor" id="t-cursor-end" style="display:none"></span></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-num">4ms</div>
+            <div class="stat-label">API Latency</div>
+            <div class="stat-sub">среднее время ответа</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">∞</div>
+            <div class="stat-label">Shadow DOM</div>
+            <div class="stat-sub">нулевые CSS-конфликты</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">1</div>
+            <div class="stat-label">Script Tag</div>
+            <div class="stat-sub">всё что нужно для интеграции</div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-copy">© 2026 SERVICEBOX WIDGET ENGINE — DEV BUILD</div>
+    </footer>
+</div>
+
+<div id="servicebox-widget" data-shop-id="99e9da3c-e03a-4023-a7cf-c97b18d4dd5b"></div>
+
+<script type="module" src="/src/main.ts"></script>
+<script>
+    // Data stream randomizer
+    const lines = document.querySelectorAll('.data-line')
+    const data = ['SYS_OK','API_ACK','CART_RDY','AUTH_OK','DB_CONN','CACHE_HIT','RPC_ACK','JWT_OK','SESS_RDY','TLS_OK','QUEUE_0','LATENCY_3ms','HEAP_42mb','GC_CLEAN','WS_OPEN','PKT_RECV','SYNC_OK','NODE_UP','TX_OK','ERR_0']
+    setInterval(() => {
+        const el = lines[Math.floor(Math.random() * lines.length)]
+        el.textContent = data[Math.floor(Math.random() * data.length)]
+    }, 1000)
+
+    // Animated terminal checkmarks
+    const checks = [
+        'Shadow DOM изолирован',
+        'Стили не конфликтуют',
+        'Работает на любом сайте',
+        'Подключение в одну строку',
+        'Корзина сохраняется между сессиями',
+        'Тёмная и светлая тема',
+        'Товары, услуги, цифровые файлы',
+        'Каталог с поиском и фильтрами',
+        'История заказов и записей',
+    ]
+
+    const container = document.getElementById('checks-container')
+    const cursorEnd = document.getElementById('t-cursor-end')
+
+    function typeCheck(text, delay) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                const row = document.createElement('div')
+                row.style.cssText = 'opacity:0; transform:translateX(-6px); transition: opacity 0.25s ease, transform 0.25s ease;'
+
+                const tick = document.createElement('span')
+                tick.className = 't-val'
+                tick.textContent = '✓ '
+
+                const label = document.createElement('span')
+                label.style.color = 'rgba(200,255,232,0.55)'
+                label.textContent = ''
+
+                row.appendChild(tick)
+                row.appendChild(label)
+                container.appendChild(row)
+
+                // Fade in row
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        row.style.opacity = '1'
+                        row.style.transform = 'translateX(0)'
+                    })
+                })
+
+                // Type the text char by char
+                let i = 0
+                const speed = 28
+                const type = () => {
+                    if (i < text.length) {
+                        label.textContent += text[i++]
+                        setTimeout(type, speed + Math.random() * 20)
+                    } else {
+                        resolve()
+                    }
+                }
+                setTimeout(type, 80)
+            }, delay)
+        })
+    }
+
+    async function runTerminal() {
+        // Wait for page to settle
+        await new Promise(r => setTimeout(r, 900))
+
+        for (let i = 0; i < checks.length; i++) {
+            await typeCheck(checks[i], i === 0 ? 0 : 120)
+        }
+
+        // Show final cursor
+        cursorEnd.style.display = 'inline-block'
+    }
+
+    runTerminal()
+
+    // Open demo button → trigger widget FAB
+    document.getElementById('open-demo-btn').addEventListener('click', () => {
+        const tryClick = () => {
+            const fab = document.querySelector('.sb-fab')
+            if (fab) {
+                fab.click()
+            } else {
+                setTimeout(tryClick, 50)
+            }
+        }
+        tryClick()
+    })
+</script>
+</body>
+</html>
