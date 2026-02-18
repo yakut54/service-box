@@ -56,56 +56,47 @@ const todayBookings = ref<any[]>([])
 
 async function loadTodayBookings() {
   try {
-    const today = new Date().toISOString().split('T')[0]
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const res = await api.getBookings({ date: today })
     todayBookings.value = (res.data || []).slice(0, 8)
   } catch { /* ignore */ }
 }
 
-// ── SVG Chart ────────────────────────────────────────────────
-const CHART_W   = 600
-const CHART_H   = 200
-const PADDING   = { top: 16, right: 10, bottom: 28, left: 48 }
-
-const chartContainer = ref<HTMLElement | null>(null)
-
+// ── CSS Bar Chart ─────────────────────────────────────────────
 const chartPoints = computed(() => {
   const data = chartData.value
-  if (!data.length) return { bars: [], labels: [], maxRevenue: 0 }
+  if (!data.length) return { bars: [], xLabels: [], maxRevenue: 0 }
 
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1)
-  const innerW = CHART_W - PADDING.left - PADDING.right
-  const innerH = CHART_H - PADDING.top - PADDING.bottom
-  const barW = Math.max(2, innerW / data.length - 2)
 
-  const bars = data.map((d, i) => {
-    const x = PADDING.left + (i / data.length) * innerW + 1
-    const h = (d.revenue / maxRevenue) * innerH
-    const y = PADDING.top + innerH - h
-    return { x, y, w: barW, h: Math.max(h, d.revenue > 0 ? 2 : 0), date: d.date, revenue: d.revenue, orders: d.orders }
-  })
+  const bars = data.map(d => ({
+    date: d.date,
+    revenue: d.revenue,
+    orders: d.orders,
+    heightPct: (d.revenue / maxRevenue) * 100,
+    label: new Date(d.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+  }))
 
-  // Show labels every N days
-  const step = data.length <= 14 ? 2 : data.length <= 30 ? 5 : 10
-  const labels = data
+  const step = data.length <= 7 ? 1 : data.length <= 14 ? 2 : data.length <= 30 ? 5 : 7
+  const xLabels = data
     .map((d, i) => ({ i, date: d.date }))
     .filter((_, i) => i % step === 0 || i === data.length - 1)
     .map(({ i, date }) => ({
-      x: PADDING.left + (i / data.length) * innerW + barW / 2,
       label: new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+      leftPct: ((i + 0.5) / data.length) * 100,
     }))
 
-  return { bars, labels, maxRevenue }
+  return { bars, xLabels, maxRevenue }
 })
 
 // Y-axis labels
 const yLabels = computed(() => {
   const max = chartPoints.value.maxRevenue
   if (!max) return []
-  const innerH = CHART_H - PADDING.top - PADDING.bottom
-  return [0, 0.25, 0.5, 0.75, 1].map(frac => ({
-    y: PADDING.top + innerH * (1 - frac),
-    label: formatPrice(max * frac),
+  return [1, 0.75, 0.5, 0.25, 0].map(frac => ({
+    pct: (1 - frac) * 100,
+    label: frac > 0 ? formatPrice(max * frac) : '0',
   }))
 })
 
@@ -141,16 +132,6 @@ const bookingStatusLabel: Record<string, string> = {
   cancelled: 'Отменена', no_show: 'Неявка',
 }
 
-// Tooltip
-const tooltip = ref<{ x: number; y: number; bar: any } | null>(null)
-
-function showTooltip(e: MouseEvent, bar: any) {
-  tooltip.value = { x: e.offsetX, y: e.offsetY, bar }
-}
-
-function hideTooltip() {
-  tooltip.value = null
-}
 
 // ── Order status breakdown ────────────────────────────────────
 const statusBreakdown = computed(() => {
@@ -388,48 +369,53 @@ onMounted(async () => {
 
         <div v-else class="flex-1 flex flex-col min-h-0">
           <!-- Chart area -->
-          <div ref="chartContainer" class="relative h-52" @mouseleave="hideTooltip">
-            <svg
-              :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
-              class="w-full h-full"
-              preserveAspectRatio="none"
-              @mousemove.stop
-            >
-              <line
-                v-for="yl in yLabels" :key="yl.y"
-                :x1="PADDING.left" :y1="yl.y"
-                :x2="CHART_W - PADDING.right" :y2="yl.y"
-                stroke="currentColor" class="text-gray-100 dark:text-gray-800" stroke-width="1"
-              />
-              <text
-                v-for="yl in yLabels" :key="`yl-${yl.y}`"
-                :x="PADDING.left - 4" :y="yl.y + 4"
-                text-anchor="end" class="fill-gray-400" style="font-size: 7px"
-                vector-effect="non-scaling-stroke"
-              >{{ yl.label }}</text>
-              <rect
-                v-for="bar in chartPoints.bars" :key="bar.date"
-                :x="bar.x" :y="bar.y" :width="bar.w" :height="bar.h" rx="2"
-                class="fill-primary-500 dark:fill-primary-400 hover:fill-primary-600 dark:hover:fill-primary-300 transition-colors cursor-pointer"
-                @mouseenter="showTooltip($event, bar)"
-              />
-              <text
-                v-for="xl in chartPoints.labels" :key="`xl-${xl.x}`"
-                :x="xl.x" :y="CHART_H - 4"
-                text-anchor="middle" class="fill-gray-400" style="font-size: 7px"
-                vector-effect="non-scaling-stroke"
-              >{{ xl.label }}</text>
-            </svg>
-
-            <div
-              v-if="tooltip"
-              class="absolute pointer-events-none z-10 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg"
-              :style="`left: ${Math.min(tooltip.x, 400)}px; top: ${Math.max(tooltip.y - 60, 4)}px; transform: translateX(-50%)`"
-            >
-              <div class="font-medium">{{ new Date(tooltip.bar.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) }}</div>
-              <div class="text-primary-300">{{ formatPriceFull(tooltip.bar.revenue) }}</div>
-              <div class="text-gray-300">{{ tooltip.bar.orders }} заказов</div>
+          <div class="flex gap-2 h-48">
+            <!-- Y-axis labels -->
+            <div class="w-10 flex-shrink-0 relative">
+              <span
+                v-for="yl in yLabels" :key="yl.pct"
+                class="absolute right-0 text-[10px] leading-none text-gray-400 dark:text-gray-600 pr-1"
+                :style="`top: ${yl.pct}%; transform: translateY(-50%)`"
+              >{{ yl.label }}</span>
             </div>
+            <!-- Bars + grid -->
+            <div class="flex-1 relative">
+              <!-- Grid lines -->
+              <div
+                v-for="yl in yLabels" :key="`g-${yl.pct}`"
+                class="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 pointer-events-none"
+                :style="`top: ${yl.pct}%`"
+              />
+              <!-- Bars -->
+              <div class="absolute inset-0 flex items-end gap-px">
+                <div
+                  v-for="bar in chartPoints.bars" :key="bar.date"
+                  class="flex-1 min-w-0 relative group cursor-default flex flex-col justify-end"
+                >
+                  <!-- CSS hover tooltip -->
+                  <div class="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none
+                    opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                    bg-gray-900 dark:bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs whitespace-nowrap shadow-lg">
+                    <div class="font-medium mb-0.5">{{ bar.label }}</div>
+                    <div class="text-primary-300">{{ formatPriceFull(bar.revenue) }}</div>
+                    <div class="text-gray-400">{{ bar.orders }} заказов</div>
+                  </div>
+                  <!-- Bar -->
+                  <div
+                    class="w-full rounded-t-sm bg-primary-500 dark:bg-primary-400 group-hover:bg-primary-600 dark:group-hover:bg-primary-300 transition-colors"
+                    :style="`height: ${bar.heightPct}%; min-height: ${bar.revenue > 0 ? 3 : 0}px`"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- X-axis labels -->
+          <div class="relative h-5 ml-12 mt-1 flex-shrink-0">
+            <span
+              v-for="xl in chartPoints.xLabels" :key="xl.leftPct"
+              class="absolute text-[10px] leading-none text-gray-400 dark:text-gray-600 -translate-x-1/2"
+              :style="`left: ${xl.leftPct}%`"
+            >{{ xl.label }}</span>
           </div>
 
           <!-- Summary row below the chart -->
@@ -468,11 +454,12 @@ onMounted(async () => {
           Нет записей на сегодня
         </div>
 
-        <div v-else class="space-y-2">
-          <div
+        <div v-else class="space-y-1">
+          <RouterLink
             v-for="b in todayBookings"
             :key="b.id"
-            class="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-800 last:border-0"
+            :to="`/bookings/${b.id}`"
+            class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
           >
             <div class="flex items-center gap-3">
               <div class="text-sm font-medium text-gray-700 dark:text-gray-300 w-12 shrink-0">
@@ -484,7 +471,7 @@ onMounted(async () => {
               </div>
             </div>
             <span :class="`badge-${b.status}`">{{ bookingStatusLabel[b.status] || b.status }}</span>
-          </div>
+          </RouterLink>
         </div>
       </div>
 
@@ -500,16 +487,15 @@ onMounted(async () => {
         <div v-if="ordersStore.loading" class="py-6 text-center text-gray-400 text-sm">Загрузка...</div>
         <div v-else-if="recentOrders.length === 0" class="py-6 text-center text-gray-400 text-sm">Нет заказов</div>
 
-        <div v-else class="space-y-2">
-          <div
+        <div v-else class="space-y-1">
+          <RouterLink
             v-for="order in recentOrders"
             :key="order.id"
-            class="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-800 last:border-0"
+            :to="`/orders/${order.id}`"
+            class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
           >
             <div>
-              <RouterLink :to="`/orders/${order.id}`" class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700">
-                #{{ order.id.slice(0, 8) }}
-              </RouterLink>
+              <div class="text-sm font-medium text-primary-600 dark:text-primary-400">#{{ order.id.slice(0, 8) }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">{{ order.customer_name }}</div>
             </div>
             <div class="text-right">
@@ -518,7 +504,7 @@ onMounted(async () => {
                 {{ order.status === 'pending' ? 'Ожидает' : order.status === 'paid' ? 'Оплачен' : order.status === 'processing' ? 'В работе' : order.status === 'completed' ? 'Завершён' : 'Отменён' }}
               </span>
             </div>
-          </div>
+          </RouterLink>
         </div>
       </div>
     </div>

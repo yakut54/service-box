@@ -32,8 +32,27 @@ const form = ref(emptyForm())
 const deleteTarget = ref<any | null>(null)
 const deleting = ref(false)
 
+// ── Filter ───────────────────────────────────────────────────
+const filterSearch = ref('')
+const filterActive = ref<'all' | 'active' | 'inactive'>('all')
+
+const filteredMasters = computed(() => {
+  let list = masters.value
+  if (filterActive.value === 'active')   list = list.filter(m => m.is_active)
+  if (filterActive.value === 'inactive') list = list.filter(m => !m.is_active)
+  if (filterSearch.value.trim()) {
+    const q = filterSearch.value.toLowerCase()
+    list = list.filter(m => m.name.toLowerCase().includes(q) || (m.specialization || '').toLowerCase().includes(q))
+  }
+  return list
+})
+
 // ── Computed ─────────────────────────────────────────────────
 const activeCount = computed(() => masters.value.filter(m => m.is_active).length)
+
+function sortMasters() {
+  masters.value = [...masters.value].sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999))
+}
 
 // ── Load ─────────────────────────────────────────────────────
 async function loadMasters() {
@@ -42,6 +61,7 @@ async function loadMasters() {
   try {
     const res = await api.getMasters()
     masters.value = res.data
+    sortMasters()
   } catch (e: any) {
     error.value = e.message || 'Не удалось загрузить мастеров'
   } finally {
@@ -96,6 +116,7 @@ async function save() {
       const res = await api.updateMaster(editingId.value!, payload)
       const idx = masters.value.findIndex(m => m.id === editingId.value)
       if (idx !== -1) masters.value[idx] = res.data
+      sortMasters()
     }
 
     showModal.value = false
@@ -161,6 +182,26 @@ function initials(name: string) {
       </button>
     </div>
 
+    <!-- Filters -->
+    <div class="flex flex-col sm:flex-row gap-3">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          v-model="filterSearch"
+          type="text"
+          class="input pl-9"
+          placeholder="Поиск по имени или специализации"
+        />
+      </div>
+      <select v-model="filterActive" class="input sm:w-48">
+        <option value="all">Все мастера</option>
+        <option value="active">Только активные</option>
+        <option value="inactive">Только неактивные</option>
+      </select>
+    </div>
+
     <!-- Error -->
     <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
       {{ error }}
@@ -171,7 +212,7 @@ function initials(name: string) {
       <div class="text-gray-500 dark:text-gray-400">Загрузка...</div>
     </div>
 
-    <!-- Empty -->
+    <!-- Empty (no masters at all) -->
     <div v-else-if="masters.length === 0" class="card text-center py-16">
       <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,10 +224,16 @@ function initials(name: string) {
       <button @click="openCreate" class="btn-primary">Добавить мастера</button>
     </div>
 
+    <!-- Empty (filter gives no results) -->
+    <div v-else-if="filteredMasters.length === 0" class="card text-center py-10">
+      <p class="text-gray-500 dark:text-gray-400">Нет мастеров по выбранным фильтрам</p>
+      <button @click="filterSearch = ''; filterActive = 'all'" class="btn-ghost btn-sm mt-3">Сбросить фильтры</button>
+    </div>
+
     <!-- Grid -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
-        v-for="master in masters"
+        v-for="master in filteredMasters"
         :key="master.id"
         class="card flex flex-col gap-4"
         :class="{ 'opacity-60': !master.is_active }"

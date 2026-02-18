@@ -138,10 +138,10 @@ watch(() => form.value.image_url, () => {
 
 // ── Data loading ────────────────────────────────────────────
 onMounted(async () => {
-  try {
-    await productsStore.fetchProducts()
-  } catch {
-    // Категории не загрузились — не критично
+  if (!productsStore.products.length) {
+    try {
+      await productsStore.fetchProducts()
+    } catch { /* категории не критичны */ }
   }
   if (isEditing.value) {
     loading.value = true
