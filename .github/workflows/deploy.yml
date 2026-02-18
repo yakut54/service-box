@@ -1,45 +1,25 @@
-name: Deploy to VPS
+name: Deploy to Production
 
 on:
   push:
     branches:
-      - main
+      - new-branch
 
 jobs:
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up SSH key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Copy files to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: 31.128.39.216
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          source: "./"
-          target: "/var/www/servicebox"
-          rm: true
-          overwrite: true
-
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 31.128.39.216
-          username: root
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          script_stop: true
           script: |
             cd /var/www/servicebox
-            docker compose pull
-            docker compose build
-            docker compose up -d
-            docker system prune -f
+            bash deploy.sh
