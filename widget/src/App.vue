@@ -290,6 +290,12 @@ function selectSidebarCategory(cat: string) {
             <div class="sb-sidebar-section-title">Категории</div>
             <div class="sb-sidebar-categories">
               <button
+                  :class="['sb-sidebar-cat', activeSidebarCategory === '' ? 'sb-sidebar-cat--active' : '']"
+                  @click="activeSidebarCategory = ''"
+              >
+                Все
+              </button>
+              <button
                   v-for="cat in sidebarCategories"
                   :key="cat"
                   :class="['sb-sidebar-cat', activeSidebarCategory === cat ? 'sb-sidebar-cat--active' : '']"

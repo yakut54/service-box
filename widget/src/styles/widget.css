@@ -1544,27 +1544,33 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 0 8px;
+  padding: 0 8px 8px;
 }
 
 .sb-sidebar-cat {
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 12px 7px 15px;
   border-radius: var(--sb-radius);
   font-size: 13px;
   color: var(--sb-text-muted);
   transition: all 0.15s ease;
   text-align: left;
+  border-left: 3px solid transparent;
 }
 
 .sb-sidebar-cat:hover {
   background: var(--sb-bg-muted);
   color: var(--sb-text);
+  border-left-color: var(--sb-border);
 }
 
 .sb-sidebar-cat--active {
   color: var(--sb-primary);
   background: var(--sb-primary-light);
-  font-weight: 500;
+  font-weight: 600;
+  border-left-color: var(--sb-primary);
 }
 
 /* ============================================================
