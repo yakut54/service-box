@@ -300,11 +300,11 @@ async function handleSubmit() {
                 :key="key"
                 type="button"
                 @click="form.type = key"
-                :class="['p-4 rounded-lg border-2 text-center transition-all', form.type === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700']"
+                :class="['p-2 sm:p-4 rounded-lg border-2 text-center transition-all', form.type === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700']"
               >
-                <div class="text-2xl mb-1">{{ cfg.icon }}</div>
-                <div class="text-sm font-semibold">{{ cfg.label }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ cfg.desc }}</div>
+                <div class="text-xl sm:text-2xl mb-1">{{ cfg.icon }}</div>
+                <div class="text-xs sm:text-sm font-semibold">{{ cfg.label }}</div>
+                <div class="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{{ cfg.desc }}</div>
               </button>
             </div>
           </div>
