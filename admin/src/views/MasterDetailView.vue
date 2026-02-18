@@ -63,8 +63,8 @@ onMounted(async () => {
 <template>
   <div class="max-w-4xl">
     <button
-      @click="router.back()"
-      class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4 flex items-center gap-1 text-sm"
+        @click="router.back()"
+        class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4 flex items-center gap-1 text-sm"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -89,14 +89,14 @@ onMounted(async () => {
         <!-- Avatar -->
         <div class="flex-shrink-0">
           <img
-            v-if="master.avatar_url"
-            :src="master.avatar_url"
-            :alt="master.name"
-            class="w-16 h-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+              v-if="master.avatar_url"
+              :src="master.avatar_url"
+              :alt="master.name"
+              class="w-16 h-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
           />
           <div
-            v-else
-            class="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-2xl"
+              v-else
+              class="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold text-2xl"
           >
             {{ initials(master.name) }}
           </div>
@@ -169,10 +169,10 @@ onMounted(async () => {
 
         <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
           <RouterLink
-            v-for="booking in bookings"
-            :key="booking.id"
-            :to="`/bookings/${booking.id}`"
-            class="py-3 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 -mx-6 px-6 transition-colors"
+              v-for="booking in bookings"
+              :key="booking.id"
+              :to="`/bookings/${booking.id}`"
+              class="py-3 flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 -mx-6 px-6 transition-colors"
           >
             <div class="min-w-0 flex-1">
               <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">

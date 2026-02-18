@@ -137,7 +137,7 @@ async function saveWorkHours() {
         <button @click="copyCode" class="absolute top-2 right-2 btn-ghost btn-sm bg-gray-800 text-white hover:bg-gray-700">
           <svg v-if="!copied" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
           <svg v-else class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -194,9 +194,12 @@ async function saveWorkHours() {
 
       <div class="mb-4">
         <label class="label">Шаг слота (интервал записи)</label>
-        <select v-model.number="slotDuration" class="input">
-          <option v-for="opt in slotOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-        </select>
+        <CustomSelect
+            v-model="slotDuration"
+            :options="slotOptions"
+            label="Шаг слота (интервал записи)"
+            placeholder="Выберите интервал"
+        />
       </div>
 
       <div v-if="hoursError" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ hoursError }}</div>
@@ -214,9 +217,9 @@ async function saveWorkHours() {
         <div>
           <label class="label">Провайдер</label>
           <CustomSelect
-            model-value="yookassa"
-            :options="[{ value: 'yookassa', label: 'YooKassa' }]"
-            disabled
+              model-value="yookassa"
+              :options="[{ value: 'yookassa', label: 'YooKassa' }]"
+              disabled
           />
         </div>
         <div v-if="authStore.shop?.yookassa_shop_id">
@@ -233,7 +236,7 @@ async function saveWorkHours() {
       <div class="py-8 text-center text-gray-500 dark:text-gray-400">
         <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
         </svg>
         <p>Настройка цветов, шрифтов и логотипа</p>
         <p class="text-sm text-primary-600 mt-2">В разработке</p>
