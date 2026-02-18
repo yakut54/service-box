@@ -37,7 +37,10 @@ echo "    widget/dist ready ($(du -sh widget/dist | cut -f1))"
 # ── 4. Start / restart containers ─────────────────────────────
 echo ""
 echo "[4/6] Starting containers..."
-docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+# Start DB separately (never recreate — keeps existing pgdata volume + password)
+docker compose -f docker-compose.prod.yml up -d db
+# Rebuild and restart app + web only
+docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web
 
 # ── 5. Wait for DB, run migrations ───────────────────────────
 echo ""
