@@ -57,16 +57,16 @@ onMounted(() => { loadCustomers() })
     <!-- Stats -->
     <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
       <div class="card">
-        <div class="text-sm text-gray-500 dark:text-gray-400">Всего клиентов</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ totalCustomers }}</div>
+        <div class="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 leading-tight"><span class="sm:hidden">Клиентов</span><span class="hidden sm:inline">Всего клиентов</span></div>
+        <div class="text-base sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ totalCustomers }}</div>
       </div>
       <div class="card">
-        <div class="text-sm text-gray-500 dark:text-gray-400">Общая выручка</div>
-        <div class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{{ formatPrice(totalRevenue) }}</div>
+        <div class="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 leading-tight"><span class="sm:hidden">Выручка</span><span class="hidden sm:inline">Общая выручка</span></div>
+        <div class="text-base sm:text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{{ formatPrice(totalRevenue) }}</div>
       </div>
       <div class="card">
-        <div class="text-sm text-gray-500 dark:text-gray-400">Средний чек</div>
-        <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ formatPrice(avgOrderValue) }}</div>
+        <div class="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400 leading-tight">Ср. чек<span class="hidden sm:inline">овой</span></div>
+        <div class="text-base sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ formatPrice(avgOrderValue) }}</div>
       </div>
     </div>
 
