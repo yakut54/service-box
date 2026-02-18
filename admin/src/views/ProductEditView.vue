@@ -129,12 +129,58 @@ function onCatEnter() {
   }
 }
 
-// ── Image preview ───────────────────────────────────────────
-const imageError = ref(false)
+// ── Image upload ─────────────────────────────────────────────
+const imageError   = ref(false)
+const uploading    = ref(false)
+const isDragging   = ref(false)
+const uploadError  = ref('')
+const fileInputEl  = ref<HTMLInputElement | null>(null)
 
-watch(() => form.value.image_url, () => {
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+const MAX_BYTES = 2 * 1024 * 1024
+
+watch(() => form.value.image_url, () => { imageError.value = false })
+
+function validateFile(file: File): string | null {
+  if (!ALLOWED_TYPES.includes(file.type)) return 'Только JPG, PNG или WEBP'
+  if (file.size > MAX_BYTES) return `Файл слишком большой (макс. 2 МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ)`
+  return null
+}
+
+async function handleFile(file: File) {
+  const err = validateFile(file)
+  if (err) { uploadError.value = err; return }
+  uploadError.value = ''
+  // Show local preview immediately
+  form.value.image_url = URL.createObjectURL(file)
+  uploading.value = true
+  try {
+    const result = await api.uploadImage(file)
+    form.value.image_url = result.url
+  } catch (e: any) {
+    form.value.image_url = ''
+    uploadError.value = e.message || 'Не удалось загрузить'
+  }
+  uploading.value = false
+}
+
+function onFileInput(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (file) handleFile(file)
+}
+
+function onDrop(e: DragEvent) {
+  isDragging.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file) handleFile(file)
+}
+
+function clearImage() {
+  form.value.image_url = ''
   imageError.value = false
-})
+  uploadError.value = ''
+  if (fileInputEl.value) fileInputEl.value.value = ''
+}
 
 // ── Data loading ────────────────────────────────────────────
 onMounted(async () => {
@@ -340,18 +386,86 @@ async function handleSubmit() {
 
           <!-- Изображение -->
           <div>
-            <label for="image_url" class="label">URL изображения</label>
-            <input id="image_url" v-model="form.image_url" type="url" class="input" placeholder="https://example.com/image.jpg" />
-            <!-- Preview -->
-            <div v-if="form.image_url && !imageError" class="mt-2 relative inline-block">
-              <img
-                :src="form.image_url"
-                @error="imageError = true"
-                class="h-24 w-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-                alt="Превью"
+            <label class="label">Изображение</label>
+
+            <!-- Превью (когда уже есть картинка) -->
+            <div v-if="form.image_url && !imageError" class="flex items-start gap-3">
+              <div class="relative flex-shrink-0">
+                <img
+                  :src="form.image_url"
+                  @error="imageError = true"
+                  class="h-24 w-24 object-cover rounded-xl border border-gray-200 dark:border-gray-700"
+                  alt="Превью"
+                />
+                <!-- Оверлей загрузки -->
+                <div v-if="uploading" class="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
+                  <div class="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full"></div>
+                </div>
+              </div>
+              <div v-if="!uploading" class="flex flex-col gap-1.5 pt-1">
+                <button type="button" @click="fileInputEl?.click()"
+                  class="text-xs text-primary-600 dark:text-primary-400 hover:underline text-left">
+                  Заменить
+                </button>
+                <button type="button" @click="clearImage"
+                  class="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 text-left">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  Удалить
+                </button>
+              </div>
+              <p v-else class="text-xs text-gray-400 pt-1">Загружается...</p>
+            </div>
+
+            <!-- Зона drag & drop (когда картинки нет) -->
+            <div
+              v-else
+              @dragenter.prevent="isDragging = true"
+              @dragover.prevent="isDragging = true"
+              @dragleave.prevent="isDragging = false"
+              @drop.prevent="onDrop"
+              @click="fileInputEl?.click()"
+              :class="[
+                'border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors',
+                isDragging
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+              ]"
+            >
+              <svg class="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                <span class="text-primary-600 dark:text-primary-400 font-medium">Нажмите</span>
+                {{ isDragging ? ' или отпустите файл' : ' или перетащите фото' }}
+              </p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG, WEBP · до 2 МБ</p>
+            </div>
+
+            <!-- URL вручную -->
+            <div class="mt-2">
+              <input
+                v-model="form.image_url"
+                type="url"
+                class="input text-sm"
+                placeholder="или вставьте ссылку https://..."
+                @input="imageError = false; uploadError = ''"
               />
             </div>
-            <p v-if="imageError" class="mt-1 text-xs text-red-500">Не удалось загрузить изображение</p>
+
+            <!-- Ошибки -->
+            <p v-if="uploadError" class="mt-1 text-xs text-red-500">{{ uploadError }}</p>
+            <p v-if="imageError" class="mt-1 text-xs text-red-500">Не удалось загрузить изображение по ссылке</p>
+
+            <!-- Hidden file input -->
+            <input
+              ref="fileInputEl"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden"
+              @change="onFileInput"
+            />
           </div>
 
           <!-- Активность -->

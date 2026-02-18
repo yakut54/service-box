@@ -9,6 +9,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TelegramController;
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -103,6 +104,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Customers
     Route::get('/customers', [CustomerController::class, 'index']);
     Route::get('/customers/{customer}', [CustomerController::class, 'show']);
+
+    // Image upload
+    Route::post('/upload/image', [ImageController::class, 'upload']);
 
     // Bookings
     Route::get('/bookings/stats', [BookingController::class, 'adminStats']);

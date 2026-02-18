@@ -61,6 +61,28 @@ class ApiClient {
   }
 
   // ==========================================
+  // UPLOAD
+  // ==========================================
+
+  async uploadImage(file: File): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.append('image', file)
+    const response = await fetch(`${API_BASE_URL}/admin/upload/image`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}),
+      },
+      body: formData,
+    })
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new ApiError(response.status, err.message || 'Ошибка загрузки')
+    }
+    return response.json()
+  }
+
+  // ==========================================
   // AUTH
   // ==========================================
 

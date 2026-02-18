@@ -32,4 +32,8 @@ RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --no-interaction
 # Final permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
 
+# PHP upload limits
+RUN echo "upload_max_filesize=10M\npost_max_size=12M\nmax_execution_time=60" \
+    > /usr/local/etc/php/conf.d/uploads.ini
+
 CMD ["php-fpm"]

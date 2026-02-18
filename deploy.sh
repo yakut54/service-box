@@ -65,6 +65,7 @@ docker exec servicebox_db psql -U servicebox \
 echo ""
 echo "[5/6] Running migrations..."
 docker exec servicebox_app php artisan migrate --force
+docker exec servicebox_app php artisan storage:link --force 2>/dev/null || true
 docker exec servicebox_app php artisan config:cache
 docker exec servicebox_app php artisan route:cache
 
