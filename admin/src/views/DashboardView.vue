@@ -156,6 +156,9 @@ const bookingStatusLabel: Record<string, string> = {
 }
 
 
+// ── Status tab switcher ──────────────────────────────────────
+const statusTab = ref<'orders' | 'bookings'>('orders')
+
 // ── Order status breakdown ────────────────────────────────────
 const statusBreakdown = computed(() => {
   const total = stats.value.total_orders || 1 // avoid div/0
@@ -306,65 +309,66 @@ onMounted(async () => {
       <!-- ── Left panel ───────────────────────────────────────── -->
       <div class="lg:col-span-2 flex flex-col gap-4">
 
-        <!-- Order status breakdown -->
+        <!-- Status breakdown (orders / bookings) -->
         <div class="card flex-1">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Статусы заказов</h2>
-
-          <div v-if="loadingStats" class="space-y-3">
-            <div v-for="i in 4" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+          <!-- Header + tab switcher -->
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white">Статусы</h2>
+            <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 gap-0.5">
+              <button
+                @click="statusTab = 'orders'"
+                :class="['px-2.5 py-1 rounded-md text-xs font-medium transition-all', statusTab === 'orders' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700']"
+              >Заказы</button>
+              <button
+                @click="statusTab = 'bookings'"
+                :class="['px-2.5 py-1 rounded-md text-xs font-medium transition-all', statusTab === 'bookings' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700']"
+              >Записи</button>
+            </div>
           </div>
 
-          <div v-else-if="!stats.total_orders" class="py-4 text-sm text-gray-400 text-center">
-            Нет заказов за период
-          </div>
-
-          <div v-else class="space-y-3">
-            <div v-for="s in statusBreakdown" :key="s.key" class="flex items-center gap-3">
-              <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', s.color]"/>
-              <span class="text-sm text-gray-600 dark:text-gray-400 w-24 flex-shrink-0">{{ s.label }}</span>
-              <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div
-                  :class="['h-full rounded-full transition-all duration-500', s.color]"
-                  :style="`width: ${s.pct}%`"
-                />
+          <!-- Orders tab -->
+          <template v-if="statusTab === 'orders'">
+            <div v-if="loadingStats" class="space-y-3">
+              <div v-for="i in 4" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+            </div>
+            <div v-else-if="!stats.total_orders" class="py-4 text-sm text-gray-400 text-center">Нет заказов за период</div>
+            <div v-else class="space-y-3">
+              <div v-for="s in statusBreakdown" :key="s.key" class="flex items-center gap-3">
+                <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', s.color]"/>
+                <span class="text-sm text-gray-600 dark:text-gray-400 w-24 flex-shrink-0">{{ s.label }}</span>
+                <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div :class="['h-full rounded-full transition-all duration-500', s.color]" :style="`width: ${s.pct}%`"/>
+                </div>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white w-6 text-right flex-shrink-0">{{ s.count }}</span>
               </div>
-              <span class="text-sm font-semibold text-gray-900 dark:text-white w-6 text-right flex-shrink-0">{{ s.count }}</span>
-            </div>
-
-            <!-- Total -->
-            <div class="pt-2 mt-1 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs text-gray-400">
-              <span>Всего за период</span>
-              <span class="font-medium text-gray-700 dark:text-gray-300">{{ stats.total_orders }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Booking status breakdown -->
-        <div class="card">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Статусы записей</h2>
-
-          <div v-if="loadingBookingStats" class="space-y-3">
-            <div v-for="i in 4" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
-          </div>
-
-          <div v-else-if="!bookingStats.total_bookings" class="py-4 text-sm text-gray-400 text-center">
-            Нет записей
-          </div>
-
-          <div v-else class="space-y-3">
-            <div v-for="s in bookingStatusBreakdown" :key="s.key" class="flex items-center gap-3">
-              <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', s.color]"/>
-              <span class="text-sm text-gray-600 dark:text-gray-400 w-28 flex-shrink-0">{{ s.label }}</span>
-              <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div :class="['h-full rounded-full transition-all duration-500', s.color]" :style="`width: ${s.pct}%`"/>
+              <div class="pt-2 mt-1 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs text-gray-400">
+                <span>Всего за период</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ stats.total_orders }}</span>
               </div>
-              <span class="text-sm font-semibold text-gray-900 dark:text-white w-6 text-right flex-shrink-0">{{ s.count }}</span>
             </div>
-            <div class="pt-2 mt-1 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs text-gray-400">
-              <span>Всего записей</span>
-              <span class="font-medium text-gray-700 dark:text-gray-300">{{ bookingStats.total_bookings }}</span>
+          </template>
+
+          <!-- Bookings tab -->
+          <template v-else>
+            <div v-if="loadingBookingStats" class="space-y-3">
+              <div v-for="i in 5" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
             </div>
-          </div>
+            <div v-else-if="!bookingStats.total_bookings" class="py-4 text-sm text-gray-400 text-center">Нет записей</div>
+            <div v-else class="space-y-3">
+              <div v-for="s in bookingStatusBreakdown" :key="s.key" class="flex items-center gap-3">
+                <div :class="['w-2.5 h-2.5 rounded-full flex-shrink-0', s.color]"/>
+                <span class="text-sm text-gray-600 dark:text-gray-400 w-24 flex-shrink-0">{{ s.label }}</span>
+                <div class="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                  <div :class="['h-full rounded-full transition-all duration-500', s.color]" :style="`width: ${s.pct}%`"/>
+                </div>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white w-6 text-right flex-shrink-0">{{ s.count }}</span>
+              </div>
+              <div class="pt-2 mt-1 border-t border-gray-100 dark:border-gray-800 flex justify-between text-xs text-gray-400">
+                <span>Всего записей</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">{{ bookingStats.total_bookings }}</span>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- Top products -->
@@ -438,8 +442,8 @@ onMounted(async () => {
                 class="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 pointer-events-none"
                 :style="`top: ${yl.pct}%`"
               />
-              <!-- Bars -->
-              <div class="absolute inset-0 flex items-end gap-px">
+              <!-- Bars: items-stretch (default) so each column is full height, bar grows from bottom via flex-col justify-end -->
+              <div class="absolute inset-0 flex gap-px">
                 <div
                   v-for="bar in chartPoints.bars" :key="bar.date"
                   class="flex-1 min-w-0 relative group cursor-default flex flex-col justify-end"
