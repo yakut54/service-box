@@ -93,7 +93,7 @@ function getStockBadge(product: any) {
       <RouterLink to="/products/new" class="btn-primary">Добавить товар</RouterLink>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
       <div v-for="product in productsStore.products" :key="product.id" class="card group hover:shadow-md transition-shadow">
         <div class="aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 overflow-hidden">
           <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover" />

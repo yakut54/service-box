@@ -35,6 +35,9 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      screens: {
+        '3xl': '1920px',
       }
     },
   },
