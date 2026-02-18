@@ -327,10 +327,10 @@ function initials(name: string) {
 
     <!-- ── Create / Edit Modal ───────────────────────────────── -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showModal = false" />
+      <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" />
       <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <!-- Modal header -->
-        <div class="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ modalMode === 'create' ? 'Новый мастер' : 'Редактировать мастера' }}
           </h2>
@@ -342,7 +342,7 @@ function initials(name: string) {
         </div>
 
         <!-- Modal body -->
-        <div class="p-6 space-y-4">
+        <div class="p-4 space-y-4">
           <div v-if="modalError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
             {{ modalError }}
           </div>
@@ -354,7 +354,7 @@ function initials(name: string) {
 
           <div>
             <label class="label">Специализация</label>
-            <input v-model="form.specialization" type="text" class="input" placeholder="Парикмахер, массажист..." />
+            <input v-model="form.specialization" type="text" class="input" placeholder="Парикмахер, массажист..." autocomplete="off" />
           </div>
 
           <div>
@@ -399,7 +399,7 @@ function initials(name: string) {
         </div>
 
         <!-- Modal footer -->
-        <div class="flex gap-3 p-6 pt-0">
+        <div class="flex gap-3 p-4 pt-0">
           <button @click="showModal = false" class="btn-secondary flex-1">Отмена</button>
           <button @click="save" class="btn-primary flex-1" :disabled="saving">
             {{ saving ? 'Сохранение...' : (modalMode === 'create' ? 'Создать' : 'Сохранить') }}

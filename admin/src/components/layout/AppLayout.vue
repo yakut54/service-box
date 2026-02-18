@@ -175,7 +175,7 @@ async function handleLogout() {
         </button>
       </header>
 
-      <main class="p-4 lg:p-8">
+      <main class="p-3 sm:p-4 lg:p-6">
         <RouterView />
       </main>
     </div>

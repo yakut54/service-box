@@ -510,10 +510,10 @@ onMounted(async () => {
     </div>
 
     <!-- ══════════ CREATE BOOKING MODAL ══════════ -->
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showModal = false">
-      <div class="fixed inset-0 bg-black/40" @click="showModal = false"></div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6 relative z-10 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between mb-6">
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="fixed inset-0 bg-black/40"></div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-4 relative z-10 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-bold text-gray-900 dark:text-white">Новая запись</h2>
           <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
