@@ -47,7 +47,8 @@ echo ""
 echo "[5/7] Syncing DB password..."
 sleep 5
 DB_PASSWORD=$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2- | tr -d '"'"'"' ')
-docker exec -u 999 servicebox_db psql -U servicebox \
+# peer auth: UID 999 = OS user "postgres" → connects as DB superuser "postgres"
+docker exec -u 999 servicebox_db psql -U postgres \
   -c "ALTER USER servicebox WITH PASSWORD '${DB_PASSWORD:-servicebox}';" \
   && echo "    DB password synced OK" || echo "    [warn] DB password sync skipped"
 
