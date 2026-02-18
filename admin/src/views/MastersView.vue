@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
-import { formatPhone } from '@/lib/utils'
+import { formatPhone, plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 
 // ── State ────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ function clearAvatar() {
       <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Мастера</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {{ masters.length }} мастеров, {{ activeCount }} активных
+          {{ masters.length }} {{ plural(masters.length, 'мастер', 'мастера', 'мастеров') }}, {{ activeCount }} {{ plural(activeCount, 'активный', 'активных', 'активных') }}
         </p>
       </div>
       <button @click="openCreate" class="btn-primary shrink-0">

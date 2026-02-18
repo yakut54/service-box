@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useProductsStore } from '@/stores/products'
 import CustomSelect from '@/components/CustomSelect.vue'
+import { plural } from '@/lib/utils'
 
 const productsStore = useProductsStore()
 const deleteConfirm = ref<string | null>(null)
@@ -56,7 +57,7 @@ function getStockBadge(product: any) {
     <div class="flex items-center justify-between gap-3 mb-6">
       <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white truncate">Товары и услуги</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ productsStore.products.length }} позиций</p>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ productsStore.products.length }} {{ plural(productsStore.products.length, 'позиция', 'позиции', 'позиций') }}</p>
       </div>
       <RouterLink to="/products/new" class="btn-primary shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
 import { api } from '@/lib/api'
+import { plural } from '@/lib/utils'
 
 const authStore = useAuthStore()
 const ordersStore = useOrdersStore()
@@ -412,7 +413,7 @@ onMounted(async () => {
       <div class="lg:col-span-3 card flex flex-col">
         <div class="flex items-center justify-between mb-3 flex-shrink-0">
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка по дням</h2>
-          <span class="text-xs text-gray-400">последние {{ chartDays[period] }} дней</span>
+          <span class="text-xs text-gray-400">последние {{ chartDays[period] }} {{ plural(chartDays[period], 'день', 'дня', 'дней') }}</span>
         </div>
 
         <div v-if="loadingChart" class="flex-1 flex items-center justify-center text-gray-400">
@@ -454,7 +455,7 @@ onMounted(async () => {
                     bg-gray-900 dark:bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs whitespace-nowrap shadow-lg">
                     <div class="font-medium mb-0.5">{{ bar.label }}</div>
                     <div class="text-primary-300">{{ formatPriceFull(bar.revenue) }}</div>
-                    <div class="text-gray-400">{{ bar.orders }} заказов</div>
+                    <div class="text-gray-400">{{ bar.orders }} {{ plural(bar.orders, 'заказ', 'заказа', 'заказов') }}</div>
                   </div>
                   <!-- Bar -->
                   <div
@@ -590,7 +591,7 @@ onMounted(async () => {
           </div>
           <div>
             <div class="font-medium text-gray-900 dark:text-white text-sm">Заказы</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ ordersStore.pendingOrders.length }} ожидают</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ ordersStore.pendingOrders.length }} {{ ordersStore.pendingOrders.length === 1 ? 'ожидает' : 'ожидают' }}</div>
           </div>
         </div>
       </RouterLink>

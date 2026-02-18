@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { api } from '@/lib/api'
+import { plural } from '@/lib/utils'
 
 const customers = ref<any[]>([])
 const loading = ref(true)
@@ -50,7 +51,7 @@ onMounted(() => { loadCustomers() })
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Клиенты</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ totalCustomers }} клиентов</p>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ totalCustomers }} {{ plural(totalCustomers, 'клиент', 'клиента', 'клиентов') }}</p>
       </div>
     </div>
 
@@ -159,7 +160,7 @@ onMounted(() => { loadCustomers() })
           </div>
           <div class="text-right shrink-0">
             <div class="font-semibold text-sm text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500">{{ c.total_orders || 0 }} заказов</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500">{{ c.total_orders || 0 }} {{ plural(c.total_orders || 0, 'заказ', 'заказа', 'заказов') }}</div>
           </div>
         </RouterLink>
       </div>

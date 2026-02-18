@@ -3,6 +3,7 @@ import { onMounted, ref, computed, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { api } from '@/lib/api'
+import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
 import { formatPhone } from '@/lib/utils'
@@ -260,7 +261,7 @@ onMounted(async () => {
     <div class="flex items-center justify-between gap-3 mb-6">
       <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Записи</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ bookingsStore.bookings.length }} записей</p>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ bookingsStore.bookings.length }} {{ plural(bookingsStore.bookings.length, 'запись', 'записи', 'записей') }}</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <!-- View toggle: hidden on mobile, calendar is not usable on small screens -->

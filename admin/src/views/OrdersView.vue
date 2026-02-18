@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useOrdersStore } from '@/stores/orders'
 import CustomSelect from '@/components/CustomSelect.vue'
+import { plural } from '@/lib/utils'
 
 const ordersStore = useOrdersStore()
 const filterStatus = ref('')
@@ -41,7 +42,7 @@ function formatDate(dateStr: string) {
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Заказы</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ ordersStore.orders.length }} заказов</p>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ ordersStore.orders.length }} {{ plural(ordersStore.orders.length, 'заказ', 'заказа', 'заказов') }}</p>
       </div>
     </div>
 
