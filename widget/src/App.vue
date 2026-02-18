@@ -26,6 +26,7 @@ const sidebarOpen = ref(false)
 const isClosing = ref(false)
 const sidebarCategories = ref<string[]>([])
 const activeSidebarCategory = ref('')
+const categoriesOpen = ref(true)
 const previousView = ref<WidgetView>('catalog')
 let initialized = false
 
@@ -284,11 +285,20 @@ function selectSidebarCategory(cat: string) {
             </button>
           </nav>
 
-          <!-- Categories -->
+          <!-- Categories accordion -->
           <template v-if="sidebarCategories.length > 0">
             <hr class="sb-sidebar-divider" />
-            <div class="sb-sidebar-section-title">Категории</div>
-            <div class="sb-sidebar-categories">
+            <button class="sb-sidebar-accordion-toggle" @click="categoriesOpen = !categoriesOpen">
+              <span>Категории</span>
+              <svg
+                class="sb-sidebar-accordion-chevron"
+                :class="{ 'sb-sidebar-accordion-chevron--open': categoriesOpen }"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div class="sb-sidebar-categories" :class="{ 'sb-sidebar-categories--collapsed': !categoriesOpen }">
               <button
                   :class="['sb-sidebar-cat', activeSidebarCategory === '' ? 'sb-sidebar-cat--active' : '']"
                   @click="activeSidebarCategory = ''"
