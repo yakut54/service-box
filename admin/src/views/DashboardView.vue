@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, computed, ref, watch } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useOrdersStore } from '@/stores/orders'
@@ -64,12 +64,10 @@ async function loadTodayBookings() {
 
 // ── SVG Chart ────────────────────────────────────────────────
 const CHART_W   = 600
+const CHART_H   = 200
 const PADDING   = { top: 16, right: 10, bottom: 28, left: 48 }
 
-// Dynamic height — fills the card's available space via ResizeObserver
-const chartContainer    = ref<HTMLElement | null>(null)
-const CHART_H           = ref(160)
-let chartResizeObserver: ResizeObserver | null = null
+const chartContainer = ref<HTMLElement | null>(null)
 
 const chartPoints = computed(() => {
   const data = chartData.value
@@ -77,7 +75,7 @@ const chartPoints = computed(() => {
 
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1)
   const innerW = CHART_W - PADDING.left - PADDING.right
-  const innerH = CHART_H.value - PADDING.top - PADDING.bottom
+  const innerH = CHART_H - PADDING.top - PADDING.bottom
   const barW = Math.max(2, innerW / data.length - 2)
 
   const bars = data.map((d, i) => {
@@ -104,7 +102,7 @@ const chartPoints = computed(() => {
 const yLabels = computed(() => {
   const max = chartPoints.value.maxRevenue
   if (!max) return []
-  const innerH = CHART_H.value - PADDING.top - PADDING.bottom
+  const innerH = CHART_H - PADDING.top - PADDING.bottom
   return [0, 0.25, 0.5, 0.75, 1].map(frac => ({
     y: PADDING.top + innerH * (1 - frac),
     label: formatPrice(max * frac),
@@ -201,20 +199,8 @@ onMounted(async () => {
   ])
 
   // Start observing chart container height after data loads
-  if (chartContainer.value) {
-    chartResizeObserver = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        const h = entry.contentRect.height
-        if (h > 60) CHART_H.value = h
-      }
-    })
-    chartResizeObserver.observe(chartContainer.value)
-  }
 })
 
-onBeforeUnmount(() => {
-  chartResizeObserver?.disconnect()
-})
 </script>
 
 <template>
@@ -401,8 +387,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-else class="flex-1 flex flex-col min-h-0">
-          <!-- Chart area — grows to fill available space -->
-          <div ref="chartContainer" class="flex-1 relative min-h-[120px]" @mouseleave="hideTooltip">
+          <!-- Chart area -->
+          <div ref="chartContainer" class="relative h-52" @mouseleave="hideTooltip">
             <svg
               :viewBox="`0 0 ${CHART_W} ${CHART_H}`"
               class="w-full h-full"
@@ -429,7 +415,7 @@ onBeforeUnmount(() => {
               />
               <text
                 v-for="xl in chartPoints.labels" :key="`xl-${xl.x}`"
-                :x="xl.x" :y="CHART_H.valueOf() - 4"
+                :x="xl.x" :y="CHART_HOf() - 4"
                 text-anchor="middle" class="fill-gray-400" style="font-size: 7px"
                 vector-effect="non-scaling-stroke"
               >{{ xl.label }}</text>
