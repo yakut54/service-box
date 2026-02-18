@@ -531,19 +531,19 @@ async function handleSubmit() {
             <label class="label">Тип доставки</label>
             <div class="grid grid-cols-3 gap-2">
               <button type="button" @click="digitalDetails.delivery_type = 'download'"
-                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'download' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
+                :class="['p-2 sm:p-3 rounded-lg border-2 text-center transition-colors text-xs sm:text-sm', digitalDetails.delivery_type === 'download' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
                 <div class="text-lg mb-0.5">⬇️</div>
                 Скачивание
               </button>
               <button type="button" @click="digitalDetails.delivery_type = 'link'"
-                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'link' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
+                :class="['p-2 sm:p-3 rounded-lg border-2 text-center transition-colors text-xs sm:text-sm', digitalDetails.delivery_type === 'link' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
                 <div class="text-lg mb-0.5">🔗</div>
                 Ссылка
               </button>
               <button type="button" @click="digitalDetails.delivery_type = 'code'"
-                :class="['p-3 rounded-lg border-2 text-center transition-colors text-sm', digitalDetails.delivery_type === 'code' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
+                :class="['p-2 sm:p-3 rounded-lg border-2 text-center transition-colors text-xs sm:text-sm', digitalDetails.delivery_type === 'code' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
                 <div class="text-lg mb-0.5">🔑</div>
-                Код активации
+                <span class="sm:hidden">Код</span><span class="hidden sm:inline">Код активации</span>
               </button>
             </div>
           </div>
@@ -554,7 +554,7 @@ async function handleSubmit() {
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Срок доступа (дней)</label>
+              <label class="label">Срок<span class="hidden sm:inline"> доступа</span> (дней)</label>
               <input v-model.number="digitalDetails.access_days" type="number" min="1" class="input" placeholder="Бессрочно" />
             </div>
             <div>
