@@ -213,7 +213,7 @@ class ApiClient {
   }
 
   async updateBookingStatus(id: string, status: string) {
-    return this.request<{ message: string; data: any }>(`/admin/bookings/${id}/status`, {
+    return this.request<{ message: string; data: any }>(`/admin/bookings/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     })
@@ -222,6 +222,10 @@ class ApiClient {
   async getAvailableSlots(params: Record<string, string>) {
     const query = new URLSearchParams(params).toString()
     return this.request<any>(`/admin/bookings/available-slots?${query}`)
+  }
+
+  async getMaster(id: string) {
+    return this.request<{ data: any }>(`/admin/masters/${id}`)
   }
 
   async getMasters(params?: Record<string, string>) {

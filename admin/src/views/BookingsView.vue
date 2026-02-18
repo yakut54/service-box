@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
@@ -7,6 +8,7 @@ import DatePicker from '@/components/DatePicker.vue'
 import { formatPhone } from '@/lib/utils'
 
 const bookingsStore = useBookingsStore()
+const router = useRouter()
 
 // ── Filters ─────────────────────────────────────────────────
 const filterStatus = ref('')
@@ -54,11 +56,19 @@ const weekDays = computed(() => {
   return days
 })
 
-const calendarHours = Array.from({ length: 12 }, (_, i) => i + 9) // 9–20
+const CAL_START_H = 8
+const CAL_END_H   = 23
+const HOUR_H      = 56 // px per hour
+
+const calendarHours = Array.from({ length: CAL_END_H - CAL_START_H + 1 }, (_, i) => i + CAL_START_H)
 
 function isToday(date: Date) {
   const t = new Date()
   return date.getFullYear() === t.getFullYear() && date.getMonth() === t.getMonth() && date.getDate() === t.getDate()
+}
+
+function isWeekend(date: Date) {
+  return date.getDay() === 0 || date.getDay() === 6
 }
 
 function formatWeekDay(date: Date) {
@@ -71,24 +81,53 @@ function formatDayNum(date: Date) {
 
 function formatMonthHeader() {
   const first = weekDays.value[0]
-  const last = weekDays.value[6]
+  const last  = weekDays.value[6]
   if (first.getMonth() === last.getMonth()) {
     return first.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
   }
   return `${first.toLocaleDateString('ru-RU', { month: 'short' })} – ${last.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' })}`
 }
 
-function dateStr(date: Date) {
-  return date.toISOString().split('T')[0]
-}
-
-function bookingsForDayHour(date: Date, hour: number) {
-  const ds = dateStr(date)
+function bookingsForDay(date: Date) {
+  const y = date.getFullYear(), m = date.getMonth(), d = date.getDate()
   return bookingsStore.bookings.filter(b => {
-    const start = new Date(b.start_time)
-    return start.toISOString().split('T')[0] === ds && start.getHours() === hour
+    const s = new Date(b.start_time)
+    return s.getFullYear() === y && s.getMonth() === m && s.getDate() === d
   })
 }
+
+function bookingStyle(b: any) {
+  const start   = new Date(b.start_time)
+  const end     = b.end_time ? new Date(b.end_time) : new Date(start.getTime() + 60 * 60 * 1000)
+  const startMin = start.getHours() * 60 + start.getMinutes()
+  const endMin   = end.getHours() * 60 + end.getMinutes()
+  const topMin   = Math.max(startMin - CAL_START_H * 60, 0)
+  const heightMin = Math.max(endMin - startMin, 20)
+  return {
+    top:    (topMin    * HOUR_H / 60) + 'px',
+    height: Math.max(heightMin * HOUR_H / 60, 22) + 'px',
+  }
+}
+
+function calBookingBg(status: string) {
+  const map: Record<string, string> = {
+    pending:   'bg-amber-400 dark:bg-amber-500',
+    confirmed: 'bg-primary-500 dark:bg-primary-400',
+    completed: 'bg-emerald-500 dark:bg-emerald-400',
+    cancelled: 'bg-gray-400 dark:bg-gray-500',
+    no_show:   'bg-orange-400 dark:bg-orange-500',
+  }
+  return map[status] || 'bg-gray-400'
+}
+
+const nowTop = computed(() => {
+  if (weekOffset.value !== 0) return null
+  const now = new Date()
+  const min  = now.getHours() * 60 + now.getMinutes()
+  const topMin = min - CAL_START_H * 60
+  if (topMin < 0 || topMin > (CAL_END_H - CAL_START_H) * 60) return null
+  return (topMin * HOUR_H / 60) + 'px'
+})
 
 // ── Create modal ────────────────────────────────────────────
 const showModal = ref(false)
@@ -108,18 +147,11 @@ const loadingSlots = ref(false)
 const creating = ref(false)
 const modalError = ref('')
 
-async function openModal() {
+function openModal() {
   modalError.value = ''
   modalForm.value = { service_id: '', master_id: '', date: '', slot: '', customer_name: '', customer_phone: '', customer_email: '', notes: '' }
   availableSlots.value = []
   showModal.value = true
-
-  if (services.value.length === 0) {
-    try {
-      const resp = await api.getProducts({ type: 'service' })
-      services.value = resp.data
-    } catch { /* ignore */ }
-  }
 }
 
 watch([() => modalForm.value.service_id, () => modalForm.value.date, () => modalForm.value.master_id], async () => {
@@ -170,17 +202,13 @@ async function submitBooking() {
   creating.value = false
 }
 
-// ── Booking detail popup ────────────────────────────────────
-const selectedBooking = ref<any>(null)
+// ── Quick status change (list action buttons) ────────────────
 const updatingStatus = ref(false)
 
 async function changeStatus(id: string, status: string) {
   updatingStatus.value = true
   try {
     await bookingsStore.updateStatus(id, status)
-    if (selectedBooking.value?.id === id) {
-      selectedBooking.value = bookingsStore.bookings.find(b => b.id === id) || null
-    }
   } catch { /* ignore */ }
   updatingStatus.value = false
 }
@@ -223,9 +251,13 @@ async function applyFilters() {
   await bookingsStore.fetchBookings(params)
 }
 
-onMounted(() => {
+onMounted(async () => {
   bookingsStore.fetchBookings()
   bookingsStore.fetchMasters()
+  try {
+    const resp = await api.getProducts({ type: 'service' })
+    services.value = resp.data
+  } catch { /* ignore */ }
 })
 </script>
 
@@ -263,8 +295,8 @@ onMounted(() => {
     <!-- Filters -->
     <div class="card mb-6">
       <div class="flex flex-col sm:flex-row gap-4">
-        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-44" />
-        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-48" />
+        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-52" />
+        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-60" />
         <DatePicker v-model="filterDate" @change="applyFilters" placeholder="Дата" class="w-full sm:w-44" />
         <button v-if="filterStatus || filterMaster || filterDate" @click="filterStatus = ''; filterMaster = ''; filterDate = ''; applyFilters()" class="btn-ghost btn-sm whitespace-nowrap">
           Сбросить
@@ -304,14 +336,19 @@ onMounted(() => {
           <tbody>
             <tr v-for="b in bookingsStore.bookings" :key="b.id">
               <td>
-                <div class="font-medium text-gray-900 dark:text-gray-100">{{ b.service?.name || '—' }}</div>
+                <RouterLink :to="`/bookings/${b.id}`" class="font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">
+                  {{ b.service?.name || '—' }}
+                </RouterLink>
               </td>
               <td>
                 <div class="font-medium text-gray-900 dark:text-gray-100">{{ b.customer_name }}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">{{ b.customer_phone }}</div>
               </td>
               <td>
-                <div class="text-gray-700 dark:text-gray-300">{{ b.master?.name || '—' }}</div>
+                <RouterLink v-if="b.master" :to="`/masters/${b.master.id}`" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+                  {{ b.master.name }}
+                </RouterLink>
+                <span v-else class="text-gray-400 dark:text-gray-500">—</span>
               </td>
               <td>
                 <div class="text-sm dark:text-gray-200">{{ formatDate(b.start_time) }}</div>
@@ -349,13 +386,13 @@ onMounted(() => {
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                   </button>
-                  <button
-                    @click="selectedBooking = b"
+                  <RouterLink
+                    :to="`/bookings/${b.id}`"
                     class="btn-ghost btn-sm"
-                    title="Подробнее"
+                    title="Открыть"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                  </button>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </RouterLink>
                 </div>
               </td>
             </tr>
@@ -366,132 +403,115 @@ onMounted(() => {
 
     <!-- ══════════ CALENDAR VIEW ══════════ -->
     <div v-else class="card p-0 overflow-hidden">
-      <!-- Calendar header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-        <button @click="weekOffset--" class="btn-ghost btn-sm">
+
+      <!-- Nav bar -->
+      <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800">
+        <button @click="weekOffset--" class="btn-ghost btn-sm p-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
         <div class="flex items-center gap-3">
           <span class="font-semibold text-gray-900 dark:text-white capitalize">{{ formatMonthHeader() }}</span>
-          <button v-if="weekOffset !== 0" @click="weekOffset = 0" class="text-xs text-primary-600 hover:text-primary-700 font-medium">Сегодня</button>
+          <button
+            v-if="weekOffset !== 0"
+            @click="weekOffset = 0"
+            class="text-xs text-primary-600 dark:text-primary-400 font-medium px-2.5 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+          >Сегодня</button>
         </div>
-        <button @click="weekOffset++" class="btn-ghost btn-sm">
+        <button @click="weekOffset++" class="btn-ghost btn-sm p-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
 
-      <!-- Calendar grid -->
-      <div class="overflow-x-auto">
-        <div class="min-w-[800px]">
-          <!-- Day headers -->
-          <div class="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800">
-            <div></div>
-            <div
-              v-for="day in weekDays"
-              :key="day.toISOString()"
-              class="text-center py-2 border-l border-gray-100 dark:border-gray-800"
-            >
-              <div class="text-xs text-gray-500 dark:text-gray-400 uppercase">{{ formatWeekDay(day) }}</div>
-              <div :class="['text-sm font-semibold', isToday(day) ? 'text-primary-600' : 'text-gray-900 dark:text-gray-100']">
-                <span :class="isToday(day) ? 'bg-primary-600 text-white rounded-full w-7 h-7 inline-flex items-center justify-center' : ''">{{ formatDayNum(day) }}</span>
-              </div>
-            </div>
+      <!-- Day header row -->
+      <div class="grid grid-cols-[56px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60">
+        <div></div>
+        <div
+          v-for="day in weekDays"
+          :key="day.toISOString()"
+          :class="['text-center py-2.5 border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50 dark:bg-primary-900/20' : '']"
+        >
+          <div :class="['text-[11px] font-semibold uppercase tracking-wide', isToday(day) ? 'text-primary-500' : isWeekend(day) ? 'text-rose-400' : 'text-gray-400 dark:text-gray-500']">
+            {{ formatWeekDay(day) }}
           </div>
-
-          <!-- Time rows -->
-          <div v-for="hour in calendarHours" :key="hour" class="grid grid-cols-[60px_repeat(7,1fr)] border-b border-gray-50 dark:border-gray-800/60 min-h-[60px]">
-            <div class="text-xs text-gray-400 dark:text-gray-500 text-right pr-2 pt-1">{{ String(hour).padStart(2, '0') }}:00</div>
-            <div
-              v-for="day in weekDays"
-              :key="day.toISOString() + hour"
-              class="border-l border-gray-100 dark:border-gray-800 p-0.5 relative min-h-[60px]"
-            >
-              <div
-                v-for="booking in bookingsForDayHour(day, hour)"
-                :key="booking.id"
-                :class="['rounded px-1.5 py-0.5 text-xs cursor-pointer mb-0.5 truncate text-white', statusColors[booking.status] || 'bg-gray-400']"
-                :title="`${booking.customer_name} — ${booking.service?.name}`"
-                @click="selectedBooking = booking"
-              >
-                <span class="font-medium">{{ formatTime(booking.start_time) }}</span>
-                {{ booking.customer_name }}
-              </div>
-            </div>
+          <div class="mt-0.5">
+            <span :class="isToday(day)
+              ? 'bg-primary-600 text-white rounded-full w-7 h-7 inline-flex items-center justify-center text-sm font-bold shadow-sm'
+              : ['text-sm font-semibold', isWeekend(day) ? 'text-rose-500 dark:text-rose-400' : 'text-gray-800 dark:text-gray-200']">
+              {{ formatDayNum(day) }}
+            </span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ══════════ BOOKING DETAIL MODAL ══════════ -->
-    <div v-if="selectedBooking" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="selectedBooking = null">
-      <div class="fixed inset-0 bg-black/40" @click="selectedBooking = null"></div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full p-6 relative z-10 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-start justify-between mb-4">
-          <div>
-            <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ selectedBooking.service?.name || 'Запись' }}</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(selectedBooking.start_time) }}</p>
+      <!-- Scrollable time grid -->
+      <div class="overflow-y-auto" style="max-height: 560px">
+        <div class="grid grid-cols-[56px_repeat(7,1fr)]" :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`">
+
+          <!-- Time labels column -->
+          <div class="relative bg-gray-50 dark:bg-gray-900/60 border-r border-gray-100 dark:border-gray-800">
+            <div
+              v-for="h in calendarHours"
+              :key="h"
+              class="absolute w-full flex items-start justify-end pr-2.5"
+              :style="`top: ${(h - CAL_START_H) * HOUR_H}px; height: ${HOUR_H}px`"
+            >
+              <span class="text-[11px] text-gray-400 dark:text-gray-600 leading-none mt-1">{{ String(h).padStart(2, '0') }}:00</span>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span :class="`badge-${selectedBooking.status}`">{{ statusLabels[selectedBooking.status] || selectedBooking.status }}</span>
-            <button @click="selectedBooking = null" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+
+          <!-- Day columns -->
+          <div
+            v-for="day in weekDays"
+            :key="day.toISOString()"
+            :class="['relative border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50/40 dark:bg-primary-900/10' : 'bg-white dark:bg-gray-900']"
+            :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`"
+          >
+            <!-- Hour lines -->
+            <div
+              v-for="h in calendarHours"
+              :key="h"
+              class="absolute w-full border-t border-gray-100 dark:border-gray-800"
+              :style="`top: ${(h - CAL_START_H) * HOUR_H}px`"
+            />
+            <!-- Half-hour lines -->
+            <div
+              v-for="h in calendarHours"
+              :key="`hh-${h}`"
+              class="absolute w-full border-t border-dashed border-gray-50 dark:border-gray-800/50"
+              :style="`top: ${(h - CAL_START_H) * HOUR_H + HOUR_H / 2}px`"
+            />
+
+            <!-- Current time indicator -->
+            <template v-if="isToday(day) && nowTop">
+              <div class="absolute w-full z-10 pointer-events-none flex items-center" :style="`top: ${nowTop!}`">
+                <div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm -ml-1.5 flex-shrink-0"/>
+                <div class="flex-1 h-px bg-red-400"/>
+              </div>
+            </template>
+
+            <!-- Booking blocks -->
+            <div
+              v-for="b in bookingsForDay(day)"
+              :key="b.id"
+              class="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer overflow-hidden transition-all duration-100 hover:opacity-90 hover:shadow-md"
+              :class="calBookingBg(b.status)"
+              :style="bookingStyle(b)"
+              @click="router.push(`/bookings/${b.id}`)"
+            >
+              <div class="text-[11px] font-bold text-white leading-tight truncate">{{ formatTime(b.start_time) }} · {{ b.service?.name || 'Запись' }}</div>
+              <div class="text-[10px] text-white/80 truncate mt-0.5">{{ b.customer_name }}</div>
+            </div>
           </div>
+
         </div>
+      </div>
 
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">Клиент</div>
-              <div class="font-medium dark:text-gray-200">{{ selectedBooking.customer_name }}</div>
-              <a :href="`tel:${selectedBooking.customer_phone}`" class="text-sm text-primary-600">{{ selectedBooking.customer_phone }}</a>
-              <div v-if="selectedBooking.customer_email" class="text-sm text-gray-500 dark:text-gray-400">{{ selectedBooking.customer_email }}</div>
-            </div>
-            <div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">Мастер</div>
-              <div class="font-medium dark:text-gray-200">{{ selectedBooking.master?.name || '—' }}</div>
-            </div>
-          </div>
-
-          <div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Время</div>
-            <div class="font-medium dark:text-gray-200">{{ formatTimeRange(selectedBooking.start_time, selectedBooking.end_time) }}</div>
-          </div>
-
-          <div v-if="selectedBooking.notes">
-            <div class="text-sm text-gray-500 dark:text-gray-400">Примечание</div>
-            <div class="text-gray-700 dark:text-gray-300">{{ selectedBooking.notes }}</div>
-          </div>
-
-          <!-- Status actions -->
-          <div v-if="selectedBooking.status !== 'completed' && selectedBooking.status !== 'cancelled'" class="border-t border-gray-100 dark:border-gray-700 pt-4">
-            <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Изменить статус</div>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-if="selectedBooking.status === 'pending'"
-                @click="changeStatus(selectedBooking.id, 'confirmed')"
-                :disabled="updatingStatus"
-                class="btn btn-primary btn-sm"
-              >Подтвердить</button>
-              <button
-                v-if="selectedBooking.status === 'confirmed'"
-                @click="changeStatus(selectedBooking.id, 'completed')"
-                :disabled="updatingStatus"
-                class="btn bg-green-600 text-white hover:bg-green-700 btn-sm"
-              >Завершить</button>
-              <button
-                v-if="selectedBooking.status === 'confirmed'"
-                @click="changeStatus(selectedBooking.id, 'no_show')"
-                :disabled="updatingStatus"
-                class="btn bg-orange-500 text-white hover:bg-orange-600 btn-sm"
-              >Неявка</button>
-              <button
-                @click="changeStatus(selectedBooking.id, 'cancelled')"
-                :disabled="updatingStatus"
-                class="btn-danger btn-sm"
-              >Отменить</button>
-            </div>
-          </div>
+      <!-- Legend -->
+      <div class="flex items-center gap-4 px-5 py-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40">
+        <span class="text-xs text-gray-400 dark:text-gray-500">Статусы:</span>
+        <div v-for="(label, key) in { pending: 'Ожидает', confirmed: 'Подтверждена', completed: 'Завершена', cancelled: 'Отменена' }" :key="key" class="flex items-center gap-1.5">
+          <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" :class="calBookingBg(key)"/>
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ label }}</span>
         </div>
       </div>
     </div>
@@ -514,6 +534,9 @@ onMounted(() => {
           <div>
             <label class="label">Услуга <span class="text-red-500">*</span></label>
             <CustomSelect v-model="modalForm.service_id" :options="serviceOptions" />
+            <p v-if="services.length === 0" class="mt-1 text-xs text-red-500">
+              Нет активных услуг. <RouterLink to="/products" class="underline">Добавьте услугу</RouterLink>
+            </p>
           </div>
 
           <!-- Master -->

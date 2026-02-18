@@ -45,7 +45,7 @@ async function handleLogout() {
     <!-- Sidebar -->
     <aside
         :class="[
-        'app-sidebar fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 transform transition-all duration-200 lg:translate-x-0 flex flex-col',
+        'app-sidebar fixed top-0 left-0 z-50 h-full w-72 bg-white border-r border-gray-200 transform transition-all duration-200 lg:translate-x-0 flex flex-col',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
     >
@@ -150,7 +150,7 @@ async function handleLogout() {
     </aside>
 
     <!-- Main content -->
-    <div class="lg:pl-64">
+    <div class="lg:pl-72">
       <!-- Mobile header -->
       <header class="app-topbar lg:hidden h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 transition-colors duration-200">
         <div class="flex items-center gap-2">

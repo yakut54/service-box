@@ -57,6 +57,11 @@ const router = createRouter({
           component: () => import('@/views/BookingsView.vue'),
         },
         {
+          path: 'bookings/:id',
+          name: 'booking-detail',
+          component: () => import('@/views/BookingDetailView.vue'),
+        },
+        {
           path: 'customers',
           name: 'customers',
           component: () => import('@/views/CustomersView.vue'),
@@ -70,6 +75,11 @@ const router = createRouter({
           path: 'masters',
           name: 'masters',
           component: () => import('@/views/MastersView.vue'),
+        },
+        {
+          path: 'masters/:id',
+          name: 'master-detail',
+          component: () => import('@/views/MasterDetailView.vue'),
         },
         {
           path: 'subscription',

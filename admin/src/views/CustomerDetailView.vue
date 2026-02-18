@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 
 const route = useRoute()
@@ -138,7 +138,7 @@ onMounted(async () => {
               <div class="font-medium text-sm text-gray-900 dark:text-gray-100">{{ booking.service?.name || '—' }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
                 {{ formatDate(booking.start_time) }}
-                <span v-if="booking.master"> &middot; {{ booking.master.name }}</span>
+                <span v-if="booking.master"> &middot; <RouterLink :to="`/masters/${booking.master.id}`" class="hover:text-primary-600 dark:hover:text-primary-400">{{ booking.master.name }}</RouterLink></span>
               </div>
             </div>
             <span :class="`badge-${booking.status}`">{{ bookingStatusLabels[booking.status] || booking.status }}</span>

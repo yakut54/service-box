@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { formatPhone } from '@/lib/utils'
 
@@ -210,7 +211,10 @@ function initials(name: string) {
 
           <!-- Info -->
           <div class="flex-1 min-w-0">
-            <div class="font-semibold text-gray-900 dark:text-white truncate">{{ master.name }}</div>
+            <RouterLink
+              :to="`/masters/${master.id}`"
+              class="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block"
+            >{{ master.name }}</RouterLink>
             <div v-if="master.specialization" class="text-sm text-gray-500 dark:text-gray-400 truncate">
               {{ master.specialization }}
             </div>
