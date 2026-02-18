@@ -222,13 +222,6 @@ const statusLabels: Record<string, string> = {
   no_show: 'Неявка',
 }
 
-const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-400',
-  confirmed: 'bg-blue-400',
-  completed: 'bg-gray-400',
-  cancelled: 'bg-red-400',
-  no_show: 'bg-orange-400',
-}
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
