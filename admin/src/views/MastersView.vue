@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { formatPhone } from '@/lib/utils'
+import CustomSelect from '@/components/CustomSelect.vue'
 
 // ── State ────────────────────────────────────────────────────
 const masters = ref<any[]>([])
@@ -34,11 +35,17 @@ const deleting = ref(false)
 
 // ── Filter ───────────────────────────────────────────────────
 const filterSearch = ref('')
-const filterActive = ref<'all' | 'active' | 'inactive'>('all')
+const filterActive = ref('all')
+
+const filterActiveOptions = [
+  { value: 'all', label: 'Все мастера' },
+  { value: 'active', label: 'Только активные' },
+  { value: 'inactive', label: 'Только неактивные' },
+]
 
 const filteredMasters = computed(() => {
   let list = masters.value
-  if (filterActive.value === 'active')   list = list.filter(m => m.is_active)
+  if (filterActive.value === 'active') list = list.filter(m => m.is_active)
   if (filterActive.value === 'inactive') list = list.filter(m => !m.is_active)
   if (filterSearch.value.trim()) {
     const q = filterSearch.value.toLowerCase()
@@ -167,18 +174,18 @@ function initials(name: string) {
   <div class="space-y-6">
 
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Мастера</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
           {{ masters.length }} мастеров, {{ activeCount }} активных
         </p>
       </div>
-      <button @click="openCreate" class="btn-primary">
+      <button @click="openCreate" class="btn-primary shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        Добавить мастера
+        <span class="hidden sm:inline">Добавить мастера</span>
       </button>
     </div>
 
@@ -195,11 +202,11 @@ function initials(name: string) {
           placeholder="Поиск по имени или специализации"
         />
       </div>
-      <select v-model="filterActive" class="input sm:w-48">
-        <option value="all">Все мастера</option>
-        <option value="active">Только активные</option>
-        <option value="inactive">Только неактивные</option>
-      </select>
+      <CustomSelect
+        v-model="filterActive"
+        :options="filterActiveOptions"
+        class="sm:w-48"
+      />
     </div>
 
     <!-- Error -->
