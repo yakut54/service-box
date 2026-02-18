@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, plural } from '@/lib/utils'
 
 const props = defineProps<{ product: any }>()
 const emit = defineEmits<{ select: [product: any] }>()
@@ -13,7 +13,7 @@ const badge = computed(() => {
   if (p.type === 'physical' && p.physical) {
     const stock = p.physical.stock_quantity ?? 0
     if (stock === 0) return { cls: 'sb-badge sb-badge-danger', text: 'Нет в наличии' }
-    if (stock <= 5) return { cls: 'sb-badge sb-badge-warning', text: `Осталось ${stock}` }
+    if (stock <= 5) return { cls: 'sb-badge sb-badge-warning', text: `Остал${stock === 1 ? 'ся' : 'ось'} ${stock} ${plural(stock, 'товар', 'товара', 'товаров')}` }
   }
   if (p.type === 'digital') {
     return { cls: 'sb-badge sb-badge-info', text: 'Цифровой' }

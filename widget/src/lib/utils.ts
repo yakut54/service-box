@@ -1,3 +1,19 @@
+/**
+ * Russian pluralization.
+ * @param n    the number
+ * @param one  form for 1, 21, 31… (именительный ед.ч.)
+ * @param few  form for 2-4, 22-24… (родительный ед.ч.)
+ * @param many form for 5-20, 25-30, 0… (родительный мн.ч.)
+ */
+export function plural(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(Math.round(n)) % 100
+  const mod10 = abs % 10
+  if (abs >= 11 && abs <= 19) return many
+  if (mod10 === 1) return one
+  if (mod10 >= 2 && mod10 <= 4) return few
+  return many
+}
+
 /** Strip phone to digits only */
 export function cleanPhone(value: string): string {
   return value.replace(/\D/g, '')
