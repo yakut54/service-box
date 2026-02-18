@@ -63,34 +63,57 @@ function formatDate(dateStr: string) {
       <p class="text-gray-500 dark:text-gray-400">Заказы появятся, когда клиенты начнут покупать</p>
     </div>
 
-    <div v-else class="card overflow-hidden p-0">
-      <div class="overflow-x-auto">
-        <table class="table">
-          <thead>
-            <tr><th>Заказ</th><th>Клиент</th><th>Товары</th><th>Сумма</th><th>Статус</th><th>Дата</th><th></th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="order in ordersStore.orders" :key="order.id">
-              <td><RouterLink :to="`/orders/${order.id}`" class="text-primary-600 hover:text-primary-700 font-medium">#{{ order.id.slice(0, 8) }}</RouterLink></td>
-              <td>
-                <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer_name }}</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">{{ order.customer_phone }}</div>
-              </td>
-              <td>
-                <div class="text-sm dark:text-gray-200">{{ order.items?.length || 0 }} поз.</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{{ order.items?.map((i: any) => i.product_name).join(', ') }}</div>
-              </td>
-              <td class="font-semibold dark:text-gray-100">{{ formatPrice(order.total_price) }}</td>
-              <td><span :class="`badge-${order.status}`">{{ statusLabels[order.status] || order.status }}</span></td>
-              <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(order.created_at) }}</td>
-              <td>
-                <RouterLink :to="`/orders/${order.id}`" class="btn-ghost btn-sm">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </RouterLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div v-else>
+      <!-- Desktop table -->
+      <div class="card overflow-hidden p-0 hidden sm:block">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr><th>Заказ</th><th>Клиент</th><th>Товары</th><th>Сумма</th><th>Статус</th><th>Дата</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in ordersStore.orders" :key="order.id">
+                <td><RouterLink :to="`/orders/${order.id}`" class="text-primary-600 hover:text-primary-700 font-medium">#{{ order.id.slice(0, 8) }}</RouterLink></td>
+                <td>
+                  <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer_name }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ order.customer_phone }}</div>
+                </td>
+                <td>
+                  <div class="text-sm dark:text-gray-200">{{ order.items?.length || 0 }} поз.</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{{ order.items?.map((i: any) => i.product_name).join(', ') }}</div>
+                </td>
+                <td class="font-semibold dark:text-gray-100">{{ formatPrice(order.total_price) }}</td>
+                <td><span :class="`badge-${order.status}`">{{ statusLabels[order.status] || order.status }}</span></td>
+                <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(order.created_at) }}</td>
+                <td>
+                  <RouterLink :to="`/orders/${order.id}`" class="btn-ghost btn-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                  </RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="sm:hidden card overflow-hidden p-0">
+        <RouterLink
+          v-for="order in ordersStore.orders"
+          :key="order.id"
+          :to="`/orders/${order.id}`"
+          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-primary-600 font-medium text-sm">#{{ order.id.slice(0, 8) }}</span>
+              <span :class="`badge-${order.status}`">{{ statusLabels[order.status] || order.status }}</span>
+            </div>
+            <div class="text-sm text-gray-900 dark:text-gray-100 truncate">{{ order.customer_name }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(order.created_at) }} · {{ order.items?.length || 0 }} поз.</div>
+          </div>
+          <div class="font-semibold text-sm text-gray-900 dark:text-white shrink-0">{{ formatPrice(order.total_price) }}</div>
+        </RouterLink>
       </div>
     </div>
   </div>

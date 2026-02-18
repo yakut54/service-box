@@ -55,7 +55,7 @@ onMounted(() => { loadCustomers() })
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
       <div class="card">
         <div class="text-sm text-gray-500 dark:text-gray-400">Всего клиентов</div>
         <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ totalCustomers }}</div>
@@ -100,52 +100,68 @@ onMounted(() => { loadCustomers() })
     </div>
 
     <!-- Table -->
-    <div v-else class="card overflow-hidden p-0">
-      <div class="overflow-x-auto">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Клиент</th>
-              <th>Телефон</th>
-              <th>Email</th>
-              <th>Заказов</th>
-              <th>Потрачено</th>
-              <th>Последний заказ</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="c in sortedCustomers" :key="c.id">
-              <td>
-                <RouterLink :to="`/customers/${c.id}`" class="font-medium text-gray-900 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
-                  {{ c.name || 'Без имени' }}
-                </RouterLink>
-              </td>
-              <td>
-                <a v-if="c.phone" :href="`tel:${c.phone}`" class="text-primary-600 dark:text-primary-400 hover:text-primary-700">{{ c.phone }}</a>
-                <span v-else class="text-gray-400 dark:text-gray-500">—</span>
-              </td>
-              <td>
-                <a v-if="c.email" :href="`mailto:${c.email}`" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 text-sm">{{ c.email }}</a>
-                <span v-else class="text-gray-400 dark:text-gray-500">—</span>
-              </td>
-              <td>
-                <span class="font-medium dark:text-gray-200">{{ c.total_orders || 0 }}</span>
-              </td>
-              <td>
-                <span class="font-semibold text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</span>
-              </td>
-              <td class="text-sm text-gray-500 dark:text-gray-400">
-                {{ formatDate(c.last_order_at) }}
-              </td>
-              <td>
-                <RouterLink :to="`/customers/${c.id}`" class="btn-ghost btn-sm">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </RouterLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div v-else>
+      <!-- Desktop table -->
+      <div class="card overflow-hidden p-0 hidden sm:block">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Клиент</th>
+                <th>Телефон</th>
+                <th>Email</th>
+                <th>Заказов</th>
+                <th>Потрачено</th>
+                <th>Последний заказ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="c in sortedCustomers" :key="c.id">
+                <td>
+                  <RouterLink :to="`/customers/${c.id}`" class="font-medium text-gray-900 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
+                    {{ c.name || 'Без имени' }}
+                  </RouterLink>
+                </td>
+                <td>
+                  <a v-if="c.phone" :href="`tel:${c.phone}`" class="text-primary-600 dark:text-primary-400 hover:text-primary-700">{{ c.phone }}</a>
+                  <span v-else class="text-gray-400 dark:text-gray-500">—</span>
+                </td>
+                <td>
+                  <a v-if="c.email" :href="`mailto:${c.email}`" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 text-sm">{{ c.email }}</a>
+                  <span v-else class="text-gray-400 dark:text-gray-500">—</span>
+                </td>
+                <td><span class="font-medium dark:text-gray-200">{{ c.total_orders || 0 }}</span></td>
+                <td><span class="font-semibold text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</span></td>
+                <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(c.last_order_at) }}</td>
+                <td>
+                  <RouterLink :to="`/customers/${c.id}`" class="btn-ghost btn-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                  </RouterLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="sm:hidden card overflow-hidden p-0">
+        <RouterLink
+          v-for="c in sortedCustomers"
+          :key="c.id"
+          :to="`/customers/${c.id}`"
+          class="flex items-center justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ c.name || 'Без имени' }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ c.phone || c.email || '—' }}</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-semibold text-sm text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500">{{ c.total_orders || 0 }} заказов</div>
+          </div>
+        </RouterLink>
       </div>
     </div>
   </div>

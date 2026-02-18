@@ -257,14 +257,14 @@ onMounted(async () => {
 <template>
   <div>
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Записи</h1>
         <p class="text-gray-500 dark:text-gray-400 mt-1">{{ bookingsStore.bookings.length }} записей</p>
       </div>
-      <div class="flex items-center gap-3">
-        <!-- View toggle -->
-        <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- View toggle: hidden on mobile, calendar is not usable on small screens -->
+        <div class="hidden sm:flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           <button
             :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
             @click="viewMode = 'list'"
@@ -278,9 +278,9 @@ onMounted(async () => {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </button>
         </div>
-        <button class="btn-primary" @click="openModal">
+        <button class="btn-primary shrink-0" @click="openModal">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          Новая запись
+          <span class="hidden sm:inline">Новая запись</span>
         </button>
       </div>
     </div>
@@ -313,89 +313,104 @@ onMounted(async () => {
     </div>
 
     <!-- ══════════ LIST VIEW ══════════ -->
-    <div v-else-if="viewMode === 'list'" class="card overflow-hidden p-0">
-      <div class="overflow-x-auto">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Услуга</th>
-              <th>Клиент</th>
-              <th>Мастер</th>
-              <th>Дата / Время</th>
-              <th>Статус</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="b in bookingsStore.bookings" :key="b.id">
-              <td>
-                <RouterLink :to="`/bookings/${b.id}`" class="font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">
-                  {{ b.service?.name || '—' }}
-                </RouterLink>
-              </td>
-              <td>
-                <div class="font-medium text-gray-900 dark:text-gray-100">{{ b.customer_name }}</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">{{ b.customer_phone }}</div>
-              </td>
-              <td>
-                <RouterLink v-if="b.master" :to="`/masters/${b.master.id}`" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
-                  {{ b.master.name }}
-                </RouterLink>
-                <span v-else class="text-gray-400 dark:text-gray-500">—</span>
-              </td>
-              <td>
-                <div class="text-sm dark:text-gray-200">{{ formatDate(b.start_time) }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatTimeRange(b.start_time, b.end_time) }}</div>
-              </td>
-              <td>
-                <span :class="`badge-${b.status}`">{{ statusLabels[b.status] || b.status }}</span>
-              </td>
-              <td>
-                <div class="flex items-center gap-1">
-                  <button
-                    v-if="b.status === 'pending'"
-                    @click="changeStatus(b.id, 'confirmed')"
-                    :disabled="updatingStatus"
-                    class="btn-ghost btn-sm text-blue-600 hover:text-blue-700"
-                    title="Подтвердить"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                  </button>
-                  <button
-                    v-if="b.status === 'confirmed'"
-                    @click="changeStatus(b.id, 'completed')"
-                    :disabled="updatingStatus"
-                    class="btn-ghost btn-sm text-green-600 hover:text-green-700"
-                    title="Завершить"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  </button>
-                  <button
-                    v-if="b.status !== 'cancelled' && b.status !== 'completed'"
-                    @click="changeStatus(b.id, 'cancelled')"
-                    :disabled="updatingStatus"
-                    class="btn-ghost btn-sm text-red-500 hover:text-red-700"
-                    title="Отменить"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                  </button>
-                  <RouterLink
-                    :to="`/bookings/${b.id}`"
-                    class="btn-ghost btn-sm"
-                    title="Открыть"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+    <div v-else-if="viewMode === 'list'">
+      <!-- Desktop table -->
+      <div class="card overflow-hidden p-0 hidden sm:block">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Услуга</th>
+                <th>Клиент</th>
+                <th>Мастер</th>
+                <th>Дата / Время</th>
+                <th>Статус</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="b in bookingsStore.bookings" :key="b.id">
+                <td>
+                  <RouterLink :to="`/bookings/${b.id}`" class="font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">
+                    {{ b.service?.name || '—' }}
                   </RouterLink>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <td>
+                  <div class="font-medium text-gray-900 dark:text-gray-100">{{ b.customer_name }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ b.customer_phone }}</div>
+                </td>
+                <td>
+                  <RouterLink v-if="b.master" :to="`/masters/${b.master.id}`" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+                    {{ b.master.name }}
+                  </RouterLink>
+                  <span v-else class="text-gray-400 dark:text-gray-500">—</span>
+                </td>
+                <td>
+                  <div class="text-sm dark:text-gray-200">{{ formatDate(b.start_time) }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatTimeRange(b.start_time, b.end_time) }}</div>
+                </td>
+                <td><span :class="`badge-${b.status}`">{{ statusLabels[b.status] || b.status }}</span></td>
+                <td>
+                  <div class="flex items-center gap-1">
+                    <button v-if="b.status === 'pending'" @click="changeStatus(b.id, 'confirmed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-blue-600 hover:text-blue-700" title="Подтвердить">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    </button>
+                    <button v-if="b.status === 'confirmed'" @click="changeStatus(b.id, 'completed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-green-600 hover:text-green-700" title="Завершить">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </button>
+                    <button v-if="b.status !== 'cancelled' && b.status !== 'completed'" @click="changeStatus(b.id, 'cancelled')" :disabled="updatingStatus" class="btn-ghost btn-sm text-red-500 hover:text-red-700" title="Отменить">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                    <RouterLink :to="`/bookings/${b.id}`" class="btn-ghost btn-sm" title="Открыть">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </RouterLink>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mobile cards -->
+      <div class="sm:hidden card overflow-hidden p-0">
+        <RouterLink
+          v-for="b in bookingsStore.bookings"
+          :key="b.id"
+          :to="`/bookings/${b.id}`"
+          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ b.customer_name }} · {{ formatTimeRange(b.start_time, b.end_time) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(b.start_time) }}</div>
+          </div>
+          <div class="flex flex-col items-end gap-1.5 shrink-0">
+            <span :class="`badge-${b.status}`">{{ statusLabels[b.status] || b.status }}</span>
+            <span v-if="b.master" class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[90px]">{{ b.master.name }}</span>
+          </div>
+        </RouterLink>
       </div>
     </div>
 
     <!-- ══════════ CALENDAR VIEW ══════════ -->
-    <div v-else class="card p-0 overflow-hidden">
+    <!-- Calendar fallback on mobile: show list instead -->
+    <div v-else-if="viewMode === 'calendar'" class="sm:hidden card overflow-hidden p-0">
+      <RouterLink
+        v-for="b in bookingsStore.bookings"
+        :key="b.id"
+        :to="`/bookings/${b.id}`"
+        class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+      >
+        <div class="min-w-0 flex-1">
+          <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ b.customer_name }} · {{ formatTimeRange(b.start_time, b.end_time) }}</div>
+          <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(b.start_time) }}</div>
+        </div>
+        <span :class="`badge-${b.status} shrink-0`">{{ statusLabels[b.status] || b.status }}</span>
+      </RouterLink>
+    </div>
+    <div v-else class="card p-0 overflow-hidden hidden sm:block">
 
       <!-- Nav bar -->
       <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800">
