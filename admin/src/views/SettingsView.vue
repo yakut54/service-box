@@ -39,25 +39,25 @@ async function generateTelegramCode() {
 // ── Work hours ───────────────────────────────────────────────
 const workStart = ref('09:00')
 const workEnd = ref('20:00')
-const slotDuration = ref(30)
+const slotDuration = ref('30')
 const savingHours = ref(false)
 const hoursSuccess = ref(false)
 const hoursError = ref('')
 
 const slotOptions = [
-  { value: 10, label: '10 минут' },
-  { value: 15, label: '15 минут' },
-  { value: 20, label: '20 минут' },
-  { value: 30, label: '30 минут' },
-  { value: 45, label: '45 минут' },
-  { value: 60, label: '1 час' },
+  { value: '10', label: '10 минут' },
+  { value: '15', label: '15 минут' },
+  { value: '20', label: '20 минут' },
+  { value: '30', label: '30 минут' },
+  { value: '45', label: '45 минут' },
+  { value: '60', label: '1 час' },
 ]
 
 onMounted(() => {
   if (authStore.shop) {
     workStart.value = authStore.shop.work_start || '09:00'
     workEnd.value = authStore.shop.work_end || '20:00'
-    slotDuration.value = authStore.shop.slot_duration || 30
+    slotDuration.value = String(authStore.shop.slot_duration || 30)
   }
 })
 
@@ -73,7 +73,7 @@ async function saveWorkHours() {
     const updated = await api.updateShop({
       work_start: workStart.value,
       work_end: workEnd.value,
-      slot_duration: slotDuration.value,
+      slot_duration: Number(slotDuration.value),
     })
     // Update store so values stay after save
     if (authStore.shop) {
