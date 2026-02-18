@@ -415,7 +415,7 @@ onMounted(async () => {
               />
               <text
                 v-for="xl in chartPoints.labels" :key="`xl-${xl.x}`"
-                :x="xl.x" :y="CHART_HOf() - 4"
+                :x="xl.x" :y="CHART_H - 4"
                 text-anchor="middle" class="fill-gray-400" style="font-size: 7px"
                 vector-effect="non-scaling-stroke"
               >{{ xl.label }}</text>
