@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive, watch } from 'vue'
+import { ref, onMounted, computed, reactive } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
