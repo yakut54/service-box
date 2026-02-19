@@ -395,3 +395,9 @@
     display: none;
   }
 }
+
+@media (max-width: 400px) {
+  .card {
+    padding: 12px 10px;
+  }
+}
