@@ -83,7 +83,7 @@ async function loadTodayBookings() {
     const now = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     const res = await api.getBookings({ date: today })
-    todayBookings.value = (res.data || []).slice(0, 8)
+    todayBookings.value = (res.data || []).slice(0, 5)
   } catch { /* ignore */ }
 }
 
@@ -521,7 +521,10 @@ onMounted(async () => {
               v-for="b in todayBookings"
               :key="b.id"
               :to="`/bookings/${b.id}`"
-              class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
+              :class="[
+                'flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0',
+                (b.status === 'cancelled' || b.status === 'no_show') ? 'opacity-40' : ''
+              ]"
           >
             <div class="flex items-center gap-3">
               <div class="text-sm font-medium text-gray-700 dark:text-gray-300 w-12 shrink-0">
@@ -554,7 +557,10 @@ onMounted(async () => {
               v-for="order in recentOrders"
               :key="order.id"
               :to="`/orders/${order.id}`"
-              class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
+              :class="[
+                'flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0',
+                order.status === 'cancelled' ? 'opacity-40' : ''
+              ]"
           >
             <div>
               <div class="text-sm font-medium text-primary-600 dark:text-primary-400">#{{ order.id.slice(0, 8) }}</div>
