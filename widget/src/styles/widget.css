@@ -2391,21 +2391,26 @@
   letter-spacing: 0.05em;
 }
 
+/* Section header "Категории" */
 .sb-sidebar-accordion-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 16px 6px 20px;
+  padding: 5px 12px;
+  margin: 0 8px;
+  width: calc(100% - 16px);
   font-size: 11px;
   font-weight: 600;
   color: var(--sb-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: color 0.15s ease;
+  letter-spacing: 0.06em;
+  border-radius: var(--sb-radius);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .sb-sidebar-accordion-toggle:hover {
+  background: var(--sb-bg-muted);
   color: var(--sb-text);
 }
 
@@ -2413,6 +2418,7 @@
   width: 14px;
   height: 14px;
   flex-shrink: 0;
+  opacity: 0.5;
   transition: transform 0.2s ease;
 }
 
@@ -2424,7 +2430,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 0 8px 8px;
+  padding: 4px 8px 8px;
   overflow: hidden;
   max-height: 600px;
   transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
@@ -2437,30 +2443,50 @@
   padding-bottom: 0;
 }
 
+/* Category items — consistent visual language with nav items */
 .sb-sidebar-cat {
   display: flex;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  padding: 7px 12px 7px 15px;
+  padding: 7px 12px;
   border-radius: var(--sb-radius);
   font-size: 13px;
   color: var(--sb-text-muted);
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
   text-align: left;
-  border-left: 3px solid transparent;
+}
+
+/* Small dot — visual hierarchy marker */
+.sb-sidebar-cat::before {
+  content: '';
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .sb-sidebar-cat:hover {
   background: var(--sb-bg-muted);
   color: var(--sb-text);
-  border-left-color: var(--sb-border);
+}
+
+.sb-sidebar-cat:hover::before {
+  opacity: 0.5;
 }
 
 .sb-sidebar-cat--active {
   color: var(--sb-primary);
   background: var(--sb-primary-light);
   font-weight: 600;
-  border-left-color: var(--sb-primary);
+}
+
+.sb-sidebar-cat--active::before {
+  opacity: 1;
+  transform: scale(1.25);
 }
 
 /* ============================================================
