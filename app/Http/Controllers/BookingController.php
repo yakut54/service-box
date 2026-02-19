@@ -16,6 +16,14 @@ use Illuminate\Http\Request;
 class BookingController extends Controller
 {
     /**
+     * Normalize phone to +7XXXXXXXXXX format (digits only, with leading +)
+     */
+    private function normalizePhone(string $phone): string
+    {
+        $digits = preg_replace('/[^\d]/', '', $phone);
+        return '+' . $digits;
+    }
+    /**
      * Get list of bookings
      *
      * Query params: status, master_id, date
@@ -78,8 +86,10 @@ class BookingController extends Controller
             }
         }
 
+        $customerPhone = $this->normalizePhone($request->input('customer.phone'));
+
         $customer = Customer::findOrCreateByPhone(
-            $request->input('customer.phone'),
+            $customerPhone,
             [
                 'name' => $request->input('customer.name'),
                 'email' => $request->input('customer.email'),
@@ -94,7 +104,7 @@ class BookingController extends Controller
             'end_time' => $endTime,
             'status' => 'pending',
             'customer_name' => $request->input('customer.name'),
-            'customer_phone' => $request->input('customer.phone'),
+            'customer_phone' => $customerPhone,
             'customer_email' => $request->input('customer.email'),
             'notes' => $request->notes,
         ]);
@@ -227,7 +237,7 @@ class BookingController extends Controller
     public function widgetBookingsByPhone(Request $request): JsonResponse
     {
         // Phone comes from verified token (injected by VerifyPhoneToken middleware)
-        $phone = $request->verified_phone ?? $request->phone;
+        $phone = $this->normalizePhone($request->verified_phone ?? $request->phone);
 
         $bookings = Booking::with(['service', 'master'])
             ->where('customer_phone', $phone)
@@ -265,7 +275,7 @@ class BookingController extends Controller
      */
     public function widgetCancel(Request $request, string $booking): JsonResponse
     {
-        $phone = $request->verified_phone ?? $request->phone;
+        $phone = $this->normalizePhone($request->verified_phone ?? $request->phone);
 
         $booking = Booking::findOrFail($booking);
 
