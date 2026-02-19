@@ -102,6 +102,20 @@ const dateOptions = computed(() => {
   return days
 })
 
+// Arrow-based date window (no scrollbar)
+const DATE_WINDOW = 7
+const dateWindowStart = ref(0)
+const visibleDates = computed(() => dateOptions.value.slice(dateWindowStart.value, dateWindowStart.value + DATE_WINDOW))
+const canPrev = computed(() => dateWindowStart.value > 0)
+const canNext = computed(() => dateWindowStart.value + DATE_WINDOW < dateOptions.value.length)
+
+function prevDates() {
+  dateWindowStart.value = Math.max(0, dateWindowStart.value - DATE_WINDOW)
+}
+function nextDates() {
+  dateWindowStart.value = Math.min(dateOptions.value.length - DATE_WINDOW, dateWindowStart.value + DATE_WINDOW)
+}
+
 async function loadSlots() {
   loading.value = true
   error.value = ''
@@ -233,17 +247,29 @@ async function handleSubmit() {
 
     <!-- Step 1: Date & Slot -->
     <div v-if="!selectedSlot">
-      <!-- Date picker (horizontal scroll) -->
-      <div class="sb-booking-dates sb-mb-4">
-        <button
-          v-for="d in dateOptions"
-          :key="d.value"
-          class="sb-date-chip"
-          :class="{ 'sb-date-chip-active': selectedDate === d.value }"
-          @click="selectedDate = d.value"
-        >
-          <span class="sb-date-chip-weekday">{{ d.weekday }}</span>
-          <span class="sb-date-chip-day">{{ d.label }}</span>
+      <!-- Date picker (arrow navigation, no scrollbar) -->
+      <div class="sb-booking-dates-nav sb-mb-4">
+        <button class="sb-booking-dates-arrow" :disabled="!canPrev" @click="prevDates" aria-label="Предыдущие даты">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div class="sb-booking-dates">
+          <button
+            v-for="d in visibleDates"
+            :key="d.value"
+            class="sb-date-chip"
+            :class="{ 'sb-date-chip-active': selectedDate === d.value }"
+            @click="selectedDate = d.value"
+          >
+            <span class="sb-date-chip-weekday">{{ d.weekday }}</span>
+            <span class="sb-date-chip-day">{{ d.label }}</span>
+          </button>
+        </div>
+        <button class="sb-booking-dates-arrow" :disabled="!canNext" @click="nextDates" aria-label="Следующие даты">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </button>
       </div>
 

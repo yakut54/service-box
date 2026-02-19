@@ -1961,23 +1961,45 @@
   margin-bottom: 4px;
 }
 
-/* Date chips (horizontal scroll) */
-.sb-booking-dates {
+/* Date picker nav (arrow-based, no scrollbar) */
+.sb-booking-dates-nav {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+  align-items: center;
+  gap: 6px;
 }
 
-.sb-booking-dates::-webkit-scrollbar {
-  height: 4px;
+.sb-booking-dates-arrow {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sb-radius);
+  border: 1.5px solid var(--sb-border);
+  background: var(--sb-bg-muted);
+  color: var(--sb-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.sb-booking-dates::-webkit-scrollbar-thumb {
-  background: var(--sb-border);
-  border-radius: 4px;
+.sb-booking-dates-arrow:hover:not(:disabled) {
+  border-color: var(--sb-primary);
+  color: var(--sb-primary);
+  background: var(--sb-primary-light);
+}
+
+.sb-booking-dates-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Date chips grid (7 equal columns, no overflow) */
+.sb-booking-dates {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
 }
 
 .sb-date-chip {
@@ -1985,14 +2007,13 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 14px;
+  padding: 8px 4px;
   border-radius: var(--sb-radius);
   border: 1.5px solid var(--sb-border);
   background: var(--sb-bg-muted);
-  min-width: 64px;
-  flex-shrink: 0;
   cursor: pointer;
   transition: all 0.15s ease;
+  width: 100%;
 }
 
 .sb-date-chip:hover {
@@ -2177,6 +2198,12 @@
 .sb-widget[data-theme="dark"] .sb-booking-service {
   background: #1a2332;
   border-color: #374151;
+}
+
+.sb-widget[data-theme="dark"] .sb-booking-dates-arrow {
+  background: #1a2332;
+  border-color: #4b5563;
+  color: #9ca3af;
 }
 
 /* ============================================================
@@ -2772,8 +2799,11 @@
 /* ≤450px: narrow phone — compress further */
 @media (max-width: 450px) {
   .sb-main-inner { padding: 12px 10px; }
-  .sb-booking-dates { gap: 6px; }
-  .sb-date-chip { min-width: 52px; padding: 8px 6px; }
+  .sb-booking-dates { gap: 2px; }
+  .sb-date-chip { padding: 6px 2px; }
+  .sb-date-chip-weekday { font-size: 10px; }
+  .sb-date-chip-day { font-size: 11px; }
+  .sb-booking-dates-arrow { width: 28px; height: 28px; }
   .sb-booking-slots { grid-template-columns: repeat(3, 1fr); }
 }
 
