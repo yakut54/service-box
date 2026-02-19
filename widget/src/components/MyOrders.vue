@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, formatPhone, cleanPhone, isPhoneValid } from '@/lib/utils'
+import { handlePhoneInput } from '@/lib/phoneInput'
 
 const emit = defineEmits<{ back: [] }>()
 
@@ -47,14 +48,10 @@ function formatDate(dateStr: string) {
 const phoneValid = ref(false)
 
 function onPhoneInput(e: Event) {
-  const input = e.target as HTMLInputElement
-  const cursor = input.selectionStart ?? 0
-  const oldLen = input.value.length
-  phone.value = formatPhone(input.value)
-  phoneValid.value = isPhoneValid(phone.value)
-  const newLen = phone.value.length
-  const pos = Math.max(0, cursor + (newLen - oldLen))
-  requestAnimationFrame(() => input.setSelectionRange(pos, pos))
+  handlePhoneInput(e, (v) => {
+    phone.value = v
+    phoneValid.value = isPhoneValid(v)
+  })
 }
 
 function rawPhone(): string {
@@ -195,10 +192,14 @@ function resetPhone() {
       <p style="font-size: 15px; font-weight: 600; color: var(--sb-text); margin-bottom: 4px;">Введите код подтверждения</p>
       <p class="sb-subtitle sb-mb-4">Код отправлен на {{ phone }}</p>
 
-      <!-- Dev code hint -->
-      <div v-if="devCode" style="padding: 8px 12px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--sb-radius); margin-bottom: 12px; font-size: 13px; color: var(--sb-warning);">
-        DEV: код — <strong>{{ devCode }}</strong>
-      </div>
+      <!-- DEV badge — temporary, remove before production -->
+      <button v-if="devCode" class="sb-dev-badge" @click="otpCode = devCode; verifyCode()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        DEV · {{ devCode }}
+        <span class="sb-dev-badge-hint">нажми чтобы войти</span>
+      </button>
 
       <div class="sb-flex sb-gap-2">
         <input

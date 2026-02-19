@@ -2648,3 +2648,125 @@
     display: none;
   }
 }
+
+/* ============================================================
+   DEV Badge — temporary UI for dev OTP shortcut
+   Remove before production
+   ============================================================ */
+.sb-widget .sb-dev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 10px;
+  margin-bottom: 12px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1.5px dashed var(--sb-primary);
+  border-radius: 100px;
+  color: var(--sb-primary);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  letter-spacing: 0.03em;
+}
+
+.sb-widget .sb-dev-badge:hover {
+  background: rgba(99, 102, 241, 0.15);
+  transform: scale(1.02);
+}
+
+.sb-widget .sb-dev-badge:active {
+  transform: scale(0.98);
+}
+
+.sb-dev-badge-hint {
+  font-size: 11px;
+  font-weight: 400;
+  font-family: var(--sb-font);
+  color: var(--sb-text-muted);
+  letter-spacing: 0;
+}
+
+/* ============================================================
+   Responsive breakpoints
+   1024 → 900 → 800 → 700 → 600 → 500 → 450 → 400 → 360 → 320
+   ============================================================ */
+
+/* ≥1024px: sidebar slightly wider, more breathing room */
+@media (min-width: 1024px) {
+  .sb-sidebar { width: 260px; }
+  .sb-main-inner { padding: 28px 40px; }
+}
+
+/* ≤900px: tighten main padding, sidebar narrows */
+@media (max-width: 900px) {
+  .sb-sidebar { width: 220px; }
+  .sb-main-inner { padding: 24px 28px; }
+}
+
+/* ≤800px: sidebar even narrower, hide category text labels (icon-only below 800 if needed) */
+@media (max-width: 800px) {
+  .sb-sidebar { width: 200px; }
+  .sb-main-inner { padding: 20px 24px; }
+}
+
+/* ≤700px: one step before mobile switch at 767px */
+@media (max-width: 700px) {
+  .sb-main-inner { padding: 18px 20px; }
+}
+
+/* ≤600px: tighter content padding, stacked checkout layout already via container query */
+@media (max-width: 600px) {
+  .sb-main-inner { padding: 16px 16px; }
+  .sb-booking-slots { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ≤500px: compact header, tighter gaps */
+@media (max-width: 500px) {
+  .sb-top-header { height: 52px; }
+  .sb-top-header-inner { padding: 0 10px; gap: 2px; }
+  .sb-shop-name { font-size: 14px; }
+  .sb-main-inner { padding: 12px 12px; }
+  .sb-booking-slots { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .sb-card { padding: 14px; }
+}
+
+/* ≤450px: narrow phone — compress further */
+@media (max-width: 450px) {
+  .sb-main-inner { padding: 12px 10px; }
+  .sb-booking-dates { gap: 6px; }
+  .sb-date-chip { min-width: 52px; padding: 8px 6px; }
+  .sb-booking-slots { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ≤400px: very small phone */
+@media (max-width: 400px) {
+  .sb-main-inner { padding: 10px 8px; }
+  .sb-top-header { height: 48px; }
+  .sb-top-header-inner { padding: 0 8px; gap: 2px; }
+  .sb-logo { width: 26px !important; height: 26px !important; }
+  .sb-card { padding: 12px 10px; }
+  .sb-booking-slots { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ≤360px: minimal padding, hide some UI chrome */
+@media (max-width: 360px) {
+  .sb-main-inner { padding: 8px 6px; }
+  .sb-top-header { height: 44px; }
+  .sb-shop-name { display: none; }
+  .sb-card { padding: 10px 8px; }
+  .sb-booking-slots { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  .sb-slot { font-size: 12px; padding: 7px 4px; }
+}
+
+/* ≤320px: absolute minimum — touch-friendly, no decorative text */
+@media (max-width: 320px) {
+  .sb-main-inner { padding: 8px 4px; }
+  .sb-top-header { height: 44px; }
+  .sb-top-header-inner { padding: 0 6px; gap: 0; }
+  .sb-header-cart-btn, .sb-theme-toggle { width: 34px; height: 34px; }
+  .sb-close-btn { width: 34px; height: 34px; }
+  .sb-card { padding: 8px 6px; }
+  .sb-booking-slots { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+}

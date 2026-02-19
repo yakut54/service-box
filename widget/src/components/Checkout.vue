@@ -2,7 +2,8 @@
 import { ref, computed } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
-import { formatPrice, formatPhone, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
+import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
+import { handlePhoneInput } from '@/lib/phoneInput'
 
 const emit = defineEmits<{
   back: []
@@ -38,14 +39,10 @@ const touched = ref<Record<string, boolean>>({})
 const hasPhysical = computed(() => cartStore.items.some(i => i.type === 'physical'))
 
 function onPhoneInput(e: Event) {
-  const input = e.target as HTMLInputElement
-  const cursorPos = input.selectionStart ?? 0
-  const oldLen = input.value.length
-  form.value.phone = formatPhone(input.value)
-  const newLen = form.value.phone.length
-  const newPos = Math.max(0, cursorPos + (newLen - oldLen))
-  requestAnimationFrame(() => input.setSelectionRange(newPos, newPos))
-  validateField('phone')
+  handlePhoneInput(e, (v) => {
+    form.value.phone = v
+    if (touched.value.phone) validateField('phone')
+  })
 }
 
 function touch(field: string) {
