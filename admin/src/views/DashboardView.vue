@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, watch } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useOrdersStore } from '@/stores/orders'
@@ -87,6 +87,16 @@ async function loadTodayBookings() {
   } catch { /* ignore */ }
 }
 
+// ── Chart container width for adaptive X-axis ────────────────
+const chartContainerWidth = ref(400)
+const chartContainerRef = ref<HTMLElement | null>(null)
+
+function updateChartWidth() {
+  if (chartContainerRef.value) {
+    chartContainerWidth.value = chartContainerRef.value.offsetWidth
+  }
+}
+
 // ── CSS Bar Chart ─────────────────────────────────────────────
 const chartPoints = computed(() => {
   const data = chartData.value
@@ -102,7 +112,12 @@ const chartPoints = computed(() => {
     label: new Date(d.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
   }))
 
-  const step = data.length <= 7 ? 1 : data.length <= 14 ? 2 : data.length <= 30 ? 5 : 7
+  // Adaptive step: estimate how many labels fit based on container width
+  // Each label needs ~40px minimum
+  const width = chartContainerWidth.value
+  const maxLabels = Math.max(2, Math.floor(width / 44))
+  const step = Math.ceil(data.length / maxLabels)
+
   const xLabels = data
       .map((d, i) => ({ i, date: d.date }))
       .filter((_, i) => i % step === 0 || i === data.length - 1)
@@ -157,7 +172,10 @@ const bookingStatusLabel: Record<string, string> = {
 }
 
 
-// ── Status tab switcher ──────────────────────────────────────
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+})
+
 const statusTab = ref<'orders' | 'bookings'>('orders')
 
 const statusBlockTitle = computed(() =>
@@ -201,6 +219,8 @@ watch(period, () => {
   loadChart()
 })
 
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(async () => {
   await Promise.all([
     ordersStore.fetchOrders(),
@@ -211,7 +231,12 @@ onMounted(async () => {
     loadBookingStats(),
   ])
 
-  // Start observing chart container height after data loads
+  // Observe chart container width for adaptive X-axis labels
+  if (chartContainerRef.value) {
+    updateChartWidth()
+    resizeObserver = new ResizeObserver(updateChartWidth)
+    resizeObserver.observe(chartContainerRef.value)
+  }
 })
 
 </script>
@@ -415,7 +440,7 @@ onMounted(async () => {
       </div>
 
       <!-- ── Revenue Chart ─────────────────────────────────────── -->
-      <div class="lg:col-span-3 card flex flex-col">
+      <div ref="chartContainerRef" class="lg:col-span-3 card flex flex-col">
         <div class="flex items-center justify-between mb-3 flex-shrink-0">
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка по дням</h2>
           <span class="text-xs text-gray-400">последние {{ chartDays[period] }} {{ plural(chartDays[period], 'день', 'дня', 'дней') }}</span>
