@@ -179,8 +179,8 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="sb-checkout">
-    <!-- Header -->
+  <div class="sb-co">
+    <!-- Back + title -->
     <div class="sb-flex sb-items-center sb-gap-3 sb-mb-4">
       <button class="sb-btn sb-btn-ghost" @click="emit('back')">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,18 +191,32 @@ async function handleSubmit() {
       <h2 class="sb-title" style="margin-bottom: 0;">Оформление заказа</h2>
     </div>
 
-    <!-- Progress -->
-    <div class="sb-progress sb-mb-4">
-      <div class="sb-progress-step sb-progress-done">Корзина</div>
-      <div class="sb-progress-sep"></div>
-      <div class="sb-progress-step sb-progress-active">Данные</div>
-      <div class="sb-progress-sep"></div>
-      <div class="sb-progress-step">Готово</div>
+    <!-- Step progress bar -->
+    <div class="sb-co-progress sb-mb-4">
+      <div class="sb-co-step sb-co-step-done">
+        <span class="sb-co-step-circle">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="sb-co-step-label">Корзина</span>
+      </div>
+      <div class="sb-co-line sb-co-line-done"></div>
+      <div class="sb-co-step sb-co-step-active">
+        <span class="sb-co-step-circle">2</span>
+        <span class="sb-co-step-label">Данные</span>
+      </div>
+      <div class="sb-co-line"></div>
+      <div class="sb-co-step">
+        <span class="sb-co-step-circle">3</span>
+        <span class="sb-co-step-label">Готово</span>
+      </div>
     </div>
 
     <div v-if="error" class="sb-alert-error sb-mb-4">{{ error }}</div>
 
-    <form @submit.prevent="handleSubmit" class="sb-checkout-layout">
+    <form @submit.prevent="handleSubmit">
+    <div class="sb-checkout-layout">
       <!-- Left: form -->
       <div class="sb-checkout-form">
         <!-- Contact -->
@@ -321,7 +335,7 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <!-- Right: summary -->
+      <!-- Right: order summary (sticky on desktop) -->
       <div class="sb-checkout-summary">
         <h3 class="sb-checkout-section-title">Ваш заказ</h3>
 
@@ -339,14 +353,27 @@ async function handleSubmit() {
           <span class="sb-price-lg">{{ formatPrice(cartStore.total) }}</span>
         </div>
 
+        <!-- Submit button: desktop only (mobile uses sticky footer) -->
         <button
           type="submit"
-          class="sb-btn sb-btn-primary sb-btn-block sb-mt-4"
+          class="sb-btn sb-btn-primary sb-btn-block sb-mt-4 sb-co-submit-desktop"
           :disabled="loading"
         >
           {{ loading ? 'Оформление...' : 'Подтвердить заказ' }}
         </button>
       </div>
+    </div>
+
+    <!-- Mobile sticky footer: total + submit -->
+    <div class="sb-co-footer">
+      <div class="sb-co-footer-price">
+        <span class="sb-co-footer-label">Итого</span>
+        <span class="sb-co-footer-amount">{{ formatPrice(cartStore.total) }}</span>
+      </div>
+      <button type="submit" class="sb-btn sb-btn-primary" :disabled="loading">
+        {{ loading ? '...' : 'Подтвердить' }}
+      </button>
+    </div>
     </form>
   </div>
 </template>
