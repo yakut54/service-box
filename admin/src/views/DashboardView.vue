@@ -467,7 +467,7 @@ onMounted(async () => {
           <!-- Chart area -->
           <div class="flex gap-2 h-48">
             <!-- Y-axis labels -->
-            <div class="w-10 flex-shrink-0 relative">
+            <div class="w-8 sm:w-10 flex-shrink-0 relative">
               <span
                   v-for="yl in yLabels" :key="yl.pct"
                   class="absolute right-0 text-[10px] leading-none text-gray-400 dark:text-gray-600 pr-1"
@@ -506,7 +506,7 @@ onMounted(async () => {
             </div>
           </div>
           <!-- X-axis labels -->
-          <div class="relative h-5 ml-12 mt-1 flex-shrink-0">
+          <div class="relative h-5 ml-8 sm:ml-12 mt-1 flex-shrink-0">
             <span
                 v-for="xl in chartPoints.xLabels" :key="xl.leftPct"
                 class="absolute text-[10px] leading-none text-gray-400 dark:text-gray-600 -translate-x-1/2"
