@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
-import { handlePhoneInput, isValidPhone } from '@/composables/usePhoneInput'
+import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
 
 const bookingsStore = useBookingsStore()
 const router = useRouter()
@@ -160,7 +160,7 @@ function validateBookingPhone(v: string) {
 }
 function validateBookingEmail(v: string) {
   if (!v) { bookingErrors.customer_email = ''; return }
-  bookingErrors.customer_email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : 'Некорректный email'
+  bookingErrors.customer_email = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'Некорректный email'
 }
 
 function resetBookingErrors() {

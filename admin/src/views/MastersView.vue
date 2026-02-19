@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive } from 'vue'
+import { ref, onMounted, computed, reactive, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
@@ -42,7 +42,7 @@ function validatePhone(v: string) {
 }
 function validateEmail(v: string) {
   if (!v) { formErrors.email = ''; return }
-  formErrors.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : 'Некорректный email'
+  formErrors.email = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'Некорректный email'
 }
 
 function resetErrors() {
