@@ -2228,6 +2228,13 @@
 }
 
 /* ── Master selection card (separate block) ── */
+.sb-booking-master-card .sb-select {
+  width: 100%;
+}
+.sb-booking-master-card .sb-select .sb-select-trigger {
+  width: 100%;
+}
+
 .sb-booking-master-card {
   background: var(--sb-bg-muted);
   border: 1.5px solid var(--sb-border);
