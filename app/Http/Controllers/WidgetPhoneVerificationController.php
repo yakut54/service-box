@@ -49,8 +49,10 @@ class WidgetPhoneVerificationController extends Controller
         }
         RateLimiter::hit($ipKey, 600);
 
-        // Generate 4-digit code
-        $code = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        // Generate 4-digit code (dev: always 1111 for easy testing)
+        $code = app()->environment('production')
+            ? str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT)
+            : '1111';
 
         // Store in cache for 5 minutes
         $cacheKey = "otp:{$shopId}:{$phone}";

@@ -89,7 +89,7 @@ async function requestCode() {
     const resp = await shopStore.getApi().requestPhoneCode(rawPhone())
     devCode.value = resp._dev_code || ''
     step.value = 'code'
-    otpCode.value = ''
+    otpCode.value = devCode.value // dev: auto-fill
   } catch (e: any) {
     otpError.value = e.message || 'Не удалось отправить код'
   }
