@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { useCartStore } from '@/stores/cart'
 import Catalog from '@/components/Catalog.vue'
@@ -29,6 +29,12 @@ const activeSidebarCategory = ref('')
 const categoriesOpen = ref(true)
 const previousView = ref<WidgetView>('catalog')
 let initialized = false
+
+// What to show in main content area (catalog/product/etc — not cart)
+const mainView = computed<WidgetView>(() =>
+  currentView.value === 'cart' ? previousView.value : currentView.value
+)
+const cartOpen = computed(() => currentView.value === 'cart')
 
 // ── Init on first open ──────────────────────────────────────
 watch(() => shopStore.isOpen, async (open) => {
@@ -322,17 +328,20 @@ function selectSidebarCategory(cat: string) {
           <div class="sb-main-inner sb-grid-container">
 
             <!-- Loading -->
-            <div v-if="currentView === 'loading'" class="sb-grid sb-grid-2 sb-grid-3" style="margin-top: 16px;">
-              <div v-for="i in 6" :key="i" class="sb-card">
-                <div class="sb-skeleton sb-skeleton-image"></div>
-                <div class="sb-skeleton sb-skeleton-title"></div>
-                <div class="sb-skeleton sb-skeleton-text" style="width: 40%;"></div>
-                <div class="sb-skeleton sb-skeleton-btn" style="margin-top: 12px; width: 100%;"></div>
+            <div v-if="mainView === 'loading'" class="sb-grid sb-grid-2 sb-grid-3" style="margin-top: 16px;">
+              <div v-for="i in 6" :key="i" class="sb-pc-skeleton">
+                <div class="sb-skeleton sb-skeleton-pc-img"></div>
+                <div class="sb-pc-skeleton-body">
+                  <div class="sb-skeleton sb-skeleton-category"></div>
+                  <div class="sb-skeleton sb-skeleton-title"></div>
+                  <div class="sb-skeleton sb-skeleton-title" style="width: 70%;"></div>
+                  <div class="sb-skeleton sb-skeleton-price"></div>
+                </div>
               </div>
             </div>
 
             <!-- Error -->
-            <div v-else-if="currentView === 'error'" class="sb-empty">
+            <div v-else-if="mainView === 'error'" class="sb-empty">
               <svg class="sb-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
@@ -345,7 +354,7 @@ function selectSidebarCategory(cat: string) {
 
             <!-- Catalog -->
             <Catalog
-              v-else-if="currentView === 'catalog'"
+              v-else-if="mainView === 'catalog'"
               :active-category="activeSidebarCategory"
               @select="handleProductSelect"
               @categories-loaded="handleCategoriesLoaded"
@@ -353,7 +362,7 @@ function selectSidebarCategory(cat: string) {
 
             <!-- Product Detail -->
             <ProductDetail
-              v-else-if="currentView === 'product' && selectedProduct"
+              v-else-if="mainView === 'product' && selectedProduct"
               :product="selectedProduct"
               @back="handleBack"
               @booking="handleBooking"
@@ -362,7 +371,7 @@ function selectSidebarCategory(cat: string) {
 
             <!-- Booking Calendar -->
             <BookingCalendar
-              v-else-if="currentView === 'booking' && selectedProduct"
+              v-else-if="mainView === 'booking' && selectedProduct"
               :product="selectedProduct"
               @back="handleBack"
               @success="handleBookingSuccess"
@@ -370,38 +379,31 @@ function selectSidebarCategory(cat: string) {
 
             <!-- Booking Success -->
             <BookingSuccess
-              v-else-if="currentView === 'booking-success'"
+              v-else-if="mainView === 'booking-success'"
               :booking="completedBooking"
               :product="selectedProduct"
               @back="navigate('catalog')"
             />
 
-            <!-- Cart -->
-            <Cart
-              v-else-if="currentView === 'cart'"
-              @back="handleCartBack"
-              @checkout="navigate('checkout')"
-            />
-
             <!-- Checkout -->
             <Checkout
-              v-else-if="currentView === 'checkout'"
+              v-else-if="mainView === 'checkout'"
               @back="navigate('cart')"
               @success="handleOrderSuccess"
             />
 
             <!-- Order Success -->
             <OrderSuccess
-              v-else-if="currentView === 'success'"
+              v-else-if="mainView === 'success'"
               :order="completedOrder"
               @back="navigate('catalog')"
             />
 
             <!-- My Orders -->
-            <MyOrders v-else-if="currentView === 'orders'" @back="navigate('catalog')" />
+            <MyOrders v-else-if="mainView === 'orders'" @back="navigate('catalog')" />
 
             <!-- My Bookings -->
-            <MyBookings v-else-if="currentView === 'bookings-list'" @back="navigate('catalog')" />
+            <MyBookings v-else-if="mainView === 'bookings-list'" @back="navigate('catalog')" />
 
             <!-- Fallback -->
             <div v-else class="sb-empty">
@@ -417,6 +419,20 @@ function selectSidebarCategory(cat: string) {
         </main>
 
       </div>
+
+      <!-- Cart Drawer (slide-in panel desktop / full-screen mobile) -->
+      <Transition name="sb-cart-drawer">
+        <div v-if="cartOpen" class="sb-cart-drawer">
+          <Cart @back="handleCartBack" @checkout="navigate('checkout')" />
+        </div>
+      </Transition>
+
+      <!-- Cart scrim (desktop backdrop) -->
+      <div
+        class="sb-cart-scrim"
+        :class="{ 'sb-cart-scrim--visible': cartOpen }"
+        @click="handleCartBack"
+      ></div>
 
       <!-- Floating Cart Button (inside overlay, fixed position) -->
       <transition name="sb-fab">
