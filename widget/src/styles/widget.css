@@ -471,25 +471,23 @@
 .sb-mb-4 { margin-bottom: 16px; }
 .sb-text-center { text-align: center; }
 
-/* ---- Catalog filters (one-row layout) ---- */
+/* ---- Catalog filters (stacked: search on top, chips below) ---- */
 .sb-catalog-filters {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
-/* Search with icon */
+/* Search with icon — full-width pill */
 .sb-search-wrap {
   position: relative;
-  flex: 1;
-  min-width: 180px;
+  width: 100%;
 }
 
 .sb-search-icon {
   position: absolute;
-  left: 13px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
   width: 16px;
@@ -499,7 +497,34 @@
 }
 
 .sb-catalog-search {
-  padding-left: 38px;
+  padding-left: 44px;
+  border-radius: 9999px;
+  min-height: 48px;
+  font-size: 14px;
+}
+
+/* Chips row — horizontal scroll, no wrap */
+.sb-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.sb-chips-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Vertical divider between type chips and category chips */
+.sb-chips-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  background: var(--sb-border);
+  margin: 0 2px;
 }
 
 /* ---- Custom Select (SbSelect) ---- */
@@ -648,31 +673,36 @@
 }
 
 .sb-chip {
+  flex-shrink: 0;
   padding: 5px 14px;
-  border-radius: 100px;
+  border-radius: 9999px;
   font-size: 13px;
   font-weight: 500;
   color: var(--sb-text-muted);
-  background: transparent;
-  border: none;
+  background: var(--sb-bg);
+  border: 1.5px solid var(--sb-border);
   transition: all 0.15s ease;
-  min-height: 32px;
+  min-height: 34px;
+  white-space: nowrap;
 }
 
 .sb-chip:hover {
-  color: var(--sb-text);
-  background: var(--sb-bg);
+  color: var(--sb-primary);
+  border-color: var(--sb-primary);
+  background: var(--sb-primary-light);
 }
 
 .sb-chip.sb-chip-active {
   background: var(--sb-primary);
+  border-color: var(--sb-primary);
   color: #fff !important;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   font-weight: 600;
 }
 
 .sb-chip.sb-chip-active:hover {
   background: var(--sb-primary-hover);
+  border-color: var(--sb-primary-hover);
   color: #fff !important;
 }
 
