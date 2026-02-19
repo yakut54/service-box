@@ -181,9 +181,9 @@ const bookingStatusLabel: Record<string, string> = {
 }
 
 
-// ── Axis label font size: 8px on narrow+month, else 10px ────
+// ── Axis label font size: 8px on narrow screens, else 10px ──
 const axisLabelFontSize = computed(() =>
-    chartContainerWidth.value < 480 && period.value === 'month' ? '8px' : '10px'
+    chartContainerWidth.value < 480 ? '8px' : '10px'
 )
 
 onUnmounted(() => {
