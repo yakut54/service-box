@@ -1987,10 +1987,11 @@
   gap: 2px;
   padding: 8px 14px;
   border-radius: var(--sb-radius);
-  border: 1px solid var(--sb-border);
-  background: var(--sb-bg);
+  border: 1.5px solid var(--sb-border);
+  background: var(--sb-bg-muted);
   min-width: 64px;
   flex-shrink: 0;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
@@ -2035,11 +2036,13 @@
 .sb-slot {
   padding: 10px 8px;
   border-radius: var(--sb-radius);
-  border: 1px solid var(--sb-border);
+  border: 1.5px solid var(--sb-border);
+  background: var(--sb-bg-muted);
   font-size: 14px;
   font-weight: 500;
   text-align: center;
   color: var(--sb-text);
+  cursor: pointer;
   transition: all 0.15s ease;
   min-height: 44px;
 }
@@ -2140,6 +2143,40 @@
 
 .sb-widget[data-theme="dark"] .sb-card-interactive:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Booking components: dark mode visibility */
+.sb-widget[data-theme="dark"] .sb-date-chip {
+  background: #1a2332;
+  border-color: #4b5563;
+  color: var(--sb-text-muted);
+}
+
+.sb-widget[data-theme="dark"] .sb-date-chip:hover {
+  border-color: var(--sb-primary);
+  color: var(--sb-text);
+}
+
+.sb-widget[data-theme="dark"] .sb-date-chip-active {
+  background: var(--sb-primary);
+  border-color: var(--sb-primary);
+  color: #fff;
+}
+
+.sb-widget[data-theme="dark"] .sb-slot {
+  background: #1a2332;
+  border-color: #4b5563;
+}
+
+.sb-widget[data-theme="dark"] .sb-slot:hover:not(:disabled) {
+  background: var(--sb-primary-light);
+  border-color: var(--sb-primary);
+  color: var(--sb-primary);
+}
+
+.sb-widget[data-theme="dark"] .sb-booking-service {
+  background: #1a2332;
+  border-color: #374151;
 }
 
 /* ============================================================

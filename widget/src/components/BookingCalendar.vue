@@ -208,13 +208,27 @@ async function handleSubmit() {
 
     <div v-if="error" class="sb-alert-error sb-mb-4">{{ error }}</div>
 
-    <!-- Progress -->
-    <div class="sb-progress sb-mb-4">
-      <div class="sb-progress-step" :class="selectedSlot ? 'sb-progress-done' : 'sb-progress-active'">Дата и время</div>
-      <div class="sb-progress-sep"></div>
-      <div class="sb-progress-step" :class="selectedSlot ? 'sb-progress-active' : ''">Ваши данные</div>
-      <div class="sb-progress-sep"></div>
-      <div class="sb-progress-step">Готово</div>
+    <!-- Progress stepper (reuses .sb-co-progress CSS) -->
+    <div class="sb-co-progress sb-mb-4">
+      <div :class="['sb-co-step', selectedSlot ? 'sb-co-step-done' : 'sb-co-step-active']">
+        <span class="sb-co-step-circle">
+          <svg v-if="selectedSlot" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <template v-else>1</template>
+        </span>
+        <span class="sb-co-step-label">Дата и время</span>
+      </div>
+      <div :class="['sb-co-line', selectedSlot ? 'sb-co-line-done' : '']"></div>
+      <div :class="['sb-co-step', selectedSlot ? 'sb-co-step-active' : '']">
+        <span class="sb-co-step-circle">2</span>
+        <span class="sb-co-step-label">Ваши данные</span>
+      </div>
+      <div class="sb-co-line"></div>
+      <div class="sb-co-step">
+        <span class="sb-co-step-circle">3</span>
+        <span class="sb-co-step-label">Готово</span>
+      </div>
     </div>
 
     <!-- Step 1: Date & Slot -->
