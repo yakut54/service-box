@@ -193,44 +193,54 @@ function selectSidebarCategory(cat: string) {
     >
       <!-- Top Header -->
       <header class="sb-top-header" v-if="currentView !== 'loading' || shopStore.isOpen">
-        <!-- Hamburger (mobile) -->
-        <button class="sb-hamburger" @click="sidebarOpen = !sidebarOpen" aria-label="Меню">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        <div class="sb-top-header-inner">
+          <!-- Hamburger (mobile) -->
+          <button class="sb-hamburger" @click="sidebarOpen = !sidebarOpen" aria-label="Меню">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
 
-        <!-- Logo -->
-        <img
-            v-if="shopStore.config.logo_url"
-            :src="shopStore.config.logo_url"
-            :alt="shopStore.shop?.name"
-            class="sb-logo"
-        />
+          <!-- Logo -->
+          <img
+              v-if="shopStore.config.logo_url"
+              :src="shopStore.config.logo_url"
+              :alt="shopStore.shop?.name"
+              class="sb-logo"
+          />
 
-        <!-- Shop name -->
-        <span class="sb-shop-name">{{ shopStore.shop?.name }}</span>
+          <!-- Shop name -->
+          <span class="sb-shop-name">{{ shopStore.shop?.name }}</span>
 
-        <div class="sb-header-spacer"></div>
+          <div class="sb-header-spacer"></div>
 
-        <!-- Theme toggle -->
-        <button class="sb-theme-toggle" @click="handleThemeToggle" aria-label="Переключить тему">
-          <!-- Sun (shown in dark mode) -->
-          <svg v-if="shopStore.theme === 'dark'" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <!-- Moon (shown in light mode) -->
-          <svg v-else width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-          </svg>
-        </button>
+          <!-- Cart -->
+          <button class="sb-header-cart-btn" @click="navigate('cart')" aria-label="Корзина">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+            </svg>
+            <span v-if="cartStore.count > 0" class="sb-header-cart-badge">{{ cartStore.count }}</span>
+          </button>
 
-        <!-- Close -->
-        <button class="sb-close-btn" @click="handleClose" aria-label="Закрыть">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <!-- Theme toggle -->
+          <button class="sb-theme-toggle" @click="handleThemeToggle" aria-label="Переключить тему">
+            <!-- Sun (shown in dark mode) -->
+            <svg v-if="shopStore.theme === 'dark'" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <!-- Moon (shown in light mode) -->
+            <svg v-else width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          </button>
+
+          <!-- Close -->
+          <button class="sb-close-btn" @click="handleClose" aria-label="Закрыть">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <!-- Body: Sidebar + Main -->
