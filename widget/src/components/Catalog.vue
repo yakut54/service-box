@@ -149,11 +149,14 @@ function handleSelect(product: any) {
 
     <!-- Loading skeleton -->
     <div v-if="loading" class="sb-grid sb-grid-2 sb-grid-3">
-      <div v-for="i in 6" :key="i" class="sb-card">
-        <div class="sb-skeleton sb-skeleton-image"></div>
-        <div class="sb-skeleton sb-skeleton-title"></div>
-        <div class="sb-skeleton sb-skeleton-text" style="width: 40%;"></div>
-        <div class="sb-skeleton sb-skeleton-btn sb-mt-2" style="width: 100%;"></div>
+      <div v-for="i in 6" :key="i" class="sb-pc-skeleton">
+        <div class="sb-skeleton sb-skeleton-pc-img"></div>
+        <div class="sb-pc-skeleton-body">
+          <div class="sb-skeleton sb-skeleton-category"></div>
+          <div class="sb-skeleton sb-skeleton-title"></div>
+          <div class="sb-skeleton sb-skeleton-title" style="width: 70%;"></div>
+          <div class="sb-skeleton sb-skeleton-price"></div>
+        </div>
       </div>
     </div>
 

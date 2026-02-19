@@ -294,20 +294,28 @@
   container-type: inline-size;
 }
 
-/* Default: 2 columns for all mobile sizes */
+/* Default: 2 columns, portrait-friendly gap */
 .sb-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--sb-gap-xs);
+  align-items: start;
 }
 
-/* Wider mobile / small tablet → bigger gap */
-@container (min-width: 400px) {
+/* Ultra-narrow: single column below 300px */
+@container (max-width: 299px) {
+  .sb-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 360px+: slightly wider gap */
+@container (min-width: 360px) {
   .sb-grid { gap: var(--sb-gap-sm); }
 }
 
-/* Tablet → 2 cols with comfortable gap */
-@container (min-width: 600px) {
+/* 500px+: comfortable gap */
+@container (min-width: 500px) {
   .sb-grid-2 { gap: var(--sb-gap-md); }
 }
 
@@ -369,9 +377,9 @@
 }
 
 .sb-skeleton-title {
-  height: 20px;
+  height: 16px;
   width: 60%;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .sb-skeleton-image {
@@ -379,9 +387,36 @@
   margin-bottom: 12px;
 }
 
-.sb-skeleton-btn {
-  height: 44px;
-  width: 120px;
+/* Marketplace card skeleton */
+.sb-pc-skeleton {
+  background: var(--sb-bg);
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius);
+  overflow: hidden;
+}
+
+.sb-skeleton-pc-img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+}
+
+.sb-pc-skeleton-body {
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-skeleton-category {
+  height: 10px;
+  width: 45%;
+  border-radius: 4px;
+}
+
+.sb-skeleton-price {
+  height: 18px;
+  width: 55%;
+  margin-top: 4px;
 }
 
 /* ---- Toast ---- */
