@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, reactive, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
-import { formatPhone, plural } from '@/lib/utils'
+import { plural } from '@/lib/utils'
+import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
 import CustomSelect from '@/components/CustomSelect.vue'
 
 // ── State ────────────────────────────────────────────────────
@@ -28,6 +29,32 @@ const emptyForm = () => ({
 })
 
 const form = ref(emptyForm())
+
+// ── Live validation ──────────────────────────────────────────
+const formErrors = reactive({ name: '', phone: '', email: '' })
+
+function validateName(v: string) {
+  formErrors.name = v.trim() ? '' : 'Укажите имя мастера'
+}
+function validatePhone(v: string) {
+  if (!v) { formErrors.phone = ''; return }
+  formErrors.phone = isValidPhone(v) ? '' : 'Введите полный номер: +7 (XXX) XXX-XX-XX'
+}
+function validateEmail(v: string) {
+  if (!v) { formErrors.email = ''; return }
+  formErrors.email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : 'Некорректный email'
+}
+
+function resetErrors() {
+  formErrors.name = ''
+  formErrors.phone = ''
+  formErrors.email = ''
+}
+
+const isFormValid = computed(() =>
+    !formErrors.name && !formErrors.phone && !formErrors.email && form.value.name.trim()
+)
+
 
 // ── Delete confirm ───────────────────────────────────────────
 const deleteTarget = ref<any | null>(null)
@@ -85,6 +112,7 @@ function openCreate() {
   editingId.value = null
   modalError.value = ''
   avatarUploadError.value = ''
+  resetErrors()
   showModal.value = true
 }
 
@@ -94,7 +122,7 @@ function openEdit(master: any) {
   form.value = {
     name: master.name || '',
     specialization: master.specialization || '',
-    phone: master.phone || '',
+    phone: master.phone ? applyPhoneMask(master.phone) : '',
     email: master.email || '',
     avatar_url: master.avatar_url || '',
     is_active: master.is_active ?? true,
@@ -102,15 +130,16 @@ function openEdit(master: any) {
   }
   modalError.value = ''
   avatarUploadError.value = ''
+  resetErrors()
   showModal.value = true
 }
 
 // ── Save ─────────────────────────────────────────────────────
 async function save() {
-  if (!form.value.name.trim()) {
-    modalError.value = 'Укажите имя мастера'
-    return
-  }
+  validateName(form.value.name)
+  validatePhone(form.value.phone)
+  validateEmail(form.value.email)
+  if (!isFormValid.value) return
 
   saving.value = true
   modalError.value = ''
@@ -238,16 +267,16 @@ function clearAvatar() {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
-          v-model="filterSearch"
-          type="text"
-          class="input pl-9"
-          placeholder="Поиск по имени или специализации"
+            v-model="filterSearch"
+            type="text"
+            class="input pl-9"
+            placeholder="Поиск по имени или специализации"
         />
       </div>
       <CustomSelect
-        v-model="filterActive"
-        :options="filterActiveOptions"
-        class="sm:w-48"
+          v-model="filterActive"
+          :options="filterActiveOptions"
+          class="sm:w-48"
       />
     </div>
 
@@ -282,24 +311,24 @@ function clearAvatar() {
     <!-- Grid -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
-        v-for="master in filteredMasters"
-        :key="master.id"
-        class="card flex flex-col gap-4"
-        :class="{ 'opacity-60': !master.is_active }"
+          v-for="master in filteredMasters"
+          :key="master.id"
+          class="card flex flex-col gap-4"
+          :class="{ 'opacity-60': !master.is_active }"
       >
         <!-- Top row: avatar + info + toggle -->
         <div class="flex items-start gap-3">
           <!-- Avatar -->
           <div class="flex-shrink-0">
             <img
-              v-if="master.avatar_url"
-              :src="master.avatar_url"
-              :alt="master.name"
-              class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                v-if="master.avatar_url"
+                :src="master.avatar_url"
+                :alt="master.name"
+                class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700"
             />
             <div
-              v-else
-              class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-semibold text-lg"
+                v-else
+                class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-semibold text-lg"
             >
               {{ initials(master.name) }}
             </div>
@@ -308,8 +337,8 @@ function clearAvatar() {
           <!-- Info -->
           <div class="flex-1 min-w-0">
             <RouterLink
-              :to="`/masters/${master.id}`"
-              class="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block"
+                :to="`/masters/${master.id}`"
+                class="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block"
             >{{ master.name }}</RouterLink>
             <div v-if="master.specialization" class="text-sm text-gray-500 dark:text-gray-400 truncate">
               {{ master.specialization }}
@@ -318,12 +347,12 @@ function clearAvatar() {
 
           <!-- Active toggle -->
           <button
-            @click="toggleActive(master)"
-            :class="[
+              @click="toggleActive(master)"
+              :class="[
               'relative flex-shrink-0 w-10 h-5 rounded-full transition-colors',
               master.is_active ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'
             ]"
-            :title="master.is_active ? 'Деактивировать' : 'Активировать'"
+              :title="master.is_active ? 'Деактивировать' : 'Активировать'"
           >
             <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', master.is_active ? 'translate-x-5' : '']" />
           </button>
@@ -391,7 +420,15 @@ function clearAvatar() {
 
           <div>
             <label class="label">Имя <span class="text-red-500">*</span></label>
-            <input v-model="form.name" type="text" class="input" placeholder="Иван Иванов" />
+            <input
+                v-model="form.name"
+                @input="validateName(form.name)"
+                @blur="validateName(form.name)"
+                type="text"
+                :class="['input', formErrors.name ? 'input-error' : '']"
+                placeholder="Иван Иванов"
+            />
+            <p v-if="formErrors.name" class="mt-1 text-xs text-red-500">{{ formErrors.name }}</p>
           </div>
 
           <div>
@@ -402,17 +439,27 @@ function clearAvatar() {
           <div>
             <label class="label">Телефон</label>
             <input
-              :value="form.phone"
-              @input="form.phone = formatPhone(($event.target as HTMLInputElement).value)"
-              type="tel"
-              class="input"
-              placeholder="+7 (999) 123-45-67"
+                :value="form.phone"
+                @input="handlePhoneInput($event, (v) => { form.phone = v; validatePhone(v) })"
+                @blur="validatePhone(form.phone)"
+                type="tel"
+                :class="['input', formErrors.phone ? 'input-error' : form.phone && !formErrors.phone ? 'input-success' : '']"
+                placeholder="+7 (999) 123-45-67"
             />
+            <p v-if="formErrors.phone" class="mt-1 text-xs text-red-500">{{ formErrors.phone }}</p>
           </div>
 
           <div>
             <label class="label">Email</label>
-            <input v-model="form.email" type="email" class="input" placeholder="master@example.com" />
+            <input
+                v-model="form.email"
+                @input="validateEmail(form.email)"
+                @blur="validateEmail(form.email)"
+                type="email"
+                :class="['input', formErrors.email ? 'input-error' : form.email && !formErrors.email ? 'input-success' : '']"
+                placeholder="master@example.com"
+            />
+            <p v-if="formErrors.email" class="mt-1 text-xs text-red-500">{{ formErrors.email }}</p>
           </div>
 
           <!-- Avatar upload -->
@@ -423,9 +470,9 @@ function clearAvatar() {
             <div v-if="form.avatar_url" class="flex items-start gap-3 mb-2">
               <div class="relative flex-shrink-0">
                 <img
-                  :src="form.avatar_url"
-                  class="h-20 w-20 object-cover rounded-full border border-gray-200 dark:border-gray-700"
-                  alt="Аватар"
+                    :src="form.avatar_url"
+                    class="h-20 w-20 object-cover rounded-full border border-gray-200 dark:border-gray-700"
+                    alt="Аватар"
                 />
                 <div v-if="avatarUploading" class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
                   <div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
@@ -443,9 +490,9 @@ function clearAvatar() {
 
             <!-- Drop zone -->
             <div
-              v-else
-              @click="avatarFileInputEl?.click()"
-              class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer transition-colors"
+                v-else
+                @click="avatarFileInputEl?.click()"
+                class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer transition-colors"
             >
               <svg class="w-7 h-7 mx-auto mb-1 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -457,11 +504,11 @@ function clearAvatar() {
             <p v-if="avatarUploadError" class="mt-1 text-xs text-red-500">{{ avatarUploadError }}</p>
 
             <input
-              ref="avatarFileInputEl"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              class="hidden"
-              @change="onAvatarFileInput"
+                ref="avatarFileInputEl"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="hidden"
+                @change="onAvatarFileInput"
             />
           </div>
 
@@ -473,9 +520,9 @@ function clearAvatar() {
           <div class="flex items-center justify-between py-2">
             <span class="label mb-0">Активен</span>
             <button
-              type="button"
-              @click="form.is_active = !form.is_active"
-              :class="[
+                type="button"
+                @click="form.is_active = !form.is_active"
+                :class="[
                 'relative w-11 h-6 rounded-full transition-colors',
                 form.is_active ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'
               ]"
@@ -488,7 +535,7 @@ function clearAvatar() {
         <!-- Modal footer -->
         <div class="flex gap-3 p-4 pt-0">
           <button @click="showModal = false" class="btn-secondary flex-1">Отмена</button>
-          <button @click="save" class="btn-primary flex-1" :disabled="saving">
+          <button @click="save" class="btn-primary flex-1" :disabled="saving || !isFormValid">
             {{ saving ? 'Сохранение...' : (modalMode === 'create' ? 'Создать' : 'Сохранить') }}
           </button>
         </div>

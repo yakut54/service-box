@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, ref, computed, watch, reactive } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
-import { formatPhone } from '@/lib/utils'
+import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
 
 const bookingsStore = useBookingsStore()
 const router = useRouter()
@@ -148,10 +148,40 @@ const loadingSlots = ref(false)
 const creating = ref(false)
 const modalError = ref('')
 
+// ── Booking form live validation ─────────────────────────────
+const bookingErrors = reactive({ customer_name: '', customer_phone: '', customer_email: '' })
+
+function validateBookingName(v: string) {
+  bookingErrors.customer_name = v.trim() ? '' : 'Введите имя клиента'
+}
+function validateBookingPhone(v: string) {
+  if (!v) { bookingErrors.customer_phone = 'Телефон обязателен'; return }
+  bookingErrors.customer_phone = isValidPhone(v) ? '' : 'Введите полный номер: +7 (XXX) XXX-XX-XX'
+}
+function validateBookingEmail(v: string) {
+  if (!v) { bookingErrors.customer_email = ''; return }
+  bookingErrors.customer_email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : 'Некорректный email'
+}
+
+function resetBookingErrors() {
+  bookingErrors.customer_name = ''
+  bookingErrors.customer_phone = ''
+  bookingErrors.customer_email = ''
+}
+
+const isBookingFormValid = computed(() =>
+    !bookingErrors.customer_name && !bookingErrors.customer_phone && !bookingErrors.customer_email &&
+    modalForm.value.customer_name.trim() && modalForm.value.customer_phone &&
+    isValidPhone(modalForm.value.customer_phone) &&
+    modalForm.value.service_id && modalForm.value.slot
+)
+
+
 function openModal() {
   modalError.value = ''
   modalForm.value = { service_id: '', master_id: '', date: '', slot: '', customer_name: '', customer_phone: '', customer_email: '', notes: '' }
   availableSlots.value = []
+  resetBookingErrors()
   showModal.value = true
 }
 
@@ -177,8 +207,11 @@ watch([() => modalForm.value.service_id, () => modalForm.value.date, () => modal
 })
 
 async function submitBooking() {
-  if (!modalForm.value.service_id || !modalForm.value.slot || !modalForm.value.customer_name || !modalForm.value.customer_phone) {
-    modalError.value = 'Заполните все обязательные поля'
+  validateBookingName(modalForm.value.customer_name)
+  validateBookingPhone(modalForm.value.customer_phone)
+  validateBookingEmail(modalForm.value.customer_email)
+  if (!isBookingFormValid.value) {
+    modalError.value = 'Заполните все обязательные поля корректно'
     return
   }
   creating.value = true
@@ -267,14 +300,14 @@ onMounted(async () => {
         <!-- View toggle: hidden on mobile, calendar is not usable on small screens -->
         <div class="hidden sm:flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           <button
-            :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
-            @click="viewMode = 'list'"
+              :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
+              @click="viewMode = 'list'"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
           <button
-            :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'calendar' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
-            @click="viewMode = 'calendar'"
+              :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'calendar' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
+              @click="viewMode = 'calendar'"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </button>
@@ -320,54 +353,54 @@ onMounted(async () => {
         <div class="overflow-x-auto">
           <table class="table">
             <thead>
-              <tr>
-                <th>Услуга</th>
-                <th>Клиент</th>
-                <th>Мастер</th>
-                <th>Дата / Время</th>
-                <th>Статус</th>
-                <th>Действия</th>
-              </tr>
+            <tr>
+              <th>Услуга</th>
+              <th>Клиент</th>
+              <th>Мастер</th>
+              <th>Дата / Время</th>
+              <th>Статус</th>
+              <th>Действия</th>
+            </tr>
             </thead>
             <tbody>
-              <tr v-for="b in bookingsStore.bookings" :key="b.id">
-                <td>
-                  <RouterLink :to="`/bookings/${b.id}`" class="font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">
-                    {{ b.service?.name || '—' }}
+            <tr v-for="b in bookingsStore.bookings" :key="b.id">
+              <td>
+                <RouterLink :to="`/bookings/${b.id}`" class="font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">
+                  {{ b.service?.name || '—' }}
+                </RouterLink>
+              </td>
+              <td>
+                <div class="font-medium text-gray-900 dark:text-gray-100">{{ b.customer_name }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">{{ b.customer_phone }}</div>
+              </td>
+              <td>
+                <RouterLink v-if="b.master" :to="`/masters/${b.master.id}`" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+                  {{ b.master.name }}
+                </RouterLink>
+                <span v-else class="text-gray-400 dark:text-gray-500">—</span>
+              </td>
+              <td>
+                <div class="text-sm dark:text-gray-200">{{ formatDate(b.start_time) }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatTimeRange(b.start_time, b.end_time) }}</div>
+              </td>
+              <td><span :class="`badge-${b.status}`">{{ statusLabels[b.status] || b.status }}</span></td>
+              <td>
+                <div class="flex items-center gap-1">
+                  <button v-if="b.status === 'pending'" @click="changeStatus(b.id, 'confirmed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-blue-600 hover:text-blue-700" title="Подтвердить">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <button v-if="b.status === 'confirmed'" @click="changeStatus(b.id, 'completed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-green-600 hover:text-green-700" title="Завершить">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </button>
+                  <button v-if="b.status !== 'cancelled' && b.status !== 'completed'" @click="changeStatus(b.id, 'cancelled')" :disabled="updatingStatus" class="btn-ghost btn-sm text-red-500 hover:text-red-700" title="Отменить">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                  <RouterLink :to="`/bookings/${b.id}`" class="btn-ghost btn-sm" title="Открыть">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                   </RouterLink>
-                </td>
-                <td>
-                  <div class="font-medium text-gray-900 dark:text-gray-100">{{ b.customer_name }}</div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">{{ b.customer_phone }}</div>
-                </td>
-                <td>
-                  <RouterLink v-if="b.master" :to="`/masters/${b.master.id}`" class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
-                    {{ b.master.name }}
-                  </RouterLink>
-                  <span v-else class="text-gray-400 dark:text-gray-500">—</span>
-                </td>
-                <td>
-                  <div class="text-sm dark:text-gray-200">{{ formatDate(b.start_time) }}</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatTimeRange(b.start_time, b.end_time) }}</div>
-                </td>
-                <td><span :class="`badge-${b.status}`">{{ statusLabels[b.status] || b.status }}</span></td>
-                <td>
-                  <div class="flex items-center gap-1">
-                    <button v-if="b.status === 'pending'" @click="changeStatus(b.id, 'confirmed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-blue-600 hover:text-blue-700" title="Подтвердить">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    </button>
-                    <button v-if="b.status === 'confirmed'" @click="changeStatus(b.id, 'completed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-green-600 hover:text-green-700" title="Завершить">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </button>
-                    <button v-if="b.status !== 'cancelled' && b.status !== 'completed'" @click="changeStatus(b.id, 'cancelled')" :disabled="updatingStatus" class="btn-ghost btn-sm text-red-500 hover:text-red-700" title="Отменить">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                    <RouterLink :to="`/bookings/${b.id}`" class="btn-ghost btn-sm" title="Открыть">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                    </RouterLink>
-                  </div>
-                </td>
-              </tr>
+                </div>
+              </td>
+            </tr>
             </tbody>
           </table>
         </div>
@@ -376,10 +409,10 @@ onMounted(async () => {
       <!-- Mobile cards -->
       <div class="sm:hidden card overflow-hidden p-0">
         <RouterLink
-          v-for="b in bookingsStore.bookings"
-          :key="b.id"
-          :to="`/bookings/${b.id}`"
-          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+            v-for="b in bookingsStore.bookings"
+            :key="b.id"
+            :to="`/bookings/${b.id}`"
+            class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
         >
           <div class="min-w-0 flex-1">
             <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
@@ -398,10 +431,10 @@ onMounted(async () => {
     <!-- Calendar fallback on mobile: show list instead -->
     <div v-else-if="viewMode === 'calendar'" class="sm:hidden card overflow-hidden p-0">
       <RouterLink
-        v-for="b in bookingsStore.bookings"
-        :key="b.id"
-        :to="`/bookings/${b.id}`"
-        class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+          v-for="b in bookingsStore.bookings"
+          :key="b.id"
+          :to="`/bookings/${b.id}`"
+          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
       >
         <div class="min-w-0 flex-1">
           <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
@@ -421,9 +454,9 @@ onMounted(async () => {
         <div class="flex items-center gap-3">
           <span class="font-semibold text-gray-900 dark:text-white capitalize">{{ formatMonthHeader() }}</span>
           <button
-            v-if="weekOffset !== 0"
-            @click="weekOffset = 0"
-            class="text-xs text-primary-600 dark:text-primary-400 font-medium px-2.5 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+              v-if="weekOffset !== 0"
+              @click="weekOffset = 0"
+              class="text-xs text-primary-600 dark:text-primary-400 font-medium px-2.5 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
           >Сегодня</button>
         </div>
         <button @click="weekOffset++" class="btn-ghost btn-sm p-1.5">
@@ -435,9 +468,9 @@ onMounted(async () => {
       <div class="grid grid-cols-[56px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60">
         <div></div>
         <div
-          v-for="day in weekDays"
-          :key="day.toISOString()"
-          :class="['text-center py-2.5 border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50 dark:bg-primary-900/20' : '']"
+            v-for="day in weekDays"
+            :key="day.toISOString()"
+            :class="['text-center py-2.5 border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50 dark:bg-primary-900/20' : '']"
         >
           <div :class="['text-[11px] font-semibold uppercase tracking-wide', isToday(day) ? 'text-primary-500' : isWeekend(day) ? 'text-rose-400' : 'text-gray-400 dark:text-gray-500']">
             {{ formatWeekDay(day) }}
@@ -459,10 +492,10 @@ onMounted(async () => {
           <!-- Time labels column -->
           <div class="relative bg-gray-50 dark:bg-gray-900/60 border-r border-gray-100 dark:border-gray-800">
             <div
-              v-for="h in calendarHours"
-              :key="h"
-              class="absolute w-full flex items-start justify-end pr-2.5"
-              :style="`top: ${(h - CAL_START_H) * HOUR_H}px; height: ${HOUR_H}px`"
+                v-for="h in calendarHours"
+                :key="h"
+                class="absolute w-full flex items-start justify-end pr-2.5"
+                :style="`top: ${(h - CAL_START_H) * HOUR_H}px; height: ${HOUR_H}px`"
             >
               <span class="text-[11px] text-gray-400 dark:text-gray-600 leading-none mt-1">{{ String(h).padStart(2, '0') }}:00</span>
             </div>
@@ -470,24 +503,24 @@ onMounted(async () => {
 
           <!-- Day columns -->
           <div
-            v-for="day in weekDays"
-            :key="day.toISOString()"
-            :class="['relative border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50/40 dark:bg-primary-900/10' : 'bg-white dark:bg-gray-900']"
-            :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`"
+              v-for="day in weekDays"
+              :key="day.toISOString()"
+              :class="['relative border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50/40 dark:bg-primary-900/10' : 'bg-white dark:bg-gray-900']"
+              :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`"
           >
             <!-- Hour lines -->
             <div
-              v-for="h in calendarHours"
-              :key="h"
-              class="absolute w-full border-t border-gray-100 dark:border-gray-800"
-              :style="`top: ${(h - CAL_START_H) * HOUR_H}px`"
+                v-for="h in calendarHours"
+                :key="h"
+                class="absolute w-full border-t border-gray-100 dark:border-gray-800"
+                :style="`top: ${(h - CAL_START_H) * HOUR_H}px`"
             />
             <!-- Half-hour lines -->
             <div
-              v-for="h in calendarHours"
-              :key="`hh-${h}`"
-              class="absolute w-full border-t border-dashed border-gray-50 dark:border-gray-800/50"
-              :style="`top: ${(h - CAL_START_H) * HOUR_H + HOUR_H / 2}px`"
+                v-for="h in calendarHours"
+                :key="`hh-${h}`"
+                class="absolute w-full border-t border-dashed border-gray-50 dark:border-gray-800/50"
+                :style="`top: ${(h - CAL_START_H) * HOUR_H + HOUR_H / 2}px`"
             />
 
             <!-- Current time indicator -->
@@ -500,12 +533,12 @@ onMounted(async () => {
 
             <!-- Booking blocks -->
             <div
-              v-for="b in bookingsForDay(day)"
-              :key="b.id"
-              class="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer overflow-hidden transition-all duration-100 hover:opacity-90 hover:shadow-md"
-              :class="calBookingBg(b.status)"
-              :style="bookingStyle(b)"
-              @click="router.push(`/bookings/${b.id}`)"
+                v-for="b in bookingsForDay(day)"
+                :key="b.id"
+                class="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer overflow-hidden transition-all duration-100 hover:opacity-90 hover:shadow-md"
+                :class="calBookingBg(b.status)"
+                :style="bookingStyle(b)"
+                @click="router.push(`/bookings/${b.id}`)"
             >
               <div class="text-[11px] font-bold text-white leading-tight truncate">{{ formatTime(b.start_time) }} · {{ b.service?.name || 'Запись' }}</div>
               <div class="text-[10px] text-white/80 truncate mt-0.5">{{ b.customer_name }}</div>
@@ -567,13 +600,13 @@ onMounted(async () => {
             <div v-else-if="availableSlots.length === 0" class="text-sm text-gray-500 dark:text-gray-400">Нет доступных слотов на эту дату</div>
             <div v-else class="grid grid-cols-4 gap-2">
               <button
-                v-for="slot in availableSlots"
-                :key="slot.time"
-                :class="['px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+                  v-for="slot in availableSlots"
+                  :key="slot.time"
+                  :class="['px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
                   modalForm.slot === slot.datetime
                     ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
                     : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-300 dark:hover:border-primary-500']"
-                @click="modalForm.slot = slot.datetime"
+                  @click="modalForm.slot = slot.datetime"
               >
                 {{ slot.time }}
               </button>
@@ -586,21 +619,39 @@ onMounted(async () => {
             <div class="space-y-3">
               <div>
                 <label class="label">Имя <span class="text-red-500">*</span></label>
-                <input v-model="modalForm.customer_name" type="text" class="input" placeholder="Иван Иванов" />
+                <input
+                    v-model="modalForm.customer_name"
+                    @input="validateBookingName(modalForm.customer_name)"
+                    @blur="validateBookingName(modalForm.customer_name)"
+                    type="text"
+                    :class="['input', bookingErrors.customer_name ? 'input-error' : '']"
+                    placeholder="Иван Иванов"
+                />
+                <p v-if="bookingErrors.customer_name" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_name }}</p>
               </div>
               <div>
                 <label class="label">Телефон <span class="text-red-500">*</span></label>
                 <input
-                  :value="modalForm.customer_phone"
-                  @input="modalForm.customer_phone = formatPhone(($event.target as HTMLInputElement).value)"
-                  type="tel"
-                  class="input"
-                  placeholder="+7 (999) 123-45-67"
+                    :value="modalForm.customer_phone"
+                    @input="handlePhoneInput($event, (v) => { modalForm.customer_phone = v; validateBookingPhone(v) })"
+                    @blur="validateBookingPhone(modalForm.customer_phone)"
+                    type="tel"
+                    :class="['input', bookingErrors.customer_phone ? 'input-error' : modalForm.customer_phone && !bookingErrors.customer_phone ? 'input-success' : '']"
+                    placeholder="+7 (999) 123-45-67"
                 />
+                <p v-if="bookingErrors.customer_phone" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_phone }}</p>
               </div>
               <div>
                 <label class="label">Email</label>
-                <input v-model="modalForm.customer_email" type="email" class="input" placeholder="email@example.com" />
+                <input
+                    v-model="modalForm.customer_email"
+                    @input="validateBookingEmail(modalForm.customer_email)"
+                    @blur="validateBookingEmail(modalForm.customer_email)"
+                    type="email"
+                    :class="['input', bookingErrors.customer_email ? 'input-error' : modalForm.customer_email && !bookingErrors.customer_email ? 'input-success' : '']"
+                    placeholder="email@example.com"
+                />
+                <p v-if="bookingErrors.customer_email" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_email }}</p>
               </div>
               <div>
                 <label class="label">Примечание</label>
@@ -612,7 +663,7 @@ onMounted(async () => {
 
         <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
           <button @click="showModal = false" class="btn-secondary">Отмена</button>
-          <button @click="submitBooking" :disabled="creating" class="btn-primary">
+          <button @click="submitBooking" :disabled="creating || !isBookingFormValid" class="btn-primary">
             <template v-if="creating">
               <div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
               Создание...
