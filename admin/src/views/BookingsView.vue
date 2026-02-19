@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
-import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
+import { handlePhoneInput, isValidPhone } from '@/composables/usePhoneInput'
 
 const bookingsStore = useBookingsStore()
 const router = useRouter()
