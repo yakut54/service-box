@@ -104,12 +104,12 @@ const chartPoints = computed(() => {
 
   const step = data.length <= 7 ? 1 : data.length <= 14 ? 2 : data.length <= 30 ? 5 : 7
   const xLabels = data
-    .map((d, i) => ({ i, date: d.date }))
-    .filter((_, i) => i % step === 0 || i === data.length - 1)
-    .map(({ i, date }) => ({
-      label: new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
-      leftPct: ((i + 0.5) / data.length) * 100,
-    }))
+      .map((d, i) => ({ i, date: d.date }))
+      .filter((_, i) => i % step === 0 || i === data.length - 1)
+      .map(({ i, date }) => ({
+        label: new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        leftPct: ((i + 0.5) / data.length) * 100,
+      }))
 
   return { bars, xLabels, maxRevenue }
 })
@@ -160,6 +160,10 @@ const bookingStatusLabel: Record<string, string> = {
 // ── Status tab switcher ──────────────────────────────────────
 const statusTab = ref<'orders' | 'bookings'>('orders')
 
+const statusBlockTitle = computed(() =>
+    statusTab.value === 'orders' ? 'Статусы заказов' : 'Статусы записей'
+)
+
 // ── Order status breakdown ────────────────────────────────────
 const statusBreakdown = computed(() => {
   const total = stats.value.total_orders || 1 // avoid div/0
@@ -185,8 +189,8 @@ const topProducts = computed(() => {
     }
   }
   return [...map.values()]
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 5)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
 })
 
 // ── Init ─────────────────────────────────────────────────────
@@ -223,10 +227,10 @@ onMounted(async () => {
       </div>
       <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 gap-1">
         <button
-          v-for="p in (['today', 'week', 'month'] as Period[])"
-          :key="p"
-          @click="period = p"
-          :class="[
+            v-for="p in (['today', 'week', 'month'] as Period[])"
+            :key="p"
+            @click="period = p"
+            :class="[
             'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
             period === p
               ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
@@ -312,17 +316,18 @@ onMounted(async () => {
 
         <!-- Status breakdown (orders / bookings) -->
         <div class="card flex-1">
-          <!-- Header + tab switcher -->
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">Статусы</h2>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white transition-all duration-200">{{ statusBlockTitle }}</h2>
             <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 gap-0.5">
               <button
-                @click="statusTab = 'orders'"
-                :class="['px-2.5 py-1 rounded-md text-xs font-medium transition-all', statusTab === 'orders' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700']"
+                  @click="statusTab = 'orders'"
+                  :class="['px-2.5 py-1 rounded-md text-xs font-medium transition-all', statusTab === 'orders' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700']"
+                  :title="statusTab === 'orders' ? 'Сейчас: Заказы' : 'Переключить на Заказы'"
               >Заказы</button>
               <button
-                @click="statusTab = 'bookings'"
-                :class="['px-2.5 py-1 rounded-md text-xs font-medium transition-all', statusTab === 'bookings' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700']"
+                  @click="statusTab = 'bookings'"
+                  :class="['px-2.5 py-1 rounded-md text-xs font-medium transition-all', statusTab === 'bookings' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700']"
+                  :title="statusTab === 'bookings' ? 'Сейчас: Записи' : 'Переключить на Записи'"
               >Записи</button>
             </div>
           </div>
@@ -386,9 +391,9 @@ onMounted(async () => {
 
           <div v-else class="space-y-3">
             <div
-              v-for="(p, idx) in topProducts"
-              :key="p.name"
-              class="flex items-center gap-2"
+                v-for="(p, idx) in topProducts"
+                :key="p.name"
+                class="flex items-center gap-2"
             >
               <span class="text-xs font-semibold text-gray-300 dark:text-gray-600 w-4 text-right flex-shrink-0">{{ idx + 1 }}</span>
               <div class="flex-1 min-w-0">
@@ -398,8 +403,8 @@ onMounted(async () => {
                 </div>
                 <div class="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                   <div
-                    class="h-full bg-primary-500 dark:bg-primary-400 rounded-full transition-all duration-500"
-                    :style="`width: ${Math.round((p.revenue / topProducts[0].revenue) * 100)}%`"
+                      class="h-full bg-primary-500 dark:bg-primary-400 rounded-full transition-all duration-500"
+                      :style="`width: ${Math.round((p.revenue / topProducts[0].revenue) * 100)}%`"
                   />
                 </div>
               </div>
@@ -430,24 +435,24 @@ onMounted(async () => {
             <!-- Y-axis labels -->
             <div class="w-10 flex-shrink-0 relative">
               <span
-                v-for="yl in yLabels" :key="yl.pct"
-                class="absolute right-0 text-[10px] leading-none text-gray-400 dark:text-gray-600 pr-1"
-                :style="`top: ${yl.pct}%; transform: translateY(-50%)`"
+                  v-for="yl in yLabels" :key="yl.pct"
+                  class="absolute right-0 text-[10px] leading-none text-gray-400 dark:text-gray-600 pr-1"
+                  :style="`top: ${yl.pct}%; transform: translateY(-50%)`"
               >{{ yl.label }}</span>
             </div>
             <!-- Bars + grid -->
             <div class="flex-1 relative">
               <!-- Grid lines -->
               <div
-                v-for="yl in yLabels" :key="`g-${yl.pct}`"
-                class="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 pointer-events-none"
-                :style="`top: ${yl.pct}%`"
+                  v-for="yl in yLabels" :key="`g-${yl.pct}`"
+                  class="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 pointer-events-none"
+                  :style="`top: ${yl.pct}%`"
               />
               <!-- Bars: items-stretch (default) so each column is full height, bar grows from bottom via flex-col justify-end -->
               <div class="absolute inset-0 flex gap-px">
                 <div
-                  v-for="bar in chartPoints.bars" :key="bar.date"
-                  class="flex-1 min-w-0 relative group cursor-default flex flex-col justify-end"
+                    v-for="bar in chartPoints.bars" :key="bar.date"
+                    class="flex-1 min-w-0 relative group cursor-default flex flex-col justify-end"
                 >
                   <!-- CSS hover tooltip -->
                   <div class="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none
@@ -459,8 +464,8 @@ onMounted(async () => {
                   </div>
                   <!-- Bar -->
                   <div
-                    class="w-full rounded-t-sm bg-primary-500 dark:bg-primary-400 group-hover:bg-primary-600 dark:group-hover:bg-primary-300 transition-colors"
-                    :style="`height: ${bar.heightPct}%; min-height: ${bar.revenue > 0 ? 3 : 0}px`"
+                      class="w-full rounded-t-sm bg-primary-500 dark:bg-primary-400 group-hover:bg-primary-600 dark:group-hover:bg-primary-300 transition-colors"
+                      :style="`height: ${bar.heightPct}%; min-height: ${bar.revenue > 0 ? 3 : 0}px`"
                   />
                 </div>
               </div>
@@ -469,9 +474,9 @@ onMounted(async () => {
           <!-- X-axis labels -->
           <div class="relative h-5 ml-12 mt-1 flex-shrink-0">
             <span
-              v-for="xl in chartPoints.xLabels" :key="xl.leftPct"
-              class="absolute text-[10px] leading-none text-gray-400 dark:text-gray-600 -translate-x-1/2"
-              :style="`left: ${xl.leftPct}%`"
+                v-for="xl in chartPoints.xLabels" :key="xl.leftPct"
+                class="absolute text-[10px] leading-none text-gray-400 dark:text-gray-600 -translate-x-1/2"
+                :style="`left: ${xl.leftPct}%`"
             >{{ xl.label }}</span>
           </div>
 
@@ -513,10 +518,10 @@ onMounted(async () => {
 
         <div v-else class="space-y-1">
           <RouterLink
-            v-for="b in todayBookings"
-            :key="b.id"
-            :to="`/bookings/${b.id}`"
-            class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
+              v-for="b in todayBookings"
+              :key="b.id"
+              :to="`/bookings/${b.id}`"
+              class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
           >
             <div class="flex items-center gap-3">
               <div class="text-sm font-medium text-gray-700 dark:text-gray-300 w-12 shrink-0">
@@ -546,10 +551,10 @@ onMounted(async () => {
 
         <div v-else class="space-y-1">
           <RouterLink
-            v-for="order in recentOrders"
-            :key="order.id"
-            :to="`/orders/${order.id}`"
-            class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
+              v-for="order in recentOrders"
+              :key="order.id"
+              :to="`/orders/${order.id}`"
+              class="flex items-center justify-between py-2 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0"
           >
             <div>
               <div class="text-sm font-medium text-primary-600 dark:text-primary-400">#{{ order.id.slice(0, 8) }}</div>
