@@ -198,11 +198,12 @@ watch(selectedDate, () => loadSlots(), { immediate: true })
 function selectSlot(slot: Slot) {
   if (!slot.available) return
   selectedSlot.value = slot
-  // Auto-select first master if only one
   if (slot.masters.length === 1) {
     selectedMasterId.value = slot.masters[0].id
+  } else if (slot.masters.length === 2) {
+    selectedMasterId.value = null   // chips — no default
   } else {
-    selectedMasterId.value = null
+    selectedMasterId.value = ''     // select — empty placeholder
   }
 }
 
@@ -374,32 +375,56 @@ async function handleSubmit() {
 
     <!-- Step 2: Customer form -->
     <div v-else>
-      <div class="sb-booking-selected sb-mb-4">
-        <div class="sb-flex sb-items-center sb-justify-between">
-          <div>
-            <span class="sb-booking-selected-label">Выбрано:</span>
-            <span class="sb-booking-selected-value">
-              {{ new Date(selectedSlot.datetime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) }},
-              {{ selectedSlot.time }}
-            </span>
-          </div>
-          <button class="sb-btn sb-btn-ghost" @click="selectedSlot = null">Изменить</button>
+
+      <!-- Confirmed time block -->
+      <div class="sb-booking-confirmed sb-mb-3">
+        <div class="sb-booking-confirmed-icon">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div class="sb-booking-confirmed-info">
+          <span class="sb-booking-confirmed-date">
+            {{ new Date(selectedSlot.datetime).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) }},
+            {{ selectedSlot.time }}
+          </span>
+          <span class="sb-booking-confirmed-sub">{{ durationMinutes }} мин · {{ product.name }}</span>
+        </div>
+        <button class="sb-booking-confirmed-change" @click="selectedSlot = null">Изменить</button>
+      </div>
+
+      <!-- Master selection — separate block (only if multiple masters) -->
+      <div v-if="selectedSlot.masters.length > 1" class="sb-booking-master-card sb-mb-4">
+        <label class="sb-label sb-mb-2">Выберите мастера</label>
+
+        <!-- ≤2 masters: pills -->
+        <div v-if="selectedSlot.masters.length <= 2" class="sb-master-list">
+          <button
+            v-for="m in selectedSlot.masters"
+            :key="m.id"
+            class="sb-master-chip"
+            :class="{ 'sb-master-chip-active': selectedMasterId === m.id }"
+            @click="selectedMasterId = m.id"
+          >
+            {{ m.name }}
+          </button>
         </div>
 
-        <!-- Master selection (if multiple) -->
-        <div v-if="selectedSlot.masters.length > 1" class="sb-mt-4">
-          <label class="sb-label">Выберите мастера</label>
-          <div class="sb-master-list">
-            <button
-              v-for="m in selectedSlot.masters"
-              :key="m.id"
-              class="sb-master-chip"
-              :class="{ 'sb-master-chip-active': selectedMasterId === m.id }"
-              @click="selectedMasterId = m.id"
-            >
+        <!-- 3+ masters: dropdown -->
+        <div v-else class="sb-master-select-wrap">
+          <select
+            v-model="selectedMasterId"
+            class="sb-master-select"
+          >
+            <option value="" disabled>— Выберите мастера —</option>
+            <option v-for="m in selectedSlot.masters" :key="m.id" :value="m.id">
               {{ m.name }}
-            </button>
-          </div>
+            </option>
+          </select>
+          <svg class="sb-master-select-arrow" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
         </div>
       </div>
 

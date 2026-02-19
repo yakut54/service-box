@@ -2160,51 +2160,142 @@
   text-decoration: line-through;
 }
 
-/* Selected slot info */
-.sb-booking-selected {
+/* ── Confirmed time block (step 2 header) ── */
+.sb-booking-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--sb-primary-light);
-  border: 1px solid var(--sb-primary);
+  border: 1.5px solid var(--sb-primary);
   border-radius: var(--sb-radius);
-  padding: 12px 16px;
+  padding: 12px 14px;
+  cursor: default;
+  user-select: none;
 }
 
-.sb-booking-selected-label {
-  font-size: 13px;
+.sb-booking-confirmed-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--sb-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sb-booking-confirmed-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sb-booking-confirmed-date {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-booking-confirmed-sub {
+  font-size: 12px;
   color: var(--sb-text-muted);
 }
 
-.sb-booking-selected-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--sb-text);
-  margin-left: 4px;
+.sb-booking-confirmed-change {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: var(--sb-radius);
+  border: 1px solid var(--sb-primary);
+  background: transparent;
+  color: var(--sb-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-/* Master chips */
+.sb-booking-confirmed-change:hover {
+  background: var(--sb-primary);
+  color: #fff;
+}
+
+/* ── Master selection card (separate block) ── */
+.sb-booking-master-card {
+  background: var(--sb-bg-muted);
+  border: 1.5px solid var(--sb-border);
+  border-radius: var(--sb-radius);
+  padding: 14px 16px;
+}
+
+/* Pills (≤2 masters) — prefix raises specificity over .sb-widget button */
 .sb-master-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.sb-master-chip {
-  padding: 8px 16px;
+.sb-master-list .sb-master-chip {
+  padding: 8px 20px;
   border-radius: 100px;
-  border: 1px solid var(--sb-border);
+  border: 1.5px solid var(--sb-border);
+  background: var(--sb-bg);
   font-size: 13px;
   font-weight: 500;
   color: var(--sb-text);
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.sb-master-chip:hover {
+.sb-master-list .sb-master-chip:hover {
   border-color: var(--sb-primary);
+  color: var(--sb-primary);
 }
 
-.sb-master-chip-active {
+.sb-master-list .sb-master-chip.sb-master-chip-active {
   background: var(--sb-primary);
   border-color: var(--sb-primary);
   color: #fff;
+}
+
+/* Dropdown (3+ masters) */
+.sb-master-select-wrap {
+  position: relative;
+}
+
+.sb-master-select {
+  width: 100%;
+  padding: 10px 40px 10px 12px;
+  border-radius: var(--sb-radius);
+  border: 1.5px solid var(--sb-border);
+  background: var(--sb-bg);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sb-text);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.sb-master-select:focus {
+  outline: none;
+  border-color: var(--sb-primary);
+}
+
+.sb-master-select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sb-text-muted);
+  pointer-events: none;
 }
 
 /* ============================================================
@@ -2262,6 +2353,23 @@
 .sb-widget[data-theme="dark"] .sb-booking-service {
   background: #1a2332;
   border-color: #374151;
+}
+
+/* Confirmed block + master card dark mode */
+.sb-widget[data-theme="dark"] .sb-booking-master-card {
+  background: #1a2332;
+  border-color: #374151;
+}
+
+.sb-widget[data-theme="dark"] .sb-master-list .sb-master-chip {
+  background: #111827;
+  border-color: #4b5563;
+}
+
+.sb-widget[data-theme="dark"] .sb-master-select {
+  background: #111827;
+  border-color: #4b5563;
+  color: #e5e7eb;
 }
 
 /* Mini-calendar dark mode */
