@@ -113,16 +113,21 @@ const chartPoints = computed(() => {
   }))
 
   // Adaptive step: estimate how many labels fit based on container width
-  // Each label needs ~40px minimum
+  // Narrow screens (≤480px): use compact "dd.mm" format (~32px/label)
+  // Wide screens: use "20 февр." format (~44px/label)
   const width = chartContainerWidth.value
-  const maxLabels = Math.max(2, Math.floor(width / 44))
+  const isNarrow = width < 480
+  const labelWidth = isNarrow ? 32 : 44
+  const maxLabels = Math.max(3, Math.floor(width / labelWidth))
   const step = Math.ceil(data.length / maxLabels)
 
   const xLabels = data
       .map((d, i) => ({ i, date: d.date }))
       .filter((_, i) => i % step === 0 || i === data.length - 1)
       .map(({ i, date }) => ({
-        label: new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+        label: isNarrow
+            ? new Date(date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+            : new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
         leftPct: ((i + 0.5) / data.length) * 100,
       }))
 
