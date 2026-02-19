@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { debounce } from '@/lib/utils'
 import ProductCard from './ProductCard.vue'
+import SbSelect from './SbSelect.vue'
 
 const props = defineProps<{
   activeCategory?: string
@@ -68,6 +69,23 @@ const activeTypeFilters = computed(() => {
   return typeFilters.filter(f => f.value === '' || types.has(f.value))
 })
 
+// Show type select only when multiple types exist (>1 actual type)
+const showTypeSelect = computed(() => activeTypeFilters.value.length > 2)
+
+const typeSelectOptions = computed(() =>
+  activeTypeFilters.value.map(f => ({
+    value: f.value,
+    label: f.value === '' ? 'Все типы' : f.label,
+  }))
+)
+
+const categorySelectOptions = computed(() => [
+  { value: '', label: 'Все категории' },
+  ...categories.value.map(c => ({ value: c, label: c })),
+])
+
+const showFilters = computed(() => showTypeSelect.value || showCategories.value)
+
 onMounted(async () => {
   try {
     const resp = await shopStore.getApi().getProducts()
@@ -118,32 +136,18 @@ function handleSelect(product: any) {
         />
       </div>
 
-      <!-- Chips row: type + categories merged, horizontal scroll -->
-      <div v-if="activeTypeFilters.length > 2 || showCategories" class="sb-chips-row">
-        <!-- Type chips -->
-        <template v-if="activeTypeFilters.length > 2">
-          <button
-            v-for="f in activeTypeFilters"
-            :key="'t_' + f.value"
-            :class="['sb-chip', filterType === f.value ? 'sb-chip-active' : '']"
-            @click="filterType = f.value"
-          >{{ f.label }}</button>
-          <span v-if="showCategories" class="sb-chips-divider"></span>
-        </template>
-
-        <!-- Category chips -->
-        <template v-if="showCategories">
-          <button
-            :class="['sb-chip', filterCategory === '' ? 'sb-chip-active' : '']"
-            @click="filterCategory = ''"
-          >Все</button>
-          <button
-            v-for="cat in categories"
-            :key="'c_' + cat"
-            :class="['sb-chip', filterCategory === cat ? 'sb-chip-active' : '']"
-            @click="filterCategory = cat"
-          >{{ cat }}</button>
-        </template>
+      <!-- Select dropdowns row -->
+      <div v-if="showFilters" class="sb-catalog-selects">
+        <SbSelect
+          v-if="showTypeSelect"
+          v-model="filterType"
+          :options="typeSelectOptions"
+        />
+        <SbSelect
+          v-if="showCategories"
+          v-model="filterCategory"
+          :options="categorySelectOptions"
+        />
       </div>
     </div>
 

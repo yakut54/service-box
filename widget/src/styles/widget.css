@@ -314,16 +314,28 @@
   .sb-grid { gap: 8px; }
 }
 
-/* 500px+: comfortable gap */
+/* 500px+: comfortable gap + square images (less tall than mobile portrait) */
 @container (min-width: 500px) {
   .sb-grid-2 { gap: var(--sb-gap-md); }
+
+  /* Square image on medium containers */
+  .sb-pc-img,
+  .sb-pc-img-placeholder {
+    aspect-ratio: 1 / 1;
+  }
 }
 
-/* Desktop → 3 columns */
+/* Desktop → 3 columns + shorter landscape-ish images */
 @container (min-width: 900px) {
   .sb-grid-3 {
     grid-template-columns: repeat(3, 1fr);
     gap: var(--sb-gap-lg);
+  }
+
+  /* 4:3 on desktop — roughly half the height of mobile 4:5 portrait */
+  .sb-pc-img,
+  .sb-pc-img-placeholder {
+    aspect-ratio: 4 / 3;
   }
 }
 
@@ -506,7 +518,7 @@
 .sb-mb-4 { margin-bottom: 16px; }
 .sb-text-center { text-align: center; }
 
-/* ---- Catalog filters (stacked: search on top, chips below) ---- */
+/* ---- Catalog filters (search + select dropdowns) ---- */
 .sb-catalog-filters {
   display: flex;
   flex-direction: column;
@@ -538,28 +550,38 @@
   font-size: 14px;
 }
 
-/* Chips row — horizontal scroll, no wrap */
-.sb-chips-row {
+/* Select dropdowns row (replaces chips) */
+.sb-catalog-selects {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 2px;
+  gap: 8px;
 }
 
-.sb-chips-row::-webkit-scrollbar {
+/* Each select fills available space equally */
+.sb-catalog-selects .sb-select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Trigger fills full width of its flex cell */
+.sb-catalog-selects .sb-select-trigger {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Second select: align dropdown to the right to avoid overflow */
+.sb-catalog-selects .sb-select:nth-child(2) .sb-select-dropdown {
+  left: auto;
+  right: 0;
+}
+
+/* Legacy chips (kept for backward compat, hidden by default) */
+.sb-chips-row {
   display: none;
 }
 
-/* Vertical divider between type chips and category chips */
+/* Vertical divider (kept for backward compat) */
 .sb-chips-divider {
-  flex-shrink: 0;
-  width: 1px;
-  height: 20px;
-  background: var(--sb-border);
-  margin: 0 2px;
+  display: none;
 }
 
 /* ---- Custom Select (SbSelect) ---- */
@@ -834,7 +856,8 @@
   line-height: 1.4;
 }
 
-/* Cart / book button — inline in price row (WB-style) */
+/* Cart / book button — inline in price row */
+/* Mobile: compact circle icon only */
 .sb-pc-cart-btn {
   flex-shrink: 0;
   width: 34px;
@@ -845,8 +868,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
 }
 
 .sb-pc-cart-btn:hover {
@@ -856,6 +881,29 @@
 
 .sb-pc-cart-btn:active {
   transform: scale(0.92);
+}
+
+/* Label hidden on mobile */
+.sb-pc-cart-label {
+  display: none;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Desktop: pill shape with text */
+@container (min-width: 500px) {
+  .sb-pc-cart-btn {
+    width: auto;
+    height: 34px;
+    border-radius: 9999px;
+    padding: 0 12px 0 9px;
+    gap: 5px;
+  }
+
+  .sb-pc-cart-label {
+    display: block;
+  }
 }
 
 /* Body */

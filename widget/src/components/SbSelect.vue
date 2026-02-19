@@ -24,6 +24,9 @@ const emit = defineEmits<{
 const open = ref(false)
 const containerRef = ref<HTMLElement>()
 
+// Use a ref to store the root so we can remove listeners correctly
+let _root: EventTarget | null = null
+
 const selectedLabel = computed(() =>
   props.options.find(o => o.value === props.modelValue)?.label ?? null
 )
@@ -38,7 +41,7 @@ function toggle() {
   if (!props.disabled) open.value = !open.value
 }
 
-function onOutsideClick(e: MouseEvent) {
+function onOutsideClick(e: Event) {
   if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
     open.value = false
   }
@@ -49,13 +52,16 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener('mousedown', onOutsideClick)
-  document.addEventListener('keydown', onKeydown)
+  // Attach to shadow root (if inside Shadow DOM) so that event targets
+  // are not retargeted, and contains() works correctly.
+  _root = (containerRef.value?.getRootNode() as EventTarget) ?? document
+  _root.addEventListener('mousedown', onOutsideClick as EventListener)
+  _root.addEventListener('keydown', onKeydown as EventListener)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('mousedown', onOutsideClick)
-  document.removeEventListener('keydown', onKeydown)
+  _root?.removeEventListener('mousedown', onOutsideClick as EventListener)
+  _root?.removeEventListener('keydown', onKeydown as EventListener)
 })
 </script>
 

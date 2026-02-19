@@ -27,6 +27,7 @@ const isOutOfStock = computed(() => {
 })
 
 const isService = computed(() => props.product.type === 'service')
+const isDigital = computed(() => props.product.type === 'digital')
 
 // TODO: discount system pending — compare_price будет использоваться для показа скидки
 const hasDiscount = computed(() =>
@@ -36,6 +37,12 @@ const hasDiscount = computed(() =>
 const discountPercent = computed(() => {
   if (!hasDiscount.value) return 0
   return Math.round((1 - props.product.price / props.product.compare_price) * 100)
+})
+
+const cartLabel = computed(() => {
+  if (isService.value) return 'Записаться'
+  if (isDigital.value) return 'Получить'
+  return 'В корзину'
 })
 
 const rating = computed(() => props.product.rating ?? null)
@@ -93,21 +100,27 @@ const reviewCount = computed(() => props.product.review_count ?? 0)
           <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
         </div>
 
-        <!-- Cart / Book icon button -->
+        <!-- Cart / Book icon button — icon on mobile, icon+text on desktop -->
         <button
           v-if="!isOutOfStock"
           class="sb-pc-cart-btn"
-          :aria-label="isService ? 'Записаться' : 'В корзину'"
+          :aria-label="cartLabel"
           @click.stop="emit('select', product)"
         >
           <!-- Calendar for services -->
-          <svg v-if="isService" width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg v-if="isService" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <!-- Shopping bag for physical / digital -->
-          <svg v-else width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- Download for digital -->
+          <svg v-else-if="isDigital" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <!-- Shopping bag for physical -->
+          <svg v-else width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
+          <!-- Text label — hidden on mobile, shown on desktop via CSS -->
+          <span class="sb-pc-cart-label">{{ cartLabel }}</span>
         </button>
       </div>
     </div>
