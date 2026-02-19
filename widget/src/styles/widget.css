@@ -5,6 +5,7 @@
 
 /* CSS Custom Properties (overridden by shop widget_config) */
 .sb-widget {
+  /* ── Brand ─────────────────────────────────── */
   --sb-primary: #6366f1;
   --sb-primary-hover: #4f46e5;
   --sb-primary-light: #eef2ff;
@@ -19,6 +20,16 @@
   --sb-success: #10b981;
   --sb-danger: #ef4444;
   --sb-warning: #f59e0b;
+
+  /* ── Layout ─────────────────────────────────── */
+  --sb-container-max: 1440px;
+  --sb-sidebar-w: 240px;
+
+  /* ── Grid gaps (used in container queries) ─── */
+  --sb-gap-xs: 8px;
+  --sb-gap-sm: 12px;
+  --sb-gap-md: 20px;
+  --sb-gap-lg: 28px;
 }
 
 /* ---- Reset within widget scope ---- */
@@ -283,18 +294,29 @@
   container-type: inline-size;
 }
 
+/* Default: 2 columns for all mobile sizes */
 .sb-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sb-gap-xs);
 }
 
-@container (min-width: 480px) {
-  .sb-grid-2 { grid-template-columns: repeat(2, 1fr); }
+/* Wider mobile / small tablet → bigger gap */
+@container (min-width: 400px) {
+  .sb-grid { gap: var(--sb-gap-sm); }
 }
 
-@container (min-width: 720px) {
-  .sb-grid-3 { grid-template-columns: repeat(3, 1fr); }
+/* Tablet → 2 cols with comfortable gap */
+@container (min-width: 600px) {
+  .sb-grid-2 { gap: var(--sb-gap-md); }
+}
+
+/* Desktop → 3 columns */
+@container (min-width: 900px) {
+  .sb-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--sb-gap-lg);
+  }
 }
 
 /* ---- Badges ---- */
@@ -1623,9 +1645,9 @@
 }
 
 .sb-main-inner {
-  max-width: 960px;
+  max-width: var(--sb-container-max);
   margin: 0 auto;
-  padding: 24px;
+  padding: 28px 32px;
 }
 
 /* ============================================================
@@ -1636,9 +1658,9 @@
 }
 
 /* ============================================================
-   Mobile (< 640px)
+   Tablet and below (< 768px) — sidebar becomes slide-in
    ============================================================ */
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .sb-hamburger {
     display: flex;
   }
@@ -1676,9 +1698,23 @@
     pointer-events: auto;
   }
 
-  .sb-main-inner {
-    padding: 16px;
-  }
+  /* ≤767px: comfortable padding */
+  .sb-main-inner { padding: 16px; }
+}
+
+/* ≤449px: tight padding */
+@media (max-width: 449px) {
+  .sb-main-inner { padding: 12px; }
+}
+
+/* ≤359px: minimal padding */
+@media (max-width: 359px) {
+  .sb-main-inner { padding: 10px 8px; }
+}
+
+/* ≥1280px: wide padding */
+@media (min-width: 1280px) {
+  .sb-main-inner { padding: 28px 32px; }
 }
 
 /* ============================================================
@@ -1745,8 +1781,8 @@
   transform: translateY(12px) scale(0.9);
 }
 
-/* Mobile: smaller FAB */
-@media (max-width: 640px) {
+/* Mobile/tablet: compact FAB, no label */
+@media (max-width: 767px) {
   .sb-fab-cart {
     bottom: 16px;
     right: 16px;
