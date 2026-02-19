@@ -181,6 +181,11 @@ const bookingStatusLabel: Record<string, string> = {
 }
 
 
+// ── Axis label font size: 8px on narrow+month, else 10px ────
+const axisLabelFontSize = computed(() =>
+    chartContainerWidth.value < 480 && period.value === 'month' ? '8px' : '10px'
+)
+
 onUnmounted(() => {
   resizeObserver?.disconnect()
 })
@@ -470,8 +475,8 @@ onMounted(async () => {
             <div class="w-8 sm:w-10 flex-shrink-0 relative">
               <span
                   v-for="yl in yLabels" :key="yl.pct"
-                  class="absolute right-0 text-[10px] leading-none text-gray-400 dark:text-gray-600 pr-1"
-                  :style="`top: ${yl.pct}%; transform: translateY(-50%)`"
+                  class="absolute right-0 leading-none text-gray-400 dark:text-gray-600 pr-1"
+                  :style="`top: ${yl.pct}%; transform: translateY(-50%); font-size: ${axisLabelFontSize}`"
               >{{ yl.label }}</span>
             </div>
             <!-- Bars + grid -->
@@ -509,8 +514,8 @@ onMounted(async () => {
           <div class="relative h-5 ml-8 sm:ml-12 mt-1 flex-shrink-0">
             <span
                 v-for="xl in chartPoints.xLabels" :key="xl.leftPct"
-                class="absolute text-[10px] leading-none text-gray-400 dark:text-gray-600 -translate-x-1/2"
-                :style="`left: ${xl.leftPct}%`"
+                class="absolute leading-none text-gray-400 dark:text-gray-600 -translate-x-1/2"
+                :style="`left: ${xl.leftPct}%; font-size: ${axisLabelFontSize}`"
             >{{ xl.label }}</span>
           </div>
 

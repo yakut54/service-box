@@ -401,3 +401,9 @@
     padding: 12px 10px;
   }
 }
+
+@media (max-width: 360px) {
+  .card {
+    padding: 10px 8px;
+  }
+}
