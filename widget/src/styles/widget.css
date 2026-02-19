@@ -1559,7 +1559,7 @@
 /* Step progress bar */
 .sb-co-progress {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0;
 }
 
@@ -1620,7 +1620,10 @@
   height: 2px;
   background: var(--sb-border);
   margin: 0 4px;
-  margin-bottom: 18px; /* align with circle centers */
+  /* Align line center with circle center: circle 28px → center at 14px from top.
+     Line is 2px, so margin-top = 14 - 1 = 13px */
+  margin-top: 13px;
+  align-self: flex-start;
 }
 
 .sb-co-line-done {
@@ -1759,6 +1762,75 @@
   font-weight: 800;
   color: var(--sb-text);
   line-height: 1.1;
+}
+
+/* ============================================================
+   QA: Sticky footer full-width breakout from .sb-main-inner padding
+   Mirrors the padding values in .sb-main-inner at each breakpoint
+   ============================================================ */
+@media (max-width: 767px) {
+  .sb-pd-footer,
+  .sb-co-footer {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 449px) {
+  .sb-pd-footer,
+  .sb-co-footer {
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 359px) {
+  .sb-pd-footer,
+  .sb-co-footer {
+    margin-left: -8px;
+    margin-right: -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* QA: Hide progress labels at 360px and below to prevent crowding */
+@media (max-width: 360px) {
+  .sb-co-step-label {
+    display: none;
+  }
+  .sb-co-step-circle {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  .sb-co-line {
+    margin-top: 11px; /* recalculate: 24/2 - 1 = 11px */
+  }
+}
+
+/* QA: Smaller chips at ultra-narrow */
+@media (max-width: 359px) {
+  .sb-chip {
+    padding: 4px 10px;
+    font-size: 12px;
+    min-height: 30px;
+  }
+}
+
+/* QA: Tighter cart item at 359px */
+@media (max-width: 359px) {
+  .sb-cart-item-img-wrap {
+    width: 48px;
+    height: 48px;
+  }
+  .sb-quantity-sm {
+    transform: scale(0.78);
+  }
 }
 
 /* ---- Order Success ---- */

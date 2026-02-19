@@ -435,9 +435,10 @@ function selectSidebarCategory(cat: string) {
       ></div>
 
       <!-- Floating Cart Button (inside overlay, fixed position) -->
+      <!-- Hidden on product/booking views — sticky footer already visible there -->
       <transition name="sb-fab">
         <button
-            v-if="cartStore.count > 0 && currentView !== 'cart' && currentView !== 'checkout' && currentView !== 'success'"
+            v-if="cartStore.count > 0 && !['cart', 'checkout', 'success', 'product', 'booking', 'booking-success'].includes(currentView)"
             class="sb-fab-cart"
             @click="navigate('cart')"
             aria-label="Перейти в корзину"
