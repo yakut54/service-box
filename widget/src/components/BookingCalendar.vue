@@ -102,10 +102,11 @@ function dateToStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-const calMonthLabel = computed(() =>
-  new Date(calViewYear.value, calViewMonth.value, 1)
-    .toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
-)
+const calMonthLabel = computed(() => {
+  const d = new Date(calViewYear.value, calViewMonth.value, 1)
+  const month = d.toLocaleDateString('ru-RU', { month: 'long' })
+  return `${month.charAt(0).toUpperCase() + month.slice(1)} ${calViewYear.value}`
+})
 
 // Weekday headers Mon–Sun
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
@@ -340,7 +341,7 @@ async function handleSubmit() {
             :disabled="!cell.day || cell.disabled"
             @click="selectCalDay(cell)"
           >
-            {{ cell.day ?? '' }}
+            <span class="sb-cal-day-inner">{{ cell.day ?? '' }}</span>
           </button>
         </div>
       </div>

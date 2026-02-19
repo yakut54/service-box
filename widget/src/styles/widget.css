@@ -57,6 +57,26 @@
   display: block;
 }
 
+/* ── Scrollbars ── */
+.sb-widget ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.sb-widget ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sb-widget ::-webkit-scrollbar-thumb {
+  background: var(--sb-border);
+  border-radius: 99px;
+}
+.sb-widget ::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-text-muted);
+}
+.sb-widget * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-border) transparent;
+}
+
 .sb-widget button {
   font-family: inherit;
   cursor: pointer;
@@ -2032,27 +2052,36 @@
 .sb-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-  padding: 4px 12px 12px;
+  padding: 4px 8px 12px;
 }
 
+/* Cell is a transparent clickable hit area — fills column */
 .sb-cal-day {
-  aspect-ratio: 1;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
   border: none;
   background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Inner circle — fixed 36×36, this is what gets colored */
+.sb-cal-day-inner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   font-weight: 500;
   color: var(--sb-text);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 36px;
+  transition: background 0.13s ease, color 0.13s ease;
 }
 
-.sb-cal-day:hover:not(:disabled):not(.sb-cal-day-empty) {
+.sb-cal-day:hover:not(:disabled):not(.sb-cal-day-empty) .sb-cal-day-inner {
   background: var(--sb-primary-light);
   color: var(--sb-primary);
 }
@@ -2063,24 +2092,27 @@
 }
 
 .sb-cal-day-disabled {
-  color: var(--sb-text-muted);
-  opacity: 0.35;
   cursor: not-allowed;
 }
-
-.sb-cal-day-today {
-  font-weight: 700;
-  color: var(--sb-primary);
+.sb-cal-day-disabled .sb-cal-day-inner {
+  color: var(--sb-border);
+  font-weight: 400;
 }
 
-.sb-cal-day-today:not(.sb-cal-day-active) {
+.sb-cal-day-today .sb-cal-day-inner {
   background: var(--sb-primary-light);
+  color: var(--sb-primary);
+  font-weight: 700;
 }
 
-.sb-cal-day-active {
-  background: var(--sb-primary) !important;
-  color: #fff !important;
+.sb-cal-day-active .sb-cal-day-inner {
+  background: var(--sb-primary);
+  color: #fff;
   font-weight: 700;
+}
+
+.sb-cal-day-active:hover .sb-cal-day-inner {
+  background: var(--sb-primary-hover);
 }
 
 /* Slots grid */
@@ -2103,12 +2135,12 @@
 .sb-slot {
   padding: 10px 8px;
   border-radius: var(--sb-radius);
-  border: 1.5px solid var(--sb-border);
-  background: var(--sb-bg-muted);
+  border: 1.5px solid #c7d2fe;
+  background: #eef2ff;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
-  color: var(--sb-text);
+  color: var(--sb-primary);
   cursor: pointer;
   transition: all 0.15s ease;
   min-height: 44px;
@@ -2214,14 +2246,15 @@
 
 /* Booking components: dark mode visibility */
 .sb-widget[data-theme="dark"] .sb-slot {
-  background: #1a2332;
-  border-color: #4b5563;
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: #a5b4fc;
 }
 
 .sb-widget[data-theme="dark"] .sb-slot:hover:not(:disabled) {
-  background: var(--sb-primary-light);
+  background: rgba(99, 102, 241, 0.25);
   border-color: var(--sb-primary);
-  color: var(--sb-primary);
+  color: #fff;
 }
 
 .sb-widget[data-theme="dark"] .sb-booking-service {
@@ -2246,16 +2279,22 @@
   color: #9ca3af;
 }
 
-.sb-widget[data-theme="dark"] .sb-cal-day {
-  color: #e5e7eb;
+.sb-widget[data-theme="dark"] .sb-cal-day-inner {
+  color: #d1d5db;
 }
 
-.sb-widget[data-theme="dark"] .sb-cal-day-disabled {
-  color: #4b5563;
+.sb-widget[data-theme="dark"] .sb-cal-day-disabled .sb-cal-day-inner {
+  color: #374151;
 }
 
-.sb-widget[data-theme="dark"] .sb-cal-day-today:not(.sb-cal-day-active) {
-  background: rgba(99, 102, 241, 0.15);
+.sb-widget[data-theme="dark"] .sb-cal-day-today .sb-cal-day-inner {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.sb-widget[data-theme="dark"] .sb-cal-day:hover:not(:disabled):not(.sb-cal-day-empty) .sb-cal-day-inner {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
 }
 
 /* ============================================================
