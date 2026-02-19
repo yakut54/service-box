@@ -22,8 +22,8 @@ const periodLabels: Record<Period, string> = {
 }
 
 const chartDays: Record<Period, number> = {
-  today: 7,   // show last 7 days when in "today" mode
-  week: 14,
+  today: 7,
+  week: 7,
   month: 30,
 }
 
@@ -121,15 +121,19 @@ const chartPoints = computed(() => {
   const maxLabels = Math.max(3, Math.floor(width / labelWidth))
   const step = Math.ceil(data.length / maxLabels)
 
-  const xLabels = data
-      .map((d, i) => ({ i, date: d.date }))
-      .filter((_, i) => i % step === 0 || i === data.length - 1)
-      .map(({ i, date }) => ({
-        label: isNarrow
-            ? new Date(date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
-            : new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
-        leftPct: ((i + 0.5) / data.length) * 100,
-      }))
+  const indices = new Set<number>()
+  for (let i = 0; i < data.length; i += step) indices.add(i)
+  // Add last only if it won't collide with the previous label
+  const lastIdx = data.length - 1
+  const prevLastIdx = Math.floor(lastIdx / step) * step
+  if (lastIdx - prevLastIdx >= Math.ceil(step / 2)) indices.add(lastIdx)
+
+  const xLabels = [...indices].sort((a, b) => a - b).map(i => ({
+    label: isNarrow
+        ? new Date(data[i].date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
+        : new Date(data[i].date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
+    leftPct: ((i + 0.5) / data.length) * 100,
+  }))
 
   return { bars, xLabels, maxRevenue }
 })
