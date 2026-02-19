@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
+import SbSelect from '@/components/SbSelect.vue'
 
 const props = defineProps<{ product: any }>()
 const emit = defineEmits<{ back: []; success: [booking: any] }>()
@@ -210,6 +211,15 @@ function selectSlot(slot: Slot) {
 const availableSlots = computed(() => slots.value.filter(s => s.available))
 const unavailableSlots = computed(() => slots.value.filter(s => !s.available))
 
+// Master select options for SbSelect
+const masterOptions = computed(() =>
+  selectedSlot.value?.masters.map(m => ({ value: m.id, label: m.name })) ?? []
+)
+const masterSelectValue = computed({
+  get: () => selectedMasterId.value ?? '',
+  set: (v: string) => { selectedMasterId.value = v || null },
+})
+
 function validate(): boolean {
   formTouched.value = { name: true, phone: true, email: true }
   const e: Record<string, string> = {}
@@ -411,21 +421,13 @@ async function handleSubmit() {
           </button>
         </div>
 
-        <!-- 3+ masters: dropdown -->
-        <div v-else class="sb-master-select-wrap">
-          <select
-            v-model="selectedMasterId"
-            class="sb-master-select"
-          >
-            <option value="" disabled>— Выберите мастера —</option>
-            <option v-for="m in selectedSlot.masters" :key="m.id" :value="m.id">
-              {{ m.name }}
-            </option>
-          </select>
-          <svg class="sb-master-select-arrow" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </div>
+        <!-- 3+ masters: custom dropdown -->
+        <SbSelect
+          v-else
+          v-model="masterSelectValue"
+          :options="masterOptions"
+          placeholder="— Выберите мастера —"
+        />
       </div>
 
       <form @submit.prevent="handleSubmit">

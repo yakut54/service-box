@@ -523,6 +523,8 @@
 .sb-mt-2 { margin-top: 8px; }
 .sb-mt-4 { margin-top: 16px; }
 .sb-mb-2 { margin-bottom: 8px; }
+.sb-mb-2 { margin-bottom: 8px; }
+.sb-mb-3 { margin-bottom: 12px; }
 .sb-mb-4 { margin-bottom: 16px; }
 .sb-text-center { text-align: center; }
 
@@ -2263,40 +2265,6 @@
   color: #fff;
 }
 
-/* Dropdown (3+ masters) */
-.sb-master-select-wrap {
-  position: relative;
-}
-
-.sb-master-select {
-  width: 100%;
-  padding: 10px 40px 10px 12px;
-  border-radius: var(--sb-radius);
-  border: 1.5px solid var(--sb-border);
-  background: var(--sb-bg);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--sb-text);
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  transition: border-color 0.15s ease;
-  font-family: inherit;
-}
-
-.sb-master-select:focus {
-  outline: none;
-  border-color: var(--sb-primary);
-}
-
-.sb-master-select-arrow {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--sb-text-muted);
-  pointer-events: none;
-}
 
 /* ============================================================
    Dark Theme
@@ -2366,11 +2334,6 @@
   border-color: #4b5563;
 }
 
-.sb-widget[data-theme="dark"] .sb-master-select {
-  background: #111827;
-  border-color: #4b5563;
-  color: #e5e7eb;
-}
 
 /* Mini-calendar dark mode */
 .sb-widget[data-theme="dark"] .sb-cal {
