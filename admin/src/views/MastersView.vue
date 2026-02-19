@@ -108,7 +108,7 @@ onMounted(loadMasters)
 // ── Open modal ───────────────────────────────────────────────
 function openCreate() {
   modalMode.value = 'create'
-  form.value = emptyForm()
+  form.value = { ...emptyForm(), sort_order: masters.value.length + 1 }
   editingId.value = null
   modalError.value = ''
   avatarUploadError.value = ''
