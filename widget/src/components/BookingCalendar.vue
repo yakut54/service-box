@@ -87,33 +87,89 @@ function todayStr(): string {
   return `${y}-${m}-${dd}`
 }
 
-// Generate next 14 days for the date picker
-const dateOptions = computed(() => {
-  const days: { value: string; label: string; weekday: string }[] = []
-  const now = new Date()
-  for (let i = 0; i < 14; i++) {
-    const d = new Date(now)
-    d.setDate(d.getDate() + i)
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const weekday = d.toLocaleDateString('ru-RU', { weekday: 'short' })
-    const label = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
-    days.push({ value, label, weekday })
+// ── Mini-calendar (full month grid, Calendly-style) ──────────
+const today = new Date()
+today.setHours(0, 0, 0, 0)
+
+const calViewYear  = ref(today.getFullYear())
+const calViewMonth = ref(today.getMonth()) // 0-based
+
+// Max bookable date: today + 60 days
+const maxDate = new Date(today)
+maxDate.setDate(maxDate.getDate() + 60)
+
+function dateToStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const calMonthLabel = computed(() =>
+  new Date(calViewYear.value, calViewMonth.value, 1)
+    .toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
+)
+
+// Weekday headers Mon–Sun
+const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+
+type CalCell = {
+  day: number | null   // null = empty padding cell
+  value: string        // YYYY-MM-DD
+  disabled: boolean
+  isToday: boolean
+}
+
+const calendarCells = computed((): CalCell[] => {
+  const year  = calViewYear.value
+  const month = calViewMonth.value
+  const firstDay = new Date(year, month, 1)
+  const lastDay  = new Date(year, month + 1, 0)
+
+  // Monday-based offset (0=Mon … 6=Sun)
+  const startOffset = (firstDay.getDay() + 6) % 7
+
+  const cells: CalCell[] = []
+
+  // Empty padding cells before the 1st
+  for (let i = 0; i < startOffset; i++) {
+    cells.push({ day: null, value: '', disabled: true, isToday: false })
   }
-  return days
+
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const date = new Date(year, month, d)
+    date.setHours(0, 0, 0, 0)
+    const value = dateToStr(date)
+    const disabled = date < today || date > maxDate
+    const isToday  = date.getTime() === today.getTime()
+    cells.push({ day: d, value, disabled, isToday })
+  }
+
+  return cells
 })
 
-// Arrow-based date window (no scrollbar)
-const DATE_WINDOW = 7
-const dateWindowStart = ref(0)
-const visibleDates = computed(() => dateOptions.value.slice(dateWindowStart.value, dateWindowStart.value + DATE_WINDOW))
-const canPrev = computed(() => dateWindowStart.value > 0)
-const canNext = computed(() => dateWindowStart.value + DATE_WINDOW < dateOptions.value.length)
+const canPrevMonth = computed(() => {
+  const now = new Date(today.getFullYear(), today.getMonth(), 1)
+  const cur = new Date(calViewYear.value, calViewMonth.value, 1)
+  return cur > now
+})
+const canNextMonth = computed(() => {
+  const cur = new Date(calViewYear.value, calViewMonth.value, 1)
+  const max = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1)
+  return cur < max
+})
 
-function prevDates() {
-  dateWindowStart.value = Math.max(0, dateWindowStart.value - DATE_WINDOW)
+function prevMonth() {
+  if (!canPrevMonth.value) return
+  if (calViewMonth.value === 0) { calViewMonth.value = 11; calViewYear.value-- }
+  else calViewMonth.value--
 }
-function nextDates() {
-  dateWindowStart.value = Math.min(dateOptions.value.length - DATE_WINDOW, dateWindowStart.value + DATE_WINDOW)
+function nextMonth() {
+  if (!canNextMonth.value) return
+  if (calViewMonth.value === 11) { calViewMonth.value = 0; calViewYear.value++ }
+  else calViewMonth.value++
+}
+
+function selectCalDay(cell: CalCell) {
+  if (!cell.day || cell.disabled) return
+  selectedDate.value = cell.value
 }
 
 async function loadSlots() {
@@ -247,30 +303,46 @@ async function handleSubmit() {
 
     <!-- Step 1: Date & Slot -->
     <div v-if="!selectedSlot">
-      <!-- Date picker (arrow navigation, no scrollbar) -->
-      <div class="sb-booking-dates-nav sb-mb-4">
-        <button class="sb-booking-dates-arrow" :disabled="!canPrev" @click="prevDates" aria-label="Предыдущие даты">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <div class="sb-booking-dates">
-          <button
-            v-for="d in visibleDates"
-            :key="d.value"
-            class="sb-date-chip"
-            :class="{ 'sb-date-chip-active': selectedDate === d.value }"
-            @click="selectedDate = d.value"
-          >
-            <span class="sb-date-chip-weekday">{{ d.weekday }}</span>
-            <span class="sb-date-chip-day">{{ d.label }}</span>
+      <!-- Mini-calendar (Calendly-style month grid) -->
+      <div class="sb-cal sb-mb-4">
+        <!-- Month navigation header -->
+        <div class="sb-cal-header">
+          <button class="sb-cal-nav" :disabled="!canPrevMonth" @click="prevMonth" aria-label="Предыдущий месяц">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span class="sb-cal-month-label">{{ calMonthLabel }}</span>
+          <button class="sb-cal-nav" :disabled="!canNextMonth" @click="nextMonth" aria-label="Следующий месяц">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
           </button>
         </div>
-        <button class="sb-booking-dates-arrow" :disabled="!canNext" @click="nextDates" aria-label="Следующие даты">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-          </svg>
-        </button>
+
+        <!-- Weekday headers -->
+        <div class="sb-cal-weekdays">
+          <span v-for="wd in WEEKDAYS" :key="wd">{{ wd }}</span>
+        </div>
+
+        <!-- Day cells grid -->
+        <div class="sb-cal-grid">
+          <button
+            v-for="(cell, i) in calendarCells"
+            :key="i"
+            class="sb-cal-day"
+            :class="{
+              'sb-cal-day-empty':    !cell.day,
+              'sb-cal-day-disabled': cell.disabled,
+              'sb-cal-day-today':    cell.isToday,
+              'sb-cal-day-active':   cell.value === selectedDate,
+            }"
+            :disabled="!cell.day || cell.disabled"
+            @click="selectCalDay(cell)"
+          >
+            {{ cell.day ?? '' }}
+          </button>
+        </div>
       </div>
 
       <!-- Loading -->
