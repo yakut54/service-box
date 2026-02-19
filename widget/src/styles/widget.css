@@ -2115,7 +2115,9 @@
   background: var(--sb-primary-hover);
 }
 
-/* Slots grid */
+/* Slots grid
+   .sb-booking-slots prefix → specificity (0,2,0)
+   overrides .sb-widget button { background: transparent } (0,1,1) */
 .sb-booking-slots {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -2132,7 +2134,7 @@
   height: 44px;
 }
 
-.sb-slot {
+.sb-booking-slots .sb-slot {
   padding: 10px 8px;
   border-radius: var(--sb-radius);
   border: 1.5px solid #c7d2fe;
@@ -2146,13 +2148,13 @@
   min-height: 44px;
 }
 
-.sb-slot:hover:not(:disabled) {
+.sb-booking-slots .sb-slot:hover:not(:disabled) {
   border-color: var(--sb-primary);
-  color: var(--sb-primary);
-  background: var(--sb-primary-light);
+  color: #fff;
+  background: var(--sb-primary);
 }
 
-.sb-slot-disabled {
+.sb-booking-slots .sb-slot-disabled {
   opacity: 0.3;
   cursor: not-allowed;
   text-decoration: line-through;
@@ -2245,14 +2247,14 @@
 }
 
 /* Booking components: dark mode visibility */
-.sb-widget[data-theme="dark"] .sb-slot {
+.sb-widget[data-theme="dark"] .sb-booking-slots .sb-slot {
   background: rgba(99, 102, 241, 0.12);
   border-color: rgba(99, 102, 241, 0.35);
   color: #a5b4fc;
 }
 
-.sb-widget[data-theme="dark"] .sb-slot:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.25);
+.sb-widget[data-theme="dark"] .sb-booking-slots .sb-slot:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.3);
   border-color: var(--sb-primary);
   color: #fff;
 }
