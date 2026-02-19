@@ -3,6 +3,8 @@
  * Handles cursor position correctly on any edit (insert / delete / paste)
  */
 
+
+
 function digitsOnly(v: string): string {
   return v.replace(/\D/g, '')
 }
@@ -84,6 +86,11 @@ export function handlePhoneInput(
 
   const formatted = applyPhoneMask(rawValue)
   setter(formatted)
+
+  // CRITICAL: Always force the DOM value to the formatted string.
+  // Vue skips re-render when the new value equals the old reactive value,
+  // leaving the raw unformatted text in the DOM (e.g. when user types an 11th digit).
+  input.value = formatted
 
   // Restore cursor position after Vue re-renders
   requestAnimationFrame(() => {
