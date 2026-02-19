@@ -28,6 +28,7 @@ const isOutOfStock = computed(() => {
 
 const isService = computed(() => props.product.type === 'service')
 
+// TODO: discount system pending — compare_price будет использоваться для показа скидки
 const hasDiscount = computed(() =>
   props.product.compare_price && props.product.compare_price > props.product.price
 )
@@ -39,13 +40,6 @@ const discountPercent = computed(() => {
 
 const rating = computed(() => props.product.rating ?? null)
 const reviewCount = computed(() => props.product.review_count ?? 0)
-
-function fullStars(r: number) {
-  return Math.floor(r)
-}
-function hasHalf(r: number) {
-  return r % 1 >= 0.5
-}
 </script>
 
 <template>
@@ -69,26 +63,12 @@ function hasHalf(r: number) {
         </svg>
       </div>
 
-      <!-- Badge overlay top-left -->
+      <!-- Badge overlay top-left (service duration / stock / digital) -->
       <span v-if="badge" :class="badge.cls">{{ badge.text }}</span>
 
       <!-- Discount % badge top-right -->
+      <!-- TODO: discount system pending — will reflect actual promotional discounts -->
       <span v-if="hasDiscount && !isOutOfStock" class="sb-pc-discount">−{{ discountPercent }}%</span>
-
-      <!-- Mini-FAB bottom-right -->
-      <button
-        v-if="!isOutOfStock"
-        class="sb-pc-fab"
-        :aria-label="isService ? 'Записаться' : 'В корзину'"
-        @click.stop="emit('select', product)"
-      >
-        <svg v-if="isService" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        <svg v-else width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
     </div>
 
     <!-- Body -->
@@ -96,43 +76,39 @@ function hasHalf(r: number) {
       <p v-if="product.category" class="sb-pc-category">{{ product.category }}</p>
       <h3 class="sb-pc-name">{{ product.name }}</h3>
 
-      <!-- Rating -->
+      <!-- Rating — compact: ★ 4.8 · 123 -->
       <div v-if="rating" class="sb-pc-rating">
-        <span class="sb-pc-stars" aria-hidden="true">
-          <svg
-            v-for="i in fullStars(rating)"
-            :key="'f' + i"
-            class="sb-pc-star sb-pc-star-full"
-            viewBox="0 0 20 20"
-          >
-            <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
-          </svg>
-          <svg v-if="hasHalf(rating)" key="h" class="sb-pc-star sb-pc-star-half" viewBox="0 0 20 20">
-            <defs>
-              <linearGradient id="sb-half">
-                <stop offset="50%" stop-color="currentColor" />
-                <stop offset="50%" stop-color="transparent" />
-              </linearGradient>
-            </defs>
-            <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" fill="url(#sb-half)" stroke="currentColor" stroke-width="0.5" />
-          </svg>
-          <svg
-            v-for="i in (5 - fullStars(rating) - (hasHalf(rating) ? 1 : 0))"
-            :key="'e' + i"
-            class="sb-pc-star sb-pc-star-empty"
-            viewBox="0 0 20 20"
-          >
-            <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
-          </svg>
-        </span>
+        <svg class="sb-pc-star-ico" viewBox="0 0 20 20" aria-hidden="true">
+          <polygon fill="currentColor" points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
+        </svg>
         <span class="sb-pc-rating-val">{{ rating.toFixed(1) }}</span>
-        <span v-if="reviewCount" class="sb-pc-rating-count">({{ reviewCount }})</span>
+        <span v-if="reviewCount" class="sb-pc-rating-count">· {{ reviewCount }}</span>
       </div>
 
-      <!-- Price row -->
+      <!-- Price row: prices on left, cart icon on right -->
       <div class="sb-pc-price-row">
-        <span class="sb-pc-price">{{ formatPrice(product.price) }}</span>
-        <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
+        <div class="sb-pc-prices">
+          <!-- TODO: discount system pending — отображение цены со скидкой и оригинальной цены -->
+          <span class="sb-pc-price">{{ formatPrice(product.price) }}</span>
+          <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
+        </div>
+
+        <!-- Cart / Book icon button -->
+        <button
+          v-if="!isOutOfStock"
+          class="sb-pc-cart-btn"
+          :aria-label="isService ? 'Записаться' : 'В корзину'"
+          @click.stop="emit('select', product)"
+        >
+          <!-- Calendar for services -->
+          <svg v-if="isService" width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <!-- Shopping bag for physical / digital -->
+          <svg v-else width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+        </button>
       </div>
     </div>
   </div>
