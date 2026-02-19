@@ -544,14 +544,15 @@
   gap: 8px;
 }
 
-/* Each select fills available space equally */
+/* Each select fills available space equally, but capped */
 .sb-catalog-selects .sb-select {
   flex: 1;
   min-width: 0;
+  max-width: 220px;
 }
 
 /* Trigger fills full width of its flex cell */
-.sb-catalog-selects .sb-select-trigger {
+.sb-catalog-selects .sb-select .sb-select-trigger {
   min-width: 0;
   width: 100%;
 }
@@ -578,7 +579,9 @@
   flex-shrink: 0;
 }
 
-.sb-select-trigger {
+/* .sb-select prefix raises specificity to (0,2,0),
+   overriding .sb-widget button { background: transparent } (0,1,1) */
+.sb-select .sb-select-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -588,7 +591,7 @@
   font-family: inherit;
   border: 1.5px solid var(--sb-border);
   border-radius: 100px;
-  background: var(--sb-bg);
+  background: var(--sb-bg-muted);
   color: var(--sb-text);
   min-height: 44px;
   min-width: 150px;
@@ -597,24 +600,24 @@
   white-space: nowrap;
 }
 
-.sb-select-trigger:hover {
+.sb-select .sb-select-trigger:hover {
   border-color: var(--sb-primary);
   background: var(--sb-primary-light);
   color: var(--sb-primary);
 }
 
-.sb-select-trigger:hover .sb-select-chevron {
+.sb-select .sb-select-trigger:hover .sb-select-chevron {
   color: var(--sb-primary);
 }
 
-.sb-select-trigger--open {
+.sb-select .sb-select-trigger--open {
   border-color: var(--sb-primary);
   background: var(--sb-primary-light);
   color: var(--sb-primary);
   box-shadow: 0 0 0 3px var(--sb-primary-light);
 }
 
-.sb-select-trigger--open .sb-select-chevron {
+.sb-select .sb-select-trigger--open .sb-select-chevron {
   color: var(--sb-primary);
 }
 
@@ -880,9 +883,12 @@
   line-height: 1.4;
 }
 
-/* Cart / book button — inline in price row */
+/* Cart / book button — inline in price row
+   .sb-pc-body prefix raises specificity to (0,2,0),
+   overriding the global .sb-widget button { background: transparent } (0,1,1) */
+
 /* Mobile: compact circle icon only */
-.sb-pc-cart-btn {
+.sb-pc-body .sb-pc-cart-btn {
   flex-shrink: 0;
   width: 34px;
   height: 34px;
@@ -898,12 +904,12 @@
   overflow: hidden;
 }
 
-.sb-pc-cart-btn:hover {
+.sb-pc-body .sb-pc-cart-btn:hover {
   background: var(--sb-primary-hover);
   box-shadow: 0 3px 12px rgba(79, 70, 229, 0.45);
 }
 
-.sb-pc-cart-btn:active {
+.sb-pc-body .sb-pc-cart-btn:active {
   transform: scale(0.92);
 }
 
@@ -913,11 +919,12 @@
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  color: #fff;
 }
 
 /* Desktop: pill shape with text */
 @container (min-width: 500px) {
-  .sb-pc-cart-btn {
+  .sb-pc-body .sb-pc-cart-btn {
     width: auto;
     height: 34px;
     border-radius: 9999px;
