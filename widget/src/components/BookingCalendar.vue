@@ -208,7 +208,12 @@ function selectSlot(slot: Slot) {
   }
 }
 
-const availableSlots = computed(() => slots.value.filter(s => s.available))
+// Client-side past-slot guard: filter out slots whose datetime is already past
+// (backend also filters these, but this catches stale data if time passes after fetch)
+const now = () => new Date()
+const isPastSlot = (slot: Slot) => new Date(slot.datetime) <= now()
+
+const availableSlots = computed(() => slots.value.filter(s => s.available && !isPastSlot(s)))
 const unavailableSlots = computed(() => slots.value.filter(s => !s.available))
 
 // Master select options for SbSelect
@@ -365,11 +370,9 @@ async function handleSubmit() {
       <!-- Slots grid -->
       <div v-else-if="availableSlots.length > 0" class="sb-booking-slots">
         <button
-          v-for="slot in slots"
+          v-for="slot in availableSlots"
           :key="slot.time"
           class="sb-slot"
-          :class="{ 'sb-slot-disabled': !slot.available }"
-          :disabled="!slot.available"
           @click="selectSlot(slot)"
         >
           {{ slot.time }}
