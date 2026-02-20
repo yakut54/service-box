@@ -40,6 +40,7 @@ async function generateTelegramCode() {
 const workStart = ref('09:00')
 const workEnd = ref('20:00')
 const slotDuration = ref('30')
+const timezone = ref('Europe/Moscow')
 const savingHours = ref(false)
 const hoursSuccess = ref(false)
 const hoursError = ref('')
@@ -53,11 +54,30 @@ const slotOptions = [
   { value: '60', label: '1 час' },
 ]
 
+const timezoneOptions = [
+  { value: 'Europe/Kaliningrad',  label: 'UTC+2  — Калининград' },
+  { value: 'Europe/Moscow',       label: 'UTC+3  — Москва, Санкт-Петербург' },
+  { value: 'Europe/Samara',       label: 'UTC+4  — Самара, Ижевск' },
+  { value: 'Asia/Yekaterinburg',  label: 'UTC+5  — Екатеринбург' },
+  { value: 'Asia/Omsk',           label: 'UTC+6  — Омск' },
+  { value: 'Asia/Krasnoyarsk',    label: 'UTC+7  — Красноярск, Новосибирск' },
+  { value: 'Asia/Irkutsk',        label: 'UTC+8  — Иркутск, Улан-Удэ' },
+  { value: 'Asia/Yakutsk',        label: 'UTC+9  — Якутск, Чита' },
+  { value: 'Asia/Vladivostok',    label: 'UTC+10 — Владивосток, Хабаровск' },
+  { value: 'Asia/Magadan',        label: 'UTC+11 — Магадан, Сахалин' },
+  { value: 'Asia/Kamchatka',      label: 'UTC+12 — Камчатка, Чукотка' },
+  { value: 'Asia/Almaty',         label: 'UTC+6  — Алматы, Астана' },
+  { value: 'Asia/Tashkent',       label: 'UTC+5  — Ташкент' },
+  { value: 'Asia/Tbilisi',        label: 'UTC+4  — Тбилиси, Баку, Ереван' },
+  { value: 'UTC',                 label: 'UTC+0  — UTC' },
+]
+
 onMounted(() => {
   if (authStore.shop) {
     workStart.value = authStore.shop.work_start || '09:00'
     workEnd.value = authStore.shop.work_end || '20:00'
     slotDuration.value = String(authStore.shop.slot_duration || 30)
+    timezone.value = (authStore.shop as any).timezone || 'Europe/Moscow'
   }
 })
 
@@ -74,12 +94,13 @@ async function saveWorkHours() {
       work_start: workStart.value,
       work_end: workEnd.value,
       slot_duration: Number(slotDuration.value),
+      timezone: timezone.value,
     })
-    // Update store so values stay after save
     if (authStore.shop) {
       authStore.shop.work_start = updated.work_start
       authStore.shop.work_end = updated.work_end
       authStore.shop.slot_duration = updated.slot_duration
+      ;(authStore.shop as any).timezone = updated.timezone
     }
     hoursSuccess.value = true
     setTimeout(() => hoursSuccess.value = false, 3000)
@@ -200,6 +221,19 @@ async function saveWorkHours() {
             label="Шаг слота (интервал записи)"
             placeholder="Выберите интервал"
         />
+      </div>
+
+      <div class="mb-4">
+        <label class="label">Часовой пояс</label>
+        <CustomSelect
+            v-model="timezone"
+            :options="timezoneOptions"
+            label="Часовой пояс"
+            placeholder="Выберите часовой пояс"
+        />
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Используется для корректного отображения слотов записи
+        </p>
       </div>
 
       <div v-if="hoursError" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ hoursError }}</div>

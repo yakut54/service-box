@@ -181,21 +181,18 @@ async function loadSlots() {
   selectedMasterId.value = null
 
   try {
-    const params: Record<string, string> = {
+    console.log('[BookingCalendar] loadSlots', { date: selectedDate.value, product: props.product.id })
+    const result = await shopStore.getApi().getAvailableSlots({
       service_id: props.product.id,
       date: selectedDate.value,
-    }
-    // Pass client's local time so server can filter past slots correctly
-    // regardless of server timezone (server may be UTC, shop in different TZ)
-    if (selectedDate.value === todayStr()) {
-      const now = new Date()
-      params.current_time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    }
-    const result = await shopStore.getApi().getAvailableSlots(params)
+    })
+    console.log('[BookingCalendar] slots from API:', result.slots)
     slots.value = result.slots ?? []
+    console.log('[BookingCalendar] after isPastSlot filter:', availableSlots.value.map(s => s.time))
   } catch (e: any) {
     error.value = e.message || 'Не удалось загрузить расписание'
     slots.value = []
+    console.error('[BookingCalendar] error loading slots:', e)
   } finally {
     loading.value = false
   }

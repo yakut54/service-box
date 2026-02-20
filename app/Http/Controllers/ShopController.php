@@ -79,6 +79,7 @@ class ShopController extends Controller
             'work_start'        => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'work_end'          => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'slot_duration'     => 'sometimes|integer|in:10,15,20,30,45,60',
+            'timezone'          => 'sometimes|string|timezone',
         ]);
 
         $shop->update($validated);

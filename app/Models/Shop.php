@@ -33,6 +33,7 @@ class Shop extends Model
         'work_start',
         'work_end',
         'slot_duration',
+        'timezone',
     ];
 
     protected $casts = [

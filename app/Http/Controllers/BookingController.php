@@ -180,10 +180,9 @@ class BookingController extends Controller
     public function availableSlots(Request $request): JsonResponse
     {
         $request->validate([
-            'service_id'   => 'required|uuid',
-            'date'         => 'required|date',
-            'master_id'    => 'nullable|uuid',
-            'current_time' => 'nullable|date_format:H:i', // client local time HH:MM
+            'service_id' => 'required|uuid',
+            'date'       => 'required|date',
+            'master_id'  => 'nullable|uuid',
         ]);
 
         $service = Product::with('service')->findOrFail($request->service_id);
@@ -209,6 +208,7 @@ class BookingController extends Controller
             $shop = Shop::find(TenantService::getCurrentShopId());
         }
 
+        $timezone      = $shop?->timezone   ?? 'Europe/Moscow';
         $workStartTime = $shop?->work_start ?? '09:00';
         $workEndTime   = $shop?->work_end   ?? '20:00';
         $slotStep      = $shop?->slot_duration ?? 30;
@@ -216,30 +216,20 @@ class BookingController extends Controller
         [$startH, $startM] = array_map('intval', explode(':', $workStartTime));
         [$endH,   $endM]   = array_map('intval', explode(':', $workEndTime));
 
-        $slots = [];
+        // Все Carbon-объекты в timezone магазина — корректное сравнение даже если сервер в UTC
+        $date      = Carbon::parse($request->date, $timezone);
         $workStart = $date->copy()->setTime($startH, $startM);
         $workEnd   = $date->copy()->setTime($endH, $endM);
+        $now       = Carbon::now($timezone);
 
+        $slots   = [];
         $current = $workStart->copy();
-        // Пропускаем прошедшие слоты.
-        // Используем current_time от клиента (HH:MM локальное) — сервер может быть в UTC,
-        // а магазин в другом часовом поясе. Если не передан — fallback на Carbon::now().
-        $clientTimeStr = $request->input('current_time');
-        if ($clientTimeStr) {
-            [$nowH, $nowM] = array_map('intval', explode(':', $clientTimeStr));
-            $clientNow = $date->copy()->setTime($nowH, $nowM);
-            if ($clientNow->greaterThan($workStart)) {
-                $minutesPassed = $clientNow->diffInMinutes($workStart);
-                $slotsSkipped  = (int) ceil($minutesPassed / $slotStep);
-                $current->addMinutes($slotsSkipped * $slotStep);
-            }
-        } else {
-            $now = Carbon::now();
-            if ($date->isToday() && $now->greaterThan($workStart)) {
-                $minutesPassed = $now->diffInMinutes($workStart);
-                $slotsSkipped  = (int) ceil($minutesPassed / $slotStep);
-                $current->addMinutes($slotsSkipped * $slotStep);
-            }
+
+        // Пропускаем прошедшие слоты (сравниваем в timezone магазина)
+        if ($date->isToday() && $now->greaterThan($workStart)) {
+            $minutesPassed = $now->diffInMinutes($workStart);
+            $slotsSkipped  = (int) ceil($minutesPassed / $slotStep);
+            $current->addMinutes($slotsSkipped * $slotStep);
         }
 
         while ($current->copy()->addMinutes($duration)->lessThanOrEqualTo($workEnd)) {
