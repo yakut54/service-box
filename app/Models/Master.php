@@ -39,20 +39,20 @@ class Master extends Model
         return $query->where('is_active', true);
     }
 
-    public function isAvailableAt(string $startTime, string $endTime): bool
+    public function isAvailableAt($startTime, $endTime, ?string $excludeBookingId = null): bool
     {
-        $hasConflict = $this->bookings()
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($startTime, $endTime) {
-                $query->whereBetween('start_time', [$startTime, $endTime])
-                      ->orWhereBetween('end_time', [$startTime, $endTime])
-                      ->orWhere(function ($q) use ($startTime, $endTime) {
-                          $q->where('start_time', '<=', $startTime)
-                            ->where('end_time', '>=', $endTime);
-                      });
-            })
-            ->exists();
+        // Каноническое условие пересечения интервалов (строгие неравенства):
+        // существующая запись конфликтует, если: existing.start < new.end И existing.end > new.start
+        // Back-to-back (10:00-11:00 и 11:00-12:00) НЕ являются конфликтом.
+        $query = $this->bookings()
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where('start_time', '<', $endTime)
+            ->where('end_time', '>', $startTime);
 
-        return !$hasConflict;
+        if ($excludeBookingId) {
+            $query->where('id', '!=', $excludeBookingId);
+        }
+
+        return !$query->exists();
     }
 }

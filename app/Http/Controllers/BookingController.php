@@ -12,6 +12,7 @@ use App\Services\TenantService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
@@ -69,51 +70,72 @@ class BookingController extends Controller
         $startTime = Carbon::parse($request->start_time);
         $endTime = $startTime->copy()->addMinutes($service->service->duration_minutes);
 
-        $masterId = $request->master_id;
-        if (!$masterId) {
-            $masterId = $this->findAvailableMaster($startTime, $endTime);
-            if (!$masterId) {
-                return response()->json([
-                    'error' => 'No available masters at this time',
-                ], 400);
-            }
-        } else {
-            $master = Master::findOrFail($masterId);
-            if (!$master->isAvailableAt($startTime, $endTime)) {
-                return response()->json([
-                    'error' => 'Master is not available at this time',
-                ], 400);
-            }
-        }
-
         $customerPhone = $this->normalizePhone($request->input('customer.phone'));
 
-        $customer = Customer::findOrCreateByPhone(
-            $customerPhone,
-            [
-                'name' => $request->input('customer.name'),
-                'email' => $request->input('customer.email'),
-            ]
-        );
+        $booking = DB::transaction(function () use ($request, $service, $startTime, $endTime, $customerPhone) {
+            $masterId = $request->master_id;
 
-        $booking = Booking::create([
-            'service_id' => $service->id,
-            'customer_id' => $customer->id,
-            'master_id' => $masterId,
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'status' => 'pending',
-            'customer_name' => $request->input('customer.name'),
-            'customer_phone' => $customerPhone,
-            'customer_email' => $request->input('customer.email'),
-            'notes' => $request->notes,
-        ]);
+            if (!$masterId) {
+                // Автовыбор мастера внутри транзакции с блокировкой строк
+                $masters = Master::active()->get();
+                foreach ($masters as $master) {
+                    // lockForUpdate предотвращает race condition
+                    $conflict = Booking::whereNotIn('status', ['cancelled', 'no_show'])
+                        ->where('master_id', $master->id)
+                        ->where('start_time', '<', $endTime)
+                        ->where('end_time', '>', $startTime)
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if (!$conflict) {
+                        $masterId = $master->id;
+                        break;
+                    }
+                }
+
+                if (!$masterId) {
+                    abort(409, 'На это время нет свободных мастеров');
+                }
+            } else {
+                Master::findOrFail($masterId);
+
+                // Проверка с блокировкой строк — защита от race condition
+                $conflict = Booking::whereNotIn('status', ['cancelled', 'no_show'])
+                    ->where('master_id', $masterId)
+                    ->where('start_time', '<', $endTime)
+                    ->where('end_time', '>', $startTime)
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($conflict) {
+                    abort(409, 'Этот слот только что заняли — выберите другое время');
+                }
+            }
+
+            $customer = Customer::findOrCreateByPhone($customerPhone, [
+                'name'  => $request->input('customer.name'),
+                'email' => $request->input('customer.email'),
+            ]);
+
+            return Booking::create([
+                'service_id'     => $service->id,
+                'customer_id'    => $customer->id,
+                'master_id'      => $masterId,
+                'start_time'     => $startTime,
+                'end_time'       => $endTime,
+                'status'         => 'pending',
+                'customer_name'  => $request->input('customer.name'),
+                'customer_phone' => $customerPhone,
+                'customer_email' => $request->input('customer.email'),
+                'notes'          => $request->notes,
+            ]);
+        });
 
         $booking->load(['service', 'master', 'customer']);
 
         return response()->json([
             'message' => 'Booking created successfully',
-            'data' => $booking,
+            'data'    => $booking,
         ], 201);
     }
 
@@ -197,7 +219,15 @@ class BookingController extends Controller
         $workStart = $date->copy()->setTime($startH, $startM);
         $workEnd   = $date->copy()->setTime($endH, $endM);
 
+        $now = Carbon::now();
         $current = $workStart->copy();
+        // Если дата сегодня — начинаем с ближайшего будущего слота
+        if ($date->isToday() && $now->greaterThan($workStart)) {
+            $minutesPassed = $now->diffInMinutes($workStart);
+            $slotsSkipped  = (int) ceil($minutesPassed / $slotStep);
+            $current->addMinutes($slotsSkipped * $slotStep);
+        }
+
         while ($current->lessThan($workEnd)) {
             $slotEnd = $current->copy()->addMinutes($duration);
 
