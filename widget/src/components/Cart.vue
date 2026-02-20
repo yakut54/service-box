@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useCartStore } from '@/stores/cart'
+import { useShopStore } from '@/stores/shop'
 import { formatPrice, plural } from '@/lib/utils'
 
 const emit = defineEmits<{
@@ -8,10 +10,38 @@ const emit = defineEmits<{
 }>()
 
 const cartStore = useCartStore()
+const shopStore = useShopStore()
+
+// Promo code state
+const promoExpanded = ref(false)
+const promoInput = ref('')
+const promoLoading = ref(false)
+const promoError = ref('')
 
 function handleQuantityChange(itemId: string, delta: number) {
   const current = cartStore.getItemQuantity(itemId)
   cartStore.updateQuantity(itemId, current + delta)
+}
+
+async function applyPromo() {
+  const code = promoInput.value.trim().toUpperCase()
+  if (!code) return
+  promoLoading.value = true
+  promoError.value = ''
+  try {
+    const res = await shopStore.getApi().validateDiscount(code, cartStore.total)
+    cartStore.setDiscount({ code, name: res.name, amount: res.discount_amount })
+    promoExpanded.value = false
+    promoInput.value = ''
+  } catch (e: any) {
+    promoError.value = e.message || 'Промокод недействителен'
+  } finally {
+    promoLoading.value = false
+  }
+}
+
+function removeDiscount() {
+  cartStore.setDiscount(null)
 }
 </script>
 
@@ -83,17 +113,72 @@ function handleQuantityChange(itemId: string, delta: number) {
             </button>
           </div>
         </div>
+
+        <!-- Promo code section -->
+        <div class="sb-promo">
+          <!-- Applied discount badge -->
+          <div v-if="cartStore.discount" class="sb-promo-applied">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>{{ cartStore.discount.name }}: −{{ formatPrice(cartStore.discount.amount) }}</span>
+            <button class="sb-promo-remove" @click="removeDiscount" aria-label="Убрать скидку">✕</button>
+          </div>
+
+          <!-- Collapsed trigger -->
+          <button
+            v-else-if="!promoExpanded"
+            class="sb-promo-toggle"
+            @click="promoExpanded = true"
+          >
+            У меня есть промокод
+          </button>
+
+          <!-- Expanded input -->
+          <div v-else class="sb-promo-form">
+            <div class="sb-promo-input-row">
+              <input
+                v-model="promoInput"
+                type="text"
+                class="sb-promo-input"
+                placeholder="ПРОМОКОД"
+                maxlength="50"
+                autofocus
+                @keyup.enter="applyPromo"
+              />
+              <button
+                class="sb-btn sb-btn-primary"
+                :disabled="promoLoading || !promoInput.trim()"
+                @click="applyPromo"
+              >
+                {{ promoLoading ? '...' : 'Применить' }}
+              </button>
+            </div>
+            <p v-if="promoError" class="sb-promo-error">{{ promoError }}</p>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Sticky footer with total + checkout -->
     <div v-if="!cartStore.isEmpty" class="sb-cart-panel-footer">
+      <!-- Subtotal line (shown only when discount applied) -->
+      <div v-if="cartStore.discount" class="sb-cart-subtotal">
+        <span>Товары</span>
+        <span>{{ formatPrice(cartStore.total) }}</span>
+      </div>
+      <!-- Discount line -->
+      <div v-if="cartStore.discount" class="sb-cart-discount-row">
+        <span>Скидка</span>
+        <span class="sb-cart-discount-amount">−{{ formatPrice(cartStore.discount.amount) }}</span>
+      </div>
+      <!-- Total -->
       <div class="sb-cart-total">
         <span class="sb-cart-total-label">
-          Итого
+          {{ cartStore.discount ? 'К оплате' : 'Итого' }}
           <span class="sb-cart-total-items">({{ cartStore.count }} {{ plural(cartStore.count, 'товар', 'товара', 'товаров') }})</span>
         </span>
-        <span class="sb-cart-total-price">{{ formatPrice(cartStore.total) }}</span>
+        <span class="sb-cart-total-price">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
       </div>
       <button class="sb-btn sb-btn-primary sb-btn-block" @click="emit('checkout')">
         Оформить заказ

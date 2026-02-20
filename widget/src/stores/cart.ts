@@ -30,12 +30,20 @@ function saveToStorage(shopId: string, items: CartItem[]) {
   }
 }
 
+export interface CartDiscount {
+  code: string
+  name: string
+  amount: number  // kopecks
+}
+
 export const useCartStore = defineStore('sb-cart', () => {
   const items = ref<CartItem[]>([])
   const shopId = ref('')
+  const discount = ref<CartDiscount | null>(null)
 
   const count = computed(() => items.value.reduce((sum, item) => sum + item.quantity, 0))
   const total = computed(() => items.value.reduce((sum, item) => sum + item.price * item.quantity, 0))
+  const totalAfterDiscount = computed(() => Math.max(0, total.value - (discount.value?.amount ?? 0)))
   const isEmpty = computed(() => items.value.length === 0)
 
   function init(id: string) {
@@ -91,8 +99,13 @@ export const useCartStore = defineStore('sb-cart', () => {
     persist()
   }
 
+  function setDiscount(d: CartDiscount | null) {
+    discount.value = d
+  }
+
   function clear() {
     items.value = []
+    discount.value = null
     persist()
   }
 
@@ -108,11 +121,14 @@ export const useCartStore = defineStore('sb-cart', () => {
     items,
     count,
     total,
+    totalAfterDiscount,
     isEmpty,
+    discount,
     init,
     addItem,
     removeItem,
     updateQuantity,
+    setDiscount,
     clear,
     hasItem,
     getItemQuantity,

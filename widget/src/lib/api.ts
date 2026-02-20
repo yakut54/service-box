@@ -130,4 +130,19 @@ export class WidgetApi {
       { method: 'PATCH', headers: { 'X-Phone-Token': token } }
     )
   }
+
+  // Discounts
+  async validateDiscount(code: string, cartAmount: number) {
+    return this.request<{
+      valid: boolean
+      discount_id: string
+      name: string
+      type: string
+      value: number
+      discount_amount: number
+    }>('/widget/discount/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code, cart_amount: cartAmount }),
+    })
+  }
 }

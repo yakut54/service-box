@@ -146,6 +146,7 @@ async function handleSubmit() {
       phone: '+' + cleanPhone(form.value.phone),
     },
     notes: notes.value.trim() || null,
+    discount_code: cartStore.discount?.code ?? null,
   }
 
   if (hasPhysical.value) {
@@ -345,9 +346,17 @@ async function handleSubmit() {
 
         <div class="sb-divider"></div>
 
+        <div v-if="cartStore.discount" class="sb-cart-subtotal">
+          <span>Товары</span>
+          <span>{{ formatPrice(cartStore.total) }}</span>
+        </div>
+        <div v-if="cartStore.discount" class="sb-cart-discount-row">
+          <span>Скидка</span>
+          <span class="sb-cart-discount-amount">−{{ formatPrice(cartStore.discount.amount) }}</span>
+        </div>
         <div class="sb-summary-total">
-          <span>Итого:</span>
-          <span class="sb-price-lg">{{ formatPrice(cartStore.total) }}</span>
+          <span>{{ cartStore.discount ? 'К оплате:' : 'Итого:' }}</span>
+          <span class="sb-price-lg">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
         </div>
 
         <!-- Submit button: desktop only (mobile uses sticky footer) -->
@@ -364,8 +373,8 @@ async function handleSubmit() {
     <!-- Mobile sticky footer: total + submit -->
     <div class="sb-co-footer">
       <div class="sb-co-footer-price">
-        <span class="sb-co-footer-label">Итого</span>
-        <span class="sb-co-footer-amount">{{ formatPrice(cartStore.total) }}</span>
+        <span class="sb-co-footer-label">{{ cartStore.discount ? 'К оплате' : 'Итого' }}</span>
+        <span class="sb-co-footer-amount">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
       </div>
       <button type="submit" class="sb-btn sb-btn-primary" :disabled="loading">
         {{ loading ? '...' : 'Подтвердить' }}

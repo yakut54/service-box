@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
+import CustomSelect from '@/components/CustomSelect.vue'
 
 type DiscountType  = 'percent' | 'fixed'
 type DiscountScope = 'cart' | 'product' | 'category'
@@ -44,6 +45,24 @@ const deleting     = ref(false)
 const filterSearch = ref('')
 const filterType   = ref('all')
 const filterStatus = ref('all')
+
+const typeOptions = [
+  { value: 'all',     label: 'Все типы' },
+  { value: 'percent', label: 'Процент' },
+  { value: 'fixed',   label: 'Фиксированная' },
+]
+
+const statusOptions = [
+  { value: 'all',      label: 'Все статусы' },
+  { value: 'active',   label: 'Активные' },
+  { value: 'inactive', label: 'Неактивные' },
+]
+
+const scopeOptions = [
+  { value: 'cart',     label: 'Всей корзине' },
+  { value: 'product',  label: 'Конкретному товару' },
+  { value: 'category', label: 'Категории товаров' },
+]
 
 // ── Form (human-friendly units: rubles, not kopecks) ─────────
 const emptyForm = () => ({
@@ -281,16 +300,8 @@ async function doDelete() {
         </svg>
         <input v-model="filterSearch" type="text" class="input pl-9" placeholder="Поиск по названию или промокоду" />
       </div>
-      <select v-model="filterType" class="input sm:w-44">
-        <option value="all">Все типы</option>
-        <option value="percent">Процент</option>
-        <option value="fixed">Фиксированная</option>
-      </select>
-      <select v-model="filterStatus" class="input sm:w-44">
-        <option value="all">Все статусы</option>
-        <option value="active">Активные</option>
-        <option value="inactive">Неактивные</option>
-      </select>
+      <CustomSelect v-model="filterType" :options="typeOptions" class="sm:w-44" />
+      <CustomSelect v-model="filterStatus" :options="statusOptions" class="sm:w-44" />
     </div>
 
     <!-- Error -->
@@ -505,11 +516,7 @@ async function doDelete() {
           <!-- Scope -->
           <div>
             <label class="label">Применять к</label>
-            <select v-model="form.scope" class="input">
-              <option value="cart">Всей корзине</option>
-              <option value="product">Конкретному товару</option>
-              <option value="category">Категории товаров</option>
-            </select>
+            <CustomSelect v-model="form.scope" :options="scopeOptions" />
           </div>
 
           <!-- Scope value -->
