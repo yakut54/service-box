@@ -11,6 +11,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\DiscountController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -74,6 +75,10 @@ Route::prefix('widget')->middleware('tenant')->group(function () {
     // Discount / promo code validation (widget)
     Route::post('/discount/validate', [DiscountController::class, 'widgetValidate']);
 
+    // Reviews (widget)
+    Route::get('/reviews/{productId}', [ReviewController::class, 'widgetIndex']);
+    Route::post('/reviews', [ReviewController::class, 'widgetStore']);
+
     // Phone verification (OTP)
     Route::post('/phone/request-code', [WidgetPhoneVerificationController::class, 'requestCode'])
         ->middleware('rate.phone');
@@ -125,6 +130,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Discounts
     Route::apiResource('discounts', DiscountController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::patch('/discounts/{id}', [DiscountController::class, 'update']);
+
+    // Reviews
+    Route::get('/reviews', [ReviewController::class, 'index']);
+    Route::patch('/reviews/{id}', [ReviewController::class, 'update']);
+    Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 
 });
 

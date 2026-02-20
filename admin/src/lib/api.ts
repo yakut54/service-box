@@ -363,6 +363,28 @@ class ApiClient {
       method: 'POST',
     })
   }
+
+  // ==========================================
+  // REVIEWS
+  // ==========================================
+
+  async getReviews(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ data: any[]; count: number }>(`/admin/reviews${query}`)
+  }
+
+  async updateReview(id: string, data: { is_published: boolean }) {
+    return this.request<{ data: any }>(`/admin/reviews/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteReview(id: string) {
+    return this.request<{ message: string }>(`/admin/reviews/${id}`, {
+      method: 'DELETE',
+    })
+  }
 }
 
 export const api = new ApiClient()
