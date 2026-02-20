@@ -181,10 +181,17 @@ async function loadSlots() {
   selectedMasterId.value = null
 
   try {
-    const result = await shopStore.getApi().getAvailableSlots({
+    const params: Record<string, string> = {
       service_id: props.product.id,
       date: selectedDate.value,
-    })
+    }
+    // Pass client's local time so server can filter past slots correctly
+    // regardless of server timezone (server may be UTC, shop in different TZ)
+    if (selectedDate.value === todayStr()) {
+      const now = new Date()
+      params.current_time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    }
+    const result = await shopStore.getApi().getAvailableSlots(params)
     slots.value = result.slots ?? []
   } catch (e: any) {
     error.value = e.message || 'Не удалось загрузить расписание'
@@ -208,10 +215,15 @@ function selectSlot(slot: Slot) {
   }
 }
 
-// Client-side past-slot guard: filter out slots whose datetime is already past
-// (backend also filters these, but this catches stale data if time passes after fetch)
-const now = () => new Date()
-const isPastSlot = (slot: Slot) => new Date(slot.datetime) <= now()
+// Client-side past-slot guard using LOCAL time (server may be in different timezone).
+// slot.time is "HH:MM" in shop's local time; selectedDate is "YYYY-MM-DD" local.
+// new Date(year, month, day, h, m) always creates a local datetime — no UTC ambiguity.
+const isPastSlot = (slot: Slot): boolean => {
+  const [year, month, day] = selectedDate.value.split('-').map(Number)
+  const [h, m] = slot.time.split(':').map(Number)
+  const slotLocal = new Date(year, month - 1, day, h, m, 0, 0)
+  return slotLocal <= new Date()
+}
 
 const availableSlots = computed(() => slots.value.filter(s => s.available && !isPastSlot(s)))
 const unavailableSlots = computed(() => slots.value.filter(s => !s.available))
