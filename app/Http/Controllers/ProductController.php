@@ -45,6 +45,8 @@ class ProductController extends Controller
         }
 
         $query->orderBy('sort_order')->orderBy('name');
+        $query->withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
+              ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)]);
 
         $products = $query->get()->map(function ($product) {
             return $product->loadDetails();
@@ -92,7 +94,9 @@ class ProductController extends Controller
      */
     public function show(string $product): JsonResponse
     {
-        $product = Product::findOrFail($product);
+        $product = Product::withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
+                          ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)])
+                          ->findOrFail($product);
         $product->loadDetails();
 
         return response()->json([
