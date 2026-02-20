@@ -17,6 +17,7 @@ const form = ref({
   name: '',
   description: '',
   price: 0,
+  compare_price: null as number | null,
   type: 'physical' as string,
   category: '',
   is_active: true,
@@ -198,6 +199,7 @@ onMounted(async () => {
         name: p.name,
         description: p.description || '',
         price: p.price / 100,
+        compare_price: p.compare_price ? p.compare_price / 100 : null,
         type: p.type,
         category: p.category || '',
         is_active: p.is_active,
@@ -251,6 +253,7 @@ async function handleSubmit() {
     name: form.value.name.trim(),
     description: form.value.description.trim() || null,
     price: Math.round(form.value.price * 100),
+    compare_price: form.value.compare_price ? Math.round(form.value.compare_price * 100) : null,
     type: form.value.type,
     category: form.value.category.trim() || null,
     is_active: form.value.is_active,
@@ -318,11 +321,23 @@ async function handleSubmit() {
           </div>
 
           <!-- Цена -->
-          <div>
-            <label for="price" class="label">Цена (руб) *</label>
-            <div class="relative">
-              <input id="price" v-model.number="form.price" type="number" min="0" step="0.01" class="input pr-12" :placeholder="currentTypeConfig.pricePlaceholder" />
-              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="price" class="label">Цена (руб) *</label>
+              <div class="relative">
+                <input id="price" v-model.number="form.price" type="number" min="0" step="0.01" class="input pr-12" :placeholder="currentTypeConfig.pricePlaceholder" />
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
+              </div>
+            </div>
+            <div>
+              <label for="compare_price" class="label">Старая цена (руб)
+                <span class="text-gray-400 dark:text-gray-500 font-normal text-xs ml-1">для показа скидки</span>
+              </label>
+              <div class="relative">
+                <input id="compare_price" v-model.number="form.compare_price" type="number" min="0" step="0.01" class="input pr-12" placeholder="0" />
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
+              </div>
+              <p v-if="form.compare_price && form.compare_price <= form.price" class="text-xs text-amber-600 dark:text-amber-400 mt-1">Старая цена должна быть больше текущей</p>
             </div>
           </div>
 

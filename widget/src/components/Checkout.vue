@@ -163,9 +163,6 @@ async function handleSubmit() {
   try {
     const result = await shopStore.getApi().createOrder(payload)
 
-    console.log('result: ', result)
-    // где то тут олжна юкасса вызываться?
-
     cartStore.clear()
     emit('success', result.data)
   } catch (e: any) {

@@ -18,6 +18,7 @@ class StoreProductRequest extends FormRequest
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:5000',
             'price' => 'required|integer|min:0',
+            'compare_price' => 'nullable|integer|min:0',
             'currency' => 'nullable|string|size:3',
             'image_url' => 'nullable|url|max:500',
             'is_active' => 'nullable|boolean',

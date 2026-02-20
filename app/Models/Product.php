@@ -18,6 +18,7 @@ class Product extends Model
         'name',
         'description',
         'price',
+        'compare_price',
         'currency',
         'image_url',
         'is_active',
@@ -27,6 +28,7 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'integer',
+        'compare_price' => 'integer',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
         'created_at' => 'datetime',

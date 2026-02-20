@@ -88,7 +88,7 @@ const showFilters = computed(() => showTypeSelect.value || showCategories.value)
 
 onMounted(async () => {
   try {
-    const resp = await shopStore.getApi().getProducts()
+    const resp = await shopStore.getApi().getProducts({ active: 'true' })
     products.value = resp.data || []
   } catch (e: any) {
     error.value = e.message || 'Failed to load products'
