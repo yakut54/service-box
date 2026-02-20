@@ -215,7 +215,7 @@ function selectSidebarCategory(cat: string) {
           <div class="sb-header-spacer"></div>
 
           <!-- Cart -->
-          <button class="sb-header-cart-btn" @click="navigate('cart')" aria-label="Корзина">
+          <button class="sb-header-cart-btn" @click="cartOpen ? handleCartBack() : navigate('cart')" aria-label="Корзина">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
             </svg>
@@ -269,7 +269,7 @@ function selectSidebarCategory(cat: string) {
             <!-- Cart -->
             <button
                 :class="['sb-nav-item', currentView === 'cart' || currentView === 'checkout' ? 'sb-nav-item--active' : '']"
-                @click="navigate('cart')"
+                @click="cartOpen ? handleCartBack() : navigate('cart')"
             >
               <svg class="sb-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
