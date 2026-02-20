@@ -89,7 +89,7 @@ docker exec servicebox_app php artisan route:cache
 echo ""
 echo "[7/7] Health check..."
 sleep 2
-curl -sf http://localhost:8000/api/up && echo " → API OK" || echo " → API not responding yet (check docker logs)"
+curl -sf http://localhost:8000/api/health && echo " → API OK" || echo " → API not responding yet (check docker logs)"
 
 echo ""
 echo "=== Deploy complete ==="
