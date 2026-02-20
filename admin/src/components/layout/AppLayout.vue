@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
+import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -176,6 +177,7 @@ async function handleLogout() {
       </header>
 
       <main class="p-3 sm:p-4 lg:p-6">
+        <AppBreadcrumb />
         <RouterView />
       </main>
     </div>

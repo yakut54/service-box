@@ -273,10 +273,6 @@ async function handleSubmit() {
 <template>
   <div class="max-w-2xl">
     <div class="mb-6">
-      <button @click="router.back()" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-2 flex items-center gap-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-        Назад
-      </button>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ isEditing ? 'Редактировать товар' : 'Новый товар' }}</h1>
     </div>
 

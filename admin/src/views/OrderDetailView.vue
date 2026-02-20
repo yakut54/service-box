@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useOrdersStore } from '@/stores/orders'
 
 const route = useRoute()
-const router = useRouter()
 const ordersStore = useOrdersStore()
 
 const order = ref<any>(null)
@@ -67,11 +66,6 @@ async function updateStatus(status: string) {
 
 <template>
   <div class="max-w-3xl">
-    <button @click="router.back()" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4 flex items-center gap-1">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-      Назад к заказам
-    </button>
-
     <div v-if="loading" class="card py-12 text-center">
       <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
     </div>
