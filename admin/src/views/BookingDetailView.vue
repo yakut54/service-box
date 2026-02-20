@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
+import { useBookingsStore } from '@/stores/bookings'
 
 const route = useRoute()
 const router = useRouter()
+const bookingsStore = useBookingsStore()
 
 const booking = ref<any>(null)
 const loading = ref(true)
 const updatingStatus = ref(false)
 const statusError = ref('')
+const errorMsg = ref<string | null>(null)
 
 const statusLabels: Record<string, string> = {
   pending:   'Ожидает',
@@ -53,11 +56,31 @@ async function changeStatus(status: string) {
 }
 
 onMounted(async () => {
+  const id = route.params.id as string
+
+  // Use store as instant cache
+  const cached = bookingsStore.bookings.find(b => b.id === id)
+  if (cached) {
+    booking.value = cached
+    loading.value = false
+  }
+
   try {
-    const res = await api.getBooking(route.params.id as string)
+    const res = await api.getBooking(id)
     booking.value = res.data
-  } catch { /* not found */ }
-  loading.value = false
+    errorMsg.value = null
+  } catch (err) {
+    console.error('[BookingDetail] fetch failed:', err)
+    if (!booking.value) {
+      if (err instanceof ApiError) {
+        errorMsg.value = `Ошибка ${err.status}: ${err.message}`
+      } else {
+        errorMsg.value = 'Не удалось загрузить запись'
+      }
+    }
+  } finally {
+    loading.value = false
+  }
 })
 </script>
 
@@ -81,6 +104,7 @@ onMounted(async () => {
     <!-- Not found -->
     <div v-else-if="!booking" class="card py-12 text-center">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Запись не найдена</h2>
+      <p v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 mb-4">{{ errorMsg }}</p>
       <RouterLink to="/bookings" class="btn-primary">Все записи</RouterLink>
     </div>
 

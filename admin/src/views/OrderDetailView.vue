@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
+import { useOrdersStore } from '@/stores/orders'
 
 const route = useRoute()
 const router = useRouter()
+const ordersStore = useOrdersStore()
 
 const order = ref<any>(null)
 const loading = ref(true)
 const updating = ref(false)
+const errorMsg = ref<string | null>(null)
 
 function formatPrice(kopecks: number): string {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
@@ -21,11 +24,34 @@ function formatDate(dateStr: string) {
 }
 
 onMounted(async () => {
+  const id = route.params.id as string
+
+  // Use store as instant cache — order may already be loaded from Orders list
+  const cached = ordersStore.orders.find(o => o.id === id)
+  if (cached) {
+    order.value = cached
+    loading.value = false
+  }
+
+  // Fetch full order (includes item→product relation) to refresh data
   try {
-    const resp = await api.getOrder(route.params.id as string)
+    const resp = await api.getOrder(id)
     order.value = resp.data
-  } catch { /* not found */ }
-  loading.value = false
+    errorMsg.value = null
+  } catch (err) {
+    console.error('[OrderDetail] fetch failed:', err)
+    if (!order.value) {
+      // Nothing in cache either — show error
+      if (err instanceof ApiError) {
+        errorMsg.value = `Ошибка ${err.status}: ${err.message}`
+      } else {
+        errorMsg.value = 'Не удалось загрузить заказ'
+      }
+    }
+    // If we had cached data, keep showing it silently
+  } finally {
+    loading.value = false
+  }
 })
 
 async function updateStatus(status: string) {
@@ -52,6 +78,7 @@ async function updateStatus(status: string) {
 
     <div v-else-if="!order" class="card py-12 text-center">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Заказ не найден</h2>
+      <p v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400 mb-4">{{ errorMsg }}</p>
       <RouterLink to="/orders" class="btn-primary">Все заказы</RouterLink>
     </div>
 
