@@ -28,6 +28,7 @@ interface Discount {
 
 // ── State ────────────────────────────────────────────────────
 const discounts = ref<Discount[]>([])
+const products  = ref<{ id: string; name: string }[]>([])
 const loading   = ref(false)
 const error     = ref('')
 
@@ -64,6 +65,10 @@ const scopeOptions = [
   { value: 'product',  label: 'Конкретному товару' },
   { value: 'category', label: 'Категории товаров' },
 ]
+
+const productOptions = computed(() =>
+  products.value.map(p => ({ value: p.id, label: p.name }))
+)
 
 // ── Form (human-friendly units: rubles, not kopecks) ─────────
 const emptyForm = () => ({
@@ -144,8 +149,12 @@ async function load() {
   loading.value = true
   error.value   = ''
   try {
-    const res = await api.getDiscounts()
-    discounts.value = res.data
+    const [discRes, prodRes] = await Promise.all([
+      api.getDiscounts(),
+      api.getProducts({ limit: '200' }),
+    ])
+    discounts.value = discRes.data
+    products.value  = prodRes.data.map((p: any) => ({ id: p.id, name: p.name }))
   } catch (e: any) {
     error.value = e.message || 'Не удалось загрузить'
   } finally {
@@ -385,7 +394,9 @@ async function doDelete() {
             <td class="px-4 py-3 hidden md:table-cell text-gray-600 dark:text-gray-400">
               {{ scopeLabel(d.scope) }}
               <span v-if="d.scope_value" class="block text-xs text-gray-400 truncate max-w-[120px]">
-                {{ d.scope_value }}
+                {{ d.scope === 'product'
+                    ? (products.find(p => p.id === d.scope_value)?.name ?? d.scope_value)
+                    : d.scope_value }}
               </span>
             </td>
 
@@ -520,14 +531,23 @@ async function doDelete() {
             <CustomSelect v-model="form.scope" :options="scopeOptions" />
           </div>
 
-          <!-- Scope value -->
-          <div v-if="form.scope !== 'cart'">
-            <label class="label">{{ form.scope === 'product' ? 'ID товара' : 'Название категории' }}</label>
+          <!-- Scope value: товар → dropdown, категория → текст -->
+          <div v-if="form.scope === 'product'">
+            <label class="label">Товар</label>
+            <CustomSelect
+              v-model="form.scope_value"
+              :options="productOptions"
+              placeholder="Выберите товар..."
+            />
+            <p v-if="productOptions.length === 0" class="text-xs text-gray-400 mt-1">Нет доступных товаров</p>
+          </div>
+          <div v-else-if="form.scope === 'category'">
+            <label class="label">Категория</label>
             <input
               v-model="form.scope_value"
               type="text"
               class="input"
-              :placeholder="form.scope === 'product' ? 'UUID товара' : 'Например: Масла и жидкости'"
+              placeholder="Например: Масла и жидкости"
             />
           </div>
 
