@@ -45,7 +45,7 @@ const cartLabel = computed(() => {
   return 'В корзину'
 })
 
-const rating = computed(() => props.product.rating ?? null)
+const rating = computed(() => props.product.rating != null ? parseFloat(props.product.rating) : null)
 const reviewCount = computed(() => props.product.review_count ?? 0)
 </script>
 

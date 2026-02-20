@@ -49,7 +49,10 @@ class ProductController extends Controller
               ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)]);
 
         $products = $query->get()->map(function ($product) {
-            return $product->loadDetails();
+            $product->loadDetails();
+            // withAvg returns numeric as string from PostgreSQL — cast to float
+            $product->rating = $product->rating !== null ? (float) $product->rating : null;
+            return $product;
         });
 
         return response()->json([
@@ -98,6 +101,7 @@ class ProductController extends Controller
                           ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)])
                           ->findOrFail($product);
         $product->loadDetails();
+        $product->rating = $product->rating !== null ? (float) $product->rating : null;
 
         return response()->json([
             'data' => $product,

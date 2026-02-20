@@ -126,7 +126,10 @@ function formatReviewDate(s: string | null): string {
   return new Date(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-const displayRating  = computed(() => props.product.rating ?? reviewStats.value.average)
+const displayRating  = computed(() => {
+  const r = props.product.rating ?? reviewStats.value.average
+  return r != null ? parseFloat(r) : null
+})
 const displayCount   = computed(() => props.product.review_count ?? reviewStats.value.count)
 </script>
 
