@@ -36,7 +36,7 @@ const crumbs = computed(() => {
 
   let current: string | undefined = name
   while (current) {
-    const def = CRUMBS[current]
+    const def: CrumbDef | undefined = CRUMBS[current]
     if (!def) break
     const label = typeof def.label === 'function' ? def.label(params) : def.label
     trail.unshift({ label, to: def.to })
