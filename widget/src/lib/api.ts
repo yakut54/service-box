@@ -131,6 +131,27 @@ export class WidgetApi {
     )
   }
 
+  // Reviews
+  async getProductReviews(productId: string) {
+    return this.request<{
+      data: Array<{ id: string; customer_name: string; rating: number; text: string | null; created_at: string | null }>
+      stats: { count: number; average: number | null; distribution: Record<number, number> }
+    }>(`/widget/reviews/${productId}`)
+  }
+
+  async submitReview(data: {
+    product_id: string
+    rating: number
+    text?: string
+    customer_name: string
+    customer_phone?: string
+  }) {
+    return this.request<{ message: string; data: any }>('/widget/reviews', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
   // Discounts
   async validateDiscount(code: string, cartAmount: number) {
     return this.request<{

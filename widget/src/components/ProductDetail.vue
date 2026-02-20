@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { formatPrice, plural } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart'
+import { useShopStore } from '@/stores/shop'
 
 const props = defineProps<{ product: any }>()
 const emit = defineEmits<{
@@ -11,8 +12,9 @@ const emit = defineEmits<{
 }>()
 
 const cartStore = useCartStore()
+const shopStore = useShopStore()
 
-const isService = computed(() => props.product.type === 'service')
+const isService  = computed(() => props.product.type === 'service')
 const isPhysical = computed(() => props.product.type === 'physical')
 
 const maxStock = computed(() => {
@@ -21,8 +23,8 @@ const maxStock = computed(() => {
 })
 
 const isOutOfStock = computed(() => isPhysical.value && maxStock.value === 0)
-const inCart = computed(() => cartStore.hasItem(props.product.id))
-const inCartQty = computed(() => cartStore.getItemQuantity(props.product.id))
+const inCart       = computed(() => cartStore.hasItem(props.product.id))
+const inCartQty    = computed(() => cartStore.getItemQuantity(props.product.id))
 
 const badge = computed(() => {
   const p = props.product
@@ -39,26 +41,93 @@ const badge = computed(() => {
 const hasDiscount = computed(() =>
   props.product.compare_price && props.product.compare_price > props.product.price
 )
-
 const discountPercent = computed(() => {
   if (!hasDiscount.value) return 0
   return Math.round((1 - props.product.price / props.product.compare_price) * 100)
 })
 
-const rating = computed(() => props.product.rating ?? null)
-const reviewCount = computed(() => props.product.review_count ?? 0)
+function handleAddToCart() { cartStore.addItem(props.product) }
+function handleIncrement()  { cartStore.updateQuantity(props.product.id, inCartQty.value + 1) }
+function handleDecrement()  { cartStore.updateQuantity(props.product.id, inCartQty.value - 1) }
 
-function handleAddToCart() {
-  cartStore.addItem(props.product)
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+interface ReviewItem {
+  id: string
+  customer_name: string
+  rating: number
+  text: string | null
+  created_at: string | null
 }
 
-function handleIncrement() {
-  cartStore.updateQuantity(props.product.id, inCartQty.value + 1)
+interface ReviewStats {
+  count: number
+  average: number | null
+  distribution: Record<number, number>
 }
 
-function handleDecrement() {
-  cartStore.updateQuantity(props.product.id, inCartQty.value - 1)
+const reviews      = ref<ReviewItem[]>([])
+const reviewStats  = ref<ReviewStats>({ count: 0, average: null, distribution: {} })
+const reviewsLoading = ref(false)
+
+// Form
+const formExpanded  = ref(false)
+const formName      = ref('')
+const formRating    = ref(0)
+const formText      = ref('')
+const hoverRating   = ref(0)
+const formLoading   = ref(false)
+const formSuccess   = ref(false)
+const formError     = ref('')
+
+async function loadReviews() {
+  reviewsLoading.value = true
+  try {
+    const res = await shopStore.getApi().getProductReviews(props.product.id)
+    reviews.value     = res.data
+    reviewStats.value = res.stats
+  } catch {
+    // silent — отзывы не критичны
+  } finally {
+    reviewsLoading.value = false
+  }
 }
+
+onMounted(loadReviews)
+watch(() => props.product.id, loadReviews)
+
+function setRating(r: number) { formRating.value = r }
+
+async function submitReview() {
+  if (!formName.value.trim() || formRating.value === 0) return
+  formLoading.value = true
+  formError.value   = ''
+  try {
+    await shopStore.getApi().submitReview({
+      product_id:    props.product.id,
+      rating:        formRating.value,
+      text:          formText.value.trim() || undefined,
+      customer_name: formName.value.trim(),
+    })
+    formSuccess.value  = true
+    formExpanded.value = false
+    formName.value     = ''
+    formRating.value   = 0
+    formText.value     = ''
+  } catch (e: any) {
+    formError.value = e.message || 'Ошибка отправки'
+  } finally {
+    formLoading.value = false
+  }
+}
+
+function formatReviewDate(s: string | null): string {
+  if (!s) return ''
+  return new Date(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+const displayRating  = computed(() => props.product.rating ?? reviewStats.value.average)
+const displayCount   = computed(() => props.product.review_count ?? reviewStats.value.count)
 </script>
 
 <template>
@@ -99,17 +168,17 @@ function handleDecrement() {
         <h2 class="sb-pd-name">{{ product.name }}</h2>
 
         <!-- Rating -->
-        <div v-if="rating" class="sb-pd-rating">
+        <div v-if="displayRating" class="sb-pd-rating">
           <span class="sb-pd-stars" aria-hidden="true">
-            <svg v-for="i in Math.floor(rating)" :key="'f'+i" class="sb-pd-star sb-pd-star-full" viewBox="0 0 20 20">
+            <svg v-for="i in Math.floor(displayRating)" :key="'f'+i" class="sb-pd-star sb-pd-star-full" viewBox="0 0 20 20">
               <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
             </svg>
-            <svg v-for="i in (5 - Math.floor(rating))" :key="'e'+i" class="sb-pd-star sb-pd-star-empty" viewBox="0 0 20 20">
+            <svg v-for="i in (5 - Math.floor(displayRating))" :key="'e'+i" class="sb-pd-star sb-pd-star-empty" viewBox="0 0 20 20">
               <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
             </svg>
           </span>
-          <span class="sb-pd-rating-val">{{ rating.toFixed(1) }}</span>
-          <span v-if="reviewCount" class="sb-pd-rating-count">({{ reviewCount }} отзывов)</span>
+          <span class="sb-pd-rating-val">{{ Number(displayRating).toFixed(1) }}</span>
+          <span v-if="displayCount" class="sb-pd-rating-count">({{ displayCount }} {{ plural(displayCount, 'отзыв', 'отзыва', 'отзывов') }})</span>
         </div>
 
         <!-- Price -->
@@ -139,7 +208,7 @@ function handleDecrement() {
           </div>
         </div>
 
-        <!-- Actions — inline (desktop) / above footer (mobile) -->
+        <!-- Actions -->
         <div class="sb-pd-actions">
           <template v-if="isService">
             <button class="sb-btn sb-btn-primary sb-btn-block" @click="emit('booking', product)">
@@ -149,7 +218,6 @@ function handleDecrement() {
               Записаться
             </button>
           </template>
-
           <template v-else-if="inCart">
             <div class="sb-pd-qty-row">
               <div class="sb-quantity">
@@ -166,7 +234,6 @@ function handleDecrement() {
               Перейти в корзину
             </button>
           </template>
-
           <template v-else>
             <button class="sb-btn sb-btn-primary sb-btn-block" :disabled="isOutOfStock" @click="handleAddToCart">
               {{ isOutOfStock ? 'Нет в наличии' : 'В корзину' }}
@@ -176,7 +243,150 @@ function handleDecrement() {
       </div>
     </div>
 
-    <!-- Mobile sticky footer (price + CTA) -->
+    <!-- ─── Reviews section ──────────────────────────────────── -->
+    <div class="sb-reviews">
+
+      <!-- Header -->
+      <div class="sb-reviews-header">
+        <h3 class="sb-reviews-title">
+          Отзывы
+          <span v-if="reviewStats.count > 0" class="sb-reviews-count">{{ reviewStats.count }}</span>
+        </h3>
+        <button
+          v-if="!formExpanded && !formSuccess"
+          class="sb-btn sb-btn-ghost sb-btn-sm"
+          @click="formExpanded = true"
+        >
+          Оставить отзыв
+        </button>
+      </div>
+
+      <!-- Average rating bar -->
+      <div v-if="reviewStats.average" class="sb-reviews-avg">
+        <span class="sb-reviews-avg-val">{{ reviewStats.average.toFixed(1) }}</span>
+        <div class="sb-reviews-avg-stars">
+          <svg
+            v-for="i in 5" :key="i"
+            class="sb-reviews-avg-star"
+            :class="i <= Math.round(reviewStats.average!) ? 'sb-star-full' : 'sb-star-empty'"
+            viewBox="0 0 20 20"
+          >
+            <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
+          </svg>
+        </div>
+        <span class="sb-reviews-avg-label">
+          {{ reviewStats.count }} {{ plural(reviewStats.count, 'отзыв', 'отзыва', 'отзывов') }}
+        </span>
+      </div>
+
+      <!-- Thank you message after submit -->
+      <div v-if="formSuccess" class="sb-review-success">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+        </svg>
+        Спасибо! Отзыв отправлен на модерацию.
+      </div>
+
+      <!-- Review form -->
+      <div v-if="formExpanded" class="sb-review-form">
+        <!-- Star rating picker -->
+        <div class="sb-review-form-stars-label">Ваша оценка <span class="sb-review-required">*</span></div>
+        <div class="sb-review-form-stars">
+          <button
+            v-for="i in 5" :key="i"
+            type="button"
+            class="sb-review-star-btn"
+            @mouseenter="hoverRating = i"
+            @mouseleave="hoverRating = 0"
+            @click="setRating(i)"
+            :aria-label="`${i} звезд`"
+          >
+            <svg
+              class="sb-review-star-ico"
+              :class="i <= (hoverRating || formRating) ? 'sb-star-full' : 'sb-star-empty'"
+              viewBox="0 0 20 20"
+            >
+              <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Name -->
+        <div class="sb-review-form-field">
+          <label class="sb-review-form-label">Ваше имя <span class="sb-review-required">*</span></label>
+          <input
+            v-model="formName"
+            type="text"
+            class="sb-review-input"
+            placeholder="Иван"
+            maxlength="100"
+          />
+        </div>
+
+        <!-- Text -->
+        <div class="sb-review-form-field">
+          <label class="sb-review-form-label">Отзыв</label>
+          <textarea
+            v-model="formText"
+            class="sb-review-textarea"
+            placeholder="Поделитесь впечатлениями..."
+            rows="3"
+            maxlength="2000"
+          />
+        </div>
+
+        <p v-if="formError" class="sb-review-form-error">{{ formError }}</p>
+
+        <div class="sb-review-form-actions">
+          <button class="sb-btn sb-btn-ghost" @click="formExpanded = false; formError = ''">Отмена</button>
+          <button
+            class="sb-btn sb-btn-primary"
+            :disabled="formLoading || !formName.trim() || formRating === 0"
+            @click="submitReview"
+          >
+            {{ formLoading ? 'Отправка...' : 'Отправить' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="reviewsLoading" class="sb-reviews-loading">
+        <div class="sb-spinner"></div>
+      </div>
+
+      <!-- Empty -->
+      <p v-else-if="!reviewsLoading && reviews.length === 0 && !formExpanded" class="sb-reviews-empty">
+        Отзывов пока нет. Будьте первым!
+      </p>
+
+      <!-- Reviews list -->
+      <div v-else class="sb-review-list">
+        <div v-for="r in reviews" :key="r.id" class="sb-review-item">
+          <div class="sb-review-avatar">
+            {{ r.customer_name.charAt(0).toUpperCase() }}
+          </div>
+          <div class="sb-review-body">
+            <div class="sb-review-meta">
+              <span class="sb-review-name">{{ r.customer_name }}</span>
+              <div class="sb-review-stars">
+                <svg
+                  v-for="i in 5" :key="i"
+                  class="sb-review-star"
+                  :class="i <= r.rating ? 'sb-star-full' : 'sb-star-empty'"
+                  viewBox="0 0 20 20"
+                >
+                  <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
+                </svg>
+              </div>
+              <span class="sb-review-date">{{ formatReviewDate(r.created_at) }}</span>
+            </div>
+            <p v-if="r.text" class="sb-review-text">{{ r.text }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile sticky footer -->
     <div class="sb-pd-footer">
       <div class="sb-pd-footer-price">
         <span class="sb-pd-footer-amount">{{ formatPrice(product.price) }}</span>
