@@ -38,7 +38,7 @@ echo "    Cleanup done (disk: $(df -h / | awk 'NR==2{print $4}') free)"
 echo ""
 echo "[1/7] Building admin SPA..."
 cd admin
-npm ci --prefer-offline
+npm ci
 VITE_API_URL=/api npm run build
 cd ..
 # node_modules no longer needed — remove immediately to free space
@@ -49,7 +49,7 @@ echo "    admin/dist ready ($(du -sh admin/dist | cut -f1))"
 echo ""
 echo "[2/7] Building widget..."
 cd widget
-npm ci --prefer-offline
+npm ci
 npm run build
 cd ..
 rm -rf widget/node_modules
