@@ -10,6 +10,7 @@ use App\Http\Controllers\MasterController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\ImageController;
+use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,9 @@ Route::prefix('widget')->middleware('tenant')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
 
+    // Discount / promo code validation (widget)
+    Route::post('/discount/validate', [DiscountController::class, 'widgetValidate']);
+
     // Phone verification (OTP)
     Route::post('/phone/request-code', [WidgetPhoneVerificationController::class, 'requestCode'])
         ->middleware('rate.phone');
@@ -117,6 +121,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
 
     // Masters
     Route::apiResource('masters', MasterController::class);
+
+    // Discounts
+    Route::apiResource('discounts', DiscountController::class)->only(['index', 'store', 'show', 'destroy']);
+    Route::patch('/discounts/{id}', [DiscountController::class, 'update']);
 
 });
 

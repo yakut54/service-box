@@ -7,8 +7,6 @@ BRANCH="new-branch"
 cd "$REPO_DIR"
 
 # ── Bootstrap: pull latest code, re-exec so the UPDATED script runs ──
-# This solves the problem where bash caches the old script while git reset
-# is updating the file on disk mid-execution.
 if [ -z "$SERVICEBOX_DEPLOY_V" ]; then
   echo "=== ServiceBox Deploy (bootstrap) ==="
   echo "→ Pulling latest code from $BRANCH..."
@@ -25,58 +23,77 @@ echo "=== ServiceBox Deploy ==="
 echo "→ Dir: $REPO_DIR"
 echo "→ Branch: $BRANCH"
 
+# ── 0. Pre-deploy cleanup (prevent disk accumulation) ─────────────
+echo ""
+echo "[0/7] Pre-deploy cleanup..."
+# Remove previous node_modules (rebuilt fresh each deploy)
+rm -rf admin/node_modules widget/node_modules
+# Remove stale Docker build cache and dangling images
+docker builder prune -f --filter "until=24h" 2>/dev/null || true
+docker image prune -f 2>/dev/null || true
+docker container prune -f 2>/dev/null || true
+echo "    Cleanup done (disk: $(df -h / | awk 'NR==2{print $4}') free)"
+
 # ── 1. Build admin SPA ────────────────────────────────────────
 echo ""
-echo "[1/6] Building admin SPA..."
+echo "[1/7] Building admin SPA..."
 cd admin
 npm ci --prefer-offline
 VITE_API_URL=/api npm run build
 cd ..
+# node_modules no longer needed — remove immediately to free space
+rm -rf admin/node_modules
 echo "    admin/dist ready ($(du -sh admin/dist | cut -f1))"
 
 # ── 2. Build widget ───────────────────────────────────────────
 echo ""
-echo "[2/6] Building widget..."
+echo "[2/7] Building widget..."
 cd widget
 npm ci --prefer-offline
 npm run build
 cd ..
+rm -rf widget/node_modules
 echo "    widget/dist ready ($(du -sh widget/dist | cut -f1))"
 
 # ── 3. Start / restart containers ─────────────────────────────
 echo ""
-echo "[3/6] Starting containers..."
-# Start DB separately (never recreate — keeps existing pgdata volume + password)
+echo "[3/7] Starting containers..."
 docker compose -f docker-compose.prod.yml up -d db
-# Rebuild and restart app + web only
 docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web
 
-# ── 4. Sync DB password ────────────────────────────────────────
+# ── 4. Post-build cleanup (clear layers that are no longer referenced) ─
 echo ""
-echo "[4/6] Syncing DB password..."
+echo "[4/7] Post-build cleanup..."
+docker builder prune -f --filter "until=1h" 2>/dev/null || true
+docker image prune -f 2>/dev/null || true
+echo "    Cleanup done (disk: $(df -h / | awk 'NR==2{print $4}') free)"
+
+# ── 5. Sync DB password ────────────────────────────────────────
+echo ""
+echo "[5/7] Syncing DB password..."
 sleep 5
 DB_PASSWORD=$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2- | tr -d '"'"'"' ')
-# unix socket uses trust auth inside the container — no password needed to connect
 docker exec servicebox_db psql -U servicebox \
   -c "ALTER USER servicebox WITH PASSWORD '${DB_PASSWORD:-servicebox}';" \
   && echo "    DB password synced OK" || echo "    [warn] DB password sync skipped"
 
-# ── 5. Run migrations ─────────────────────────────────────────
+# ── 6. Run migrations ─────────────────────────────────────────
 echo ""
-echo "[5/6] Running migrations..."
+echo "[6/7] Running migrations..."
 docker exec servicebox_app php artisan migrate --force
 docker exec servicebox_app php artisan storage:link --force 2>/dev/null || true
 docker exec servicebox_app php artisan config:cache
 docker exec servicebox_app php artisan route:cache
 
-# ── 6. Done ───────────────────────────────────────────────────
+# ── 7. Done ───────────────────────────────────────────────────
 echo ""
-echo "[6/6] Health check..."
+echo "[7/7] Health check..."
 sleep 2
 curl -sf http://localhost:8000/api/up && echo " → API OK" || echo " → API not responding yet (check docker logs)"
 
 echo ""
 echo "=== Deploy complete ==="
-echo "    Admin: https://yakut54.ru"
-echo "    API:   https://yakut54.ru/api/up"
+echo "    Disk free: $(df -h / | awk 'NR==2{print $4}')"
+echo "    Admin:  https://yakut54.ru"
+echo "    API:    https://yakut54.ru/api/up"
 echo "    Widget: https://yakut54.ru/widget.js"

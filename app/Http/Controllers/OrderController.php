@@ -6,11 +6,14 @@ use App\Http\Requests\StoreOrderRequest;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\DiscountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    public function __construct(private readonly DiscountService $discountService) {}
+
     /**
      * Get list of orders
      *
@@ -93,12 +96,54 @@ class OrderController extends Controller
         }
 
         $order->calculateTotal();
+
+        // Apply discount (promo code takes priority; fallback to auto-apply)
+        $discount       = null;
+        $discountAmount = 0;
+
+        if ($request->filled('discount_code')) {
+            try {
+                $result         = $this->discountService->validate(
+                    $request->discount_code,
+                    $order->total_price,
+                    $request->input('customer.phone'),
+                );
+                $discount       = $result['discount'];
+                $discountAmount = $result['amount'];
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return response()->json([
+                    'message' => $e->errors()['discount_code'][0] ?? 'Промокод недействителен',
+                    'errors'  => $e->errors(),
+                ], 422);
+            }
+        }
+
+        if (!$discount) {
+            $discount = $this->discountService->findAutoApply(
+                $order->total_price,
+                $request->input('customer.phone'),
+            );
+            if ($discount) {
+                $discountAmount = $this->discountService->calculate($discount, $order->total_price);
+            }
+        }
+
+        if ($discount && $discountAmount > 0) {
+            $order->update([
+                'discount_id'     => $discount->id,
+                'discount_code'   => $discount->code,
+                'discount_amount' => $discountAmount,
+                'total_price'     => max(0, $order->total_price - $discountAmount),
+            ]);
+            $this->discountService->recordUse($discount, $order);
+        }
+
         $customer->updateStats();
         $order->load(['items', 'customer']);
 
         return response()->json([
             'message' => 'Order created successfully',
-            'data' => $order,
+            'data'    => $order,
         ], 201);
     }
 

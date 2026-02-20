@@ -16,6 +16,9 @@ class Order extends Model
         'customer_id',
         'status',
         'total_price',
+        'discount_id',
+        'discount_code',
+        'discount_amount',
         'payment_id',
         'payment_url',
         'customer_name',
@@ -27,11 +30,12 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'total_price' => 'integer',
+        'total_price'     => 'integer',
+        'discount_amount' => 'integer',
         'shipping_address' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'paid_at' => 'datetime',
+        'created_at'      => 'datetime',
+        'updated_at'      => 'datetime',
+        'paid_at'         => 'datetime',
     ];
 
     public function customer()
@@ -42,6 +46,11 @@ class Order extends Model
     public function items()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function discount()
+    {
+        return $this->belongsTo(\App\Models\Discount::class);
     }
 
     public function scopeWithStatus($query, string $status)
