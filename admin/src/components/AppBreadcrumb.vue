@@ -23,6 +23,7 @@ const CRUMBS: Record<string, CrumbDef> = {
   'customer-detail': { label: 'Клиент',                               parent: 'customers' },
   'masters':         { label: 'Мастера',         to: '/masters',      parent: 'dashboard' },
   'master-detail':   { label: 'Мастер',                               parent: 'masters'   },
+  'discounts':       { label: 'Скидки',          to: '/discounts',    parent: 'dashboard' },
   'subscription':    { label: 'Подписка',        to: '/subscription', parent: 'dashboard' },
   'settings':        { label: 'Настройки',       to: '/settings',     parent: 'dashboard' },
 }

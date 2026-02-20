@@ -292,6 +292,39 @@ class ApiClient {
   }
 
   // ==========================================
+  // DISCOUNTS
+  // ==========================================
+
+  async getDiscounts(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ data: any[] }>(`/admin/discounts${query}`)
+  }
+
+  async getDiscount(id: string) {
+    return this.request<{ data: any }>(`/admin/discounts/${id}`)
+  }
+
+  async createDiscount(data: Record<string, any>) {
+    return this.request<{ data: any }>('/admin/discounts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateDiscount(id: string, data: Record<string, any>) {
+    return this.request<{ data: any }>(`/admin/discounts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteDiscount(id: string) {
+    return this.request<{ message: string }>(`/admin/discounts/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // ==========================================
   // SUBSCRIPTION
   // ==========================================
 

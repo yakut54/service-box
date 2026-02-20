@@ -82,6 +82,11 @@ const router = createRouter({
           component: () => import('@/views/MasterDetailView.vue'),
         },
         {
+          path: 'discounts',
+          name: 'discounts',
+          component: () => import('@/views/DiscountsView.vue'),
+        },
+        {
           path: 'subscription',
           name: 'subscription',
           component: () => import('@/views/SubscriptionView.vue'),
