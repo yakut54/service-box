@@ -254,8 +254,8 @@ SQL
                 )
             ");
 
-            DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS ON \"{$s}\".discounts(code) WHERE code IS NOT NULL");
-            DB::statement("CREATE INDEX IF NOT EXISTS ON \"{$s}\".discounts(is_active)");
+            DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS discounts_code_unique ON \"{$s}\".discounts(code) WHERE code IS NOT NULL");
+            DB::statement("CREATE INDEX IF NOT EXISTS discounts_is_active_idx ON \"{$s}\".discounts(is_active)");
 
             // Add discount columns to orders
             DB::statement("ALTER TABLE \"{$s}\".orders ADD COLUMN IF NOT EXISTS discount_id UUID REFERENCES \"{$s}\".discounts(id) ON DELETE SET NULL");
@@ -274,8 +274,8 @@ SQL
                 )
             ");
 
-            DB::statement("CREATE INDEX IF NOT EXISTS ON \"{$s}\".discount_uses(discount_id)");
-            DB::statement("CREATE INDEX IF NOT EXISTS ON \"{$s}\".discount_uses(customer_phone)");
+            DB::statement("CREATE INDEX IF NOT EXISTS discount_uses_discount_id_idx ON \"{$s}\".discount_uses(discount_id)");
+            DB::statement("CREATE INDEX IF NOT EXISTS discount_uses_phone_idx ON \"{$s}\".discount_uses(customer_phone)");
         }
     }
 
