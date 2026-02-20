@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
+import DatePicker from '@/components/DatePicker.vue'
 
 type DiscountType  = 'percent' | 'fixed'
 type DiscountScope = 'cart' | 'product' | 'category'
@@ -572,11 +573,11 @@ async function doDelete() {
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="label">Дата начала</label>
-              <input v-model="form.starts_at" type="date" class="input" />
+              <DatePicker v-model="form.starts_at" placeholder="Не задана" />
             </div>
             <div>
               <label class="label">Дата окончания</label>
-              <input v-model="form.ends_at" type="date" class="input" />
+              <DatePicker v-model="form.ends_at" :min="form.starts_at || undefined" placeholder="Не задана" />
             </div>
           </div>
 
