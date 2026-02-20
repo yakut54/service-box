@@ -228,7 +228,7 @@ class BookingController extends Controller
             $current->addMinutes($slotsSkipped * $slotStep);
         }
 
-        while ($current->lessThan($workEnd)) {
+        while ($current->copy()->addMinutes($duration)->lessThanOrEqualTo($workEnd)) {
             $slotEnd = $current->copy()->addMinutes($duration);
 
             $availableMasters = $masters->filter(function ($master) use ($current, $slotEnd) {
