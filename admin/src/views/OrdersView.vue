@@ -89,12 +89,11 @@ function formatDate(dateStr: string) {
                 <td>
                   <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">{{ order.items?.length || 0 }} поз.</div>
                   <div class="flex flex-wrap gap-1">
-                    <RouterLink
+                    <span
                       v-for="item in order.items"
                       :key="item.id"
-                      :to="`/products/${item.product_id}`"
-                      class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 hover:underline truncate max-w-[180px]"
-                    >{{ item.product_name }}</RouterLink>
+                      class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[180px]"
+                    >{{ item.product_name }}</span>
                   </div>
                 </td>
                 <td class="font-semibold dark:text-gray-100">{{ formatPrice(order.total_price) }}</td>
