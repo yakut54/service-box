@@ -59,6 +59,8 @@ export const useCartStore = defineStore('sb-cart', () => {
     const existing = items.value.find(i => i.id === product.id)
 
     if (existing) {
+      // Цифровой товар можно купить только 1 раз
+      if (existing.type === 'digital') return
       // Не превышаем остаток на складе
       if (existing.maxStock != null && existing.quantity >= existing.maxStock) return
       existing.quantity++
@@ -87,6 +89,13 @@ export const useCartStore = defineStore('sb-cart', () => {
 
     if (quantity <= 0) {
       removeItem(productId)
+      return
+    }
+
+    // Цифровой товар — не более 1
+    if (item.type === 'digital' && quantity > 1) {
+      item.quantity = 1
+      persist()
       return
     }
 

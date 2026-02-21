@@ -16,6 +16,7 @@ const shopStore = useShopStore()
 
 const isService  = computed(() => props.product.type === 'service')
 const isPhysical = computed(() => props.product.type === 'physical')
+const isDigital  = computed(() => props.product.type === 'digital')
 
 const maxStock = computed(() => {
   if (!isPhysical.value || !props.product.physical) return Infinity
@@ -226,7 +227,7 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
               <div class="sb-quantity">
                 <button class="sb-quantity-btn" @click="handleDecrement">−</button>
                 <span class="sb-quantity-value">{{ inCartQty }}</span>
-                <button class="sb-quantity-btn" :disabled="isPhysical && inCartQty >= maxStock" @click="handleIncrement">+</button>
+                <button class="sb-quantity-btn" :disabled="(isPhysical && inCartQty >= maxStock) || isDigital" @click="handleIncrement">+</button>
               </div>
               <span class="sb-pd-qty-total">{{ formatPrice(product.price * inCartQty) }}</span>
             </div>
@@ -392,8 +393,8 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
     <!-- Mobile sticky footer -->
     <div class="sb-pd-footer">
       <div class="sb-pd-footer-price">
-        <span class="sb-pd-footer-amount">{{ formatPrice(product.price) }}</span>
-        <span v-if="hasDiscount" class="sb-pd-footer-old">{{ formatPrice(product.compare_price) }}</span>
+        <span class="sb-pd-footer-amount">{{ formatPrice(inCart ? product.price * inCartQty : product.price) }}</span>
+        <span v-if="hasDiscount && !inCart" class="sb-pd-footer-old">{{ formatPrice(product.compare_price) }}</span>
       </div>
       <template v-if="isService">
         <button class="sb-btn sb-btn-primary" @click="emit('booking', product)">Записаться</button>
@@ -402,7 +403,7 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         <div class="sb-quantity sb-quantity-sm">
           <button class="sb-quantity-btn" @click="handleDecrement">−</button>
           <span class="sb-quantity-value">{{ inCartQty }}</span>
-          <button class="sb-quantity-btn" :disabled="isPhysical && inCartQty >= maxStock" @click="handleIncrement">+</button>
+          <button class="sb-quantity-btn" :disabled="(isPhysical && inCartQty >= maxStock) || isDigital" @click="handleIncrement">+</button>
         </div>
         <button class="sb-btn sb-btn-primary" @click="emit('goToCart')">В корзину</button>
       </template>
