@@ -95,12 +95,27 @@
     @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5;
   }
 
-  .badge {
+  .badge,
+  .badge-pending,
+  .badge-paid,
+  .badge-processing,
+  .badge-completed,
+  .badge-cancelled,
+  .badge-confirmed,
+  .badge-no_show {
     @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap;
   }
 
-  .badge::before {
+  .badge::before,
+  .badge-pending::before,
+  .badge-paid::before,
+  .badge-processing::before,
+  .badge-completed::before,
+  .badge-cancelled::before,
+  .badge-confirmed::before,
+  .badge-no_show::before {
     content: '';
+    display: block;
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -110,15 +125,15 @@
   }
 
   /* Заказы */
-  .badge-pending   { @apply badge bg-amber-100  text-amber-700; }
-  .badge-paid      { @apply badge bg-emerald-100 text-emerald-700; }
-  .badge-processing{ @apply badge bg-blue-100   text-blue-700; }
-  .badge-completed { @apply badge bg-slate-100  text-slate-600; }
-  .badge-cancelled { @apply badge bg-red-100    text-red-700; }
+  .badge-pending   { @apply bg-amber-100  text-amber-700; }
+  .badge-paid      { @apply bg-emerald-100 text-emerald-700; }
+  .badge-processing{ @apply bg-blue-100   text-blue-700; }
+  .badge-completed { @apply bg-slate-100  text-slate-600; }
+  .badge-cancelled { @apply bg-red-100    text-red-700; }
 
   /* Записи */
-  .badge-confirmed { @apply badge bg-indigo-100 text-indigo-700; }
-  .badge-no_show   { @apply badge bg-orange-100 text-orange-700; }
+  .badge-confirmed { @apply bg-indigo-100 text-indigo-700; }
+  .badge-no_show   { @apply bg-orange-100 text-orange-700; }
 
   .table {
     @apply w-full text-sm text-left;
