@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
+import TimeInput from '@/components/TimeInput.vue'
 
 const authStore = useAuthStore()
 
@@ -205,11 +206,11 @@ async function saveWorkHours() {
       <div class="grid grid-cols-2 gap-4 mb-4">
         <div>
           <label class="label">Начало рабочего дня</label>
-          <input v-model="workStart" type="time" class="input" />
+          <TimeInput v-model="workStart" />
         </div>
         <div>
           <label class="label">Конец рабочего дня</label>
-          <input v-model="workEnd" type="time" class="input" />
+          <TimeInput v-model="workEnd" />
         </div>
       </div>
 
