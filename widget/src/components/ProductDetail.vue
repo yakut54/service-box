@@ -258,7 +258,7 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         </h3>
         <button
           v-if="!formExpanded && !formSuccess"
-          class="sb-btn sb-btn-ghost sb-btn-sm"
+          class="sb-btn sb-btn-secondary sb-btn-sm"
           @click="formExpanded = true"
         >
           Оставить отзыв
