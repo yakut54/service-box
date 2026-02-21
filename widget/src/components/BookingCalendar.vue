@@ -80,16 +80,35 @@ function onPhoneInput(e: Event) {
   })
 }
 
+// ── Shop-timezone helpers ─────────────────────────────────────
+// All date/time comparisons use the shop's configured timezone,
+// not the client's browser timezone.
+function shopNowParts() {
+  const tz = shopStore.shop?.timezone || 'Europe/Moscow'
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date())
+  const get = (type: string) => {
+    const raw = parseInt(parts.find(p => p.type === type)?.value ?? '0')
+    return isNaN(raw) ? 0 : raw
+  }
+  return {
+    year: get('year'), month: get('month'), day: get('day'),
+    // hour12: false can return 24 for midnight in some engines
+    hour: get('hour') % 24, minute: get('minute'),
+  }
+}
+
 function todayStr(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${dd}`
+  const { year, month, day } = shopNowParts()
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
 // ── Mini-calendar (full month grid, Calendly-style) ──────────
-const today = new Date()
+const { year: _ty, month: _tm, day: _td } = shopNowParts()
+const today = new Date(_ty, _tm - 1, _td)
 today.setHours(0, 0, 0, 0)
 
 const calViewYear  = ref(today.getFullYear())
@@ -233,14 +252,16 @@ function selectSlot(slot: Slot) {
   }
 }
 
-// Client-side past-slot guard using LOCAL time (server may be in different timezone).
-// slot.time is "HH:MM" in shop's local time; selectedDate is "YYYY-MM-DD" local.
-// new Date(year, month, day, h, m) always creates a local datetime — no UTC ambiguity.
+// Past-slot guard using the SHOP's configured timezone.
+// slot.time is "HH:MM" in the shop's local time.
+// We compare against the current time in the shop's timezone via shopNowParts().
 const isPastSlot = (slot: Slot): boolean => {
-  const [year, month, day] = selectedDate.value.split('-').map(Number)
   const [h, m] = slot.time.split(':').map(Number)
-  const slotLocal = new Date(year, month - 1, day, h, m, 0, 0)
-  return slotLocal <= new Date()
+  const { year, month, day, hour, minute } = shopNowParts()
+  const [selYear, selMonth, selDay] = selectedDate.value.split('-').map(Number)
+  // Only filter on the shop's current calendar day; future/past days handled by calendar
+  if (selYear !== year || selMonth !== month || selDay !== day) return false
+  return h < hour || (h === hour && m <= minute)
 }
 
 const availableSlots = computed(() => slots.value.filter(s => s.available && !isPastSlot(s)))
