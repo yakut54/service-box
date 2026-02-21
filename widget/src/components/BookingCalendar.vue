@@ -236,9 +236,11 @@ const shopTimezone = computed(() => shopStore.shop?.timezone || 'Europe/Moscow')
 const clockDate = computed(() =>
   now.value.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: shopTimezone.value })
 )
-const clockTime = computed(() =>
-  now.value.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: shopTimezone.value })
+const clockHHMM = computed(() =>
+  now.value.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: shopTimezone.value })
 )
+// Seconds are timezone-independent (offset is always whole minutes)
+const clockSS = computed(() => String(now.value.getSeconds()).padStart(2, '0'))
 
 function selectSlot(slot: Slot) {
   if (!slot.available) return
@@ -323,19 +325,17 @@ async function handleSubmit() {
 <template>
   <div class="sb-booking">
     <!-- Header -->
-    <div class="sb-flex sb-items-center sb-gap-3 sb-mb-4">
-      <div class="sb-flex sb-items-center sb-gap-3" style="flex: 1; min-width: 0;">
-        <button class="sb-btn sb-btn-ghost" @click="emit('back')">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          Назад
-        </button>
-        <h2 class="sb-title" style="margin-bottom: 0;">Запись на услугу</h2>
-      </div>
+    <div class="sb-booking-header sb-mb-4">
+      <button class="sb-btn sb-btn-ghost" @click="emit('back')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Назад
+      </button>
+      <h2 class="sb-booking-header-title">Запись на услугу</h2>
       <div class="sb-booking-clock" aria-label="Текущее время">
         <span class="sb-booking-clock-date">{{ clockDate }}</span>
-        <span class="sb-booking-clock-time">{{ clockTime }}</span>
+        <span class="sb-booking-clock-time">{{ clockHHMM }}<span class="sb-clock-ss">:{{ clockSS }}</span></span>
       </div>
     </div>
 

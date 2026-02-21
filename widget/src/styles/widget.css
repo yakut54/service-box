@@ -2636,6 +2636,26 @@
   padding: 14px 16px;
 }
 
+/* ── BookingCalendar header layout ── */
+.sb-booking-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.sb-booking-header-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--sb-text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── Live clock pill in BookingCalendar header ── */
 .sb-booking-clock {
   flex-shrink: 0;
@@ -3395,6 +3415,24 @@
   .sb-main-inner { padding: 12px 12px; }
   .sb-booking-slots { grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .sb-card { padding: 14px; }
+
+  /* Booking header: two-row layout */
+  /* Row 1: [← Назад] ........... [15:02] */
+  /* Row 2: [Запись на услугу            ] */
+  .sb-booking-header-title {
+    order: 10;
+    flex-basis: 100%;
+    font-size: 16px;
+    white-space: normal;
+  }
+  .sb-booking-header .sb-booking-clock {
+    margin-left: auto;
+  }
+  /* Hide seconds and date — only HH:MM fits */
+  .sb-clock-ss { display: none; }
+  .sb-booking-clock-date { display: none; }
+  .sb-booking-clock-time { font-size: 14px; }
+  .sb-booking-clock { padding: 5px 9px; gap: 0; }
 }
 
 /* ≤450px: narrow phone — compress further */
