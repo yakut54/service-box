@@ -92,6 +92,19 @@ const reviewCount = computed(() => props.product.review_count ?? 0)
         <span v-if="reviewCount" class="sb-pc-rating-count">· {{ reviewCount }}</span>
       </div>
 
+      <!-- Attribute chips -->
+      <div v-if="product.type === 'physical' && product.physical && (product.physical.brand || product.physical.color || product.physical.material)" class="sb-pc-attrs">
+        <span v-if="product.physical.brand" class="sb-pc-attr">{{ product.physical.brand }}</span>
+        <span v-if="product.physical.color" class="sb-pc-attr">{{ product.physical.color }}</span>
+        <span v-if="product.physical.material" class="sb-pc-attr">{{ product.physical.material }}</span>
+      </div>
+      <div v-else-if="product.type === 'digital' && product.digital && product.digital.file_format" class="sb-pc-attrs">
+        <span class="sb-pc-attr">{{ product.digital.file_format }}</span>
+      </div>
+      <div v-else-if="product.type === 'service' && product.service && product.service.requires_prepayment" class="sb-pc-attrs">
+        <span class="sb-pc-attr">Предоплата</span>
+      </div>
+
       <!-- Price row: prices on left, cart icon on right -->
       <div class="sb-pc-price-row">
         <div class="sb-pc-prices">

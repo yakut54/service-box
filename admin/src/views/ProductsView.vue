@@ -121,11 +121,21 @@ function getStockBadge(product: any) {
           <span v-else-if="product.type === 'service' && product.service" class="text-sm text-gray-500 dark:text-gray-400">{{ product.service.duration_minutes }} мин</span>
         </div>
 
-        <!-- Physical attributes chips -->
+        <!-- Attribute chips by type -->
         <div v-if="product.type === 'physical' && product.physical && (product.physical.brand || product.physical.color || product.physical.material)" class="flex flex-wrap gap-1.5 mb-3">
-          <span v-if="product.physical.brand" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.brand }}</span>
-          <span v-if="product.physical.color" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.color }}</span>
+          <span v-if="product.physical.brand"    class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.brand }}</span>
+          <span v-if="product.physical.color"    class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.color }}</span>
           <span v-if="product.physical.material" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.material }}</span>
+        </div>
+        <div v-else-if="product.type === 'digital' && product.digital && (product.digital.file_format || product.digital.access_days)" class="flex flex-wrap gap-1.5 mb-3">
+          <span v-if="product.digital.file_format"  class="badge bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">{{ product.digital.file_format }}</span>
+          <span v-if="product.digital.access_days"  class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.digital.access_days }} дн.</span>
+          <span v-if="product.digital.file_size_mb" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.digital.file_size_mb }} МБ</span>
+        </div>
+        <div v-else-if="product.type === 'service' && product.service && (product.service.break_minutes > 0 || product.service.requires_prepayment || product.service.max_concurrent > 1)" class="flex flex-wrap gap-1.5 mb-3">
+          <span v-if="product.service.break_minutes > 0"    class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Перерыв {{ product.service.break_minutes }} мин</span>
+          <span v-if="product.service.max_concurrent > 1"   class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.service.max_concurrent }} мест</span>
+          <span v-if="product.service.requires_prepayment"  class="badge bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">Предоплата</span>
         </div>
 
         <div class="flex gap-2">

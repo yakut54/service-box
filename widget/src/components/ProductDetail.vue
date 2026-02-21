@@ -51,6 +51,12 @@ function handleAddToCart() { cartStore.addItem(props.product) }
 function handleIncrement()  { cartStore.updateQuantity(props.product.id, inCartQty.value + 1) }
 function handleDecrement()  { cartStore.updateQuantity(props.product.id, inCartQty.value - 1) }
 
+const deliveryTypeLabel: Record<string, string> = {
+  download: 'Скачивание',
+  link: 'Ссылка',
+  code: 'Код доступа',
+}
+
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 
 interface ReviewItem {
@@ -199,6 +205,36 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
           <div class="sb-pd-meta-row">
             <span class="sb-pd-meta-label">Длительность</span>
             <span>{{ product.service.duration_minutes }} мин</span>
+          </div>
+          <div v-if="product.service.break_minutes > 0" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Перерыв</span>
+            <span>{{ product.service.break_minutes }} мин</span>
+          </div>
+          <div v-if="product.service.max_concurrent > 1" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Мест одновременно</span>
+            <span>{{ product.service.max_concurrent }}</span>
+          </div>
+          <div v-if="product.service.requires_prepayment" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Предоплата</span>
+            <span>Требуется</span>
+          </div>
+        </div>
+        <div v-if="isDigital && product.digital" class="sb-pd-meta">
+          <div v-if="product.digital.delivery_type" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Доставка</span>
+            <span>{{ deliveryTypeLabel[product.digital.delivery_type] ?? product.digital.delivery_type }}</span>
+          </div>
+          <div v-if="product.digital.file_format" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Формат</span>
+            <span>{{ product.digital.file_format }}</span>
+          </div>
+          <div v-if="product.digital.file_size_mb" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Размер файла</span>
+            <span>{{ product.digital.file_size_mb }} МБ</span>
+          </div>
+          <div v-if="product.digital.access_days" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Срок доступа</span>
+            <span>{{ product.digital.access_days }} {{ plural(product.digital.access_days, 'день', 'дня', 'дней') }}</span>
           </div>
         </div>
         <div v-if="isPhysical && product.physical" class="sb-pd-meta">
