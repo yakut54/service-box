@@ -206,9 +206,25 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
             <span class="sb-pd-meta-label">Артикул</span>
             <span>{{ product.physical.sku }}</span>
           </div>
+          <div v-if="product.physical.brand" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Бренд</span>
+            <span>{{ product.physical.brand }}</span>
+          </div>
+          <div v-if="product.physical.color" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Цвет</span>
+            <span>{{ product.physical.color }}</span>
+          </div>
+          <div v-if="product.physical.material" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Материал</span>
+            <span>{{ product.physical.material }}</span>
+          </div>
           <div v-if="product.physical.weight_grams" class="sb-pd-meta-row">
             <span class="sb-pd-meta-label">Вес</span>
             <span>{{ product.physical.weight_grams }} г</span>
+          </div>
+          <div v-if="product.physical.dimensions" class="sb-pd-meta-row">
+            <span class="sb-pd-meta-label">Размер</span>
+            <span>{{ product.physical.dimensions }}</span>
           </div>
         </div>
 

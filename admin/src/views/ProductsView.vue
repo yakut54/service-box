@@ -115,10 +115,17 @@ function getStockBadge(product: any) {
           </span>
         </div>
 
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-3">
           <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ formatPrice(product.price) }}</span>
           <span v-if="getStockBadge(product)" :class="['badge', getStockBadge(product)!.cls]">{{ getStockBadge(product)!.text }}</span>
           <span v-else-if="product.type === 'service' && product.service" class="text-sm text-gray-500 dark:text-gray-400">{{ product.service.duration_minutes }} мин</span>
+        </div>
+
+        <!-- Physical attributes chips -->
+        <div v-if="product.type === 'physical' && product.physical && (product.physical.brand || product.physical.color || product.physical.material)" class="flex flex-wrap gap-1.5 mb-3">
+          <span v-if="product.physical.brand" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.brand }}</span>
+          <span v-if="product.physical.color" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.color }}</span>
+          <span v-if="product.physical.material" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.material }}</span>
         </div>
 
         <div class="flex gap-2">
