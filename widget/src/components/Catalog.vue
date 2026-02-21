@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [product: any]
   'open-cart': []
+  book: [product: any]
   'categories-loaded': [categories: string[]]
 }>()
 
@@ -182,6 +183,7 @@ function handleSelect(product: any) {
         :product="product"
         @select="handleSelect"
         @open-cart="emit('open-cart')"
+        @book="(p) => emit('book', p)"
       />
     </div>
 

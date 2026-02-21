@@ -368,6 +368,7 @@ function selectSidebarCategory(cat: string) {
               :active-category="activeSidebarCategory"
               @select="handleProductSelect"
               @open-cart="navigate('cart')"
+              @book="handleBooking"
               @categories-loaded="handleCategoriesLoaded"
             />
 

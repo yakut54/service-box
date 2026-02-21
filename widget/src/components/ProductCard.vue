@@ -7,6 +7,7 @@ const props = defineProps<{ product: any }>()
 const emit = defineEmits<{
   select: [product: any]
   'open-cart': []
+  book: [product: any]
 }>()
 
 const cartStore = useCartStore()
@@ -124,12 +125,12 @@ function decrement() {
           <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
         </div>
 
-        <!-- SERVICE: всегда ведёт на карточку товара (там выбор времени) -->
+        <!-- SERVICE: сразу открывает календарь бронирования -->
         <button
           v-if="isService && !isOutOfStock"
           class="sb-pc-cart-btn"
           aria-label="Записаться"
-          @click.stop="emit('select', product)"
+          @click.stop="emit('book', product)"
         >
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
