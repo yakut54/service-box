@@ -9,9 +9,13 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const open    = ref(false)
+const open         = ref(false)
+const dropUp       = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
+const triggerRef   = ref<HTMLButtonElement | null>(null)
 const hoursRef     = ref<HTMLElement | null>(null)
+
+const DROPDOWN_HEIGHT = 260 // header ~44px + columns max-height 196px + buffer
 
 function pad(n: number) {
   return String(n).padStart(2, '0')
@@ -46,6 +50,12 @@ function setMinute(m: number) {
 function toggle() {
   open.value = !open.value
   if (open.value) {
+    if (triggerRef.value) {
+      const rect = triggerRef.value.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      dropUp.value = spaceBelow < DROPDOWN_HEIGHT && spaceAbove > spaceBelow
+    }
     nextTick(scrollToHour)
   }
 }
@@ -82,6 +92,7 @@ onUnmounted(() => {
 
     <!-- Trigger -->
     <button
+      ref="triggerRef"
       type="button"
       @click="toggle"
       :class="[
@@ -107,15 +118,18 @@ onUnmounted(() => {
     <!-- Dropdown -->
     <Transition
       enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 translate-y-1 scale-[0.98]"
+      :enter-from-class="dropUp ? 'opacity-0 -translate-y-1 scale-[0.98]' : 'opacity-0 translate-y-1 scale-[0.98]'"
       enter-to-class="opacity-100 translate-y-0 scale-100"
       leave-active-class="transition duration-100 ease-in"
       leave-from-class="opacity-100 translate-y-0 scale-100"
-      leave-to-class="opacity-0 translate-y-1 scale-[0.98]"
+      :leave-to-class="dropUp ? 'opacity-0 -translate-y-1 scale-[0.98]' : 'opacity-0 translate-y-1 scale-[0.98]'"
     >
       <div
         v-if="open"
-        class="absolute z-50 mt-1 left-0 w-full min-w-[160px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden"
+        :class="[
+          'absolute z-50 left-0 w-full min-w-[160px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden',
+          dropUp ? 'bottom-[calc(100%+4px)]' : 'top-[calc(100%+4px)]',
+        ]"
       >
 
         <!-- Header: live preview -->
