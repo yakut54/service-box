@@ -107,7 +107,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Orders
     Route::get('/orders/stats', [OrderController::class, 'stats']);
     Route::get('/orders/chart', [OrderController::class, 'chart']);
-    Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
 
     // Customers
@@ -121,7 +121,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::get('/bookings/stats', [BookingController::class, 'adminStats']);
     Route::get('/bookings/masters', [BookingController::class, 'masters']);
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
-    Route::apiResource('bookings', BookingController::class)->only(['index', 'store', 'show']);
+    Route::apiResource('bookings', BookingController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::patch('/bookings/{booking}', [BookingController::class, 'updateStatus']);
 
     // Masters

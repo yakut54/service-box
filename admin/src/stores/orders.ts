@@ -44,6 +44,11 @@ export const useOrdersStore = defineStore('orders', () => {
     }
   }
 
+  async function deleteOrder(id: string) {
+    await api.deleteOrder(id)
+    orders.value = orders.value.filter(o => o.id !== id)
+  }
+
   function $reset() {
     orders.value = []
     stats.value = {
@@ -67,6 +72,7 @@ export const useOrdersStore = defineStore('orders', () => {
     fetchOrders,
     fetchStats,
     updateStatus,
+    deleteOrder,
     $reset,
   }
 })

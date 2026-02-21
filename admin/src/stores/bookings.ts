@@ -40,6 +40,11 @@ export const useBookingsStore = defineStore('bookings', () => {
     return data.data
   }
 
+  async function deleteBooking(id: string) {
+    await api.deleteBooking(id)
+    bookings.value = bookings.value.filter(b => b.id !== id)
+  }
+
   return {
     bookings,
     masters,
@@ -48,5 +53,6 @@ export const useBookingsStore = defineStore('bookings', () => {
     fetchMasters,
     updateStatus,
     createBooking,
+    deleteBooking,
   }
 })

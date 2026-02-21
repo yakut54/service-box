@@ -311,4 +311,26 @@ class OrderController extends Controller
 
         return response()->json(['data' => $result]);
     }
+
+    /**
+     * Delete an order with all its items (cascade)
+     *
+     * DELETE /api/admin/orders/{order}
+     */
+    public function destroy(string $order): JsonResponse
+    {
+        $order = Order::with('items.product')->findOrFail($order);
+
+        // Возвращаем физические товары на склад перед удалением
+        foreach ($order->items as $item) {
+            if ($item->product && $item->product->type === 'physical' && $order->status !== 'cancelled') {
+                $item->product->physical?->increment('stock_quantity', $item->quantity);
+            }
+        }
+
+        $order->items()->delete();
+        $order->delete();
+
+        return response()->json(['message' => 'Заказ удалён']);
+    }
 }

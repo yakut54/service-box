@@ -365,6 +365,19 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Delete a booking (cascade)
+     *
+     * DELETE /api/admin/bookings/{booking}
+     */
+    public function destroy(string $booking): JsonResponse
+    {
+        $booking = Booking::findOrFail($booking);
+        $booking->delete();
+
+        return response()->json(['message' => 'Запись удалена']);
+    }
+
     protected function findAvailableMaster(Carbon $startTime, Carbon $endTime): ?string
     {
         $masters = Master::active()->get();

@@ -252,6 +252,14 @@ class ApiClient {
     })
   }
 
+  async deleteBooking(id: string) {
+    return this.request<{ message: string }>(`/admin/bookings/${id}`, { method: 'DELETE' })
+  }
+
+  async deleteOrder(id: string) {
+    return this.request<{ message: string }>(`/admin/orders/${id}`, { method: 'DELETE' })
+  }
+
   async getAvailableSlots(params: Record<string, string>) {
     const query = new URLSearchParams(params).toString()
     return this.request<any>(`/admin/bookings/available-slots?${query}`)
