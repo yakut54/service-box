@@ -3453,7 +3453,7 @@
 
 /* ≤360px: minimal padding, hide some UI chrome */
 @media (max-width: 360px) {
-  .sb-main-inner { padding: 8px 6px; }
+  .sb-main-inner { padding: 8px 8px; }
   .sb-top-header { height: 44px; }
   .sb-shop-name { display: none; }
   .sb-card { padding: 10px 8px; }
@@ -3466,7 +3466,7 @@
 
 /* ≤320px: absolute minimum — touch-friendly, no decorative text */
 @media (max-width: 320px) {
-  .sb-main-inner { padding: 8px 4px; }
+  .sb-main-inner { padding: 8px 6px; }
   .sb-top-header { height: 44px; }
   .sb-top-header-inner { padding: 0 6px; gap: 0; }
   .sb-header-cart-btn, .sb-theme-toggle { width: 34px; height: 34px; }
