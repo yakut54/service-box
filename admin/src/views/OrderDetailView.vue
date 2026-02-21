@@ -20,8 +20,6 @@ const statusLabels: Record<string, string> = {
   completed: 'Завершён', cancelled: 'Отменён',
 }
 
-const statusFlow = ['pending', 'paid', 'processing', 'completed']
-
 function formatPrice(kopecks: number): string {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
 }
@@ -34,10 +32,6 @@ function formatDate(dateStr: string | null) {
     timeZone: shopTz.value,
   })
 }
-
-const subtotal = computed(() =>
-  order.value?.items?.reduce((s: number, i: any) => s + i.price * i.quantity, 0) ?? 0
-)
 
 onMounted(async () => {
   const id = route.params.id as string
