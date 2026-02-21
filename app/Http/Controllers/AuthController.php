@@ -107,6 +107,14 @@ class AuthController extends Controller
                 'name' => $shop->name,
                 'api_key' => $shop->api_key,
                 'subscription_plan' => $shop->subscription_plan,
+                'subscription_expires_at' => $shop->subscription_expires_at,
+                'widget_config' => $shop->widget_config,
+                'work_start' => $shop->work_start,
+                'work_end' => $shop->work_end,
+                'slot_duration' => $shop->slot_duration,
+                'timezone' => $shop->timezone,
+                'telegram_bot_connected' => $shop->telegram_bot_connected,
+                'yookassa_shop_id' => $shop->yookassa_shop_id,
             ],
             'token' => $token,
         ]);
@@ -146,6 +154,12 @@ class AuthController extends Controller
                 'subscription_plan' => $shop->subscription_plan,
                 'subscription_expires_at' => $shop->subscription_expires_at,
                 'widget_config' => $shop->widget_config,
+                'work_start' => $shop->work_start,
+                'work_end' => $shop->work_end,
+                'slot_duration' => $shop->slot_duration,
+                'timezone' => $shop->timezone,
+                'telegram_bot_connected' => $shop->telegram_bot_connected,
+                'yookassa_shop_id' => $shop->yookassa_shop_id,
             ],
         ]);
     }
