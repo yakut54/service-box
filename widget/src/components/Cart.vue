@@ -97,7 +97,7 @@ function removeDiscount() {
 
           <!-- Qty + Remove -->
           <div class="sb-cart-item-actions">
-            <div class="sb-quantity sb-quantity-sm">
+            <div v-if="item.type === 'physical'" class="sb-quantity sb-quantity-sm">
               <button class="sb-quantity-btn" @click="handleQuantityChange(item.id, -1)">−</button>
               <span class="sb-quantity-value">{{ item.quantity }}</span>
               <button

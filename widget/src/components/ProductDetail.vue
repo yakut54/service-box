@@ -275,11 +275,11 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
             </button>
           </template>
           <template v-else-if="inCart">
-            <div class="sb-pd-qty-row">
+            <div v-if="isPhysical" class="sb-pd-qty-row">
               <div class="sb-quantity">
                 <button class="sb-quantity-btn" @click="handleDecrement">−</button>
                 <span class="sb-quantity-value">{{ inCartQty }}</span>
-                <button class="sb-quantity-btn" :disabled="(isPhysical && inCartQty >= maxStock) || isDigital" @click="handleIncrement">+</button>
+                <button class="sb-quantity-btn" :disabled="inCartQty >= maxStock" @click="handleIncrement">+</button>
               </div>
               <span class="sb-pd-qty-total">{{ formatPrice(product.price * inCartQty) }}</span>
             </div>
@@ -452,10 +452,10 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         <button class="sb-btn sb-btn-primary" @click="emit('booking', product)">Записаться</button>
       </template>
       <template v-else-if="inCart">
-        <div class="sb-quantity sb-quantity-sm">
+        <div v-if="isPhysical" class="sb-quantity sb-quantity-sm">
           <button class="sb-quantity-btn" @click="handleDecrement">−</button>
           <span class="sb-quantity-value">{{ inCartQty }}</span>
-          <button class="sb-quantity-btn" :disabled="(isPhysical && inCartQty >= maxStock) || isDigital" @click="handleIncrement">+</button>
+          <button class="sb-quantity-btn" :disabled="inCartQty >= maxStock" @click="handleIncrement">+</button>
         </div>
         <button class="sb-btn sb-btn-primary" @click="emit('goToCart')">В корзину</button>
       </template>
