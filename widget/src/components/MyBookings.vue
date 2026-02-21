@@ -282,8 +282,8 @@ async function doCancel() {
             <span style="font-size: 14px; color: var(--sb-text);">{{ phone }}</span>
             <span class="sb-badge sb-badge-success" style="font-size: 11px;">Подтверждён</span>
           </div>
-          <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 12px;" @click="resetPhone">
-            Сменить
+          <button class="sb-btn sb-btn-ghost" style="padding: 6px 14px; font-size: 13px; font-weight: 600; color: #ef4444; border: 1.5px solid #ef4444;" @click="resetPhone">
+            Выйти
           </button>
         </div>
       </div>
