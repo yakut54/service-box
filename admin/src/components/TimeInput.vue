@@ -53,7 +53,8 @@ function toggle() {
 function scrollToHour() {
   if (!hoursRef.value) return
   const active = hoursRef.value.querySelector('[data-active="true"]') as HTMLElement | null
-  active?.scrollIntoView({ block: 'center', behavior: 'instant' })
+  if (!active) return
+  hoursRef.value.scrollTop = active.offsetTop - hoursRef.value.clientHeight / 2 + active.offsetHeight / 2
 }
 
 function onOutside(e: MouseEvent) {
