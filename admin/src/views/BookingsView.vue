@@ -456,23 +456,27 @@ onMounted(async () => {
     </div>
 
     <!-- ══════════ CALENDAR VIEW ══════════ -->
-    <!-- Calendar fallback on mobile: show list instead -->
-    <div v-else-if="viewMode === 'calendar'" class="sm:hidden card overflow-hidden p-0">
-      <RouterLink
-          v-for="b in bookingsStore.bookings"
-          :key="b.id"
-          :to="`/bookings/${b.id}`"
-          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
-      >
-        <div class="min-w-0 flex-1">
-          <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ b.customer_name }} · {{ formatTimeRange(b.start_time, b.end_time) }}</div>
-          <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(b.start_time) }}</div>
-        </div>
-        <span :class="`badge-${b.status} shrink-0`">{{ statusLabels[b.status] || b.status }}</span>
-      </RouterLink>
-    </div>
-    <div v-else class="card p-0 overflow-hidden hidden sm:block">
+    <div v-else-if="viewMode === 'calendar'">
+
+      <!-- Mobile fallback: show as list -->
+      <div class="sm:hidden card overflow-hidden p-0">
+        <RouterLink
+            v-for="b in bookingsStore.bookings"
+            :key="b.id"
+            :to="`/bookings/${b.id}`"
+            class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ b.customer_name }} · {{ formatTimeRange(b.start_time, b.end_time) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(b.start_time) }}</div>
+          </div>
+          <span :class="`badge-${b.status} shrink-0`">{{ statusLabels[b.status] || b.status }}</span>
+        </RouterLink>
+      </div>
+
+      <!-- Desktop calendar -->
+      <div class="card p-0 overflow-hidden hidden sm:block">
 
       <!-- Nav bar -->
       <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800">
@@ -585,6 +589,8 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    </div><!-- end calendar view -->
 
     <!-- ══════════ CREATE BOOKING MODAL ══════════ -->
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
