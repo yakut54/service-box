@@ -2,6 +2,7 @@
 import { onMounted, ref, computed, watch, reactive } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
+import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
@@ -9,7 +10,21 @@ import DatePicker from '@/components/DatePicker.vue'
 import { handlePhoneInput, isValidPhone } from '@/composables/usePhoneInput'
 
 const bookingsStore = useBookingsStore()
+const authStore = useAuthStore()
 const router = useRouter()
+
+const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
+
+// Извлекает компоненты даты/времени в timezone магазина (не браузера)
+function shopParts(dateStr: string) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: shopTz.value,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date(dateStr))
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value ?? '0')
+  return { year: get('year'), month: get('month') - 1, day: get('day'), hour: get('hour') % 24, minute: get('minute') }
+}
 
 // ── Filters ─────────────────────────────────────────────────
 const filterStatus = ref('')
@@ -92,17 +107,20 @@ function formatMonthHeader() {
 function bookingsForDay(date: Date) {
   const y = date.getFullYear(), m = date.getMonth(), d = date.getDate()
   return bookingsStore.bookings.filter(b => {
-    const s = new Date(b.start_time)
-    return s.getFullYear() === y && s.getMonth() === m && s.getDate() === d
+    const p = shopParts(b.start_time)
+    return p.year === y && p.month === m && p.day === d
   })
 }
 
 function bookingStyle(b: any) {
-  const start   = new Date(b.start_time)
-  const end     = b.end_time ? new Date(b.end_time) : new Date(start.getTime() + 60 * 60 * 1000)
-  const startMin = start.getHours() * 60 + start.getMinutes()
-  const endMin   = end.getHours() * 60 + end.getMinutes()
-  const topMin   = Math.max(startMin - CAL_START_H * 60, 0)
+  const s = shopParts(b.start_time)
+  const startMin = s.hour * 60 + s.minute
+  let endMin = startMin + 60
+  if (b.end_time) {
+    const e = shopParts(b.end_time)
+    endMin = e.hour * 60 + e.minute
+  }
+  const topMin    = Math.max(startMin - CAL_START_H * 60, 0)
   const heightMin = Math.max(endMin - startMin, 20)
   return {
     top:    (topMin    * HOUR_H / 60) + 'px',
@@ -123,8 +141,8 @@ function calBookingBg(status: string) {
 
 const nowTop = computed(() => {
   if (weekOffset.value !== 0) return null
-  const now = new Date()
-  const min  = now.getHours() * 60 + now.getMinutes()
+  const p = shopParts(new Date().toISOString())
+  const min    = p.hour * 60 + p.minute
   const topMin = min - CAL_START_H * 60
   if (topMin < 0 || topMin > (CAL_END_H - CAL_START_H) * 60) return null
   return (topMin * HOUR_H / 60) + 'px'
@@ -258,11 +276,11 @@ const statusLabels: Record<string, string> = {
 
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return new Date(dateStr).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: shopTz.value })
 }
 
 function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  return new Date(dateStr).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: shopTz.value })
 }
 
 function formatTimeRange(start: string, end: string) {

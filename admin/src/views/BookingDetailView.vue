@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useBookingsStore } from '@/stores/bookings'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const bookingsStore = useBookingsStore()
+const authStore = useAuthStore()
+const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
 const booking = ref<any>(null)
 const loading = ref(true)
@@ -26,18 +29,20 @@ function formatDate(dateStr: string | null) {
   return new Date(dateStr).toLocaleString('ru-RU', {
     day: 'numeric', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    timeZone: shopTz.value,
   })
 }
 
 function formatTime(dateStr: string | null) {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: shopTz.value })
 }
 
 function formatDateShort(dateStr: string | null) {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('ru-RU', {
     day: 'numeric', month: 'short', year: 'numeric',
+    timeZone: shopTz.value,
   })
 }
 

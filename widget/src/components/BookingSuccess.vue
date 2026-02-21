@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { formatPrice } from '@/lib/utils'
+import { useShopStore } from '@/stores/shop'
 
 const props = defineProps<{ booking: any; product: any }>()
 const emit = defineEmits<{ back: [] }>()
 
+const shopStore = useShopStore()
+
 function formatDateTime(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString('ru-RU', {
+  const tz = shopStore.shop?.timezone || 'Europe/Moscow'
+  return new Date(iso).toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: tz,
   })
 }
 </script>

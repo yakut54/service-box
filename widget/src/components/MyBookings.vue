@@ -41,12 +41,14 @@ const statusBadge: Record<string, string> = {
   no_show: 'sb-badge-danger',
 }
 
+function shopTz() { return shopStore.shop?.timezone || 'Europe/Moscow' }
+
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: shopTz() })
 }
 
 function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  return new Date(dateStr).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: shopTz() })
 }
 
 function formatTimeRange(start: string, end: string) {
