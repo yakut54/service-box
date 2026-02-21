@@ -67,7 +67,9 @@ class BookingController extends Controller
             ], 400);
         }
 
-        $startTime = Carbon::parse($request->start_time);
+        // Приводим к UTC — Eloquent форматирует без offset ('Y-m-d H:i:s'),
+        // поэтому Carbon должен быть в UTC перед записью в TIMESTAMPTZ.
+        $startTime = Carbon::parse($request->start_time)->utc();
         $endTime = $startTime->copy()->addMinutes($service->service->duration_minutes);
 
         $customerPhone = $this->normalizePhone($request->input('customer.phone'));
@@ -235,8 +237,10 @@ class BookingController extends Controller
         while ($current->copy()->addMinutes($duration)->lessThanOrEqualTo($workEnd)) {
             $slotEnd = $current->copy()->addMinutes($duration);
 
+            // Передаём UTC-копии — иначе Eloquent форматирует Carbon в timezone магазина
+            // без offset, и PostgreSQL сравнивает как UTC (неправильное время слота).
             $availableMasters = $masters->filter(function ($master) use ($current, $slotEnd) {
-                return $master->isAvailableAt($current, $slotEnd);
+                return $master->isAvailableAt($current->copy()->utc(), $slotEnd->copy()->utc());
             });
 
             if ($availableMasters->isNotEmpty()) {
