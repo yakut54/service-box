@@ -9,6 +9,7 @@ export class ApiError extends Error {
 
 class ApiClient {
   private token: string | null = null
+  private unauthorizedHandler: (() => void) | null = null
 
   constructor() {
     this.token = localStorage.getItem('auth_token')
@@ -25,6 +26,10 @@ class ApiClient {
 
   getToken(): string | null {
     return this.token
+  }
+
+  setUnauthorizedHandler(handler: () => void) {
+    this.unauthorizedHandler = handler
   }
 
   private async request<T>(
@@ -49,9 +54,9 @@ class ApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Unknown error' }))
 
-      // Auto-clear token on 401 (but don't redirect — let the router guard handle it)
       if (response.status === 401 && this.token) {
         this.setToken(null)
+        this.unauthorizedHandler?.()
       }
 
       throw new ApiError(response.status, error.message || 'Request failed')

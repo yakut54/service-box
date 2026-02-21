@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { useProductsStore } from '@/stores/products'
 import { useOrdersStore } from '@/stores/orders'
+import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<any>(null)
@@ -16,6 +17,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function initialize() {
     if (initialized.value) return
+
+    // Any 401 on any API call → clear auth and redirect to login
+    api.setUnauthorizedHandler(() => {
+      clearAuth()
+      router.push({ name: 'login' })
+    })
 
     try {
       loading.value = true
