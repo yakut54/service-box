@@ -3428,11 +3428,7 @@
   .sb-booking-header .sb-booking-clock {
     margin-left: auto;
   }
-  /* Hide seconds and date — only HH:MM fits */
-  .sb-clock-ss { display: none; }
-  .sb-booking-clock-date { display: none; }
   .sb-booking-clock-time { font-size: 14px; }
-  .sb-booking-clock { padding: 5px 9px; gap: 0; }
 }
 
 /* ≤450px: narrow phone — compress further */
