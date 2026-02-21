@@ -96,36 +96,29 @@
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap;
   }
 
-  .badge-pending {
-    @apply badge bg-yellow-100 text-yellow-800;
+  .badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+    opacity: 0.75;
   }
 
-  .badge-paid {
-    @apply badge bg-green-100 text-green-800;
-  }
+  /* Заказы */
+  .badge-pending   { @apply badge bg-amber-100  text-amber-700; }
+  .badge-paid      { @apply badge bg-emerald-100 text-emerald-700; }
+  .badge-processing{ @apply badge bg-blue-100   text-blue-700; }
+  .badge-completed { @apply badge bg-slate-100  text-slate-600; }
+  .badge-cancelled { @apply badge bg-red-100    text-red-700; }
 
-  .badge-processing {
-    @apply badge bg-blue-100 text-blue-800;
-  }
-
-  .badge-completed {
-    @apply badge bg-gray-100 text-gray-800;
-  }
-
-  .badge-cancelled {
-    @apply badge bg-red-100 text-red-800;
-  }
-
-  .badge-confirmed {
-    @apply badge bg-blue-100 text-blue-800;
-  }
-
-  .badge-no_show {
-    @apply badge bg-orange-100 text-orange-800;
-  }
+  /* Записи */
+  .badge-confirmed { @apply badge bg-indigo-100 text-indigo-700; }
+  .badge-no_show   { @apply badge bg-orange-100 text-orange-700; }
 
   .table {
     @apply w-full text-sm text-left;
@@ -368,37 +361,14 @@
     background-color: rgb(31 41 55 / 0.5);
   }
 
-  /* ── Бейджи ──────────────────────────────────────────────── */
-  .dark .badge-pending {
-    background-color: rgb(113 63 18 / 0.3);
-    color: rgb(253 224 71);
-  }
-
-  .dark .badge-paid {
-    background-color: rgb(20 83 45 / 0.3);
-    color: rgb(134 239 172);
-  }
-
-  .dark .badge-processing,
-  .dark .badge-confirmed {
-    background-color: rgb(30 58 138 / 0.3);
-    color: rgb(147 197 253);
-  }
-
-  .dark .badge-completed {
-    background-color: rgb(31 41 55);
-    color: rgb(209 213 219);
-  }
-
-  .dark .badge-cancelled {
-    background-color: rgb(127 29 29 / 0.3);
-    color: rgb(252 165 165);
-  }
-
-  .dark .badge-no_show {
-    background-color: rgb(124 45 18 / 0.3);
-    color: rgb(253 186 116);
-  }
+  /* ── Бейджи dark ─────────────────────────────────────────── */
+  .dark .badge-pending    { background-color: rgb(120 53 15 / 0.35);  color: rgb(252 211 77); }
+  .dark .badge-paid       { background-color: rgb(6  78 59 / 0.35);   color: rgb(110 231 183); }
+  .dark .badge-processing { background-color: rgb(30 58 138 / 0.35);  color: rgb(147 197 253); }
+  .dark .badge-completed  { background-color: rgb(30 41 59 / 0.5);    color: rgb(148 163 184); }
+  .dark .badge-cancelled  { background-color: rgb(127 29 29 / 0.35);  color: rgb(252 165 165); }
+  .dark .badge-confirmed  { background-color: rgb(49 46 129 / 0.35);  color: rgb(165 180 252); }
+  .dark .badge-no_show    { background-color: rgb(124 45 18 / 0.35);  color: rgb(253 186 116); }
 
   /* ── Утилиты ─────────────────────────────────────────────── */
   .text-balance {
