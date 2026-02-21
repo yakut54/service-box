@@ -266,10 +266,10 @@ async function doDelete() {
             <button
               @click="togglePublish(r)"
               :class="[
-                'btn-sm text-xs font-medium px-3 py-1.5 rounded-lg transition-colors',
+                'btn-sm text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors border',
                 r.is_published
-                  ? 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  : 'bg-emerald-500 hover:bg-emerald-600 text-white border-transparent'
               ]"
             >
               {{ r.is_published ? 'Скрыть' : 'Опубликовать' }}
