@@ -51,7 +51,7 @@ export class WidgetApi {
 
   // Shop
   async getShop() {
-    return this.request<{ id: string; name: string; widget_config: Record<string, any> | null }>('/widget/shop')
+    return this.request<{ id: string; name: string; widget_config: Record<string, any> | null; timezone: string | null }>('/widget/shop')
   }
 
   // Products
