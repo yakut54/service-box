@@ -1686,7 +1686,7 @@
 /* ---- Cart Drawer ---- */
 .sb-cart-drawer {
   position: absolute;
-  top: 60px; /* below top header */
+  top: 0;
   right: 0;
   bottom: 0;
   width: 400px;
@@ -1700,7 +1700,7 @@
   .sb-cart-drawer {
     left: 0;
     width: 100%;
-    top: 60px;
+    top: 0;
   }
 }
 
