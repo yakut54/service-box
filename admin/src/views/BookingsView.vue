@@ -391,12 +391,12 @@ onMounted(async () => {
             <tbody>
             <tr v-for="b in bookingsStore.bookings" :key="b.id">
               <td>
-                <RouterLink :to="`/bookings/${b.id}`" class="font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">
-                  {{ b.service?.name || '—' }}
-                </RouterLink>
+                <RouterLink v-if="b.service?.id" :to="`/products/${b.service.id}`" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ b.service.name }}</RouterLink>
+                <span v-else class="font-medium text-gray-900 dark:text-gray-100">{{ b.service?.name || '—' }}</span>
               </td>
               <td>
-                <div class="font-medium text-gray-900 dark:text-gray-100">{{ b.customer_name }}</div>
+                <RouterLink v-if="b.customer_id" :to="`/customers/${b.customer_id}`" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ b.customer_name }}</RouterLink>
+                <div v-else class="font-medium text-gray-900 dark:text-gray-100">{{ b.customer_name }}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">{{ b.customer_phone }}</div>
               </td>
               <td>

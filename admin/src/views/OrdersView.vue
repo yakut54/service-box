@@ -82,12 +82,20 @@ function formatDate(dateStr: string) {
               <tr v-for="order in ordersStore.orders" :key="order.id">
                 <td><RouterLink :to="`/orders/${order.id}`" class="text-primary-600 hover:text-primary-700 font-medium">#{{ order.id.slice(0, 8) }}</RouterLink></td>
                 <td>
-                  <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer_name }}</div>
+                  <RouterLink v-if="order.customer_id" :to="`/customers/${order.customer_id}`" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ order.customer_name }}</RouterLink>
+                  <div v-else class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer_name }}</div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">{{ order.customer_phone }}</div>
                 </td>
                 <td>
-                  <div class="text-sm dark:text-gray-200">{{ order.items?.length || 0 }} поз.</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{{ order.items?.map((i: any) => i.product_name).join(', ') }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400 mb-0.5">{{ order.items?.length || 0 }} поз.</div>
+                  <div class="flex flex-wrap gap-1">
+                    <RouterLink
+                      v-for="item in order.items"
+                      :key="item.id"
+                      :to="`/products/${item.product_id}`"
+                      class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 hover:underline truncate max-w-[180px]"
+                    >{{ item.product_name }}</RouterLink>
+                  </div>
                 </td>
                 <td class="font-semibold dark:text-gray-100">{{ formatPrice(order.total_price) }}</td>
                 <td><span :class="`badge-${order.status}`">{{ statusLabels[order.status] || order.status }}</span></td>
