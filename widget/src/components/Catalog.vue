@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [product: any]
+  'open-cart': []
   'categories-loaded': [categories: string[]]
 }>()
 
@@ -180,6 +181,7 @@ function handleSelect(product: any) {
         :key="product.id"
         :product="product"
         @select="handleSelect"
+        @open-cart="emit('open-cart')"
       />
     </div>
 

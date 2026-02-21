@@ -367,6 +367,7 @@ function selectSidebarCategory(cat: string) {
               v-else-if="mainView === 'catalog'"
               :active-category="activeSidebarCategory"
               @select="handleProductSelect"
+              @open-cart="navigate('cart')"
               @categories-loaded="handleCategoriesLoaded"
             />
 

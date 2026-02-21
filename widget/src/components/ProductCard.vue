@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatPrice, plural } from '@/lib/utils'
+import { useCartStore } from '@/stores/cart'
 
 const props = defineProps<{ product: any }>()
-const emit = defineEmits<{ select: [product: any] }>()
+const emit = defineEmits<{
+  select: [product: any]
+  'open-cart': []
+}>()
+
+const cartStore = useCartStore()
+
+const inCartItem = computed(() => cartStore.items.find(i => i.id === props.product.id))
+const inCartQty  = computed(() => inCartItem.value?.quantity ?? 0)
+const inCart     = computed(() => inCartQty.value > 0)
+const maxStock   = computed(() => props.product.physical?.stock_quantity ?? Infinity)
 
 const badge = computed(() => {
   const p = props.product
@@ -29,7 +40,6 @@ const isOutOfStock = computed(() => {
 const isService = computed(() => props.product.type === 'service')
 const isDigital = computed(() => props.product.type === 'digital')
 
-// TODO: discount system pending — compare_price будет использоваться для показа скидки
 const hasDiscount = computed(() =>
   props.product.compare_price && props.product.compare_price > props.product.price
 )
@@ -39,14 +49,21 @@ const discountPercent = computed(() => {
   return Math.round((1 - props.product.price / props.product.compare_price) * 100)
 })
 
-const cartLabel = computed(() => {
-  if (isService.value) return 'Записаться'
-  if (isDigital.value) return 'Получить'
-  return 'В корзину'
-})
-
 const rating = computed(() => props.product.rating != null ? parseFloat(props.product.rating) : null)
 const reviewCount = computed(() => props.product.review_count ?? 0)
+
+function addToCart() {
+  cartStore.addItem(props.product)
+  emit('open-cart')
+}
+
+function increment() {
+  cartStore.updateQuantity(props.product.id, inCartQty.value + 1)
+}
+
+function decrement() {
+  cartStore.updateQuantity(props.product.id, inCartQty.value - 1)
+}
 </script>
 
 <template>
@@ -70,11 +87,7 @@ const reviewCount = computed(() => props.product.review_count ?? 0)
         </svg>
       </div>
 
-      <!-- Badge overlay top-left (service duration / stock / digital) -->
       <span v-if="badge" :class="badge.cls">{{ badge.text }}</span>
-
-      <!-- Discount % badge top-right -->
-      <!-- TODO: discount system pending — will reflect actual promotional discounts -->
       <span v-if="hasDiscount && !isOutOfStock" class="sb-pc-discount">−{{ discountPercent }}%</span>
     </div>
 
@@ -83,7 +96,6 @@ const reviewCount = computed(() => props.product.review_count ?? 0)
       <p v-if="product.category" class="sb-pc-category">{{ product.category }}</p>
       <h3 class="sb-pc-name">{{ product.name }}</h3>
 
-      <!-- Rating — compact: ★ 4.8 · 123 -->
       <div v-if="rating" class="sb-pc-rating">
         <svg class="sb-pc-star-ico" viewBox="0 0 20 20" aria-hidden="true">
           <polygon fill="currentColor" points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
@@ -105,35 +117,63 @@ const reviewCount = computed(() => props.product.review_count ?? 0)
         <span class="sb-pc-attr">Предоплата</span>
       </div>
 
-      <!-- Price row: prices on left, cart icon on right -->
+      <!-- Price row -->
       <div class="sb-pc-price-row">
         <div class="sb-pc-prices">
-          <!-- TODO: discount system pending — отображение цены со скидкой и оригинальной цены -->
           <span class="sb-pc-price">{{ formatPrice(product.price) }}</span>
           <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
         </div>
 
-        <!-- Cart / Book icon button — icon on mobile, icon+text on desktop -->
+        <!-- SERVICE: всегда ведёт на карточку товара (там выбор времени) -->
         <button
-          v-if="!isOutOfStock"
+          v-if="isService && !isOutOfStock"
           class="sb-pc-cart-btn"
-          :aria-label="cartLabel"
+          aria-label="Записаться"
           @click.stop="emit('select', product)"
         >
-          <!-- Calendar for services -->
-          <svg v-if="isService" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <!-- Download for digital -->
-          <svg v-else-if="isDigital" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span class="sb-pc-cart-label">Записаться</span>
+        </button>
+
+        <!-- DIGITAL в корзине: уже получено -->
+        <div
+          v-else-if="isDigital && inCart"
+          class="sb-pc-in-cart"
+          @click.stop
+        >
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>В корзине</span>
+        </div>
+
+        <!-- PHYSICAL в корзине: -/qty/+ -->
+        <div
+          v-else-if="!isService && !isDigital && inCart"
+          class="sb-pc-qty"
+          @click.stop
+        >
+          <button class="sb-pc-qty-btn" @click="decrement">−</button>
+          <span class="sb-pc-qty-val">{{ inCartQty }}</span>
+          <button class="sb-pc-qty-btn" @click="increment" :disabled="inCartQty >= maxStock">+</button>
+        </div>
+
+        <!-- PHYSICAL / DIGITAL не в корзине: добавить -->
+        <button
+          v-else-if="!isOutOfStock"
+          class="sb-pc-cart-btn"
+          :aria-label="isDigital ? 'Получить' : 'В корзину'"
+          @click.stop="addToCart"
+        >
+          <svg v-if="isDigital" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          <!-- Shopping bag for physical -->
           <svg v-else width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
-          <!-- Text label — hidden on mobile, shown on desktop via CSS -->
-          <span class="sb-pc-cart-label">{{ cartLabel }}</span>
+          <span class="sb-pc-cart-label">{{ isDigital ? 'Получить' : 'В корзину' }}</span>
         </button>
       </div>
     </div>
