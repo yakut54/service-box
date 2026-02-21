@@ -2636,6 +2636,37 @@
   padding: 14px 16px;
 }
 
+/* ── Live clock pill in BookingCalendar header ── */
+.sb-booking-clock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 6px 11px;
+  border-radius: var(--sb-radius);
+  border: 1px solid var(--sb-border);
+  background: var(--sb-bg-muted);
+  user-select: none;
+}
+
+.sb-booking-clock-date {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--sb-text-muted);
+  white-space: nowrap;
+}
+
+.sb-booking-clock-time {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--sb-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
 /* Pills (≤2 masters) — prefix raises specificity over .sb-widget button */
 .sb-master-list {
   display: flex;
@@ -2727,6 +2758,11 @@
 /* Confirmed block + master card dark mode */
 .sb-widget[data-theme="dark"] .sb-booking-master-card {
   background: #1a2332;
+  border-color: #374151;
+}
+
+.sb-widget[data-theme="dark"] .sb-booking-clock {
+  background: rgba(255, 255, 255, 0.05);
   border-color: #374151;
 }
 
@@ -3388,6 +3424,9 @@
   .sb-card { padding: 10px 8px; }
   .sb-booking-slots { grid-template-columns: repeat(2, 1fr); gap: 4px; }
   .sb-slot { font-size: 12px; padding: 7px 4px; }
+  .sb-booking-clock-date { display: none; }
+  .sb-booking-clock-time { font-size: 13px; }
+  .sb-booking-clock { padding: 5px 8px; }
 }
 
 /* ≤320px: absolute minimum — touch-friendly, no decorative text */
@@ -3399,4 +3438,5 @@
   .sb-close-btn { width: 34px; height: 34px; }
   .sb-card { padding: 8px 6px; }
   .sb-booking-slots { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  .sb-booking-clock { display: none; }
 }
