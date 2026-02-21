@@ -3428,6 +3428,7 @@
   .sb-booking-header .sb-booking-clock {
     margin-left: auto;
   }
+  .sb-title { font-size: 17px; }
   .sb-booking-clock-time { font-size: 14px; }
 }
 
@@ -3458,9 +3459,9 @@
   .sb-card { padding: 10px 8px; }
   .sb-booking-slots { grid-template-columns: repeat(2, 1fr); gap: 4px; }
   .sb-slot { font-size: 12px; padding: 7px 4px; }
-  .sb-booking-clock-date { display: none; }
-  .sb-booking-clock-time { font-size: 13px; }
-  .sb-booking-clock { padding: 5px 8px; }
+  .sb-title { font-size: 16px; }
+  .sb-booking-clock-time { font-size: 12px; }
+  .sb-booking-clock { padding: 4px 7px; }
 }
 
 /* ≤320px: absolute minimum — touch-friendly, no decorative text */
