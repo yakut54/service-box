@@ -212,11 +212,13 @@ onUnmounted(() => {
   if (_clockTimer) clearInterval(_clockTimer)
 })
 
+const shopTimezone = computed(() => shopStore.shop?.timezone || 'Europe/Moscow')
+
 const clockDate = computed(() =>
-  now.value.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
+  now.value.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: shopTimezone.value })
 )
 const clockTime = computed(() =>
-  now.value.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  now.value.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: shopTimezone.value })
 )
 
 function selectSlot(slot: Slot) {

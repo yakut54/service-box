@@ -5,7 +5,7 @@ import { WidgetApi } from '@/lib/api'
 export const useShopStore = defineStore('sb-shop', () => {
   const shopId = ref('')
   const apiUrl = ref('')
-  const shop = ref<{ id: string; name: string; widget_config: Record<string, any> | null } | null>(null)
+  const shop = ref<{ id: string; name: string; widget_config: Record<string, any> | null; timezone: string | null } | null>(null)
   const loading = ref(false)
   const error = ref('')
 

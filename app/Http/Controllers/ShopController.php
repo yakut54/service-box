@@ -28,6 +28,7 @@ class ShopController extends Controller
             'id' => $shop->id,
             'name' => $shop->name,
             'widget_config' => $shop->widget_config,
+            'timezone' => $shop->timezone,
         ]);
     }
 
