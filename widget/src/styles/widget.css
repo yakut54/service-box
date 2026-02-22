@@ -591,60 +591,6 @@
   right: 0;
 }
 
-/* Category pills — horizontal scroll row */
-.sb-cat-pills-wrap {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 2px;
-}
-
-.sb-cat-pills-wrap::-webkit-scrollbar {
-  display: none;
-}
-
-/* Active category header bar */
-.sb-cat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--sb-primary-light, rgba(99,102,241,0.08));
-  border: 1px solid var(--sb-primary, #6366f1);
-  border-radius: var(--sb-radius);
-  margin-bottom: 4px;
-}
-
-.sb-cat-header-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--sb-primary, #6366f1);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sb-cat-header-clear {
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--sb-primary, #6366f1);
-  color: #fff;
-  transition: background 0.15s;
-}
-
-.sb-cat-header-clear:hover {
-  background: var(--sb-primary-hover, #4f46e5);
-}
-
 /* Legacy chips (kept for backward compat, hidden by default) */
 .sb-chips-row {
   display: none;
