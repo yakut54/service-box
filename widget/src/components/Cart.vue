@@ -76,42 +76,69 @@ function removeDiscount() {
       <!-- Items -->
       <div v-else class="sb-cart-items">
         <div v-for="item in cartStore.items" :key="item.id" class="sb-cart-item">
-          <!-- Image -->
-          <div class="sb-cart-item-img-wrap">
-            <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="sb-cart-item-img" />
-            <div v-else class="sb-cart-item-img-placeholder">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
 
-          <!-- Info -->
-          <div class="sb-cart-item-info">
-            <h4 class="sb-cart-item-name">{{ item.name }}</h4>
-            <p class="sb-cart-item-price">
-              {{ formatPrice(item.price) }}
-              <span v-if="item.quantity > 1" class="sb-cart-item-subtotal">× {{ item.quantity }} = {{ formatPrice(item.price * item.quantity) }}</span>
-            </p>
-          </div>
-
-          <!-- Qty + Remove -->
-          <div class="sb-cart-item-actions">
-            <div v-if="item.type === 'physical'" class="sb-quantity sb-quantity-sm">
-              <button class="sb-quantity-btn" @click="handleQuantityChange(item.id, -1)">−</button>
-              <span class="sb-quantity-value">{{ item.quantity }}</span>
-              <button
-                class="sb-quantity-btn"
-                :disabled="item.maxStock != null && item.quantity >= item.maxStock"
-                @click="handleQuantityChange(item.id, 1)"
-              >+</button>
+          <!-- ── Физический товар: 2 строки ── -->
+          <template v-if="item.type === 'physical'">
+            <!-- Строка 1: картинка + название/цена -->
+            <div class="sb-cart-item-row1">
+              <div class="sb-cart-item-img-wrap">
+                <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="sb-cart-item-img" />
+                <div v-else class="sb-cart-item-img-placeholder">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+              <div class="sb-cart-item-info">
+                <h4 class="sb-cart-item-name">{{ item.name }}</h4>
+                <p class="sb-cart-item-price">
+                  {{ formatPrice(item.price) }}
+                  <span v-if="item.quantity > 1" class="sb-cart-item-subtotal">
+                    × {{ item.quantity }} = {{ formatPrice(item.price * item.quantity) }}
+                  </span>
+                </p>
+              </div>
             </div>
-            <button class="sb-cart-remove" @click="cartStore.removeItem(item.id)" aria-label="Удалить">
+            <!-- Строка 2: кол-во + удалить -->
+            <div class="sb-cart-item-row2">
+              <div class="sb-quantity sb-quantity-sm">
+                <button class="sb-quantity-btn" @click="handleQuantityChange(item.id, -1)">−</button>
+                <span class="sb-quantity-value">{{ item.quantity }}</span>
+                <button
+                  class="sb-quantity-btn"
+                  :disabled="item.maxStock != null && item.quantity >= item.maxStock"
+                  @click="handleQuantityChange(item.id, 1)"
+                >+</button>
+              </div>
+              <button class="sb-cart-remove" @click="cartStore.removeItem(item.id)" aria-label="Удалить">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </template>
+
+          <!-- ── Цифровой товар: 1 строка, удалить справа ── -->
+          <template v-else>
+            <div class="sb-cart-item-img-wrap sb-cart-item-img-wrap--digital">
+              <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="sb-cart-item-img sb-cart-item-img--contain" />
+              <div v-else class="sb-cart-item-img-placeholder">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                </svg>
+              </div>
+            </div>
+            <div class="sb-cart-item-info">
+              <h4 class="sb-cart-item-name">{{ item.name }}</h4>
+              <p class="sb-cart-item-price">{{ formatPrice(item.price) }}</p>
+            </div>
+            <button class="sb-cart-remove sb-cart-remove--inline" @click="cartStore.removeItem(item.id)" aria-label="Удалить">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </button>
-          </div>
+          </template>
+
         </div>
 
         <!-- Promo code section -->
