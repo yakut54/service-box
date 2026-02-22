@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, plural } from '@/lib/utils'
@@ -43,6 +43,35 @@ async function applyPromo() {
 function removeDiscount() {
   cartStore.setDiscount(null)
 }
+
+// ── Авто-скидка (без промокода) ──────────────────────────────
+async function checkAutoDiscount() {
+  // Не перетираем вручную введённый промокод
+  if (cartStore.discount?.code) return
+  if (cartStore.isEmpty) {
+    cartStore.setDiscount(null)
+    return
+  }
+  try {
+    const res = await shopStore.getApi().autoApplyDiscount(cartStore.total)
+    if (res.found && res.name && res.discount_amount) {
+      cartStore.setDiscount({ code: '', name: res.name, amount: res.discount_amount })
+    } else if (!cartStore.discount?.code) {
+      cartStore.setDiscount(null)
+    }
+  } catch {
+    // тихо — авто-скидка не критична
+  }
+}
+
+onMounted(checkAutoDiscount)
+
+// Пересчитываем при изменении суммы (добавили/убрали товар)
+watch(() => cartStore.total, (newVal, oldVal) => {
+  if (newVal !== oldVal && !cartStore.discount?.code) {
+    checkAutoDiscount()
+  }
+})
 </script>
 
 <template>

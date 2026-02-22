@@ -78,6 +78,7 @@ Route::prefix('widget')->middleware('tenant')->group(function () {
 
     // Discount / promo code validation (widget)
     Route::post('/discount/validate', [DiscountController::class, 'widgetValidate']);
+    Route::post('/discount/auto-apply', [DiscountController::class, 'widgetAutoApply']);
 
     // Reviews (widget)
     Route::get('/reviews/{productId}', [ReviewController::class, 'widgetIndex']);

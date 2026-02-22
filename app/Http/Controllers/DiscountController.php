@@ -148,6 +148,34 @@ class DiscountController extends Controller
         }
     }
 
+    public function widgetAutoApply(Request $request): JsonResponse
+    {
+        $request->validate([
+            'cart_amount'    => 'required|integer|min:1',
+            'customer_phone' => 'nullable|string',
+        ]);
+
+        $discount = $this->discountService->findAutoApply(
+            $request->cart_amount,
+            $request->customer_phone,
+        );
+
+        if (!$discount) {
+            return response()->json(['found' => false]);
+        }
+
+        $amount = $this->discountService->calculate($discount, $request->cart_amount);
+
+        return response()->json([
+            'found'          => true,
+            'discount_id'    => $discount->id,
+            'name'           => $discount->name,
+            'type'           => $discount->type,
+            'value'          => $discount->value,
+            'discount_amount'=> $amount,
+        ]);
+    }
+
     private function format(Discount $d): array
     {
         return [

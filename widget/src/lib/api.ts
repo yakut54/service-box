@@ -171,4 +171,18 @@ export class WidgetApi {
       body: JSON.stringify({ code, cart_amount: cartAmount }),
     })
   }
+
+  async autoApplyDiscount(cartAmount: number, customerPhone?: string) {
+    return this.request<{
+      found: boolean
+      discount_id?: string
+      name?: string
+      type?: string
+      value?: number
+      discount_amount?: number
+    }>('/widget/discount/auto-apply', {
+      method: 'POST',
+      body: JSON.stringify({ cart_amount: cartAmount, customer_phone: customerPhone ?? null }),
+    })
+  }
 }
