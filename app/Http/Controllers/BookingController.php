@@ -215,43 +215,27 @@ class BookingController extends Controller
         $workEndTime   = $shop?->work_end   ?? '20:00';
         $slotStep      = $shop?->slot_duration ?? 30;
 
-        [$startH, $startM] = array_map('intval', explode(':', $workStartTime));
-        [$endH,   $endM]   = array_map('intval', explode(':', $workEndTime));
-
-        // Все Carbon-объекты в timezone магазина — корректное сравнение даже если сервер в UTC
-        $date      = Carbon::parse($request->date, $timezone);
-        $workStart = $date->copy()->setTime($startH, $startM);
-        $workEnd   = $date->copy()->setTime($endH, $endM);
+        // Явно создаём Carbon через createFromFormat с timezone магазина.
+        // Carbon::parse(date, tz) некорректно трактует полночь — внутренний UTC timestamp
+        // остаётся UTC-полночью, и setTime() ставит время в UTC, а не в tz магазина.
+        // Итог: workStart оказывался завтрашним днём, diffInMinutes давал -623, current уходил на вчера.
+        $reqDate   = $request->date; // 'YYYY-MM-DD'
+        $workStart = Carbon::createFromFormat('Y-m-d H:i', "$reqDate $workStartTime", $timezone);
+        $workEnd   = Carbon::createFromFormat('Y-m-d H:i', "$reqDate $workEndTime",   $timezone);
         $now       = Carbon::now($timezone);
 
         $slots   = [];
         $current = $workStart->copy();
 
-        \Log::info('[availableSlots] debug', [
-            'date_input'    => $request->date,
-            'timezone'      => $timezone,
-            'work_start'    => $workStartTime,
-            'work_end'      => $workEndTime,
-            'slot_step'     => $slotStep,
-            'duration'      => $duration,
-            'now_shop_tz'   => $now->toDateTimeString(),
-            'workStart'     => $workStart->toDateTimeString(),
-            'workEnd'       => $workEnd->toDateTimeString(),
-            'date_isToday'  => $date->isToday(),
-            'shop_id'       => $shop?->id,
-            'shop_timezone' => $shop?->timezone,
-        ]);
-
-        // Пропускаем прошедшие слоты (сравниваем в timezone магазина)
-        if ($date->isToday() && $now->greaterThan($workStart)) {
-            $minutesPassed = $now->diffInMinutes($workStart);
+        // Пропускаем прошедшие слоты (сравниваем в timezone магазина).
+        // isToday() вызываем на $now — он гарантированно в нужном tz.
+        // diffInMinutes($workStart, $now) — направленная разница (now - workStart),
+        // но мы уже проверили $now > $workStart, поэтому используем abs-версию $workStart->diffInMinutes($now).
+        $todayStr = $now->toDateString();
+        if ($reqDate === $todayStr && $now->greaterThan($workStart)) {
+            $minutesPassed = (int) $workStart->diffInMinutes($now);
             $slotsSkipped  = (int) ceil($minutesPassed / $slotStep);
             $current->addMinutes($slotsSkipped * $slotStep);
-            \Log::info('[availableSlots] skip past', [
-                'minutesPassed' => $minutesPassed,
-                'slotsSkipped'  => $slotsSkipped,
-                'current_after_skip' => $current->toDateTimeString(),
-            ]);
         }
 
         while ($current->copy()->addMinutes($duration)->lessThanOrEqualTo($workEnd)) {
