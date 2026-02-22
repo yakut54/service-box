@@ -2176,6 +2176,15 @@
 /* ---- Checkout ---- */
 .sb-co {
   padding-bottom: 80px; /* room for mobile sticky footer */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-co > form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 @container (min-width: 600px) {
@@ -3329,9 +3338,15 @@
   flex: 1;
   overflow-y: auto;
   background: var(--sb-bg-muted);
+  display: flex;
+  flex-direction: column;
 }
 
 .sb-main-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
   max-width: var(--sb-container-max);
   margin: 0 auto;
   padding: 28px 32px;
