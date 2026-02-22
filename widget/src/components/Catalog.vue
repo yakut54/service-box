@@ -92,12 +92,15 @@ const typeSelectOptions = computed(() =>
   }))
 )
 
-const categorySelectOptions = computed(() => [
-  { value: '', label: 'Все категории' },
-  ...categories.value.map(c => ({ value: c.id, label: c.name })),
-])
-
 const showFilters = computed(() => showTypeSelect.value || showCategories.value)
+
+const activeCategoryName = computed(() =>
+  categories.value.find(c => c.id === filterCategory.value)?.name ?? ''
+)
+
+function selectCategory(id: string) {
+  filterCategory.value = filterCategory.value === id ? '' : id
+}
 
 onMounted(async () => {
   try {
@@ -167,19 +170,34 @@ function handleSelect(product: any) {
         />
       </div>
 
-      <!-- Select dropdowns row -->
-      <div v-if="showFilters" class="sb-catalog-selects">
-        <SbSelect
-          v-if="showTypeSelect"
-          v-model="filterType"
-          :options="typeSelectOptions"
-        />
-        <SbSelect
-          v-if="showCategories"
-          v-model="filterCategory"
-          :options="categorySelectOptions"
-        />
+      <!-- Type select (only if multiple types) -->
+      <div v-if="showTypeSelect" class="sb-catalog-selects">
+        <SbSelect v-model="filterType" :options="typeSelectOptions" />
       </div>
+
+      <!-- Category pills — horizontal scroll -->
+      <div v-if="showCategories" class="sb-cat-pills-wrap">
+        <button
+          :class="['sb-chip', filterCategory === '' ? 'sb-chip-active' : '']"
+          @click="filterCategory = ''"
+        >Все</button>
+        <button
+          v-for="cat in categories"
+          :key="cat.id"
+          :class="['sb-chip', filterCategory === cat.id ? 'sb-chip-active' : '']"
+          @click="selectCategory(cat.id)"
+        >{{ cat.name }}</button>
+      </div>
+    </div>
+
+    <!-- Active category header -->
+    <div v-if="activeCategoryName" class="sb-cat-header">
+      <span class="sb-cat-header-name">{{ activeCategoryName }}</span>
+      <button class="sb-cat-header-clear" @click="filterCategory = ''" aria-label="Сбросить категорию">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <!-- Loading skeleton -->
