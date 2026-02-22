@@ -340,110 +340,11 @@
   .sb-grid { gap: 8px; }
 }
 
-/* ≤499px: single-column horizontal list cards (Amazon/OZON mobile pattern) */
+/* ≤499px: single column grid (card horizontal styles are below, after .sb-pc base rules) */
 @container (max-width: 499px) {
   .sb-grid-2 {
     grid-template-columns: 1fr;
     gap: 8px;
-  }
-
-  /* Horizontal card: image left, body right */
-  .sb-pc {
-    flex-direction: row;
-    align-items: stretch;
-    height: auto;
-    min-height: 120px;
-  }
-
-  /* Square thumbnail — fixed width */
-  .sb-pc-image {
-    width: 120px;
-    min-width: 120px;
-    flex-shrink: 0;
-    aspect-ratio: 1 / 1;
-    border-radius: var(--sb-radius) 0 0 var(--sb-radius);
-  }
-
-  /* Image covers the cell without hover zoom on tap */
-  .sb-pc:hover .sb-pc-img {
-    transform: none;
-  }
-
-  /* Body fills remaining space, comfortable padding */
-  .sb-pc-body {
-    flex: 1;
-    min-width: 0;
-    padding: 10px 12px 12px;
-    gap: 3px;
-    justify-content: space-between;
-  }
-
-  /* Name: 2 lines max, slightly smaller */
-  .sb-pc-name {
-    font-size: 14px;
-    -webkit-line-clamp: 2;
-  }
-
-  /* Price font slightly smaller to fit */
-  .sb-pc-price {
-    font-size: 15px;
-  }
-
-  /* Reveal cart button label in list view */
-  .sb-pc-cart-label {
-    display: block;
-  }
-
-  /* Cart btn becomes pill with label */
-  .sb-pc-body .sb-pc-cart-btn {
-    width: auto;
-    border-radius: 9999px;
-    padding: 0 12px 0 9px;
-    gap: 5px;
-    height: 34px;
-  }
-
-  /* Prices side by side in list view */
-  .sb-pc-prices {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 6px;
-  }
-
-  /* Discount badge: smaller */
-  .sb-pc-discount {
-    font-size: 10px;
-    padding: 2px 5px;
-    top: 6px;
-    right: 6px;
-  }
-
-  .sb-pc-badge {
-    top: 6px;
-    left: 6px;
-    font-size: 10px;
-    padding: 2px 6px;
-  }
-
-  /* Skeleton: also horizontal */
-  .sb-pc-skeleton {
-    display: flex;
-    flex-direction: row;
-    min-height: 110px;
-  }
-
-  .sb-skeleton-pc-img {
-    width: 110px;
-    min-width: 110px;
-    aspect-ratio: 1 / 1;
-    height: auto;
-    border-radius: var(--sb-radius) 0 0 var(--sb-radius);
-    flex-shrink: 0;
-  }
-
-  .sb-pc-skeleton-body {
-    flex: 1;
-    padding: 10px 12px;
   }
 }
 
@@ -1306,6 +1207,109 @@
     flex-direction: row;
     align-items: baseline;
     gap: 6px;
+  }
+}
+
+/* ============================================================
+   ≤499px: Horizontal list-view card (Amazon/OZON mobile pattern)
+   MUST be placed AFTER all .sb-pc base rules to win cascade
+   ============================================================ */
+@container (max-width: 499px) {
+
+  /* Card: horizontal flex row */
+  .sb-pc {
+    flex-direction: row;
+    align-items: stretch;
+    height: auto;
+  }
+
+  /* Thumbnail: fixed square on the left */
+  .sb-pc-image {
+    width: 116px !important;
+    min-width: 116px !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: var(--sb-radius) 0 0 var(--sb-radius) !important;
+    flex-shrink: 0;
+  }
+
+  /* No zoom on tap */
+  .sb-pc:hover .sb-pc-img {
+    transform: none;
+  }
+
+  /* Body: fills remaining width */
+  .sb-pc-body {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px 10px;
+    gap: 2px;
+    justify-content: space-between;
+  }
+
+  .sb-pc-name {
+    font-size: 13px;
+    -webkit-line-clamp: 2;
+  }
+
+  .sb-pc-price {
+    font-size: 15px;
+  }
+
+  /* Prices inline in list view */
+  .sb-pc-prices {
+    flex-direction: row !important;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  /* Cart button: pill with label */
+  .sb-pc-cart-label {
+    display: block;
+  }
+
+  .sb-pc-body .sb-pc-cart-btn {
+    width: auto;
+    border-radius: 9999px;
+    padding: 0 10px 0 8px;
+    gap: 4px;
+    height: 32px;
+  }
+
+  /* Badges: slightly smaller */
+  .sb-pc-badge {
+    top: 6px;
+    left: 6px;
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .sb-pc-discount {
+    font-size: 10px;
+    padding: 2px 5px;
+    top: 6px;
+    right: 6px;
+  }
+
+  /* Skeleton: horizontal too */
+  .sb-pc-skeleton {
+    display: flex;
+    flex-direction: row;
+    min-height: 100px;
+  }
+
+  .sb-skeleton-pc-img {
+    width: 100px;
+    min-width: 100px;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--sb-radius) 0 0 var(--sb-radius);
+    flex-shrink: 0;
+  }
+
+  .sb-pc-skeleton-body {
+    flex: 1;
+    padding: 10px 12px;
   }
 }
 
