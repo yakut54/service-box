@@ -1964,12 +1964,13 @@
 .sb-cart-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   padding: 10px;
   border: 1px solid var(--sb-border);
   border-radius: var(--sb-radius);
   background: var(--sb-bg);
   transition: border-color 0.15s ease;
+  align-items: stretch;
 }
 
 .sb-cart-item:hover {
@@ -2077,28 +2078,38 @@
 /* ── Физический товар: новая структура разметки ── */
 .sb-cart-item-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
+  width: 100%;
 }
 
-/* Тело карточки: название сверху, цена+кнопки снизу в одну строку */
+/* Тело карточки занимает всё доступное место */
 .sb-cart-item-body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
-/* Строка: название + крестик */
+/* Строка 1: название прибито влево, крестик вправо */
 .sb-cart-item-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
 }
 
-/* Строка: цена слева, кнопки справа */
+.sb-cart-item-top .sb-cart-item-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-cart-item-top .sb-cart-remove {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Строка 2: цена слева, кнопки количества справа */
 .sb-cart-item-bottom {
   display: flex;
   align-items: center;
@@ -2119,7 +2130,7 @@
   text-decoration: line-through;
 }
 
-/* Итоговая цена — крупнее и жирнее */
+/* Итоговая цена */
 .sb-cart-item-price-total {
   font-size: 16px;
   font-weight: 700;
