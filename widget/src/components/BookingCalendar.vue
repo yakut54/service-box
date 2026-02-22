@@ -245,10 +245,8 @@ const clockSS = computed(() => String(now.value.getSeconds()).padStart(2, '0'))
 function selectSlot(slot: Slot) {
   if (!slot.available) return
   selectedSlot.value = slot
-  if (slot.masters.length === 1) {
-    selectedMasterId.value = slot.masters[0].id
-  } else if (slot.masters.length === 2) {
-    selectedMasterId.value = null   // chips — no default
+  if (slot.masters.length <= 2) {
+    selectedMasterId.value = slot.masters[0]?.id ?? null  // auto-select first chip
   } else {
     selectedMasterId.value = ''     // select — empty placeholder
   }
