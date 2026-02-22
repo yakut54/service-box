@@ -464,18 +464,18 @@ async function handleSubmit() {
         <button class="sb-booking-confirmed-change" @click="selectedSlot = null">Изменить</button>
       </div>
 
-      <!-- Master selection — separate block (only if multiple masters) -->
-      <div v-if="selectedSlot.masters.length > 1" class="sb-booking-master-card sb-mb-4">
+      <!-- Master selection — always show if at least 1 master available -->
+      <div v-if="selectedSlot.masters.length >= 1" class="sb-booking-master-card sb-mb-4">
         <label class="sb-label sb-mb-2">Выберите мастера</label>
 
-        <!-- ≤2 masters: pills -->
+        <!-- 1-2 masters: pills -->
         <div v-if="selectedSlot.masters.length <= 2" class="sb-master-list">
           <button
             v-for="m in selectedSlot.masters"
             :key="m.id"
             class="sb-master-chip"
             :class="{ 'sb-master-chip-active': selectedMasterId === m.id }"
-            @click="selectedMasterId = m.id"
+            @click="selectedMasterId = selectedSlot.masters.length === 1 ? m.id : (selectedMasterId === m.id ? null : m.id)"
           >
             {{ m.name }}
           </button>
