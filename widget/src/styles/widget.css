@@ -2011,7 +2011,7 @@
 }
 
 .sb-cart-item-img-wrap--digital {
-  width: 64px;
+  width: 56px;
   height: 56px;
   border-radius: calc(var(--sb-radius) - 2px);
   background: var(--sb-bg-muted);
