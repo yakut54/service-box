@@ -1964,13 +1964,12 @@
 .sb-cart-item {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 6px;
   padding: 10px;
   border: 1px solid var(--sb-border);
   border-radius: var(--sb-radius);
   background: var(--sb-bg);
   transition: border-color 0.15s ease;
-  align-items: stretch;
 }
 
 .sb-cart-item:hover {
@@ -2089,7 +2088,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 /* Строка 1: название прибито влево, крестик вправо */
