@@ -18,6 +18,7 @@ const emit = defineEmits<{
 
 const shopStore = useShopStore()
 const products = ref<any[]>([])
+const apiCategories = ref<Array<{ id: string; name: string }>>([])
 const loading = ref(true)
 const error = ref('')
 
@@ -25,11 +26,16 @@ const search = ref('')
 const filterType = ref('')
 const filterCategory = ref('')
 
-// Категории — объекты { id, name } из поля category у товаров
+// Категории: сначала с API, дополняем из продуктов (если API пустой или категория не вошла)
 const categories = computed(() => {
   const seen = new Map<string, string>()
+  // Приоритет — категории с сервера
+  for (const c of apiCategories.value) {
+    seen.set(c.id, c.name)
+  }
+  // Добавляем из продуктов (если вдруг не попали в API-список)
   for (const p of products.value) {
-    if (p.category && p.category.id && p.category.name) {
+    if (p.category && p.category.id && p.category.name && !seen.has(p.category.id)) {
       seen.set(p.category.id, p.category.name)
     }
   }
@@ -95,8 +101,26 @@ const showFilters = computed(() => showTypeSelect.value || showCategories.value)
 
 onMounted(async () => {
   try {
-    const resp = await shopStore.getApi().getProducts({ active: 'true' })
-    products.value = resp.data || []
+    const [productsResp, categoriesResp] = await Promise.allSettled([
+      shopStore.getApi().getProducts({ active: 'true' }),
+      shopStore.getApi().getCategories(),
+    ])
+    if (productsResp.status === 'fulfilled') {
+      products.value = productsResp.value.data || []
+    } else {
+      error.value = (productsResp.reason as any)?.message || 'Failed to load products'
+    }
+    if (categoriesResp.status === 'fulfilled') {
+      // Flatten: родители + дочерние
+      const flat: Array<{ id: string; name: string }> = []
+      for (const cat of categoriesResp.value.data || []) {
+        flat.push({ id: cat.id, name: cat.name })
+        for (const child of cat.children || []) {
+          flat.push({ id: child.id, name: child.name })
+        }
+      }
+      apiCategories.value = flat
+    }
   } catch (e: any) {
     error.value = e.message || 'Failed to load products'
   }

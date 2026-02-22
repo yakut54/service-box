@@ -54,6 +54,11 @@ export class WidgetApi {
     return this.request<{ id: string; name: string; widget_config: Record<string, any> | null; timezone: string | null }>('/widget/shop')
   }
 
+  // Categories
+  async getCategories() {
+    return this.request<{ data: any[] }>('/widget/categories')
+  }
+
   // Products
   async getProducts(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
