@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useProductsStore } from '@/stores/products'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import { plural } from '@/lib/utils'
+
+const route = useRoute()
 
 const productsStore = useProductsStore()
 const categoriesStore = useCategoriesStore()
@@ -34,8 +37,13 @@ const typeOptions = [
 ]
 
 onMounted(async () => {
+  if (route.query.category_id) {
+    filterCategory.value = route.query.category_id as string
+  }
+  const params: Record<string, string> = {}
+  if (filterCategory.value) params.category_id = filterCategory.value
   await Promise.all([
-    productsStore.fetchProducts(),
+    productsStore.fetchProducts(params),
     categoriesStore.categories.length ? Promise.resolve() : categoriesStore.fetchCategories(),
   ])
 })

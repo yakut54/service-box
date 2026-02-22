@@ -301,7 +301,14 @@ async function doDelete() {
                 <span v-if="!cat.is_visible" class="badge bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 text-xs">Скрыта</span>
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {{ cat.products_count ?? 0 }} {{ (cat.products_count ?? 0) === 1 ? 'товар' : (cat.products_count ?? 0) < 5 ? 'товара' : 'товаров' }}
+                <RouterLink
+                  v-if="(cat.products_count ?? 0) > 0"
+                  :to="{ path: '/products', query: { category_id: cat.id } }"
+                  class="text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  {{ cat.products_count }} {{ cat.products_count === 1 ? 'товар' : cat.products_count < 5 ? 'товара' : 'товаров' }}
+                </RouterLink>
+                <span v-else>0 товаров</span>
                 <template v-if="cat.children && cat.children.length > 0">
                   · {{ cat.children.length }} подкатегор{{ cat.children.length === 1 ? 'ия' : 'ии' }}
                 </template>
@@ -356,9 +363,16 @@ async function doDelete() {
                   <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ child.name }}</span>
                   <span v-if="!child.is_visible" class="badge bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 text-xs">Скрыта</span>
                 </div>
-                <span class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ child.products_count ?? 0 }} {{ (child.products_count ?? 0) === 1 ? 'товар' : (child.products_count ?? 0) < 5 ? 'товара' : 'товаров' }}
-                </span>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  <RouterLink
+                    v-if="(child.products_count ?? 0) > 0"
+                    :to="{ path: '/products', query: { category_id: child.id } }"
+                    class="text-primary-600 dark:text-primary-400 hover:underline"
+                  >
+                    {{ child.products_count }} {{ child.products_count === 1 ? 'товар' : child.products_count < 5 ? 'товара' : 'товаров' }}
+                  </RouterLink>
+                  <span v-else>0 товаров</span>
+                </div>
               </div>
 
               <div class="flex items-center gap-2 flex-shrink-0">
