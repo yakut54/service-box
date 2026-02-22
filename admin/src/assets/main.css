@@ -124,15 +124,15 @@
   }
 
   /* Заказы — цвет текста, фон и бордер */
-  .badge-pending    { @apply bg-amber-50   text-amber-700   border-amber-200; }
-  .badge-paid       { @apply bg-emerald-50 text-emerald-700 border-emerald-200; }
-  .badge-processing { @apply bg-blue-50    text-blue-700    border-blue-200; }
-  .badge-completed  { @apply bg-violet-50  text-violet-700  border-violet-200; }
-  .badge-cancelled  { @apply bg-red-50     text-red-700     border-red-200; }
+  .badge-pending    { @apply bg-amber-100   text-amber-800   border-amber-300; }
+  .badge-paid       { @apply bg-emerald-100 text-emerald-800 border-emerald-300; }
+  .badge-processing { @apply bg-blue-100    text-blue-800    border-blue-300; }
+  .badge-completed  { @apply bg-violet-100  text-violet-800  border-violet-300; }
+  .badge-cancelled  { @apply bg-red-100     text-red-800     border-red-300; }
 
   /* Записи */
-  .badge-confirmed  { @apply bg-indigo-50  text-indigo-700  border-indigo-200; }
-  .badge-no_show    { @apply bg-orange-50  text-orange-700  border-orange-200; }
+  .badge-confirmed  { @apply bg-indigo-100  text-indigo-800  border-indigo-300; }
+  .badge-no_show    { @apply bg-orange-100  text-orange-800  border-orange-300; }
 
   .table {
     @apply w-full text-sm text-left;
