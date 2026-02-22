@@ -1598,7 +1598,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    position: sticky;
+    position: fixed;
     bottom: 0;
     background: var(--sb-bg);
     border-top: 1px solid var(--sb-border);
