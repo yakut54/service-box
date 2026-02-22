@@ -1211,59 +1211,46 @@
 }
 
 /* ============================================================
-   ≤499px: Horizontal list-view card (Amazon/OZON mobile pattern)
-   MUST be placed AFTER all .sb-pc base rules to win cascade
+   ≤499px: Full-width vertical cards — single column, wide 3:2 image
+   Like Shopify/Etsy mobile. Image leads, content below.
+   MUST be placed AFTER all .sb-pc base rules to win cascade.
    ============================================================ */
 @container (max-width: 499px) {
 
-  /* Card: horizontal flex row */
+  /* Card stays vertical (column) — full width of the grid cell */
   .sb-pc {
-    flex-direction: row;
-    align-items: stretch;
+    flex-direction: column;
     height: auto;
+    border-radius: 12px;
   }
 
-  /* Thumbnail: fixed square on the left */
+  /* Wide cinematic image — 3:2 ratio shows much more product */
   .sb-pc-image {
-    width: 116px !important;
-    min-width: 116px !important;
-    height: auto !important;
-    aspect-ratio: 1 / 1 !important;
-    border-radius: var(--sb-radius) 0 0 var(--sb-radius) !important;
-    flex-shrink: 0;
+    aspect-ratio: 3 / 2 !important;
+    width: 100% !important;
+    border-radius: 12px 12px 0 0;
   }
 
-  /* No zoom on tap */
-  .sb-pc:hover .sb-pc-img {
-    transform: none;
-  }
-
-  /* Body: fills remaining width */
+  /* Body: roomier padding for full-width card */
   .sb-pc-body {
-    flex: 1;
-    min-width: 0;
-    padding: 10px 12px 10px;
-    gap: 2px;
-    justify-content: space-between;
+    padding: 12px 14px 14px;
+    gap: 4px;
   }
 
+  /* Name: slightly larger — more readable on full-width card */
   .sb-pc-name {
-    font-size: 13px;
+    font-size: 15px;
     -webkit-line-clamp: 2;
   }
 
-  .sb-pc-price {
-    font-size: 15px;
-  }
-
-  /* Prices inline in list view */
+  /* Price row: prices left, pill-button right */
   .sb-pc-prices {
-    flex-direction: row !important;
+    flex-direction: row;
     align-items: baseline;
-    gap: 5px;
+    gap: 6px;
   }
 
-  /* Cart button: pill with label */
+  /* Cart button as pill with label — space allows it */
   .sb-pc-cart-label {
     display: block;
   }
@@ -1271,45 +1258,15 @@
   .sb-pc-body .sb-pc-cart-btn {
     width: auto;
     border-radius: 9999px;
-    padding: 0 10px 0 8px;
-    gap: 4px;
-    height: 32px;
+    padding: 0 14px 0 10px;
+    gap: 5px;
+    height: 36px;
   }
 
-  /* Badges: slightly smaller */
-  .sb-pc-badge {
-    top: 6px;
-    left: 6px;
-    font-size: 10px;
-    padding: 2px 6px;
-  }
-
-  .sb-pc-discount {
-    font-size: 10px;
-    padding: 2px 5px;
-    top: 6px;
-    right: 6px;
-  }
-
-  /* Skeleton: horizontal too */
-  .sb-pc-skeleton {
-    display: flex;
-    flex-direction: row;
-    min-height: 100px;
-  }
-
+  /* Skeleton: also full-width vertical with 3:2 image */
   .sb-skeleton-pc-img {
-    width: 100px;
-    min-width: 100px;
-    height: auto !important;
-    aspect-ratio: 1 / 1;
-    border-radius: var(--sb-radius) 0 0 var(--sb-radius);
-    flex-shrink: 0;
-  }
-
-  .sb-pc-skeleton-body {
-    flex: 1;
-    padding: 10px 12px;
+    aspect-ratio: 3 / 2;
+    height: auto;
   }
 }
 
