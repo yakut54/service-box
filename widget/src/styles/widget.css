@@ -1988,7 +1988,11 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  row-gap: 0;
+  row-gap: 2px;
+}
+
+.sb-cart-item-img-wrap--digital .sb-cart-item-info .sb-cart-item-price {
+    margin-top: 5px;
 }
 
 /* Строка 1: название + крестик */
