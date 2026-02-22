@@ -340,6 +340,113 @@
   .sb-grid { gap: 8px; }
 }
 
+/* ≤499px: single-column horizontal list cards (Amazon/OZON mobile pattern) */
+@container (max-width: 499px) {
+  .sb-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  /* Horizontal card: image left, body right */
+  .sb-pc {
+    flex-direction: row;
+    align-items: stretch;
+    height: auto;
+    min-height: 120px;
+  }
+
+  /* Square thumbnail — fixed width */
+  .sb-pc-image {
+    width: 120px;
+    min-width: 120px;
+    flex-shrink: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--sb-radius) 0 0 var(--sb-radius);
+  }
+
+  /* Image covers the cell without hover zoom on tap */
+  .sb-pc:hover .sb-pc-img {
+    transform: none;
+  }
+
+  /* Body fills remaining space, comfortable padding */
+  .sb-pc-body {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px 12px;
+    gap: 3px;
+    justify-content: space-between;
+  }
+
+  /* Name: 2 lines max, slightly smaller */
+  .sb-pc-name {
+    font-size: 14px;
+    -webkit-line-clamp: 2;
+  }
+
+  /* Price font slightly smaller to fit */
+  .sb-pc-price {
+    font-size: 15px;
+  }
+
+  /* Reveal cart button label in list view */
+  .sb-pc-cart-label {
+    display: block;
+  }
+
+  /* Cart btn becomes pill with label */
+  .sb-pc-body .sb-pc-cart-btn {
+    width: auto;
+    border-radius: 9999px;
+    padding: 0 12px 0 9px;
+    gap: 5px;
+    height: 34px;
+  }
+
+  /* Prices side by side in list view */
+  .sb-pc-prices {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  /* Discount badge: smaller */
+  .sb-pc-discount {
+    font-size: 10px;
+    padding: 2px 5px;
+    top: 6px;
+    right: 6px;
+  }
+
+  .sb-pc-badge {
+    top: 6px;
+    left: 6px;
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  /* Skeleton: also horizontal */
+  .sb-pc-skeleton {
+    display: flex;
+    flex-direction: row;
+    min-height: 110px;
+  }
+
+  .sb-skeleton-pc-img {
+    width: 110px;
+    min-width: 110px;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    border-radius: var(--sb-radius) 0 0 var(--sb-radius);
+    flex-shrink: 0;
+  }
+
+  .sb-pc-skeleton-body {
+    flex: 1;
+    padding: 10px 12px;
+  }
+}
+
 /* 500px+: comfortable gap */
 @container (min-width: 500px) {
   .sb-grid-2 { gap: var(--sb-gap-md); }
@@ -901,19 +1008,16 @@
   transition: transform 0.3s ease;
 }
 
-/* Responsive aspect-ratio — MUST be after base rule to override it */
+/* Responsive aspect-ratio — only for vertical card layout (500px+) */
 @container (min-width: 500px) {
-  .sb-pc-image,
-  .sb-pc-img,
-  .sb-pc-img-placeholder {
+  .sb-pc-image {
     aspect-ratio: 1 / 1;
+    width: 100%;
   }
 }
 
 @container (min-width: 900px) {
-  .sb-pc-image,
-  .sb-pc-img,
-  .sb-pc-img-placeholder {
+  .sb-pc-image {
     aspect-ratio: 4 / 3;
   }
 }
