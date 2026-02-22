@@ -1113,13 +1113,7 @@
 }
 
 /* Rating — compact WB-style: ★ 4.8 · 123 */
-.sb-pc-rating {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-top: 3px;
-  margin-bottom: 4px;
-}
+
 
 .sb-pc-star-ico {
   width: 11px;
@@ -3701,6 +3695,9 @@
   .sb-cal-weekdays { padding: 6px 6px 2px; }
   .sb-cal-day { font-size: 12px; min-height: 30px; }
   .sb-booking-slots { grid-template-columns: repeat(3, 1fr); }
+  .sb-pc-rating {
+    margin-top: 3px;
+    margin-bottom: 4px; }
 }
 
 /* ≤400px: very small phone */
