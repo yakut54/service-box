@@ -1771,6 +1771,9 @@
   border: 1px solid var(--sb-border);
   border-radius: var(--sb-radius);
   overflow: hidden;
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .sb-quantity-btn {
