@@ -2070,7 +2070,7 @@
 }
 
 .sb-cart-item-img--contain {
-  object-fit: contain !important;
+  object-fit: cover !important;
 }
 
 .sb-cart-item-img-placeholder {
