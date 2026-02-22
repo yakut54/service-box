@@ -129,8 +129,12 @@ watch(() => cartStore.total, (newVal, oldVal) => {
                     </svg>
                   </button>
                 </div>
-                <!-- Нижняя строка: счётчик + цена -->
+                <!-- Нижняя строка: цена слева, счётчик справа -->
                 <div class="sb-cart-item-bottom">
+                  <div class="sb-cart-item-price-block">
+                    <span v-if="item.compare_price && item.compare_price > item.price" class="sb-cart-item-price-unit">{{ formatPrice(item.compare_price) }}</span>
+                    <span class="sb-cart-item-price-total">{{ formatPrice(item.price * item.quantity) }}</span>
+                  </div>
                   <div class="sb-quantity sb-quantity-sm">
                     <button class="sb-quantity-btn" @click="handleQuantityChange(item.id, -1)">−</button>
                     <span class="sb-quantity-value">{{ item.quantity }}</span>
@@ -139,10 +143,6 @@ watch(() => cartStore.total, (newVal, oldVal) => {
                       :disabled="item.maxStock != null && item.quantity >= item.maxStock"
                       @click="handleQuantityChange(item.id, 1)"
                     >+</button>
-                  </div>
-                  <div class="sb-cart-item-price-block">
-                    <span v-if="item.quantity > 1" class="sb-cart-item-price-unit">{{ formatPrice(item.price) }} × {{ item.quantity }}</span>
-                    <span class="sb-cart-item-price-total">{{ formatPrice(item.price * item.quantity) }}</span>
                   </div>
                 </div>
               </div>

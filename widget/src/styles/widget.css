@@ -2019,6 +2019,7 @@
   font-size: 11px;
   color: var(--sb-text-muted);
   line-height: 1.2;
+  text-decoration: line-through;
 }
 
 .sb-cart-item-price-total {

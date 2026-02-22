@@ -5,6 +5,7 @@ export interface CartItem {
   id: string
   name: string
   price: number        // копейки
+  compare_price?: number // зачёркнутая цена
   type: string         // physical | digital | service
   image_url?: string
   quantity: number
@@ -55,7 +56,7 @@ export const useCartStore = defineStore('sb-cart', () => {
     if (shopId.value) saveToStorage(shopId.value, items.value)
   }
 
-  function addItem(product: { id: string; name: string; price: number; type: string; image_url?: string; physical?: { stock_quantity: number } | null }) {
+  function addItem(product: { id: string; name: string; price: number; compare_price?: number; type: string; image_url?: string; physical?: { stock_quantity: number } | null }) {
     const existing = items.value.find(i => i.id === product.id)
 
     if (existing) {
@@ -69,6 +70,7 @@ export const useCartStore = defineStore('sb-cart', () => {
         id: product.id,
         name: product.name,
         price: product.price,
+        compare_price: product.compare_price ?? undefined,
         type: product.type,
         image_url: product.image_url,
         quantity: 1,
