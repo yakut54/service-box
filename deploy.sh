@@ -17,16 +17,19 @@ if [ -z "$SERVICEBOX_DEPLOY_V" ]; then
   exec bash "$REPO_DIR/deploy.sh"
 fi
 
+# ═══ Everything below runs from the UPDATED script ═══════════════════
+
 echo "=== ServiceBox Deploy ==="
 echo "→ Dir: $REPO_DIR"
 echo "→ Branch: $BRANCH"
 
-DEPLOY_VERSION=$(git rev-parse --short=8 HEAD)
-echo "→ Version: $DEPLOY_VERSION"
-
-# ── 0. Pre-deploy cleanup ─────────────────────────────────────
+# ── 0. Pre-deploy cleanup (prevent disk accumulation) ─────────────
 echo ""
 echo "[0/7] Pre-deploy cleanup..."
+# Remove previous node_modules (rebuilt fresh each deploy)
+rm -rf admin/node_modules widget/node_modules
+# Remove stale Docker build cache and dangling images
+docker builder prune -f --filter "until=24h" 2>/dev/null || true
 docker image prune -f 2>/dev/null || true
 docker container prune -f 2>/dev/null || true
 echo "    Cleanup done (disk: $(df -h / | awk 'NR==2{print $4}') free)"
@@ -38,6 +41,7 @@ cd admin
 npm ci
 VITE_API_URL=/api npm run build
 cd ..
+# node_modules no longer needed — remove immediately to free space
 rm -rf admin/node_modules
 echo "    admin/dist ready ($(du -sh admin/dist | cut -f1))"
 
@@ -49,8 +53,7 @@ npm ci
 npm run build
 cd ..
 rm -rf widget/node_modules
-echo "$DEPLOY_VERSION" > widget/dist/.version
-echo "    widget/dist ready ($(du -sh widget/dist | cut -f1)) — version: $DEPLOY_VERSION"
+echo "    widget/dist ready ($(du -sh widget/dist | cut -f1))"
 
 # ── 3. Start / restart containers ─────────────────────────────
 echo ""
@@ -58,19 +61,12 @@ echo "[3/7] Starting containers..."
 docker compose -f docker-compose.prod.yml up -d db
 docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web
 
-# ── 4. Post-build cleanup ─────────────────────────────────────
+# ── 4. Post-build cleanup (clear layers that are no longer referenced) ─
 echo ""
 echo "[4/7] Post-build cleanup..."
 docker builder prune -f --filter "until=1h" 2>/dev/null || true
 docker image prune -f 2>/dev/null || true
 echo "    Cleanup done (disk: $(df -h / | awk 'NR==2{print $4}') free)"
-
-# ── 4.1 Сброс кеша Nginx ──────────────────────────────────────
-echo ""
-echo "[4.1/7] Reloading Nginx..."
-docker exec servicebox_web nginx -s reload 2>/dev/null \
-  && echo "    Nginx reloaded OK" \
-  || echo "    [warn] Nginx reload skipped"
 
 # ── 5. Sync DB password ────────────────────────────────────────
 echo ""
@@ -97,8 +93,7 @@ curl -sf http://localhost:8000/api/health && echo " → API OK" || echo " → AP
 
 echo ""
 echo "=== Deploy complete ==="
-echo "    Version:   $DEPLOY_VERSION"
 echo "    Disk free: $(df -h / | awk 'NR==2{print $4}')"
-echo "    Admin:     https://yakut54.ru"
-echo "    API:       https://yakut54.ru/api/up"
-echo "    Widget:    https://yakut54.ru/widget.js?v=$DEPLOY_VERSION"
+echo "    Admin:  https://yakut54.ru"
+echo "    API:    https://yakut54.ru/api/up"
+echo "    Widget: https://yakut54.ru/widget.js"
