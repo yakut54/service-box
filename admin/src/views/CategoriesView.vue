@@ -256,8 +256,8 @@ async function doDelete() {
     </div>
 
     <!-- Error -->
-    <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
-      {{ error }}
+    <div v-if="error || categoriesStore.error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+      {{ error || categoriesStore.error }}
     </div>
 
     <!-- Loading -->

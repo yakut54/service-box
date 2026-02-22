@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 export const useCategoriesStore = defineStore('categories', () => {
   const categories = ref<any[]>([])
   const loading = ref(false)
+  const error = ref('')
 
   // Плоский список всех категорий (родители + дочерние)
   const allCategories = computed(() => {
@@ -36,9 +37,12 @@ export const useCategoriesStore = defineStore('categories', () => {
 
   async function fetchCategories() {
     loading.value = true
+    error.value = ''
     try {
       const data = await api.getCategories()
       categories.value = data.data
+    } catch (e: any) {
+      error.value = e.message || 'Ошибка загрузки категорий'
     } finally {
       loading.value = false
     }
@@ -52,11 +56,13 @@ export const useCategoriesStore = defineStore('categories', () => {
   function $reset() {
     categories.value = []
     loading.value = false
+    error.value = ''
   }
 
   return {
     categories,
     loading,
+    error,
     allCategories,
     categoryOptions,
     parentOptions,
