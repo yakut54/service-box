@@ -2022,13 +2022,14 @@
 .sb-cart-item-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .sb-cart-item-img--contain {
-  object-fit: cover;
-  object-position: center;
+  background-size: cover;
+  background-position: center;
 }
 
 .sb-cart-item-img-placeholder {
