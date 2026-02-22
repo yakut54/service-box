@@ -2006,24 +2006,24 @@
   gap: 8px;
 }
 
-/* Блок цены справа */
+/* Блок цены — горизонтально */
 .sb-cart-item-price-block {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .sb-cart-item-price-unit {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--sb-text-muted);
   line-height: 1.2;
   text-decoration: line-through;
 }
 
 .sb-cart-item-price-total {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--sb-text);
   line-height: 1.2;
@@ -2103,8 +2103,9 @@
 
 /* Для цифрового товара — цена под названием */
 .sb-cart-item-info .sb-cart-item-price {
-  font-size: 13px;
-  color: var(--sb-text-muted);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sb-text);
   margin-top: 2px;
 }
 
@@ -2159,8 +2160,13 @@
     font-size: 12px;
   }
 
-  .sb-cart-item-price-total {
-    font-size: 13px;
+  .sb-cart-item-price-total,
+  .sb-cart-item-info .sb-cart-item-price {
+    font-size: 14px;
+  }
+
+  .sb-cart-item-price-unit {
+    font-size: 12px;
   }
 
   .sb-quantity-sm .sb-quantity-btn {
