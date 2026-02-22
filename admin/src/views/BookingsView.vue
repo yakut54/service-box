@@ -349,7 +349,7 @@ onMounted(async () => {
     <div class="card mb-6">
       <div class="flex flex-col sm:flex-row gap-4">
         <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-52" />
-        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-60" />
+        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-64" searchable />
         <DatePicker v-model="filterDate" @change="applyFilters" placeholder="Дата" class="w-full sm:w-44" />
         <button v-if="filterStatus || filterMaster || filterDate" @click="filterStatus = ''; filterMaster = ''; filterDate = ''; applyFilters()" class="btn-ghost btn-sm whitespace-nowrap">
           Сбросить
@@ -609,7 +609,7 @@ onMounted(async () => {
           <!-- Service -->
           <div>
             <label class="label">Услуга <span class="text-red-500">*</span></label>
-            <CustomSelect v-model="modalForm.service_id" :options="serviceOptions" />
+            <CustomSelect v-model="modalForm.service_id" :options="serviceOptions" searchable />
             <p v-if="services.length === 0" class="mt-1 text-xs text-red-500">
               Нет активных услуг. <RouterLink to="/products" class="underline">Добавьте услугу</RouterLink>
             </p>
@@ -618,7 +618,7 @@ onMounted(async () => {
           <!-- Master -->
           <div>
             <label class="label">Мастер</label>
-            <CustomSelect v-model="modalForm.master_id" :options="masterModalOptions" />
+            <CustomSelect v-model="modalForm.master_id" :options="masterModalOptions" searchable />
           </div>
 
           <!-- Date -->

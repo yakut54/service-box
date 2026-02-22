@@ -244,6 +244,7 @@ async function saveWorkHours() {
             :options="timezoneOptions"
             label="Часовой пояс"
             placeholder="Выберите часовой пояс"
+            searchable
         />
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Используется для корректного отображения слотов записи

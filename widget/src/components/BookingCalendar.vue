@@ -487,6 +487,7 @@ async function handleSubmit() {
           v-model="masterSelectValue"
           :options="masterOptions"
           placeholder="— Выберите мастера —"
+          :searchable="true"
         />
       </div>
 

@@ -95,7 +95,8 @@ function getStockBadge(product: any) {
           v-model="filterCategory"
           @change="applyFilters"
           :options="categoryOptions"
-          class="w-full sm:w-52"
+          class="w-full sm:w-64"
+          searchable
         />
         <CustomSelect v-model="filterType" @change="applyFilters" :options="typeOptions" class="w-full sm:w-48" />
       </div>

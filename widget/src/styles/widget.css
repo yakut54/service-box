@@ -612,7 +612,6 @@
 .sb-select .sb-select-trigger {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   padding: 8px 12px 8px 14px;
   font-size: 14px;
@@ -622,9 +621,19 @@
   background: var(--sb-bg-muted);
   color: var(--sb-text);
   min-height: 44px;
-  min-width: 150px;
+  min-width: 130px;
+  max-width: 220px;
+  overflow: hidden;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* Label text: truncate, grows to fill available space */
+.sb-select-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -676,6 +685,56 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   z-index: 1000;
   overflow: hidden;
+}
+
+/* Search inside dropdown */
+.sb-select-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--sb-border);
+}
+
+.sb-select-search-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--sb-text-muted);
+  flex-shrink: 0;
+}
+
+.sb-select-search-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--sb-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+}
+
+.sb-select-search-input::placeholder {
+  color: var(--sb-text-muted);
+}
+
+/* Option label truncate */
+.sb-select-option-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 6px;
+}
+
+/* Empty state */
+.sb-select-empty {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--sb-text-muted);
+  text-align: center;
 }
 
 .sb-select-list {

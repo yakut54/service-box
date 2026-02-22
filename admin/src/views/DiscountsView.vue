@@ -538,6 +538,7 @@ async function doDelete() {
               v-model="form.scope_value"
               :options="productOptions"
               placeholder="Выберите товар..."
+              searchable
             />
             <p v-if="productOptions.length === 0" class="text-xs text-gray-400 mt-1">Нет доступных товаров</p>
           </div>

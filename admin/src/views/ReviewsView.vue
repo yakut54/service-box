@@ -162,7 +162,7 @@ async function doDelete() {
     <div class="flex flex-col sm:flex-row gap-3">
       <CustomSelect v-model="filterStatus"  :options="statusOptions"  class="sm:w-52" />
       <CustomSelect v-model="filterRating"  :options="ratingOptions"  class="sm:w-44" />
-      <CustomSelect v-model="filterProduct" :options="productOptions" class="flex-1 sm:max-w-xs" />
+      <CustomSelect v-model="filterProduct" :options="productOptions" class="flex-1 sm:max-w-xs" searchable />
       <button
         v-if="filterStatus !== 'all' || filterRating !== 'all' || filterProduct !== 'all'"
         @click="filterStatus = 'all'; filterRating = 'all'; filterProduct = 'all'"

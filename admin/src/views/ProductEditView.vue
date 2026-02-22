@@ -289,6 +289,7 @@ async function handleSubmit() {
               v-model="form.category_id"
               :options="categoriesStore.categoryOptions"
               placeholder="Без категории"
+              searchable
             />
             <p v-if="categoriesStore.categories.length === 0" class="text-xs text-gray-400 mt-1">
               Нет категорий. <RouterLink to="/categories" class="text-primary-600 hover:underline">Создать категорию</RouterLink>

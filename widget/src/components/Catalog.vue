@@ -178,6 +178,7 @@ function handleSelect(product: any) {
           v-if="showCategories"
           v-model="filterCategory"
           :options="categorySelectOptions"
+          :searchable="true"
         />
       </div>
     </div>

@@ -438,6 +438,7 @@ async function doDelete() {
               v-model="form.parent_id"
               :options="parentSelectOptions"
               placeholder="Верхний уровень (без родителя)"
+              searchable
             />
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
               Поддерживается только 1 уровень вложенности
@@ -587,6 +588,7 @@ async function doDelete() {
               v-model="deleteMoveTarget"
               :options="moveTargetOptions"
               placeholder="Выберите категорию..."
+              searchable
             />
           </div>
 
