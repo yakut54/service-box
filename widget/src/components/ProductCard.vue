@@ -94,7 +94,7 @@ function decrement() {
 
     <!-- Body -->
     <div class="sb-pc-body">
-      <p v-if="product.category" class="sb-pc-category">{{ product.category }}</p>
+      <p v-if="product.category?.name" class="sb-pc-category">{{ product.category.name }}</p>
       <h3 class="sb-pc-name">{{ product.name }}</h3>
 
       <div v-if="rating" class="sb-pc-rating">

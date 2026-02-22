@@ -8,14 +8,6 @@ export const useProductsStore = defineStore('products', () => {
 
   const activeProducts = computed(() => products.value.filter(p => p.is_active))
 
-  const categories = computed(() => {
-    const cats = new Set<string>()
-    products.value.forEach(p => {
-      if (p.category) cats.add(p.category)
-    })
-    return Array.from(cats).sort()
-  })
-
   async function fetchProducts(params?: Record<string, string>) {
     loading.value = true
     try {
@@ -40,7 +32,6 @@ export const useProductsStore = defineStore('products', () => {
     products,
     loading,
     activeProducts,
-    categories,
     fetchProducts,
     deleteProduct,
     $reset,

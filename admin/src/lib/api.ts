@@ -378,6 +378,42 @@ class ApiClient {
   }
 
   // ==========================================
+  // CATEGORIES
+  // ==========================================
+
+  async getCategories() {
+    return this.request<{ data: any[] }>('/admin/categories')
+  }
+
+  async createCategory(data: Record<string, any>) {
+    return this.request<{ data: any }>('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateCategory(id: string, data: Record<string, any>) {
+    return this.request<{ data: any }>(`/admin/categories/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteCategory(id: string, params: Record<string, string>) {
+    const query = new URLSearchParams(params).toString()
+    return this.request<{ message: string }>(`/admin/categories/${id}?${query}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async reorderCategories(items: Array<{ id: string; sort_order: number }>) {
+    return this.request<{ message: string }>('/admin/categories/reorder', {
+      method: 'PATCH',
+      body: JSON.stringify({ items }),
+    })
+  }
+
+  // ==========================================
   // REVIEWS
   // ==========================================
 

@@ -2,11 +2,12 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/lib/api'
-import { useProductsStore } from '@/stores/products'
+import { useCategoriesStore } from '@/stores/categories'
+import CustomSelect from '@/components/CustomSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
-const productsStore = useProductsStore()
+const categoriesStore = useCategoriesStore()
 
 const isEditing = computed(() => !!route.params.id)
 const loading = ref(false)
@@ -19,7 +20,7 @@ const form = ref({
   price: 0,
   compare_price: null as number | null,
   type: 'physical' as string,
-  category: '',
+  category_id: '',
   is_active: true,
   image_url: '',
 })
@@ -70,65 +71,6 @@ const typeConfig = {
 }
 
 const currentTypeConfig = computed(() => typeConfig[form.value.type as keyof typeof typeConfig] || typeConfig.physical)
-
-// ── Category dropdown ───────────────────────────────────────
-const catOpen = ref(false)
-const catSearch = ref('')
-const catInputEl = ref<HTMLInputElement | null>(null)
-
-const filteredCategories = computed(() => {
-  const q = catSearch.value.toLowerCase().trim()
-  if (!q) return productsStore.categories
-  return productsStore.categories.filter(c => c.toLowerCase().includes(q))
-})
-
-const showNewCategoryHint = computed(() => {
-  const q = catSearch.value.trim()
-  if (!q) return false
-  return !productsStore.categories.some(c => c.toLowerCase() === q.toLowerCase())
-})
-
-function selectCategory(cat: string) {
-  form.value.category = cat
-  catSearch.value = cat
-  catOpen.value = false
-}
-
-function onCatFocus() {
-  catSearch.value = form.value.category
-  catOpen.value = true
-}
-
-function onCatBlur() {
-  setTimeout(() => {
-    catOpen.value = false
-    const q = catSearch.value.trim()
-    if (q) {
-      form.value.category = q
-    } else {
-      form.value.category = ''
-    }
-  }, 200)
-}
-
-function clearCategory() {
-  form.value.category = ''
-  catSearch.value = ''
-  catOpen.value = false
-}
-
-function onCatEnter() {
-  const q = catSearch.value.trim()
-  if (!q) {
-    catOpen.value = false
-    return
-  }
-  if (filteredCategories.value.length > 0) {
-    selectCategory(filteredCategories.value[0])
-  } else {
-    selectCategory(q)
-  }
-}
 
 // ── Image upload ─────────────────────────────────────────────
 const imageError   = ref(false)
@@ -185,11 +127,11 @@ function clearImage() {
 
 // ── Data loading ────────────────────────────────────────────
 onMounted(async () => {
-  if (!productsStore.products.length) {
-    try {
-      await productsStore.fetchProducts()
-    } catch { /* категории не критичны */ }
+  // Load categories for the selector
+  if (!categoriesStore.categories.length) {
+    try { await categoriesStore.fetchCategories() } catch { /* non-critical */ }
   }
+
   if (isEditing.value) {
     loading.value = true
     try {
@@ -201,11 +143,10 @@ onMounted(async () => {
         price: p.price / 100,
         compare_price: p.compare_price ? p.compare_price / 100 : null,
         type: p.type,
-        category: p.category || '',
+        category_id: p.category_id || '',
         is_active: p.is_active,
         image_url: p.image_url || ''
       }
-      catSearch.value = p.category || ''
       if (p.physical) {
         physicalDetails.value = {
           sku: p.physical.sku || '',
@@ -255,7 +196,7 @@ async function handleSubmit() {
     price: Math.round(form.value.price * 100),
     compare_price: form.value.compare_price ? Math.round(form.value.compare_price * 100) : null,
     type: form.value.type,
-    category: form.value.category.trim() || null,
+    category_id: form.value.category_id || null,
     is_active: form.value.is_active,
     image_url: form.value.image_url.trim() || null,
   }
@@ -341,58 +282,17 @@ async function handleSubmit() {
             </div>
           </div>
 
-          <!-- Категория — combobox -->
-          <div class="relative">
+          <!-- Категория -->
+          <div>
             <label class="label">Категория</label>
-            <div class="relative">
-              <input
-                ref="catInputEl"
-                :value="catOpen ? catSearch : form.category"
-                @input="catSearch = ($event.target as HTMLInputElement).value"
-                @focus="onCatFocus"
-                @blur="onCatBlur"
-                @keydown.enter.prevent="onCatEnter"
-                type="text"
-                class="input pr-16"
-                placeholder="Выберите или введите новую"
-                autocomplete="off"
-              />
-              <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <button
-                  v-if="form.category"
-                  type="button"
-                  @mousedown.prevent="clearCategory"
-                  class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-                <svg class="w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            <!-- Dropdown -->
-            <div
-              v-if="catOpen && (filteredCategories.length > 0 || showNewCategoryHint)"
-              class="absolute z-20 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto"
-            >
-              <button
-                v-for="cat in filteredCategories"
-                :key="cat"
-                type="button"
-                @mousedown.prevent="selectCategory(cat)"
-                :class="['w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-700 dark:hover:text-primary-300 transition-colors', form.category === cat ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium' : 'text-gray-700 dark:text-gray-300']"
-              >
-                {{ cat }}
-              </button>
-              <div
-                v-if="showNewCategoryHint"
-                class="px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700"
-              >
-                <span class="text-primary-600 font-medium">Enter</span> — создать «{{ catSearch.trim() }}»
-              </div>
-            </div>
+            <CustomSelect
+              v-model="form.category_id"
+              :options="categoriesStore.categoryOptions"
+              placeholder="Без категории"
+            />
+            <p v-if="categoriesStore.categories.length === 0" class="text-xs text-gray-400 mt-1">
+              Нет категорий. <RouterLink to="/categories" class="text-primary-600 hover:underline">Создать категорию</RouterLink>
+            </p>
           </div>
 
           <!-- Изображение -->

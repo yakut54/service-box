@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useProductsStore } from '@/stores/products'
+import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import { plural } from '@/lib/utils'
 
 const productsStore = useProductsStore()
+const categoriesStore = useCategoriesStore()
 const deleteConfirm = ref<string | null>(null)
 const filterType = ref('')
 const filterSearch = ref('')
@@ -12,7 +14,10 @@ const filterCategory = ref('')
 
 const categoryOptions = computed(() => [
   { value: '', label: 'Все категории' },
-  ...productsStore.categories.map(c => ({ value: c, label: c })),
+  ...categoriesStore.allCategories.map(c => ({
+    value: c.id,
+    label: c.parent_id ? `— ${c.name}` : c.name,
+  })),
 ])
 
 function formatPrice(kopecks: number): string {
@@ -28,13 +33,18 @@ const typeOptions = [
   { value: 'service', label: 'Услуги' },
 ]
 
-onMounted(() => { productsStore.fetchProducts() })
+onMounted(async () => {
+  await Promise.all([
+    productsStore.fetchProducts(),
+    categoriesStore.categories.length ? Promise.resolve() : categoriesStore.fetchCategories(),
+  ])
+})
 
 async function applyFilters() {
   const params: Record<string, string> = {}
   if (filterType.value) params.type = filterType.value
   if (filterSearch.value) params.search = filterSearch.value
-  if (filterCategory.value) params.category = filterCategory.value
+  if (filterCategory.value) params.category_id = filterCategory.value
   await productsStore.fetchProducts(params)
 }
 
@@ -73,7 +83,7 @@ function getStockBadge(product: any) {
           <input v-model="filterSearch" @input="applyFilters" type="text" class="input" placeholder="Поиск по названию..." />
         </div>
         <CustomSelect
-          v-if="productsStore.categories.length > 0"
+          v-if="categoriesStore.allCategories.length > 0"
           v-model="filterCategory"
           @change="applyFilters"
           :options="categoryOptions"
@@ -109,6 +119,7 @@ function getStockBadge(product: any) {
           <div>
             <h3 class="font-medium text-gray-900 dark:text-white line-clamp-1">{{ product.name }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ typeLabels[product.type] || product.type }}</p>
+            <p v-if="product.category" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ product.category.name }}</p>
           </div>
           <span :class="['badge', product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800']">
             {{ product.is_active ? 'Активен' : 'Скрыт' }}

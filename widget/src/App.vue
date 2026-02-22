@@ -24,7 +24,7 @@ const completedOrder = ref<any>(null)
 const completedBooking = ref<any>(null)
 const sidebarOpen = ref(false)
 const isClosing = ref(false)
-const sidebarCategories = ref<string[]>([])
+const sidebarCategories = ref<Array<{ id: string; name: string }>>([])
 const activeSidebarCategory = ref('')
 const categoriesOpen = ref(true)
 const previousView = ref<WidgetView>('catalog')
@@ -171,12 +171,12 @@ function navigate(view: WidgetView) {
   scrollToTop()
 }
 
-function handleCategoriesLoaded(cats: string[]) {
+function handleCategoriesLoaded(cats: Array<{ id: string; name: string }>) {
   sidebarCategories.value = cats
 }
 
-function selectSidebarCategory(cat: string) {
-  activeSidebarCategory.value = cat === activeSidebarCategory.value ? '' : cat
+function selectSidebarCategory(catId: string) {
+  activeSidebarCategory.value = catId === activeSidebarCategory.value ? '' : catId
   currentView.value = 'catalog'
   sidebarOpen.value = false
   scrollToTop()
@@ -323,11 +323,11 @@ function selectSidebarCategory(cat: string) {
               </button>
               <button
                   v-for="cat in sidebarCategories"
-                  :key="cat"
-                  :class="['sb-sidebar-cat', activeSidebarCategory === cat ? 'sb-sidebar-cat--active' : '']"
-                  @click="selectSidebarCategory(cat)"
+                  :key="cat.id"
+                  :class="['sb-sidebar-cat', activeSidebarCategory === cat.id ? 'sb-sidebar-cat--active' : '']"
+                  @click="selectSidebarCategory(cat.id)"
               >
-                {{ cat }}
+                {{ cat.name }}
               </button>
             </div>
           </template>

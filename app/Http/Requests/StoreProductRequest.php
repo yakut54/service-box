@@ -22,7 +22,7 @@ class StoreProductRequest extends FormRequest
             'currency' => 'nullable|string|size:3',
             'image_url' => 'nullable|url|max:500',
             'is_active' => 'nullable|boolean',
-            'category' => 'nullable|string|max:100',
+            'category_id' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
         ];
 

@@ -12,6 +12,7 @@ use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -59,6 +60,9 @@ Route::prefix('widget')->middleware('tenant')->group(function () {
     // Shop info
     Route::get('/shop', [ShopController::class, 'getPublicInfo']);
 
+    // Categories (read-only, only visible)
+    Route::get('/categories', [CategoryController::class, 'widgetIndex']);
+
     // Products (read-only)
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{product}', [ProductController::class, 'show']);
@@ -100,6 +104,13 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Shop
     Route::get('/shop', [ShopController::class, 'show']);
     Route::put('/shop', [ShopController::class, 'update']);
+
+    // Categories (reorder must be before {id} routes)
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::patch('/categories/reorder', [CategoryController::class, 'reorder']);
+    Route::patch('/categories/{id}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
     // Products
     Route::apiResource('products', ProductController::class);

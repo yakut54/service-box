@@ -17,7 +17,7 @@ class ProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Product::query();
+        $query = Product::query()->with('category:id,name,slug');
 
         if ($request->has('type')) {
             $query->ofType($request->type);
@@ -32,8 +32,8 @@ class ProductController extends Controller
             }
         }
 
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
         }
 
         if ($request->filled('search')) {
@@ -56,7 +56,7 @@ class ProductController extends Controller
         });
 
         return response()->json([
-            'data' => $products,
+            'data'  => $products,
             'count' => $products->count(),
         ]);
     }
@@ -77,17 +77,18 @@ class ProductController extends Controller
             'currency',
             'image_url',
             'is_active',
-            'category',
+            'category_id',
             'sort_order',
         ]));
 
         $this->storeProductDetails($product, $request);
 
+        $product->load('category:id,name,slug');
         $product->loadDetails();
 
         return response()->json([
             'message' => 'Product created successfully',
-            'data' => $product,
+            'data'    => $product,
         ], 201);
     }
 
@@ -98,7 +99,8 @@ class ProductController extends Controller
      */
     public function show(string $product): JsonResponse
     {
-        $product = Product::withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
+        $product = Product::with('category:id,name,slug')
+                          ->withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
                           ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)])
                           ->findOrFail($product);
         $product->loadDetails();
@@ -127,17 +129,17 @@ class ProductController extends Controller
             'currency',
             'image_url',
             'is_active',
-            'category',
+            'category_id',
             'sort_order',
         ]));
 
         $this->updateProductDetails($product, $request);
 
-        $product->refresh()->loadDetails();
+        $product->refresh()->load('category:id,name,slug')->loadDetails();
 
         return response()->json([
             'message' => 'Product updated successfully',
-            'data' => $product,
+            'data'    => $product,
         ]);
     }
 

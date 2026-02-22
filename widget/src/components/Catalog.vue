@@ -13,7 +13,7 @@ const emit = defineEmits<{
   select: [product: any]
   'open-cart': []
   book: [product: any]
-  'categories-loaded': [categories: string[]]
+  'categories-loaded': [categories: Array<{ id: string; name: string }>]
 }>()
 
 const shopStore = useShopStore()
@@ -25,12 +25,17 @@ const search = ref('')
 const filterType = ref('')
 const filterCategory = ref('')
 
+// Категории — объекты { id, name } из поля category у товаров
 const categories = computed(() => {
-  const cats = new Set<string>()
+  const seen = new Map<string, string>()
   for (const p of products.value) {
-    if (p.category) cats.add(p.category)
+    if (p.category && p.category.id && p.category.name) {
+      seen.set(p.category.id, p.category.name)
+    }
   }
-  return Array.from(cats).sort()
+  return Array.from(seen.entries())
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 })
 
 const filteredProducts = computed(() => {
@@ -41,7 +46,7 @@ const filteredProducts = computed(() => {
   }
 
   if (filterCategory.value) {
-    result = result.filter(p => p.category === filterCategory.value)
+    result = result.filter(p => p.category?.id === filterCategory.value)
   }
 
   if (search.value.trim()) {
@@ -83,7 +88,7 @@ const typeSelectOptions = computed(() =>
 
 const categorySelectOptions = computed(() => [
   { value: '', label: 'Все категории' },
-  ...categories.value.map(c => ({ value: c, label: c })),
+  ...categories.value.map(c => ({ value: c.id, label: c.name })),
 ])
 
 const showFilters = computed(() => showTypeSelect.value || showCategories.value)

@@ -174,7 +174,7 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
 
       <!-- Right: info + actions -->
       <div class="sb-pd-col-info">
-        <p v-if="product.category" class="sb-pd-category">{{ product.category }}</p>
+        <p v-if="product.category?.name" class="sb-pd-category">{{ product.category.name }}</p>
         <h2 class="sb-pd-name">{{ product.name }}</h2>
 
         <!-- Rating -->

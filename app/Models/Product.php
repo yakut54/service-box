@@ -22,18 +22,23 @@ class Product extends Model
         'currency',
         'image_url',
         'is_active',
-        'category',
+        'category_id',
         'sort_order',
     ];
 
     protected $casts = [
-        'price' => 'integer',
+        'price'         => 'integer',
         'compare_price' => 'integer',
-        'is_active' => 'boolean',
-        'sort_order' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'is_active'     => 'boolean',
+        'sort_order'    => 'integer',
+        'created_at'    => 'datetime',
+        'updated_at'    => 'datetime',
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
 
     public function physical()
     {
