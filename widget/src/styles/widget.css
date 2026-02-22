@@ -889,11 +889,13 @@
   overflow: hidden;
   background: var(--sb-bg-muted);
   flex-shrink: 0;
+  aspect-ratio: 4 / 5;
+  width: 100%;
 }
 
 .sb-pc-img {
   width: 100%;
-  aspect-ratio: 4 / 5;
+  height: 100%;
   object-fit: cover;
   display: block;
   transition: transform 0.3s ease;
@@ -901,6 +903,7 @@
 
 /* Responsive aspect-ratio — MUST be after base rule to override it */
 @container (min-width: 500px) {
+  .sb-pc-image,
   .sb-pc-img,
   .sb-pc-img-placeholder {
     aspect-ratio: 1 / 1;
@@ -908,6 +911,7 @@
 }
 
 @container (min-width: 900px) {
+  .sb-pc-image,
   .sb-pc-img,
   .sb-pc-img-placeholder {
     aspect-ratio: 4 / 3;
@@ -920,7 +924,7 @@
 
 .sb-pc-img-placeholder {
   width: 100%;
-  aspect-ratio: 4 / 5;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
