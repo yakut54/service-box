@@ -23,13 +23,11 @@ echo "=== ServiceBox Deploy ==="
 echo "→ Dir: $REPO_DIR"
 echo "→ Branch: $BRANCH"
 
-# ── 0. Pre-deploy cleanup (prevent disk accumulation) ─────────────
+# ── 0. Pre-deploy cleanup ─────────────────────────────────────
 echo ""
 echo "[0/7] Pre-deploy cleanup..."
-# Remove previous node_modules (rebuilt fresh each deploy)
-rm -rf admin/node_modules widget/node_modules
-# Remove stale Docker build cache and dangling images
-docker builder prune -f --filter "until=24h" 2>/dev/null || true
+# node_modules НЕ удаляем — npm ci перезапишет сам, кеш ускоряет деплой
+# Docker: чистим только мусор (остановленные контейнеры, dangling images)
 docker image prune -f 2>/dev/null || true
 docker container prune -f 2>/dev/null || true
 echo "    Cleanup done (disk: $(df -h / | awk 'NR==2{print $4}') free)"
