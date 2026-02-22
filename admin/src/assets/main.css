@@ -123,16 +123,7 @@
     flex-shrink: 0;
   }
 
-  /* Заказы — цвет текста, фон и бордер (raw CSS — не удаляется Tailwind purge) */
-  .badge-pending    { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
-  .badge-paid       { background-color: #d1fae5; color: #065f46; border-color: #6ee7b7; }
-  .badge-processing { background-color: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
-  .badge-completed  { background-color: #ede9fe; color: #4c1d95; border-color: #c4b5fd; }
-  .badge-cancelled  { background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-
-  /* Записи */
-  .badge-confirmed  { background-color: #e0e7ff; color: #3730a3; border-color: #a5b4fc; }
-  .badge-no_show    { background-color: #ffedd5; color: #9a3412; border-color: #fdba74; }
+  /* Цвета бейджей — вынесены за @layer в самый низ файла */
 
   .table {
     @apply w-full text-sm text-left;
@@ -419,3 +410,12 @@
 .badge-cancelled::before  { background-color: #dc2626; }
 .badge-confirmed::before  { background-color: #4f46e5; }
 .badge-no_show::before    { background-color: #ea580c; }
+
+/* ── Badge light-mode colors — вне @layer, не удаляются Tailwind purge ── */
+.badge-pending    { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.badge-paid       { background-color: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+.badge-processing { background-color: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
+.badge-completed  { background-color: #ede9fe; color: #4c1d95; border-color: #c4b5fd; }
+.badge-cancelled  { background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+.badge-confirmed  { background-color: #e0e7ff; color: #3730a3; border-color: #a5b4fc; }
+.badge-no_show    { background-color: #ffedd5; color: #9a3412; border-color: #fdba74; }
