@@ -134,15 +134,6 @@
   .badge-confirmed { @apply bg-indigo-100 text-indigo-800; }
   .badge-no_show   { @apply bg-orange-100 text-orange-800; }
 
-  /* Явные цвета точек (не через currentColor — надёжнее) */
-  .badge-pending::before   { background: #d97706; }
-  .badge-paid::before      { background: #059669; }
-  .badge-processing::before{ background: #2563eb; }
-  .badge-completed::before { background: #64748b; }
-  .badge-cancelled::before { background: #dc2626; }
-  .badge-confirmed::before { background: #4f46e5; }
-  .badge-no_show::before   { background: #ea580c; }
-
   .table {
     @apply w-full text-sm text-left;
   }
@@ -419,3 +410,12 @@
     padding: 10px 8px;
   }
 }
+
+/* ── Badge dot colors — вне @layer, гарантированно перебивают слоёные стили ── */
+.badge-pending::before   { background-color: #d97706; }
+.badge-paid::before      { background-color: #059669; }
+.badge-processing::before{ background-color: #2563eb; }
+.badge-completed::before { background-color: #64748b; }
+.badge-cancelled::before { background-color: #dc2626; }
+.badge-confirmed::before { background-color: #4f46e5; }
+.badge-no_show::before   { background-color: #ea580c; }
