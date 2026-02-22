@@ -227,11 +227,31 @@ class BookingController extends Controller
         $slots   = [];
         $current = $workStart->copy();
 
+        \Log::info('[availableSlots] debug', [
+            'date_input'    => $request->date,
+            'timezone'      => $timezone,
+            'work_start'    => $workStartTime,
+            'work_end'      => $workEndTime,
+            'slot_step'     => $slotStep,
+            'duration'      => $duration,
+            'now_shop_tz'   => $now->toDateTimeString(),
+            'workStart'     => $workStart->toDateTimeString(),
+            'workEnd'       => $workEnd->toDateTimeString(),
+            'date_isToday'  => $date->isToday(),
+            'shop_id'       => $shop?->id,
+            'shop_timezone' => $shop?->timezone,
+        ]);
+
         // Пропускаем прошедшие слоты (сравниваем в timezone магазина)
         if ($date->isToday() && $now->greaterThan($workStart)) {
             $minutesPassed = $now->diffInMinutes($workStart);
             $slotsSkipped  = (int) ceil($minutesPassed / $slotStep);
             $current->addMinutes($slotsSkipped * $slotStep);
+            \Log::info('[availableSlots] skip past', [
+                'minutesPassed' => $minutesPassed,
+                'slotsSkipped'  => $slotsSkipped,
+                'current_after_skip' => $current->toDateTimeString(),
+            ]);
         }
 
         while ($current->copy()->addMinutes($duration)->lessThanOrEqualTo($workEnd)) {
