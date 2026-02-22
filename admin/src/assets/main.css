@@ -103,7 +103,7 @@
   .badge-cancelled,
   .badge-confirmed,
   .badge-no_show {
-    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap border;
   }
 
   /* Dot common shape */
@@ -123,16 +123,16 @@
     flex-shrink: 0;
   }
 
-  /* Заказы — цвет текста и фон */
-  .badge-pending   { @apply bg-amber-100  text-amber-800; }
-  .badge-paid      { @apply bg-emerald-100 text-emerald-800; }
-  .badge-processing{ @apply bg-blue-100   text-blue-800; }
-  .badge-completed { @apply bg-slate-100  text-slate-700; }
-  .badge-cancelled { @apply bg-red-100    text-red-800; }
+  /* Заказы — цвет текста, фон и бордер */
+  .badge-pending    { @apply bg-amber-50   text-amber-700   border-amber-200; }
+  .badge-paid       { @apply bg-emerald-50 text-emerald-700 border-emerald-200; }
+  .badge-processing { @apply bg-blue-50    text-blue-700    border-blue-200; }
+  .badge-completed  { @apply bg-violet-50  text-violet-700  border-violet-200; }
+  .badge-cancelled  { @apply bg-red-50     text-red-700     border-red-200; }
 
   /* Записи */
-  .badge-confirmed { @apply bg-indigo-100 text-indigo-800; }
-  .badge-no_show   { @apply bg-orange-100 text-orange-800; }
+  .badge-confirmed  { @apply bg-indigo-50  text-indigo-700  border-indigo-200; }
+  .badge-no_show    { @apply bg-orange-50  text-orange-700  border-orange-200; }
 
   .table {
     @apply w-full text-sm text-left;
@@ -376,13 +376,13 @@
   }
 
   /* ── Бейджи dark ─────────────────────────────────────────── */
-  .dark .badge-pending    { background-color: rgb(120 53 15 / 0.35);  color: rgb(252 211 77); }
-  .dark .badge-paid       { background-color: rgb(6  78 59 / 0.35);   color: rgb(110 231 183); }
-  .dark .badge-processing { background-color: rgb(30 58 138 / 0.35);  color: rgb(147 197 253); }
-  .dark .badge-completed  { background-color: rgb(30 41 59 / 0.5);    color: rgb(148 163 184); }
-  .dark .badge-cancelled  { background-color: rgb(127 29 29 / 0.35);  color: rgb(252 165 165); }
-  .dark .badge-confirmed  { background-color: rgb(49 46 129 / 0.35);  color: rgb(165 180 252); }
-  .dark .badge-no_show    { background-color: rgb(124 45 18 / 0.35);  color: rgb(253 186 116); }
+  .dark .badge-pending    { background-color: rgb(120 53 15 / 0.3);   color: rgb(252 211 77);   border-color: rgb(180 83 9 / 0.4); }
+  .dark .badge-paid       { background-color: rgb(6  78 59 / 0.3);    color: rgb(110 231 183);  border-color: rgb(5 150 105 / 0.4); }
+  .dark .badge-processing { background-color: rgb(30 58 138 / 0.3);   color: rgb(147 197 253);  border-color: rgb(37 99 235 / 0.4); }
+  .dark .badge-completed  { background-color: rgb(76 29 149 / 0.3);   color: rgb(196 181 253);  border-color: rgb(124 58 237 / 0.4); }
+  .dark .badge-cancelled  { background-color: rgb(127 29 29 / 0.3);   color: rgb(252 165 165);  border-color: rgb(220 38 38 / 0.4); }
+  .dark .badge-confirmed  { background-color: rgb(49 46 129 / 0.3);   color: rgb(165 180 252);  border-color: rgb(79 70 229 / 0.4); }
+  .dark .badge-no_show    { background-color: rgb(124 45 18 / 0.3);   color: rgb(253 186 116);  border-color: rgb(234 88 12 / 0.4); }
 
   /* ── Утилиты ─────────────────────────────────────────────── */
   .text-balance {
@@ -412,10 +412,10 @@
 }
 
 /* ── Badge dot colors — вне @layer, гарантированно перебивают слоёные стили ── */
-.badge-pending::before   { background-color: #d97706; }
-.badge-paid::before      { background-color: #059669; }
-.badge-processing::before{ background-color: #2563eb; }
-.badge-completed::before { background-color: #64748b; }
-.badge-cancelled::before { background-color: #dc2626; }
-.badge-confirmed::before { background-color: #4f46e5; }
-.badge-no_show::before   { background-color: #ea580c; }
+.badge-pending::before    { background-color: #d97706; }
+.badge-paid::before       { background-color: #059669; }
+.badge-processing::before { background-color: #2563eb; }
+.badge-completed::before  { background-color: #7c3aed; }
+.badge-cancelled::before  { background-color: #dc2626; }
+.badge-confirmed::before  { background-color: #4f46e5; }
+.badge-no_show::before    { background-color: #ea580c; }
