@@ -88,94 +88,70 @@ function decrement() {
         </svg>
       </div>
 
+      <!-- Top-left: type/stock badge -->
       <span v-if="badge" :class="badge.cls">{{ badge.text }}</span>
-      <span v-if="hasDiscount && !isOutOfStock" class="sb-pc-discount">−{{ discountPercent }}%</span>
+
+      <!-- Bottom bar: discount left + FAB cart right -->
+      <div class="sb-pc-img-footer">
+        <span v-if="hasDiscount && !isOutOfStock" class="sb-pc-discount">−{{ discountPercent }}%</span>
+        <span v-else></span>
+
+        <!-- SERVICE -->
+        <button
+          v-if="isService && !isOutOfStock"
+          class="sb-pc-fab"
+          aria-label="Записаться"
+          @click.stop="emit('book', product)"
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </button>
+
+        <!-- DIGITAL in cart -->
+        <div v-else-if="isDigital && inCart" class="sb-pc-fab sb-pc-fab--done" @click.stop>
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        <!-- PHYSICAL qty controls -->
+        <div v-else-if="!isService && !isDigital && inCart" class="sb-pc-fab-qty" @click.stop>
+          <button class="sb-pc-fab-qty-btn" @click="decrement">−</button>
+          <span class="sb-pc-fab-qty-val">{{ inCartQty }}</span>
+          <button class="sb-pc-fab-qty-btn" @click="increment" :disabled="inCartQty >= maxStock">+</button>
+        </div>
+
+        <!-- Add to cart -->
+        <button
+          v-else-if="!isOutOfStock"
+          class="sb-pc-fab"
+          :aria-label="isDigital ? 'Получить' : 'В корзину'"
+          @click.stop="addToCart"
+        >
+          <svg v-if="isDigital" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <svg v-else width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <!-- Body -->
+    <!-- Body: price first (WB style), then name, then rating -->
     <div class="sb-pc-body">
-      <p v-if="product.category?.name" class="sb-pc-category">{{ product.category.name }}</p>
+      <div class="sb-pc-prices">
+        <span class="sb-pc-price">{{ formatPrice(product.price) }}</span>
+        <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
+      </div>
       <h3 class="sb-pc-name">{{ product.name }}</h3>
-
       <div v-if="rating" class="sb-pc-rating">
         <svg class="sb-pc-star-ico" viewBox="0 0 20 20" aria-hidden="true">
           <polygon fill="currentColor" points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7" />
         </svg>
         <span class="sb-pc-rating-val">{{ rating.toFixed(1) }}</span>
         <span v-if="reviewCount" class="sb-pc-rating-count">· {{ reviewCount }}</span>
-      </div>
-
-      <!-- Attribute chips -->
-      <div v-if="product.type === 'physical' && product.physical && (product.physical.brand || product.physical.color || product.physical.material)" class="sb-pc-attrs">
-        <span v-if="product.physical.brand" class="sb-pc-attr">{{ product.physical.brand }}</span>
-        <span v-if="product.physical.color" class="sb-pc-attr">{{ product.physical.color }}</span>
-        <span v-if="product.physical.material" class="sb-pc-attr">{{ product.physical.material }}</span>
-      </div>
-      <div v-else-if="product.type === 'digital' && product.digital && product.digital.file_format" class="sb-pc-attrs">
-        <span class="sb-pc-attr">{{ product.digital.file_format }}</span>
-      </div>
-      <div v-else-if="product.type === 'service' && product.service && product.service.requires_prepayment" class="sb-pc-attrs">
-        <span class="sb-pc-attr">Предоплата</span>
-      </div>
-
-      <!-- Price row -->
-      <div class="sb-pc-price-row">
-        <div class="sb-pc-prices">
-          <span class="sb-pc-price">{{ formatPrice(product.price) }}</span>
-          <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
-        </div>
-
-        <!-- SERVICE: сразу открывает календарь бронирования -->
-        <button
-          v-if="isService && !isOutOfStock"
-          class="sb-pc-cart-btn"
-          aria-label="Записаться"
-          @click.stop="emit('book', product)"
-        >
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span class="sb-pc-cart-label">Записаться</span>
-        </button>
-
-        <!-- DIGITAL в корзине: уже получено -->
-        <div
-          v-else-if="isDigital && inCart"
-          class="sb-pc-in-cart"
-          @click.stop
-        >
-          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-          </svg>
-          <span>В корзине</span>
-        </div>
-
-        <!-- PHYSICAL в корзине: -/qty/+ -->
-        <div
-          v-else-if="!isService && !isDigital && inCart"
-          class="sb-pc-qty"
-          @click.stop
-        >
-          <button class="sb-pc-qty-btn" @click="decrement">−</button>
-          <span class="sb-pc-qty-val">{{ inCartQty }}</span>
-          <button class="sb-pc-qty-btn" @click="increment" :disabled="inCartQty >= maxStock">+</button>
-        </div>
-
-        <!-- PHYSICAL / DIGITAL не в корзине: добавить -->
-        <button
-          v-else-if="!isOutOfStock"
-          class="sb-pc-cart-btn"
-          :aria-label="isDigital ? 'Получить' : 'В корзину'"
-          @click.stop="addToCart"
-        >
-          <svg v-if="isDigital" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          <svg v-else width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          <span class="sb-pc-cart-label">{{ isDigital ? 'Получить' : 'В корзину' }}</span>
-        </button>
       </div>
     </div>
   </div>

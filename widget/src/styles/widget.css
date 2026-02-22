@@ -340,11 +340,11 @@
   .sb-grid { gap: 8px; }
 }
 
-/* ≤499px: single column grid (card horizontal styles are below, after .sb-pc base rules) */
+/* ≤499px: keep 2 columns WB-style, tighter gap */
 @container (max-width: 499px) {
   .sb-grid-2 {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
 }
 
@@ -979,6 +979,106 @@
   line-height: 1.4;
 }
 
+/* ── Image footer bar: discount left + FAB right (WB style) ── */
+.sb-pc-img-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 8px 8px 8px 8px;
+  /* fade gradient so FAB floats over image */
+  background: linear-gradient(to top, rgba(0,0,0,0.18) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Re-enable pointer events on interactive children */
+.sb-pc-img-footer > * {
+  pointer-events: auto;
+}
+
+/* Discount badge inside footer (overrides absolute position from above) */
+.sb-pc-img-footer .sb-pc-discount {
+  position: static;
+  top: auto;
+  right: auto;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 8px;
+  letter-spacing: -0.01em;
+}
+
+/* ── FAB (Floating Action Button) — cart/book overlaid on image ── */
+.sb-pc-fab {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sb-primary);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.sb-pc-fab:hover {
+  background: var(--sb-primary-hover);
+  transform: scale(1.08);
+}
+
+.sb-pc-fab:active {
+  transform: scale(0.92);
+}
+
+.sb-pc-fab--done {
+  background: var(--sb-success);
+}
+
+/* ── FAB qty controls (physical in cart) ── */
+.sb-pc-fab-qty {
+  display: flex;
+  align-items: center;
+  background: var(--sb-primary);
+  border-radius: 9999px;
+  overflow: hidden;
+  height: 34px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+.sb-pc-fab-qty-btn {
+  width: 30px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+  flex-shrink: 0;
+}
+
+.sb-pc-fab-qty-btn:hover { background: rgba(255,255,255,0.15); }
+.sb-pc-fab-qty-btn:disabled { opacity: 0.4; cursor: default; }
+
+.sb-pc-fab-qty-val {
+  min-width: 22px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
 /* Cart / book button — inline in price row
    .sb-pc-body prefix raises specificity to (0,2,0),
    overriding the global .sb-widget button { background: transparent } (0,1,1) */
@@ -1180,8 +1280,10 @@
 /* Prices: mobile — column, desktop — one row with baseline align */
 .sb-pc-prices {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -1201,72 +1303,44 @@
   white-space: nowrap;
 }
 
-/* Desktop: одна строка — цена + зачёркнутая рядом */
-@container (min-width: 500px) {
-  .sb-pc-prices {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 6px;
-  }
-}
+/* sb-pc-prices is row by default (WB style) */
 
 /* ============================================================
-   ≤499px: Full-width vertical cards — single column, wide 3:2 image
-   Like Shopify/Etsy mobile. Image leads, content below.
+   ≤499px: WB/Ozon style — 2 columns, portrait 3:4 image,
+   FAB cart button overlaid on image bottom-right.
    MUST be placed AFTER all .sb-pc base rules to win cascade.
    ============================================================ */
 @container (max-width: 499px) {
 
-  /* Card stays vertical (column) — full width of the grid cell */
-  .sb-pc {
-    flex-direction: column;
-    height: auto;
-    border-radius: 12px;
-  }
-
-  /* Wide cinematic image — 3:2 ratio shows much more product */
+  /* Portrait image — dominant, like WB */
   .sb-pc-image {
-    aspect-ratio: 3 / 2 !important;
+    aspect-ratio: 3 / 4 !important;
     width: 100% !important;
-    border-radius: 12px 12px 0 0;
   }
 
-  /* Body: roomier padding for full-width card */
+  /* Body: tight, just price + name + rating */
   .sb-pc-body {
-    padding: 12px 14px 14px;
-    gap: 4px;
+    padding: 6px 8px 10px;
+    gap: 2px;
   }
 
-  /* Name: slightly larger — more readable on full-width card */
   .sb-pc-name {
-    font-size: 15px;
+    font-size: 12px;
     -webkit-line-clamp: 2;
   }
 
-  /* Price row: prices left, pill-button right */
-  .sb-pc-prices {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 6px;
+  .sb-pc-price {
+    font-size: 14px;
   }
 
-  /* Cart button as pill with label — space allows it */
-  .sb-pc-cart-label {
-    display: block;
+  .sb-pc-old-price {
+    font-size: 11px;
   }
 
-  .sb-pc-body .sb-pc-cart-btn {
-    width: auto;
-    border-radius: 9999px;
-    padding: 0 14px 0 10px;
-    gap: 5px;
-    height: 36px;
-  }
-
-  /* Skeleton: also full-width vertical with 3:2 image */
+  /* Skeleton portrait */
   .sb-skeleton-pc-img {
-    aspect-ratio: 3 / 2;
-    height: auto;
+    aspect-ratio: 3 / 4;
+    height: auto !important;
   }
 }
 
