@@ -2019,14 +2019,10 @@
   background: var(--sb-bg-muted);
 }
 
-.sb-cart-item-img {
+.sb-cart-item-img-wrap .sb-cart-item-img,
+.sb-cart-item-img-wrap--digital .sb-cart-item-img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.sb-cart-item-img--contain {
+  height: 100% !important;
   object-fit: cover;
   object-position: center;
 }
