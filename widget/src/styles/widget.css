@@ -1596,6 +1596,7 @@
 @container (max-width: 559px) {
   .sb-pd-footer {
     display: flex;
+    width: 100%;
     align-items: center;
     gap: 12px;
     position: fixed;
