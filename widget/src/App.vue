@@ -397,13 +397,6 @@ function selectSidebarCategory(catId: string) {
               @back="navigate('catalog')"
             />
 
-            <!-- Checkout -->
-            <Checkout
-              v-else-if="mainView === 'checkout'"
-              @back="navigate('cart')"
-              @success="handleOrderSuccess"
-            />
-
             <!-- Order Success -->
             <OrderSuccess
               v-else-if="mainView === 'success'"
@@ -427,7 +420,15 @@ function selectSidebarCategory(catId: string) {
               <button class="sb-btn sb-btn-primary sb-mt-4" @click="navigate('catalog')">Вернуться в каталог</button>
             </div>
 
-          </div>
+          </div><!-- /sb-main-inner -->
+
+          <!-- Checkout renders directly in sb-main (no padding wrapper) -->
+          <Checkout
+            v-if="mainView === 'checkout'"
+            @back="navigate('cart')"
+            @success="handleOrderSuccess"
+          />
+
         </main>
 
       </div>
