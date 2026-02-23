@@ -89,15 +89,17 @@ function decrement() {
         </svg>
       </div>
 
-      <!-- Top-left badge -->
+      <!-- Top-left: type/stock badge -->
       <span v-if="badge" :class="badge.cls">{{ badge.text }}</span>
 
-      <!-- ── MOBILE FAB: discount left + round button right (≤499px only) ── -->
-      <div class="sb-pc-img-footer">
-        <span v-if="hasDiscount && !isOutOfStock" class="sb-pc-discount">−{{ discountPercent }}%</span>
-        <span v-else></span>
+      <!-- Discount — top-right, ALWAYS visible (outside img-footer) -->
+      <span v-if="hasDiscount && !isOutOfStock" class="sb-pc-discount">−{{ discountPercent }}%</span>
 
-        <button v-if="isService && !isOutOfStock"
+      <!-- Mobile-only FAB overlay (hidden on desktop via CSS) -->
+      <div class="sb-pc-img-footer">
+        <!-- SERVICE -->
+        <button
+          v-if="isService && !isOutOfStock"
           class="sb-pc-fab" aria-label="Записаться"
           @click.stop="emit('book', product)">
           <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,19 +108,23 @@ function decrement() {
           </svg>
         </button>
 
+        <!-- DIGITAL in cart -->
         <div v-else-if="isDigital && inCart" class="sb-pc-fab sb-pc-fab--done" @click.stop>
           <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
           </svg>
         </div>
 
+        <!-- PHYSICAL qty on image -->
         <div v-else-if="!isService && !isDigital && inCart" class="sb-pc-fab-qty" @click.stop>
           <button class="sb-pc-fab-qty-btn" @click="decrement">−</button>
           <span class="sb-pc-fab-qty-val">{{ inCartQty }}</span>
           <button class="sb-pc-fab-qty-btn" @click="increment" :disabled="inCartQty >= maxStock">+</button>
         </div>
 
-        <button v-else-if="!isOutOfStock"
+        <!-- Add to cart -->
+        <button
+          v-else-if="!isOutOfStock"
           class="sb-pc-fab" :aria-label="isDigital ? 'Получить' : 'В корзину'"
           @click.stop="addToCart">
           <svg v-if="isDigital" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +154,7 @@ function decrement() {
         <span v-if="reviewCount" class="sb-pc-rating-count">· {{ reviewCount }}</span>
       </div>
 
-      <!-- ── DESKTOP ACTION: full-width button at bottom of body (≥500px) ── -->
+      <!-- Desktop action button (hidden on mobile via CSS) -->
       <div class="sb-pc-action">
         <!-- SERVICE -->
         <button v-if="isService && !isOutOfStock"
@@ -169,7 +175,7 @@ function decrement() {
           В корзине
         </div>
 
-        <!-- PHYSICAL qty controls in cart -->
+        <!-- PHYSICAL qty -->
         <div v-else-if="!isService && !isDigital && inCart"
           class="sb-pc-action-qty" @click.stop>
           <button class="sb-pc-action-qty-btn" @click="decrement">−</button>
