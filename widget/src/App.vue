@@ -133,6 +133,12 @@ function handleBack() {
   scrollToTop()
 }
 
+function handleCheckoutBack() {
+  previousView.value = 'catalog'
+  currentView.value = 'cart'
+  scrollToTop()
+}
+
 function handleCartBack() {
   const safeViews: WidgetView[] = ['catalog', 'product']
   if (!cartStore.isEmpty && safeViews.includes(previousView.value)) {
@@ -425,7 +431,7 @@ function selectSidebarCategory(catId: string) {
           <!-- Checkout renders directly in sb-main (no padding wrapper) -->
           <Checkout
             v-if="mainView === 'checkout'"
-            @back="navigate('cart')"
+            @back="handleCheckoutBack()"
             @success="handleOrderSuccess"
           />
 
