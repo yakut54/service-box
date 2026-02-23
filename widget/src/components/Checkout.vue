@@ -397,7 +397,10 @@ async function handleSubmit() {
         <span class="sb-co-footer-amount">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount :
           cartStore.total) }}</span>
       </div>
-      <button type="submit" class="sb-btn sb-btn-primary" :disabled="loading">
+      <button 
+        @click="handleSubmit"
+        class="sb-btn sb-btn-primary" :disabled="loading"
+      >
         {{ loading ? '...' : 'Подтвердить' }}
       </button>
     </div>
