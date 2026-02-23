@@ -2538,7 +2538,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 20px 16px 0;
+  padding: 20px 16px 16px;
 }
 
 @container (min-width: 600px) {
