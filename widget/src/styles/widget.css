@@ -1012,12 +1012,13 @@
 }
 
 /* ── FAB (Floating Action Button) — cart/book overlaid on image ── */
-.sb-pc-fab {
+/* .sb-pc-image prefix raises specificity above global button reset */
+.sb-pc-image .sb-pc-fab {
   flex-shrink: 0;
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: var(--sb-primary);
+  background: var(--sb-primary) !important;
   color: #fff;
   border: none;
   display: flex;
@@ -1028,17 +1029,17 @@
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
-.sb-pc-fab:hover {
-  background: var(--sb-primary-hover);
+.sb-pc-image .sb-pc-fab:hover {
+  background: var(--sb-primary-hover) !important;
   transform: scale(1.08);
 }
 
-.sb-pc-fab:active {
+.sb-pc-image .sb-pc-fab:active {
   transform: scale(0.92);
 }
 
-.sb-pc-fab--done {
-  background: var(--sb-success);
+.sb-pc-image .sb-pc-fab--done {
+  background: var(--sb-success) !important;
 }
 
 /* ── FAB qty controls (physical in cart) ── */
@@ -1077,6 +1078,87 @@
   font-size: 13px;
   font-weight: 700;
   color: #fff;
+}
+
+/* ── Desktop action area (inside .sb-pc-body, hidden on mobile) ── */
+.sb-pc-action {
+  display: none; /* shown via container query ≥500px */
+  width: 100%;
+}
+
+/* Full-width action button */
+.sb-pc-body .sb-pc-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 38px;
+  border-radius: var(--sb-radius);
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.sb-pc-body .sb-pc-action-btn--primary {
+  background: var(--sb-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.sb-pc-body .sb-pc-action-btn--primary:hover {
+  background: var(--sb-primary-hover);
+}
+
+.sb-pc-body .sb-pc-action-btn--primary:active {
+  transform: scale(0.97);
+}
+
+.sb-pc-body .sb-pc-action-btn--done {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--sb-success);
+  border: 1.5px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Desktop qty controls */
+.sb-pc-action-qty {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 38px;
+  border: 1.5px solid var(--sb-primary);
+  border-radius: var(--sb-radius);
+  overflow: hidden;
+}
+
+.sb-pc-action-qty-btn {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--sb-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sb-pc-action-qty-btn:hover { background: var(--sb-primary-light); }
+.sb-pc-action-qty-btn:disabled { opacity: 0.35; cursor: default; }
+
+.sb-pc-action-qty-val {
+  min-width: 32px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sb-text);
+  border-left: 1px solid var(--sb-border);
+  border-right: 1px solid var(--sb-border);
 }
 
 /* Cart / book button — inline in price row
@@ -1306,19 +1388,50 @@
 /* sb-pc-prices is row by default (WB style) */
 
 /* ============================================================
-   ≤499px: WB/Ozon style — 2 columns, portrait 3:4 image,
-   FAB cart button overlaid on image bottom-right.
-   MUST be placed AFTER all .sb-pc base rules to win cascade.
+   DESKTOP ≥500px: hide FAB on image, show action button in body
+   ============================================================ */
+@container (min-width: 500px) {
+  /* Hide mobile FAB overlay */
+  .sb-pc-img-footer {
+    display: none;
+  }
+
+  /* Show desktop button */
+  .sb-pc-action {
+    display: flex;
+    margin-top: auto;
+    padding-top: 10px;
+  }
+
+  /* Discount moves back to top-right */
+  .sb-pc-discount {
+    display: block;
+  }
+}
+
+/* ============================================================
+   MOBILE ≤499px: WB/Ozon — 2 cols, portrait 3:4, FAB on image
+   MUST be after all .sb-pc base rules to win cascade
    ============================================================ */
 @container (max-width: 499px) {
 
-  /* Portrait image — dominant, like WB */
+  /* Portrait image */
   .sb-pc-image {
     aspect-ratio: 3 / 4 !important;
     width: 100% !important;
   }
 
-  /* Body: tight, just price + name + rating */
+  /* Hide desktop button in body */
+  .sb-pc-action {
+    display: none;
+  }
+
+  /* Show mobile img-footer */
+  .sb-pc-img-footer {
+    display: flex;
+  }
+
+  /* Tight body */
   .sb-pc-body {
     padding: 6px 8px 10px;
     gap: 2px;
@@ -1596,17 +1709,16 @@
 @container (max-width: 559px) {
   .sb-pd-footer {
     display: flex;
-    width: 100%;
     align-items: center;
     gap: 12px;
-    position: fixed;
+    /* sticky — прилипает к низу скролл-контейнера (.sb-main) */
+    position: sticky;
     bottom: 0;
+    z-index: 100;
     background: var(--sb-bg);
     border-top: 1px solid var(--sb-border);
-    padding: 12px 0 16px;
-    margin-top: 20px;
-    /* visual shadow to separate from content */
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+    padding: 12px 16px 16px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -2608,18 +2720,18 @@
   font-weight: 500;
 }
 
-/* Mobile sticky footer */
+/* Mobile sticky footer — fixed к низу экрана */
 .sb-co-footer {
   display: flex;
   align-items: center;
   gap: 12px;
   position: sticky;
   bottom: 0;
+  z-index: 100;
   background: var(--sb-bg);
   border-top: 1px solid var(--sb-border);
-  padding: 12px 0 16px;
-  margin-top: 20px;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  padding: 12px 16px 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .sb-co-footer-price {
@@ -2641,39 +2753,7 @@
   line-height: 1.1;
 }
 
-/* ============================================================
-   QA: Sticky footer full-width breakout from .sb-main-inner padding
-   Mirrors the padding values in .sb-main-inner at each breakpoint
-   ============================================================ */
-@media (max-width: 767px) {
-  .sb-pd-footer,
-  .sb-co-footer {
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-}
-
-@media (max-width: 449px) {
-  .sb-pd-footer,
-  .sb-co-footer {
-    margin-left: -12px;
-    margin-right: -12px;
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-}
-
-@media (max-width: 359px) {
-  .sb-pd-footer,
-  .sb-co-footer {
-    margin-left: -8px;
-    margin-right: -8px;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-}
+/* Fixed footers — full-width by nature, no margin breakouts needed */
 
 /* QA: Hide progress labels at 360px and below to prevent crowding */
 @media (max-width: 360px) {
