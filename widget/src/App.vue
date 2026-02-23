@@ -134,7 +134,7 @@ function handleBack() {
 }
 
 function handleCheckoutBack() {
-  previousView.value = 'checkout'
+  previousView.value = 'catalog'
   currentView.value = 'cart'
   scrollToTop()
 }
