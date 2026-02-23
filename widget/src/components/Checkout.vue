@@ -191,7 +191,8 @@ async function handleSubmit() {
       <div class="sb-co-step sb-co-step-done">
         <span class="sb-co-step-circle">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+              stroke-linejoin="round" />
           </svg>
         </span>
         <span class="sb-co-step-label">Корзина</span>
@@ -211,172 +212,194 @@ async function handleSubmit() {
     <div v-if="error" class="sb-alert-error sb-mb-4">{{ error }}</div>
 
     <form @submit.prevent="handleSubmit">
-    <div class="sb-checkout-layout">
-      <!-- Left: form -->
-      <div class="sb-checkout-form">
-        <!-- Contact -->
-        <div class="sb-checkout-section">
-          <h3 class="sb-checkout-section-title">Контактные данные</h3>
+      <div class="sb-checkout-layout">
+        <!-- Left: form -->
+        <div class="sb-checkout-form">
+          <!-- Contact -->
+          <div class="sb-checkout-section">
+            <h3 class="sb-checkout-section-title">Контактные данные</h3>
 
-          <div class="sb-field">
-            <label class="sb-label">Имя *</label>
-            <div class="sb-field-wrap">
-              <input
-                v-model="form.name"
-                type="text"
-                class="sb-input"
-                :class="{ 'sb-input-error': errors.name, 'sb-input-success': isFieldValid('name') }"
-                placeholder="Ваше имя"
-                @blur="touch('name')"
-                @input="validateField('name')"
-              />
-              <svg v-if="isFieldValid('name')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <div class="sb-field">
+              <label class="sb-label">Имя *</label>
+              <div class="sb-field-wrap">
+                <input v-model="form.name" type="text" class="sb-input"
+                  :class="{ 'sb-input-error': errors.name, 'sb-input-success': isFieldValid('name') }"
+                  placeholder="Ваше имя" @blur="touch('name')" @input="validateField('name')" />
+                <svg v-if="isFieldValid('name')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+              <p v-if="errors.name" class="sb-error-text">{{ errors.name }}</p>
             </div>
-            <p v-if="errors.name" class="sb-error-text">{{ errors.name }}</p>
+
+            <div class="sb-field">
+              <label class="sb-label">Email *</label>
+              <div class="sb-field-wrap">
+                <input v-model="form.email" type="email" class="sb-input"
+                  :class="{ 'sb-input-error': errors.email, 'sb-input-success': isFieldValid('email') }"
+                  placeholder="email@example.com" @blur="touch('email')" @input="validateField('email')" />
+                <svg v-if="isFieldValid('email')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+              <p v-if="errors.email" class="sb-error-text">{{ errors.email }}</p>
+            </div>
+
+            <div class="sb-field">
+              <label class="sb-label">Телефон *</label>
+              <div class="sb-field-wrap">
+                <input :value="form.phone" type="tel" class="sb-input"
+                  :class="{ 'sb-input-error': errors.phone, 'sb-input-success': isFieldValid('phone') }"
+                  placeholder="+7 (___) ___-__-__" @input="onPhoneInput" @blur="touch('phone')" />
+                <svg v-if="isFieldValid('phone')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+              <p v-if="errors.phone" class="sb-error-text">{{ errors.phone }}</p>
+            </div>
           </div>
 
-          <div class="sb-field">
-            <label class="sb-label">Email *</label>
-            <div class="sb-field-wrap">
-              <input
-                v-model="form.email"
-                type="email"
-                class="sb-input"
-                :class="{ 'sb-input-error': errors.email, 'sb-input-success': isFieldValid('email') }"
-                placeholder="email@example.com"
-                @blur="touch('email')"
-                @input="validateField('email')"
-              />
-              <svg v-if="isFieldValid('email')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          <!-- Shipping (only if physical) -->
+          <div v-if="hasPhysical" class="sb-checkout-section">
+            <h3 class="sb-checkout-section-title">Адрес доставки</h3>
+
+            <div class="sb-field">
+              <label class="sb-label">Город *</label>
+              <div class="sb-field-wrap">
+                <input v-model="address.city" type="text" class="sb-input"
+                  :class="{ 'sb-input-error': errors['address.city'], 'sb-input-success': isFieldValid('address.city') }"
+                  placeholder="Москва" @blur="touch('address.city')" @input="validateField('address.city')" />
+                <svg v-if="isFieldValid('address.city')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+              <p v-if="errors['address.city']" class="sb-error-text">{{ errors['address.city'] }}</p>
             </div>
-            <p v-if="errors.email" class="sb-error-text">{{ errors.email }}</p>
+
+            <div class="sb-field">
+              <label class="sb-label">Улица *</label>
+              <div class="sb-field-wrap">
+                <input v-model="address.street" type="text" class="sb-input"
+                  :class="{ 'sb-input-error': errors['address.street'], 'sb-input-success': isFieldValid('address.street') }"
+                  placeholder="ул. Ленина" @blur="touch('address.street')" @input="validateField('address.street')" />
+                <svg v-if="isFieldValid('address.street')" class="sb-field-check" viewBox="0 0 20 20"
+                  fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+              <p v-if="errors['address.street']" class="sb-error-text">{{ errors['address.street'] }}</p>
+            </div>
+
+            <div class="sb-field-row">
+              <div class="sb-field">
+                <label class="sb-label">Дом *</label>
+                <div class="sb-field-wrap">
+                  <input v-model="address.building" type="text" class="sb-input"
+                    :class="{ 'sb-input-error': errors['address.building'], 'sb-input-success': isFieldValid('address.building') }"
+                    placeholder="12" @blur="touch('address.building')" @input="validateField('address.building')" />
+                  <svg v-if="isFieldValid('address.building')" class="sb-field-check" viewBox="0 0 20 20"
+                    fill="currentColor">
+                    <path fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <p v-if="errors['address.building']" class="sb-error-text">{{ errors['address.building'] }}</p>
+              </div>
+              <div class="sb-field">
+                <label class="sb-label">Квартира</label>
+                <input v-model="address.apartment" type="text" class="sb-input" placeholder="34" />
+              </div>
+              <div class="sb-field">
+                <label class="sb-label">Индекс *</label>
+                <div class="sb-field-wrap">
+                  <input v-model="address.postal_code" type="text" class="sb-input"
+                    :class="{ 'sb-input-error': errors['address.postal_code'], 'sb-input-success': isFieldValid('address.postal_code') }"
+                    placeholder="101000" @blur="touch('address.postal_code')"
+                    @input="validateField('address.postal_code')" />
+                  <svg v-if="isFieldValid('address.postal_code')" class="sb-field-check" viewBox="0 0 20 20"
+                    fill="currentColor">
+                    <path fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <p v-if="errors['address.postal_code']" class="sb-error-text">{{ errors['address.postal_code'] }}</p>
+              </div>
+            </div>
+
+            <div class="sb-field">
+              <label class="sb-label">Комментарий к доставке</label>
+              <textarea v-model="address.comment" class="sb-input" rows="2" placeholder="Код домофона, подъезд..." />
+            </div>
           </div>
 
-          <div class="sb-field">
-            <label class="sb-label">Телефон *</label>
-            <div class="sb-field-wrap">
-              <input
-                :value="form.phone"
-                type="tel"
-                class="sb-input"
-                :class="{ 'sb-input-error': errors.phone, 'sb-input-success': isFieldValid('phone') }"
-                placeholder="+7 (___) ___-__-__"
-                @input="onPhoneInput"
-                @blur="touch('phone')"
-              />
-              <svg v-if="isFieldValid('phone')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          <!-- Notes -->
+          <div class="sb-checkout-section">
+            <div class="sb-field">
+              <label class="sb-label">Комментарий к заказу</label>
+              <textarea v-model="notes" class="sb-input" rows="2" placeholder="Пожелания..." />
             </div>
-            <p v-if="errors.phone" class="sb-error-text">{{ errors.phone }}</p>
           </div>
         </div>
 
-        <!-- Shipping (only if physical) -->
-        <div v-if="hasPhysical" class="sb-checkout-section">
-          <h3 class="sb-checkout-section-title">Адрес доставки</h3>
+        <!-- Right: order summary (sticky on desktop) -->
+        <div class="sb-checkout-summary">
+          <h3 class="sb-checkout-section-title">Ваш заказ</h3>
 
-          <div class="sb-field">
-            <label class="sb-label">Город *</label>
-            <div class="sb-field-wrap">
-              <input v-model="address.city" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.city'], 'sb-input-success': isFieldValid('address.city') }" placeholder="Москва" @blur="touch('address.city')" @input="validateField('address.city')" />
-              <svg v-if="isFieldValid('address.city')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-            <p v-if="errors['address.city']" class="sb-error-text">{{ errors['address.city'] }}</p>
-          </div>
-
-          <div class="sb-field">
-            <label class="sb-label">Улица *</label>
-            <div class="sb-field-wrap">
-              <input v-model="address.street" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.street'], 'sb-input-success': isFieldValid('address.street') }" placeholder="ул. Ленина" @blur="touch('address.street')" @input="validateField('address.street')" />
-              <svg v-if="isFieldValid('address.street')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-            <p v-if="errors['address.street']" class="sb-error-text">{{ errors['address.street'] }}</p>
-          </div>
-
-          <div class="sb-field-row">
-            <div class="sb-field">
-              <label class="sb-label">Дом *</label>
-              <div class="sb-field-wrap">
-                <input v-model="address.building" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.building'], 'sb-input-success': isFieldValid('address.building') }" placeholder="12" @blur="touch('address.building')" @input="validateField('address.building')" />
-                <svg v-if="isFieldValid('address.building')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              </div>
-              <p v-if="errors['address.building']" class="sb-error-text">{{ errors['address.building'] }}</p>
-            </div>
-            <div class="sb-field">
-              <label class="sb-label">Квартира</label>
-              <input v-model="address.apartment" type="text" class="sb-input" placeholder="34" />
-            </div>
-            <div class="sb-field">
-              <label class="sb-label">Индекс *</label>
-              <div class="sb-field-wrap">
-                <input v-model="address.postal_code" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.postal_code'], 'sb-input-success': isFieldValid('address.postal_code') }" placeholder="101000" @blur="touch('address.postal_code')" @input="validateField('address.postal_code')" />
-                <svg v-if="isFieldValid('address.postal_code')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              </div>
-              <p v-if="errors['address.postal_code']" class="sb-error-text">{{ errors['address.postal_code'] }}</p>
+          <div class="sb-summary-items">
+            <div v-for="item in cartStore.items" :key="item.id" class="sb-summary-item">
+              <span class="sb-summary-item-name">{{ item.name }} × {{ item.quantity }}</span>
+              <span class="sb-summary-item-price">{{ formatPrice(item.price * item.quantity) }}</span>
             </div>
           </div>
 
-          <div class="sb-field">
-            <label class="sb-label">Комментарий к доставке</label>
-            <textarea v-model="address.comment" class="sb-input" rows="2" placeholder="Код домофона, подъезд..." />
-          </div>
-        </div>
+          <div class="sb-divider"></div>
 
-        <!-- Notes -->
-        <div class="sb-checkout-section">
-          <div class="sb-field">
-            <label class="sb-label">Комментарий к заказу</label>
-            <textarea v-model="notes" class="sb-input" rows="2" placeholder="Пожелания..." />
+          <div v-if="cartStore.discount" class="sb-cart-subtotal">
+            <span>Товары</span>
+            <span>{{ formatPrice(cartStore.total) }}</span>
           </div>
+          <div v-if="cartStore.discount" class="sb-cart-discount-row">
+            <span>Скидка</span>
+            <span class="sb-cart-discount-amount">−{{ formatPrice(cartStore.discount.amount) }}</span>
+          </div>
+          <div class="sb-summary-total">
+            <span>{{ cartStore.discount ? 'К оплате:' : 'Итого:' }}</span>
+            <span class="sb-price-lg">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount :
+              cartStore.total) }}</span>
+          </div>
+
+          <!-- Submit button: desktop only (mobile uses sticky footer) -->
+          <button type="submit" class="sb-btn sb-btn-primary sb-btn-block sb-mt-4 sb-co-submit-desktop"
+            :disabled="loading">
+            {{ loading ? 'Оформление...' : 'Подтвердить заказ' }}
+          </button>
         </div>
       </div>
 
-      <!-- Right: order summary (sticky on desktop) -->
-      <div class="sb-checkout-summary">
-        <h3 class="sb-checkout-section-title">Ваш заказ</h3>
 
-        <div class="sb-summary-items">
-          <div v-for="item in cartStore.items" :key="item.id" class="sb-summary-item">
-            <span class="sb-summary-item-name">{{ item.name }} × {{ item.quantity }}</span>
-            <span class="sb-summary-item-price">{{ formatPrice(item.price * item.quantity) }}</span>
-          </div>
-        </div>
-
-        <div class="sb-divider"></div>
-
-        <div v-if="cartStore.discount" class="sb-cart-subtotal">
-          <span>Товары</span>
-          <span>{{ formatPrice(cartStore.total) }}</span>
-        </div>
-        <div v-if="cartStore.discount" class="sb-cart-discount-row">
-          <span>Скидка</span>
-          <span class="sb-cart-discount-amount">−{{ formatPrice(cartStore.discount.amount) }}</span>
-        </div>
-        <div class="sb-summary-total">
-          <span>{{ cartStore.discount ? 'К оплате:' : 'Итого:' }}</span>
-          <span class="sb-price-lg">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
-        </div>
-
-        <!-- Submit button: desktop only (mobile uses sticky footer) -->
-        <button
-          type="submit"
-          class="sb-btn sb-btn-primary sb-btn-block sb-mt-4 sb-co-submit-desktop"
-          :disabled="loading"
-        >
-          {{ loading ? 'Оформление...' : 'Подтвердить заказ' }}
-        </button>
-      </div>
-    </div>
-
+    </form>
     <!-- Mobile sticky footer: total + submit -->
     <div class="sb-co-footer">
       <div class="sb-co-footer-price">
         <span class="sb-co-footer-label">{{ cartStore.discount ? 'К оплате' : 'Итого' }}</span>
-        <span class="sb-co-footer-amount">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
+        <span class="sb-co-footer-amount">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount :
+          cartStore.total) }}</span>
       </div>
       <button type="submit" class="sb-btn sb-btn-primary" :disabled="loading">
         {{ loading ? '...' : 'Подтвердить' }}
       </button>
     </div>
-    </form>
   </div>
 </template>
