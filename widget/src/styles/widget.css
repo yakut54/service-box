@@ -2550,6 +2550,8 @@
   display: flex;
   align-items: flex-start;
   gap: 0;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .sb-co-step {
