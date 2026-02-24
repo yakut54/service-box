@@ -32,9 +32,11 @@ class TenantContext
             ], 401);
         }
 
-        $response = $next($request);
-
-        TenantService::resetContext();
+        try {
+            $response = $next($request);
+        } finally {
+            TenantService::resetContext();
+        }
 
         return $response;
     }

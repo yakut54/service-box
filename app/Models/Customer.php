@@ -46,8 +46,20 @@ class Customer extends Model
         return $this->total_spent / 100;
     }
 
+    /**
+     * Normalize phone to +7XXXXXXXXXX format.
+     * Strips all non-digits and prepends '+'.
+     */
+    public static function normalizePhone(string $phone): string
+    {
+        $digits = preg_replace('/[^\d]/', '', $phone);
+        return '+' . $digits;
+    }
+
     public static function findOrCreateByPhone(string $phone, array $data = []): self
     {
+        $phone = self::normalizePhone($phone);
+
         $customer = self::where('phone', $phone)->first();
 
         if (!$customer) {

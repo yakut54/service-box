@@ -21,8 +21,7 @@ class BookingController extends Controller
      */
     private function normalizePhone(string $phone): string
     {
-        $digits = preg_replace('/[^\d]/', '', $phone);
-        return '+' . $digits;
+        return Customer::normalizePhone($phone);
     }
     /**
      * Get list of bookings

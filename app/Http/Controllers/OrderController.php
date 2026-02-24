@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Services\DiscountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -69,33 +70,49 @@ class OrderController extends Controller
             ]
         );
 
-        $order = Order::create([
-            'customer_id' => $customer->id,
-            'status' => 'pending',
-            'customer_name' => $request->input('customer.name'),
-            'customer_email' => $request->input('customer.email'),
-            'customer_phone' => $request->input('customer.phone'),
-            'shipping_address' => $request->shipping_address,
-            'notes' => $request->notes,
-        ]);
-
-        foreach ($request->items as $item) {
-            $product = Product::findOrFail($item['product_id']);
-
-            $order->items()->create([
-                'product_id' => $product->id,
-                'quantity' => $item['quantity'],
-                'price' => $product->price,
-                'product_name' => $product->name,
-                'product_type' => $product->type,
+        [$order, $cartItems] = DB::transaction(function () use ($request, $customer) {
+            $order = Order::create([
+                'customer_id' => $customer->id,
+                'status' => 'pending',
+                'customer_name' => $request->input('customer.name'),
+                'customer_email' => $request->input('customer.email'),
+                'customer_phone' => Customer::normalizePhone($request->input('customer.phone')),
+                'shipping_address' => $request->shipping_address,
+                'notes' => $request->notes,
             ]);
 
-            if ($product->type === 'physical' && $product->physical) {
-                $product->physical->decrement('stock_quantity', $item['quantity']);
-            }
-        }
+            $cartItems = [];
 
-        $order->calculateTotal();
+            foreach ($request->items as $item) {
+                // lockForUpdate предотвращает overselling при параллельных заказах
+                $product = Product::with('physical')->lockForUpdate()->findOrFail($item['product_id']);
+
+                if ($product->type === 'physical' && $product->physical) {
+                    if ($product->physical->stock_quantity < $item['quantity']) {
+                        abort(409, "Товар «{$product->name}» закончился на складе");
+                    }
+                    $product->physical->decrement('stock_quantity', $item['quantity']);
+                }
+
+                $order->items()->create([
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                    'price' => $product->price,
+                    'product_name' => $product->name,
+                    'product_type' => $product->type,
+                ]);
+
+                $cartItems[] = [
+                    'product_id'  => $product->id,
+                    'category_id' => $product->category_id ?? null,
+                    'quantity'    => $item['quantity'],
+                ];
+            }
+
+            $order->calculateTotal();
+
+            return [$order, $cartItems];
+        });
 
         // Apply discount (promo code takes priority; fallback to auto-apply)
         $discount       = null;
@@ -202,7 +219,7 @@ class OrderController extends Controller
     public function widgetOrdersByPhone(Request $request): JsonResponse
     {
         // Phone comes from verified token (injected by VerifyPhoneToken middleware)
-        $phone = $request->verified_phone ?? $request->phone;
+        $phone = Customer::normalizePhone($request->verified_phone ?? $request->phone);
 
         $orders = Order::with('items')
             ->where('customer_phone', $phone)
