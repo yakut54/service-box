@@ -283,7 +283,7 @@ async function doDelete() {
 
     <UiConfirmDialog
       :modelValue="!!deleteTarget"
-      @update:modelValue="if (!$event) deleteTarget = null"
+      @update:modelValue="!$event && (deleteTarget = null)"
       title="Удалить отзыв?"
       :loading="deleting"
       @confirm="doDelete"

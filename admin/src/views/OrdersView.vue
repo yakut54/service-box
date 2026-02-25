@@ -139,7 +139,7 @@ async function applyFilters() {
 
     <UiConfirmDialog
       :modelValue="!!deleteConfirm"
-      @update:modelValue="if (!$event) deleteConfirm = null"
+      @update:modelValue="!$event && (deleteConfirm = null)"
       title="Удалить заказ?"
       :loading="deleting"
       @confirm="handleDelete(deleteConfirm!)"
