@@ -11,5 +11,5 @@ export const BOOKING_STATUS_LABELS: Record<string, string> = {
   confirmed: 'Подтверждена',
   completed: 'Завершена',
   cancelled: 'Отменена',
-  no_show:   'Не пришёл',
+  no_show:   'Неявка',
 }
