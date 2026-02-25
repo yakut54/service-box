@@ -60,8 +60,7 @@ function validateField(field: string) {
       else if (touched.value.name && form.value.name.trim().length < 2) e.name = 'Минимум 2 символа'
       break
     case 'email':
-      if (touched.value.email && !form.value.email.trim()) e.email = 'Укажите email'
-      else if (touched.value.email && form.value.email.trim() && !isEmailValid(form.value.email)) e.email = 'Неверный формат email'
+      if (touched.value.email && form.value.email.trim() && !isEmailValid(form.value.email)) e.email = 'Неверный формат email'
       break
     case 'phone':
       if (touched.value.phone && !form.value.phone.trim()) e.phone = 'Укажите телефон'
@@ -89,7 +88,7 @@ function isFieldValid(field: string): boolean {
   if (errors.value[field]) return false
   switch (field) {
     case 'name': return form.value.name.trim().length >= 2
-    case 'email': return form.value.email.trim() !== '' && isEmailValid(form.value.email)
+    case 'email': return form.value.email.trim() !== '' && isEmailValid(form.value.email) && !errors.value.email
     case 'phone': return isPhoneValid(form.value.phone)
     case 'address.city': return address.value.city.trim().length > 0
     case 'address.street': return address.value.street.trim().length > 0
@@ -113,8 +112,7 @@ function validate(): boolean {
 
   if (!form.value.name.trim()) e.name = 'Укажите имя'
   else if (form.value.name.trim().length < 2) e.name = 'Минимум 2 символа'
-  if (!form.value.email.trim()) e.email = 'Укажите email'
-  else if (!isEmailValid(form.value.email)) e.email = 'Неверный формат email'
+  if (form.value.email.trim() && !isEmailValid(form.value.email)) e.email = 'Неверный формат email'
   if (!form.value.phone.trim()) e.phone = 'Укажите телефон'
   else if (!isPhoneValid(form.value.phone)) e.phone = 'Введите номер полностью'
 
@@ -235,7 +233,7 @@ async function handleSubmit() {
             </div>
 
             <div class="sb-field">
-              <label class="sb-label">Email *</label>
+              <label class="sb-label">Email</label>
               <div class="sb-field-wrap">
                 <input v-model="form.email" type="email" class="sb-input"
                   :class="{ 'sb-input-error': errors.email, 'sb-input-success': isFieldValid('email') }"

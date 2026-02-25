@@ -90,7 +90,7 @@ async function applyFilters() {
                       v-for="item in order.items"
                       :key="item.id"
                       class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[180px]"
-                    >{{ item.product_name }}</span>
+                    >{{ item.product_name }}{{ item.quantity > 1 ? ` ×${item.quantity}` : '' }}</span>
                   </div>
                 </td>
                 <td class="font-semibold dark:text-gray-100">{{ formatPrice(order.total_price) }}</td>

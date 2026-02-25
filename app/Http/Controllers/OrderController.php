@@ -106,6 +106,7 @@ class OrderController extends Controller
                     'product_id'  => $product->id,
                     'category_id' => $product->category_id ?? null,
                     'quantity'    => $item['quantity'],
+                    'price'       => $product->price,
                 ];
             }
 
@@ -124,6 +125,7 @@ class OrderController extends Controller
                     $request->discount_code,
                     $order->total_price,
                     $request->input('customer.phone'),
+                    $cartItems,
                 );
                 $discount       = $result['discount'];
                 $discountAmount = $result['amount'];
@@ -139,6 +141,7 @@ class OrderController extends Controller
             $discount = $this->discountService->findAutoApply(
                 $order->total_price,
                 $request->input('customer.phone'),
+                $cartItems,
             );
             if ($discount) {
                 $discountAmount = $this->discountService->calculate($discount, $order->total_price);
