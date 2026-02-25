@@ -2,23 +2,24 @@
 import { onMounted, ref } from 'vue'
 import { useOrdersStore } from '@/stores/orders'
 import CustomSelect from '@/components/CustomSelect.vue'
+import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
+import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import { plural } from '@/lib/utils'
+import { formatPrice, formatDateTime } from '@/shared/lib/format'
+import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 
 const ordersStore = useOrdersStore()
 const filterStatus = ref('')
 const searchQuery = ref('')
 const deleteConfirm = ref<string | null>(null)
+const deleting = ref(false)
 
 async function handleDelete(id: string) {
+  deleting.value = true
   await ordersStore.deleteOrder(id)
   deleteConfirm.value = null
+  deleting.value = false
 }
-
-function formatPrice(kopecks: number): string {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
-}
-
-const statusLabels: Record<string, string> = { pending: 'Ожидает', paid: 'Оплачен', processing: 'В работе', completed: 'Завершён', cancelled: 'Отменён' }
 
 const statusOptions = [
   { value: '', label: 'Все статусы' },
@@ -36,10 +37,6 @@ async function applyFilters() {
   if (filterStatus.value) params.status = filterStatus.value
   if (searchQuery.value) params.search = searchQuery.value
   await ordersStore.fetchOrders(params)
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 
@@ -61,8 +58,8 @@ function formatDate(dateStr: string) {
       </div>
     </div>
 
-    <div v-if="ordersStore.loading" class="card py-12 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+    <div v-if="ordersStore.loading" class="card py-12 flex justify-center">
+      <UiSpinner />
     </div>
 
     <div v-else-if="ordersStore.orders.length === 0" class="card py-12 text-center">
@@ -97,8 +94,8 @@ function formatDate(dateStr: string) {
                   </div>
                 </td>
                 <td class="font-semibold dark:text-gray-100">{{ formatPrice(order.total_price) }}</td>
-                <td><span :class="`badge-${order.status}`">{{ statusLabels[order.status] || order.status }}</span></td>
-                <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(order.created_at) }}</td>
+                <td><span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span></td>
+                <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(order.created_at) }}</td>
                 <td>
                   <div class="flex items-center gap-1">
                     <RouterLink :to="`/orders/${order.id}`" class="btn-ghost btn-sm">
@@ -125,10 +122,10 @@ function formatDate(dateStr: string) {
           <RouterLink :to="`/orders/${order.id}`" class="min-w-0 flex-1">
             <div class="flex items-center gap-2 mb-0.5">
               <span class="text-primary-600 font-medium text-sm">#{{ order.id.slice(0, 8) }}</span>
-              <span :class="`badge-${order.status}`">{{ statusLabels[order.status] || order.status }}</span>
+              <span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
             </div>
             <div class="text-sm text-gray-900 dark:text-gray-100 truncate">{{ order.customer_name }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(order.created_at) }} · {{ order.items?.length || 0 }} поз.</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDateTime(order.created_at) }} · {{ order.items?.length || 0 }} поз.</div>
           </RouterLink>
           <div class="flex items-center gap-2 shrink-0">
             <span class="font-semibold text-sm text-gray-900 dark:text-white">{{ formatPrice(order.total_price) }}</span>
@@ -140,16 +137,14 @@ function formatDate(dateStr: string) {
       </div>
     </div>
 
-    <!-- Delete confirm modal -->
-    <div v-if="deleteConfirm" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4" @click.self="deleteConfirm = null">
-      <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full shadow-xl">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Удалить заказ?</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-6">Заказ и все его позиции будут удалены безвозвратно.</p>
-        <div class="flex gap-3">
-          <button @click="deleteConfirm = null" class="btn-secondary flex-1">Отмена</button>
-          <button @click="handleDelete(deleteConfirm!)" class="btn-danger flex-1">Удалить</button>
-        </div>
-      </div>
-    </div>
+    <UiConfirmDialog
+      :modelValue="!!deleteConfirm"
+      @update:modelValue="if (!$event) deleteConfirm = null"
+      title="Удалить заказ?"
+      :loading="deleting"
+      @confirm="handleDelete(deleteConfirm!)"
+    >
+      Заказ и все его позиции будут удалены безвозвратно.
+    </UiConfirmDialog>
   </div>
 </template>
