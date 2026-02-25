@@ -4,6 +4,9 @@ import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
+import { formatPrice } from '@/shared/lib/format'
+import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
+import { UiSpinner } from '@/shared/ui'
 
 const route      = useRoute()
 const ordersStore = useOrdersStore()
@@ -14,15 +17,6 @@ const order   = ref<any>(null)
 const loading = ref(true)
 const updating = ref(false)
 const errorMsg = ref<string | null>(null)
-
-const statusLabels: Record<string, string> = {
-  pending: 'Ожидает', paid: 'Оплачен', processing: 'В работе',
-  completed: 'Завершён', cancelled: 'Отменён',
-}
-
-function formatPrice(kopecks: number): string {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
-}
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '—'
@@ -65,8 +59,8 @@ async function updateStatus(status: string) {
   <div class="max-w-5xl">
 
     <!-- Loading -->
-    <div v-if="loading" class="card py-16 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+    <div v-if="loading" class="card py-16 flex justify-center">
+      <UiSpinner />
     </div>
 
     <!-- Error -->
@@ -93,7 +87,7 @@ async function updateStatus(status: string) {
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Заказ <span class="font-mono">#{{ order.id.slice(0, 8) }}</span></h1>
           <p class="text-gray-500 dark:text-gray-400 mt-0.5 text-sm">{{ formatDate(order.created_at) }}</p>
         </div>
-        <span :class="`badge-${order.status} text-sm px-3 py-1.5`">{{ statusLabels[order.status] || order.status }}</span>
+        <span :class="`badge-${order.status} text-sm px-3 py-1.5`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
       </div>
 
       <!-- Status actions -->
@@ -108,7 +102,7 @@ async function updateStatus(status: string) {
         <button @click="updateStatus('cancelled')" :disabled="updating" class="btn-danger btn-sm">
           Отменить
         </button>
-        <div v-if="updating" class="animate-spin w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full ml-1"></div>
+        <UiSpinner v-if="updating" size="sm" class="ml-1" />
       </div>
 
       <!-- Body -->

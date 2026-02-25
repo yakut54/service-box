@@ -2,28 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
+import { formatPrice, formatDateTime, formatDate } from '@/shared/lib/format'
+import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
+import { UiSpinner } from '@/shared/ui'
 
 const route = useRoute()
 
 const customer = ref<any>(null)
 const loading = ref(true)
-
-function formatPrice(kopecks: number): string {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-function formatDateShort(dateStr: string | null) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-const orderStatusLabels: Record<string, string> = { pending: 'Ожидает', paid: 'Оплачен', processing: 'В работе', completed: 'Завершён', cancelled: 'Отменён' }
-const bookingStatusLabels: Record<string, string> = { pending: 'Ожидает', confirmed: 'Подтверждена', completed: 'Завершена', cancelled: 'Отменена', no_show: 'Неявка' }
 
 onMounted(async () => {
   try {
@@ -36,8 +22,8 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-4xl">
-    <div v-if="loading" class="card py-12 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+    <div v-if="loading" class="card py-12 flex justify-center">
+      <UiSpinner />
     </div>
 
     <div v-else-if="!customer" class="card py-12 text-center">
@@ -50,7 +36,7 @@ onMounted(async () => {
       <div class="flex items-start justify-between mb-6">
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ customer.name || 'Без имени' }}</h1>
-          <p class="text-gray-500 dark:text-gray-400 mt-1">Клиент с {{ formatDateShort(customer.created_at) }}</p>
+          <p class="text-gray-500 dark:text-gray-400 mt-1">Клиент с {{ formatDate(customer.created_at) }}</p>
         </div>
       </div>
 
@@ -76,7 +62,7 @@ onMounted(async () => {
         <div class="card">
           <div class="text-sm text-gray-500 dark:text-gray-400">Заказов</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ customer.total_orders || 0 }}</div>
-          <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Последний: {{ formatDateShort(customer.last_order_at) }}</div>
+          <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Последний: {{ formatDate(customer.last_order_at) }}</div>
         </div>
         <div class="card">
           <div class="text-sm text-gray-500 dark:text-gray-400">Потрачено</div>
@@ -106,12 +92,12 @@ onMounted(async () => {
                 <div class="text-sm text-gray-700 dark:text-gray-300 truncate">
                   {{ order.items?.map((i: any) => i.product_name).join(', ') || '—' }}
                 </div>
-                <div class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(order.created_at) }}</div>
+                <div class="text-xs text-gray-400 dark:text-gray-500">{{ formatDateTime(order.created_at) }}</div>
               </div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
               <span class="font-semibold text-sm dark:text-gray-200">{{ formatPrice(order.total_price) }}</span>
-              <span :class="`badge-${order.status}`">{{ orderStatusLabels[order.status] || order.status }}</span>
+              <span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
             </div>
           </div>
         </div>
@@ -131,11 +117,11 @@ onMounted(async () => {
             <div class="min-w-0">
               <div class="font-medium text-sm text-gray-900 dark:text-gray-100">{{ booking.service?.name || '—' }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
-                {{ formatDate(booking.start_time) }}
+                {{ formatDateTime(booking.start_time) }}
                 <span v-if="booking.master"> &middot; <RouterLink :to="`/masters/${booking.master.id}`" class="hover:text-primary-600 dark:hover:text-primary-400">{{ booking.master.name }}</RouterLink></span>
               </div>
             </div>
-            <span :class="`badge-${booking.status}`">{{ bookingStatusLabels[booking.status] || booking.status }}</span>
+            <span :class="`badge-${booking.status}`">{{ BOOKING_STATUS_LABELS[booking.status] || booking.status }}</span>
           </div>
         </div>
       </div>

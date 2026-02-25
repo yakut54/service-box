@@ -4,10 +4,12 @@ import { useRoute } from 'vue-router'
 import { useProductsStore } from '@/stores/products'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
+import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { plural } from '@/lib/utils'
+import { formatPrice } from '@/shared/lib/format'
 
 const route = useRoute()
-
 const productsStore = useProductsStore()
 const categoriesStore = useCategoriesStore()
 const deleteConfirm = ref<string | null>(null)
@@ -23,10 +25,6 @@ const categoryOptions = computed(() => [
   })),
 ])
 
-function formatPrice(kopecks: number): string {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
-}
-
 const typeLabels: Record<string, string> = { physical: 'Физический', digital: 'Цифровой', service: 'Услуга' }
 
 const typeOptions = [
@@ -37,9 +35,7 @@ const typeOptions = [
 ]
 
 onMounted(async () => {
-  if (route.query.category_id) {
-    filterCategory.value = route.query.category_id as string
-  }
+  if (route.query.category_id) filterCategory.value = route.query.category_id as string
   const params: Record<string, string> = {}
   if (filterCategory.value) params.category_id = filterCategory.value
   await Promise.all([
@@ -92,19 +88,16 @@ function getStockBadge(product: any) {
         </div>
         <CustomSelect
           v-if="categoriesStore.allCategories.length > 0"
-          v-model="filterCategory"
-          @change="applyFilters"
-          :options="categoryOptions"
-          class="w-full sm:w-64"
-          searchable
+          v-model="filterCategory" @change="applyFilters"
+          :options="categoryOptions" class="w-full sm:w-64" searchable
         />
         <CustomSelect v-model="filterType" @change="applyFilters" :options="typeOptions" class="w-full sm:w-48" />
       </div>
     </div>
 
-    <div v-if="productsStore.loading" class="card py-12 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
-      <p class="text-gray-500 dark:text-gray-400 mt-4">Загрузка...</p>
+    <div v-if="productsStore.loading" class="card py-12 flex flex-col items-center gap-4">
+      <UiSpinner />
+      <p class="text-gray-500 dark:text-gray-400">Загрузка...</p>
     </div>
 
     <div v-else-if="productsStore.products.length === 0" class="card py-12 text-center">
@@ -153,9 +146,9 @@ function getStockBadge(product: any) {
           <span v-if="product.digital.file_size_mb" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.digital.file_size_mb }} МБ</span>
         </div>
         <div v-else-if="product.type === 'service' && product.service && (product.service.break_minutes > 0 || product.service.requires_prepayment || product.service.max_concurrent > 1)" class="flex flex-wrap gap-1.5 mb-3">
-          <span v-if="product.service.break_minutes > 0"    class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Перерыв {{ product.service.break_minutes }} мин</span>
-          <span v-if="product.service.max_concurrent > 1"   class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.service.max_concurrent }} мест</span>
-          <span v-if="product.service.requires_prepayment"  class="badge bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">Предоплата</span>
+          <span v-if="product.service.break_minutes > 0"   class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Перерыв {{ product.service.break_minutes }} мин</span>
+          <span v-if="product.service.max_concurrent > 1"  class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.service.max_concurrent }} мест</span>
+          <span v-if="product.service.requires_prepayment" class="badge bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">Предоплата</span>
         </div>
 
         <div class="flex gap-2">
@@ -169,16 +162,13 @@ function getStockBadge(product: any) {
       </div>
     </div>
 
-    <!-- Delete modal -->
-    <div v-if="deleteConfirm" class="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4" @click.self="deleteConfirm = null">
-      <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-sm w-full">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Удалить товар?</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-6">Это действие нельзя отменить.</p>
-        <div class="flex gap-3">
-          <button @click="deleteConfirm = null" class="btn-secondary flex-1">Отмена</button>
-          <button @click="handleDelete(deleteConfirm!)" class="btn-danger flex-1">Удалить</button>
-        </div>
-      </div>
-    </div>
+    <UiConfirmDialog
+      :modelValue="!!deleteConfirm"
+      @update:modelValue="!$event && (deleteConfirm = null)"
+      title="Удалить товар?"
+      @confirm="handleDelete(deleteConfirm!)"
+    >
+      Это действие нельзя отменить.
+    </UiConfirmDialog>
   </div>
 </template>

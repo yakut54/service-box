@@ -2,19 +2,12 @@
 import { onMounted, ref, computed } from 'vue'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
+import { formatPrice, formatDate } from '@/shared/lib/format'
+import { UiSpinner, UiEmptyState } from '@/shared/ui'
 
 const customers = ref<any[]>([])
 const loading = ref(true)
 const searchQuery = ref('')
-
-function formatPrice(kopecks: number): string {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 const sortedCustomers = computed(() => {
   return [...customers.value].sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0))
@@ -87,18 +80,18 @@ onMounted(() => { loadCustomers() })
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="card py-12 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+    <div v-if="loading" class="card py-12 flex justify-center">
+      <UiSpinner />
     </div>
 
     <!-- Empty -->
-    <div v-else-if="customers.length === 0" class="card py-12 text-center">
-      <svg class="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Нет клиентов</h3>
-      <p class="text-gray-500 dark:text-gray-400">Клиенты появятся после первого заказа или записи</p>
-    </div>
+    <UiEmptyState v-else-if="customers.length === 0" title="Нет клиентов" description="Клиенты появятся после первого заказа или записи">
+      <template #icon>
+        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      </template>
+    </UiEmptyState>
 
     <!-- Table -->
     <div v-else>
