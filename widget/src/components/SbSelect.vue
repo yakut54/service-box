@@ -108,10 +108,12 @@ onUnmounted(() => {
           </svg>
           <input
             ref="searchInputRef"
-            v-model="searchQuery"
+            :value="searchQuery"
             type="text"
+            autocomplete="off"
             class="sb-select-search-input"
             placeholder="Поиск..."
+            @input="searchQuery = ($event.target as HTMLInputElement).value"
             @click.stop
           />
         </div>
