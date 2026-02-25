@@ -1,8 +1,9 @@
-import { createApp, type App as VueApp } from 'vue'
+import { createApp, watch, type App as VueApp } from 'vue'
 import { createPinia } from 'pinia'
 import AppComponent from './App.vue'
 import { useShopStore } from './stores/shop'
 import widgetCss from './styles/widget.css?inline'
+import fabCss from './styles/fab.css?inline'
 
 interface WidgetOptions {
   shopId: string
@@ -15,39 +16,6 @@ interface WidgetInstance {
   container: HTMLElement
   destroy: () => void
 }
-
-const FAB_STYLES = `
-.sb-fab {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 999998;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-  background: #6366f1;
-  color: #fff;
-}
-.sb-fab:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
-}
-.sb-fab:active {
-  transform: scale(0.96);
-}
-.sb-fab--hidden {
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(0.8);
-}
-`
 
 function init(options: WidgetOptions | string): WidgetInstance {
   const opts: WidgetOptions = typeof options === 'string'
@@ -109,7 +77,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
   if (!fabStyleEl) {
     fabStyleEl = document.createElement('style')
     fabStyleEl.id = fabStyleId
-    fabStyleEl.textContent = FAB_STYLES
+    fabStyleEl.textContent = fabCss
     document.head.appendChild(fabStyleEl)
   }
 
@@ -146,10 +114,12 @@ function init(options: WidgetOptions | string): WidgetInstance {
     }
   }
 
-  // Register close callback
-  shopStore.setOnClose(() => {
-    showFab()
-    localStorage.setItem(openKey, 'false')
+  // Watch isOpen to show FAB and persist state when widget closes
+  const stopWatch = watch(() => shopStore.isOpen, (open) => {
+    if (!open) {
+      showFab()
+      localStorage.setItem(openKey, 'false')
+    }
   })
 
   // FAB click handler
@@ -166,6 +136,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
     app,
     container,
     destroy: () => {
+      stopWatch()
       app.unmount()
       fab.remove()
       fabStyleEl?.remove()

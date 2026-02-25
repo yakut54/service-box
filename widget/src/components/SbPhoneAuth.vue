@@ -1,0 +1,126 @@
+<script setup lang="ts">
+import { usePhoneAuth } from '@/composables/usePhoneAuth'
+
+const props = withDefaults(defineProps<{
+  hint?: string
+}>(), {
+  hint: 'Введите номер телефона',
+})
+
+const emit = defineEmits<{
+  authenticated: [phone: string, token: string]
+  logout: []
+}>()
+
+const {
+  step, phone, phoneValid, otpCode, otpSending, otpError, devCode,
+  onPhoneInput, requestCode, verifyCode, resetAuth,
+} = usePhoneAuth((ph, token) => emit('authenticated', ph, token))
+
+function logout() {
+  resetAuth()
+  emit('logout')
+}
+
+defineExpose({ reset: resetAuth })
+</script>
+
+<template>
+  <!-- Step 1: Phone input -->
+  <div v-if="step === 'phone'" class="sb-card sb-mb-4">
+    <p class="sb-subtitle sb-mb-2">{{ hint }}</p>
+    <div class="sb-flex sb-gap-2">
+      <div class="sb-field-wrap" style="flex: 1;">
+        <input
+          :value="phone"
+          type="tel"
+          class="sb-input"
+          :class="{ 'sb-input-success': phoneValid }"
+          placeholder="+7 (___) ___-__-__"
+          @input="onPhoneInput"
+          @keyup.enter="requestCode"
+        />
+        <svg v-if="phoneValid" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+      </div>
+      <button class="sb-btn sb-btn-primary" @click="requestCode" :disabled="otpSending || !phoneValid">
+        {{ otpSending ? '...' : 'Получить код' }}
+      </button>
+    </div>
+    <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
+    <p style="font-size: 12px; color: var(--sb-text-muted); margin-top: 8px;">
+      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; vertical-align: -1px; margin-right: 4px;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+      Мы отправим SMS-код для подтверждения
+    </p>
+  </div>
+
+  <!-- Step 2: OTP code input -->
+  <div v-else-if="step === 'code'" class="sb-card sb-mb-4">
+    <p style="font-size: 15px; font-weight: 600; color: var(--sb-text); margin-bottom: 4px;">Введите код подтверждения</p>
+    <p class="sb-subtitle sb-mb-4">Код отправлен на {{ phone }}</p>
+
+    <!-- DEV badge -->
+    <button v-if="devCode" class="sb-dev-badge" @click="otpCode = devCode; verifyCode()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+      DEV · {{ devCode }}
+      <span class="sb-dev-badge-hint">нажми чтобы войти</span>
+    </button>
+
+    <div class="sb-flex sb-gap-2">
+      <input
+        v-model="otpCode"
+        type="text"
+        inputmode="numeric"
+        maxlength="4"
+        class="sb-input"
+        :class="{ 'sb-input-success': otpCode.length === 4 }"
+        placeholder="0000"
+        style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: 700; max-width: 180px;"
+        @keyup.enter="verifyCode"
+      />
+      <button class="sb-btn sb-btn-primary" @click="verifyCode" :disabled="otpSending || otpCode.length !== 4">
+        {{ otpSending ? '...' : 'Подтвердить' }}
+      </button>
+    </div>
+    <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
+    <div class="sb-flex sb-items-center sb-gap-3 sb-mt-4">
+      <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="requestCode" :disabled="otpSending">
+        Отправить повторно
+      </button>
+      <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="step = 'phone'">
+        Изменить номер
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 3: Verified + slot content -->
+  <template v-else-if="step === 'results'">
+    <!-- Verified phone bar -->
+    <div class="sb-card sb-mb-4" style="padding: 12px 16px;">
+      <div class="sb-flex sb-items-center sb-justify-between">
+        <div class="sb-flex sb-items-center sb-gap-2">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--sb-success);">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          <span style="font-size: 14px; color: var(--sb-text);">{{ phone }}</span>
+          <span class="sb-badge sb-badge-success" style="font-size: 11px;">Подтверждён</span>
+        </div>
+        <button
+          class="sb-btn sb-btn-ghost"
+          style="padding: 6px 14px; font-size: 13px; font-weight: 600; color: #ef4444; border: 1.5px solid #ef4444;"
+          @click="logout"
+        >
+          Выйти
+        </button>
+      </div>
+    </div>
+
+    <!-- Parent-provided content -->
+    <slot />
+  </template>
+</template>

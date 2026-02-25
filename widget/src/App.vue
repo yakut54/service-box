@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, watchEffect, nextTick } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { useCartStore } from '@/stores/cart'
 import Catalog from '@/components/Catalog.vue'
@@ -38,50 +38,33 @@ const cartOpen = computed(() => currentView.value === 'cart')
 
 // ── Init on first open ──────────────────────────────────────
 watch(() => shopStore.isOpen, async (open) => {
-  if (open && !initialized) {
-    initialized = true
-    cartStore.init(shopStore.shopId)
+  if (!open || initialized) return
+  initialized = true
+  cartStore.init(shopStore.shopId)
 
-    // If config already loaded (e.g. restored from wasOpen), go straight to catalog
-    if (!shopStore.loading && shopStore.shop) {
-      currentView.value = 'catalog'
-      return
-    }
-    if (!shopStore.loading && shopStore.error) {
-      currentView.value = 'error'
-      return
-    }
+  // Config already available (e.g. restored from wasOpen)
+  if (shopStore.shop) { currentView.value = 'catalog'; return }
+  if (shopStore.error) { currentView.value = 'error'; return }
 
-    // Wait for config to load (triggered by main.ts openWidget)
-    await nextTick()
-
-    // Config might already be loading from main.ts deferred load
-    // Watch for it to finish
+  // Deferred load triggered by main.ts — wait for it to finish
+  await nextTick()
+  if (!shopStore.loading) {
+    currentView.value = shopStore.error ? 'error' : 'catalog'
+  } else {
     const unwatch = watch(() => shopStore.loading, (loading) => {
       if (!loading) {
-        if (shopStore.error) {
-          currentView.value = 'error'
-        } else {
-          currentView.value = 'catalog'
-        }
+        currentView.value = shopStore.error ? 'error' : 'catalog'
         unwatch()
       }
-    }, { immediate: true })
+    })
   }
 }, { immediate: true })
 
-// Apply theme when shop loads and widget element is ready
-watch(() => shopStore.shop, () => {
-  if (widgetEl.value && shopStore.shop) {
-    shopStore.applyTheme(widgetEl.value)
-  }
-})
-
-// Also apply theme attribute reactively
-watch(() => shopStore.theme, (t) => {
-  if (widgetEl.value) {
-    widgetEl.value.setAttribute('data-theme', t)
-  }
+// Apply theme vars and data-theme attribute whenever shop config or theme changes
+watchEffect(() => {
+  if (!widgetEl.value) return
+  widgetEl.value.setAttribute('data-theme', shopStore.theme)
+  if (shopStore.shop) shopStore.applyTheme(widgetEl.value)
 })
 
 // ── Escape key to close ────────────────────────────────────
@@ -93,10 +76,6 @@ function onKeydown(e: KeyboardEvent) {
 
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
-  // Set initial theme attribute
-  if (widgetEl.value) {
-    widgetEl.value.setAttribute('data-theme', shopStore.theme)
-  }
 })
 
 onUnmounted(() => {

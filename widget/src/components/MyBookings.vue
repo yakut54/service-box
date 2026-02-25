@@ -1,44 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useShopStore } from '@/stores/shop'
-import { formatPhone, cleanPhone, isPhoneValid } from '@/lib/utils'
-import { handlePhoneInput } from '@/lib/phoneInput'
+import SbPhoneAuth from '@/components/SbPhoneAuth.vue'
 
 const emit = defineEmits<{ back: [] }>()
 
 const shopStore = useShopStore()
-const bookings = ref<any[]>([])
-const loading = ref(false)
-const phone = ref('')
-const searched = ref(false)
-const error = ref('')
+const sbAuth    = ref<InstanceType<typeof SbPhoneAuth>>()
 
-// OTP state
-type Step = 'phone' | 'code' | 'results'
-const step = ref<Step>('phone')
-const otpCode = ref('')
-const otpSending = ref(false)
-const otpError = ref('')
-const devCode = ref('')
-const phoneToken = ref('')
-
-const PHONE_KEY = 'sb-customer-phone'
-const TOKEN_KEY = 'sb-phone-token'
+const bookings  = ref<any[]>([])
+const loading   = ref(false)
+const searched  = ref(false)
+const error     = ref('')
 
 const statusLabels: Record<string, string> = {
-  pending: 'Ожидает',
+  pending:   'Ожидает',
   confirmed: 'Подтверждена',
   completed: 'Завершена',
   cancelled: 'Отменена',
-  no_show: 'Неявка',
+  no_show:   'Неявка',
 }
 
 const statusBadge: Record<string, string> = {
-  pending: 'sb-badge-warning',
+  pending:   'sb-badge-warning',
   confirmed: 'sb-badge-info',
   completed: 'sb-badge-success',
   cancelled: 'sb-badge-danger',
-  no_show: 'sb-badge-danger',
+  no_show:   'sb-badge-danger',
 }
 
 function shopTz() { return shopStore.shop?.timezone || 'Europe/Moscow' }
@@ -46,101 +34,36 @@ function shopTz() { return shopStore.shop?.timezone || 'Europe/Moscow' }
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: shopTz() })
 }
-
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: shopTz() })
 }
-
 function formatTimeRange(start: string, end: string) {
   return `${formatTime(start)} – ${formatTime(end)}`
 }
-
 function isPast(dateStr: string) {
   return new Date(dateStr) < new Date()
 }
 
-const phoneValid = ref(false)
+// ── Auth-gated data load ──────────────────────────────────────
+let _phone = ''
+let _token = ''
 
-function onPhoneInput(e: Event) {
-  handlePhoneInput(e, (v) => {
-    phone.value = v
-    phoneValid.value = isPhoneValid(v)
-  })
-}
+async function loadBookings(phone: string, token: string) {
+  _phone = phone
+  _token = token
 
-function rawPhone(): string {
-  return '+' + cleanPhone(phone.value)
-}
-
-onMounted(() => {
-  const saved = localStorage.getItem(`${PHONE_KEY}:${shopStore.shopId}`)
-  const savedToken = localStorage.getItem(`${TOKEN_KEY}:${shopStore.shopId}`)
-
-  if (saved) {
-    phone.value = formatPhone(saved)
-    phoneValid.value = isPhoneValid(phone.value)
-  }
-
-  if (saved && savedToken) {
-    phoneToken.value = savedToken
-    step.value = 'results'
-    loadBookings()
-  }
-})
-
-async function requestCode() {
-  if (!isPhoneValid(phone.value)) return
-
-  otpSending.value = true
-  otpError.value = ''
-  devCode.value = ''
-
-  try {
-    const resp = await shopStore.getApi().requestPhoneCode(rawPhone())
-    devCode.value = resp._dev_code || ''
-    step.value = 'code'
-    otpCode.value = devCode.value // dev: auto-fill
-  } catch (e: any) {
-    otpError.value = e.message || 'Не удалось отправить код'
-  }
-  otpSending.value = false
-}
-
-async function verifyCode() {
-  if (otpCode.value.length !== 4) return
-
-  otpSending.value = true
-  otpError.value = ''
-
-  try {
-    const resp = await shopStore.getApi().verifyPhoneCode(rawPhone(), otpCode.value)
-    phoneToken.value = resp.token
-
-    localStorage.setItem(`${PHONE_KEY}:${shopStore.shopId}`, rawPhone())
-    localStorage.setItem(`${TOKEN_KEY}:${shopStore.shopId}`, resp.token)
-
-    step.value = 'results'
-    loadBookings()
-  } catch (e: any) {
-    otpError.value = e.message || 'Неверный код'
-  }
-  otpSending.value = false
-}
-
-async function loadBookings() {
-  loading.value = true
-  error.value = ''
+  loading.value  = true
+  error.value    = ''
   searched.value = true
 
   try {
-    const resp = await shopStore.getApi().getBookingsByPhone(rawPhone(), phoneToken.value)
+    const resp = await shopStore.getApi().getBookingsByPhone(phone, token)
     bookings.value = resp.data
   } catch (e: any) {
     if (e.status === 401) {
-      phoneToken.value = ''
-      localStorage.removeItem(`${TOKEN_KEY}:${shopStore.shopId}`)
-      step.value = 'phone'
-      error.value = 'Сессия истекла. Подтвердите телефон заново.'
+      bookings.value = []
+      searched.value = false
+      sbAuth.value?.reset('Сессия истекла. Подтвердите телефон заново.')
     } else {
       error.value = e.message || 'Ошибка загрузки'
     }
@@ -148,20 +71,18 @@ async function loadBookings() {
   loading.value = false
 }
 
-function resetPhone() {
-  step.value = 'phone'
-  phoneToken.value = ''
+function handleLogout() {
   bookings.value = []
   searched.value = false
-  error.value = ''
-  otpError.value = ''
-  localStorage.removeItem(`${TOKEN_KEY}:${shopStore.shopId}`)
+  error.value    = ''
+  _phone = ''
+  _token = ''
 }
 
 // ── Cancel booking ────────────────────────────────────────────
 const cancelTarget = ref<any | null>(null)
-const cancelling = ref(false)
-const cancelError = ref('')
+const cancelling   = ref(false)
+const cancelError  = ref('')
 
 function canCancel(booking: any) {
   return ['pending', 'confirmed'].includes(booking.status) && !isPast(booking.start_time)
@@ -169,16 +90,15 @@ function canCancel(booking: any) {
 
 function openCancelConfirm(booking: any) {
   cancelTarget.value = booking
-  cancelError.value = ''
+  cancelError.value  = ''
 }
 
 async function doCancel() {
   if (!cancelTarget.value) return
-  cancelling.value = true
+  cancelling.value  = true
   cancelError.value = ''
   try {
-    await shopStore.getApi().cancelBooking(cancelTarget.value.id, rawPhone(), phoneToken.value)
-    // Update locally
+    await shopStore.getApi().cancelBooking(cancelTarget.value.id, _phone, _token)
     const idx = bookings.value.findIndex(b => b.id === cancelTarget.value.id)
     if (idx !== -1) bookings.value[idx] = { ...bookings.value[idx], status: 'cancelled' }
     cancelTarget.value = null
@@ -199,95 +119,12 @@ async function doCancel() {
       <h2 class="sb-title" style="margin-bottom: 0;">Мои записи</h2>
     </div>
 
-    <!-- Step 1: Phone input -->
-    <div v-if="step === 'phone'" class="sb-card sb-mb-4">
-      <p class="sb-subtitle sb-mb-2">Введите номер телефона, чтобы найти свои записи</p>
-      <div class="sb-flex sb-gap-2">
-        <div class="sb-field-wrap" style="flex: 1;">
-          <input
-            :value="phone"
-            type="tel"
-            class="sb-input"
-            :class="{ 'sb-input-success': phoneValid }"
-            placeholder="+7 (___) ___-__-__"
-            @input="onPhoneInput"
-            @keyup.enter="requestCode"
-          />
-          <svg v-if="phoneValid" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-        </div>
-        <button class="sb-btn sb-btn-primary" @click="requestCode" :disabled="otpSending || !phoneValid">
-          {{ otpSending ? '...' : 'Получить код' }}
-        </button>
-      </div>
-      <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
-      <p v-if="error" class="sb-error-text sb-mt-2">{{ error }}</p>
-      <p style="font-size: 12px; color: var(--sb-text-muted); margin-top: 8px;">
-        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline; vertical-align: -1px; margin-right: 4px;">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-        </svg>
-        Мы отправим SMS-код для подтверждения
-      </p>
-    </div>
-
-    <!-- Step 2: OTP code input -->
-    <div v-else-if="step === 'code'" class="sb-card sb-mb-4">
-      <p style="font-size: 15px; font-weight: 600; color: var(--sb-text); margin-bottom: 4px;">Введите код подтверждения</p>
-      <p class="sb-subtitle sb-mb-4">Код отправлен на {{ phone }}</p>
-
-      <!-- DEV badge — temporary, remove before production -->
-      <button v-if="devCode" class="sb-dev-badge" @click="otpCode = devCode; verifyCode()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-        </svg>
-        DEV · {{ devCode }}
-        <span class="sb-dev-badge-hint">нажми чтобы войти</span>
-      </button>
-
-      <div class="sb-flex sb-gap-2">
-        <input
-          v-model="otpCode"
-          type="text"
-          inputmode="numeric"
-          maxlength="4"
-          class="sb-input"
-          :class="{ 'sb-input-success': otpCode.length === 4 }"
-          placeholder="0000"
-          style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: 700; max-width: 180px;"
-          @keyup.enter="verifyCode"
-        />
-        <button class="sb-btn sb-btn-primary" @click="verifyCode" :disabled="otpSending || otpCode.length !== 4">
-          {{ otpSending ? '...' : 'Подтвердить' }}
-        </button>
-      </div>
-      <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
-      <div class="sb-flex sb-items-center sb-gap-3 sb-mt-4">
-        <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="requestCode" :disabled="otpSending">
-          Отправить повторно
-        </button>
-        <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="step = 'phone'">
-          Изменить номер
-        </button>
-      </div>
-    </div>
-
-    <!-- Step 3: Results -->
-    <template v-else-if="step === 'results'">
-      <!-- Verified phone bar -->
-      <div class="sb-card sb-mb-4" style="padding: 12px 16px;">
-        <div class="sb-flex sb-items-center sb-justify-between">
-          <div class="sb-flex sb-items-center sb-gap-2">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--sb-success);">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-            </svg>
-            <span style="font-size: 14px; color: var(--sb-text);">{{ phone }}</span>
-            <span class="sb-badge sb-badge-success" style="font-size: 11px;">Подтверждён</span>
-          </div>
-          <button class="sb-btn sb-btn-ghost" style="padding: 6px 14px; font-size: 13px; font-weight: 600; color: #ef4444; border: 1.5px solid #ef4444;" @click="resetPhone">
-            Выйти
-          </button>
-        </div>
-      </div>
-
+    <SbPhoneAuth
+      ref="sbAuth"
+      hint="Введите номер телефона, чтобы найти свои записи"
+      @authenticated="loadBookings"
+      @logout="handleLogout"
+    >
       <!-- Loading -->
       <div v-if="loading" class="sb-empty">
         <div class="sb-skeleton" style="width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 16px;"></div>
@@ -357,7 +194,7 @@ async function doCancel() {
           </div>
         </div>
       </div>
-    </template>
+    </SbPhoneAuth>
 
     <!-- Cancel confirm modal -->
     <div v-if="cancelTarget" style="position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;">

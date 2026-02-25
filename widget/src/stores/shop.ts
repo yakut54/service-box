@@ -13,7 +13,6 @@ export const useShopStore = defineStore('sb-shop', () => {
   const isOpen = ref(false)
 
   let api: WidgetApi | null = null
-  let onCloseCallback: (() => void) | null = null
 
   const config = computed(() => shop.value?.widget_config || {})
 
@@ -44,11 +43,6 @@ export const useShopStore = defineStore('sb-shop', () => {
 
   function close() {
     isOpen.value = false
-    if (onCloseCallback) onCloseCallback()
-  }
-
-  function setOnClose(cb: () => void) {
-    onCloseCallback = cb
   }
 
   async function loadConfig() {
@@ -81,6 +75,6 @@ export const useShopStore = defineStore('sb-shop', () => {
     shopId, apiUrl, shop, loading, error, config,
     theme, isOpen,
     getApi, loadConfig, applyTheme,
-    loadTheme, toggleTheme, close, setOnClose,
+    loadTheme, toggleTheme, close,
   }
 })
