@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import CustomSelect from '@/components/CustomSelect.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -11,8 +12,23 @@ const shopName = ref('')
 const email = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
+const timezone = ref('Europe/Moscow')
 const loading = ref(false)
 const error = ref('')
+
+const timezoneOptions = [
+  { value: 'Europe/Kaliningrad',  label: 'Калининград (UTC+2)' },
+  { value: 'Europe/Moscow',       label: 'Москва (UTC+3)' },
+  { value: 'Europe/Samara',       label: 'Самара (UTC+4)' },
+  { value: 'Asia/Yekaterinburg',  label: 'Екатеринбург (UTC+5)' },
+  { value: 'Asia/Omsk',           label: 'Омск (UTC+6)' },
+  { value: 'Asia/Krasnoyarsk',    label: 'Красноярск (UTC+7)' },
+  { value: 'Asia/Irkutsk',        label: 'Иркутск (UTC+8)' },
+  { value: 'Asia/Yakutsk',        label: 'Якутск (UTC+9)' },
+  { value: 'Asia/Vladivostok',    label: 'Владивосток (UTC+10)' },
+  { value: 'Asia/Magadan',        label: 'Магадан (UTC+11)' },
+  { value: 'Asia/Kamchatka',      label: 'Камчатка (UTC+12)' },
+]
 
 async function handleSubmit() {
   if (!name.value || !shopName.value || !email.value || !password.value) {
@@ -37,7 +53,8 @@ async function handleSubmit() {
     email.value,
     password.value,
     name.value,
-    shopName.value
+    shopName.value,
+    timezone.value
   )
 
   if (result.success) {
@@ -75,6 +92,11 @@ async function handleSubmit() {
           <div>
             <label for="shopName" class="label">Название магазина</label>
             <input id="shopName" v-model="shopName" type="text" class="input" placeholder="Мой магазин" />
+          </div>
+
+          <div>
+            <label class="label">Часовой пояс</label>
+            <CustomSelect v-model="timezone" :options="timezoneOptions" class="w-full" />
           </div>
 
           <div>

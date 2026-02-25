@@ -26,6 +26,7 @@ class RegisterRequest extends FormRequest
             ],
             'shop_name' => 'required|string|max:255',
             'shop_domain' => 'nullable|url',
+            'timezone' => 'nullable|string|timezone',
         ];
     }
 

@@ -38,6 +38,7 @@ class AuthController extends Controller
                 'domain' => $request->shop_domain,
                 'schema_name' => $schemaName,
                 'subscription_plan' => 'micro',
+                'timezone' => $request->timezone ?? 'Europe/Moscow',
             ]);
 
             TenantService::createSchema($schemaName);
@@ -58,6 +59,7 @@ class AuthController extends Controller
                     'name' => $shop->name,
                     'api_key' => $shop->api_key,
                     'subscription_plan' => $shop->subscription_plan,
+                    'timezone' => $shop->timezone,
                 ],
                 'token' => $token,
             ], 201);

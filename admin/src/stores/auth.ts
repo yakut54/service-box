@@ -71,7 +71,8 @@ export const useAuthStore = defineStore('auth', () => {
     email: string,
     password: string,
     name: string,
-    shopName: string
+    shopName: string,
+    timezone: string
   ) {
     try {
       loading.value = true
@@ -83,6 +84,7 @@ export const useAuthStore = defineStore('auth', () => {
         password,
         password_confirmation: password,
         shop_name: shopName,
+        timezone,
       })
 
       token.value = response.token

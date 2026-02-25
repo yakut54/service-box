@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
@@ -11,6 +11,28 @@ const router = useRouter()
 const { isDark, toggle } = useTheme()
 
 const sidebarOpen = ref(false)
+
+// Clock
+const now = ref(new Date())
+let clockTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => { clockTimer = setInterval(() => { now.value = new Date() }, 1000) })
+onUnmounted(() => { if (clockTimer) clearInterval(clockTimer) })
+
+const shopTimezone = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
+
+const currentTime = computed(() =>
+  now.value.toLocaleTimeString('ru-RU', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    timeZone: shopTimezone.value,
+  })
+)
+
+const currentDate = computed(() =>
+  now.value.toLocaleDateString('ru-RU', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    timeZone: shopTimezone.value,
+  })
+)
 
 const navigation = [
   { name: 'Главная', href: '/', icon: 'home' },
@@ -125,6 +147,12 @@ async function handleLogout() {
 
       <!-- Bottom: theme toggle + user + logout -->
       <div class="p-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0 space-y-3">
+        <!-- Clock -->
+        <div class="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 text-center select-none">
+          <div class="text-xl font-mono font-semibold text-gray-900 dark:text-white tabular-nums tracking-wide">{{ currentTime }}</div>
+          <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 capitalize">{{ currentDate }}</div>
+        </div>
+
         <!-- Theme toggle -->
         <button
             @click="toggle"
