@@ -519,7 +519,7 @@ onMounted(async () => {
       </div>
 
       <!-- Desktop calendar -->
-      <div class="card p-0 overflow-hidden hidden sm:block">
+      <div class="card p-0 overflow-x-hidden hidden sm:flex flex-col" style="height: calc(100vh - 252px)">
         <!-- Calendar header -->
         <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
           <span class="font-semibold text-gray-700 dark:text-gray-300 capitalize text-sm">{{ navLabel }}</span>
@@ -541,7 +541,7 @@ onMounted(async () => {
         </div>
 
         <!-- Scrollable time grid -->
-        <div class="overflow-y-auto" style="height: calc(100vh - 320px); min-height: 400px">
+        <div class="overflow-y-auto flex-1">
           <div class="grid grid-cols-[56px_repeat(7,1fr)]" :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`">
             <!-- Time labels -->
             <div class="relative bg-gray-50 dark:bg-gray-900/60 border-r border-gray-100 dark:border-gray-800">
