@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
+import CategorySelect from '@/components/CategorySelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
@@ -41,11 +42,6 @@ const products  = ref<{ id: string; name: string }[]>([])
 const loading   = ref(false)
 const error     = ref('')
 
-// ── Inline category creation ─────────────────────────────────
-const newCatMode  = ref(false)
-const newCatName  = ref('')
-const newCatInput = ref<HTMLInputElement>()
-
 // ── Modal ────────────────────────────────────────────────────
 const showModal  = ref(false)
 const modalMode  = ref<'create' | 'edit'>('create')
@@ -82,13 +78,6 @@ const scopeOptions = [
 
 const productOptions = computed(() =>
   products.value.map(p => ({ value: p.id, label: p.name }))
-)
-
-const categoryOptions = computed(() =>
-  categoriesStore.allCategories.map(c => ({
-    value: c.id,
-    label: c.parent_id ? `— ${c.name}` : c.name,
-  }))
 )
 
 // ── Form (human-friendly units: rubles, not kopecks) ─────────
@@ -179,28 +168,6 @@ async function load() {
   }
 }
 
-// ── Quick-create category from discount modal ──────────────
-async function quickCreateCategory(name: string, close: () => void) {
-  if (!name.trim()) return
-  try {
-    const res = await api.createCategory({ name: name.trim() })
-    categoriesStore.categories.push(res.data)
-    form.value.scope_value = res.data.id
-    newCatMode.value = false
-    newCatName.value = ''
-    close()
-  } catch (e: any) {
-    modalError.value = e.message || 'Не удалось создать категорию'
-  }
-}
-
-async function startAddCat() {
-  newCatMode.value = true
-  newCatName.value = ''
-  await nextTick()
-  newCatInput.value?.focus()
-}
-
 onMounted(load)
 
 // ── Modal open ────────────────────────────────────────────────
@@ -209,8 +176,6 @@ function openCreate() {
   form.value       = emptyForm()
   editingId.value  = null
   modalError.value = ''
-  newCatMode.value = false
-  newCatName.value = ''
   showModal.value  = true
 }
 
@@ -535,54 +500,7 @@ async function doDelete() {
         </div>
         <div v-else-if="form.scope === 'category'">
           <label class="label">Категория</label>
-          <CustomSelect
-            v-model="form.scope_value"
-            :options="categoryOptions"
-            placeholder="Выберите категорию..."
-            searchable
-            @update:modelValue="newCatMode = false"
-          >
-            <template #footer="{ close, search }">
-              <!-- Inline input mode -->
-              <div v-if="newCatMode" class="px-3 py-2" @mousedown.stop @click.stop>
-                <div class="flex gap-2">
-                  <input
-                    ref="newCatInput"
-                    v-model="newCatName"
-                    type="text"
-                    class="input text-sm flex-1 py-1.5"
-                    placeholder="Название категории"
-                    @keydown.enter.prevent="quickCreateCategory(newCatName, close)"
-                    @keydown.escape.prevent="newCatMode = false"
-                  />
-                  <button
-                    type="button"
-                    @click="quickCreateCategory(newCatName, close)"
-                    class="btn-primary btn-sm px-3"
-                    :disabled="!newCatName.trim()"
-                  >✓</button>
-                  <button
-                    type="button"
-                    @click="newCatMode = false"
-                    class="btn-ghost btn-sm px-2 text-gray-400"
-                  >✕</button>
-                </div>
-              </div>
-              <!-- Button mode: search → "Создать «query»", else → "+ Добавить категорию" -->
-              <button
-                v-else
-                type="button"
-                @click="search ? quickCreateCategory(search, close) : startAddCat()"
-                class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full"
-              >
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                <span v-if="search">Создать «{{ search }}»</span>
-                <span v-else>Добавить категорию</span>
-              </button>
-            </template>
-          </CustomSelect>
+          <CategorySelect v-model="form.scope_value" />
         </div>
 
         <div>

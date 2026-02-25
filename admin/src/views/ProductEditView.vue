@@ -2,12 +2,10 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/lib/api'
-import { useCategoriesStore } from '@/stores/categories'
-import CustomSelect from '@/components/CustomSelect.vue'
+import CategorySelect from '@/components/CategorySelect.vue'
 
 const route = useRoute()
 const router = useRouter()
-const categoriesStore = useCategoriesStore()
 
 const isEditing = computed(() => !!route.params.id)
 const loading = ref(false)
@@ -127,11 +125,6 @@ function clearImage() {
 
 // ── Data loading ────────────────────────────────────────────
 onMounted(async () => {
-  // Load categories for the selector
-  if (!categoriesStore.categories.length) {
-    try { await categoriesStore.fetchCategories() } catch { /* non-critical */ }
-  }
-
   if (isEditing.value) {
     loading.value = true
     try {
@@ -285,15 +278,7 @@ async function handleSubmit() {
           <!-- Категория -->
           <div>
             <label class="label">Категория</label>
-            <CustomSelect
-              v-model="form.category_id"
-              :options="categoriesStore.categoryOptions"
-              placeholder="Без категории"
-              searchable
-            />
-            <p v-if="categoriesStore.categories.length === 0" class="text-xs text-gray-400 mt-1">
-              Нет категорий. <RouterLink to="/categories" class="text-primary-600 hover:underline">Создать категорию</RouterLink>
-            </p>
+            <CategorySelect v-model="form.category_id" nullable />
           </div>
 
           <!-- Изображение -->
