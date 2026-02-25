@@ -343,30 +343,29 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="card mb-6 space-y-3">
-      <!-- Row 1: navigation + period label + status + master + reset -->
+    <!-- Filters: single row (wraps on mobile) -->
+    <div class="card mb-6">
       <div class="flex flex-wrap items-center gap-2">
-        <!-- ← Today → group -->
+        <!-- ← Today → -->
         <div class="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
           <button @click="navigate(-1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700" :title="viewMode === 'list' ? 'Предыдущий день' : 'Предыдущая неделя'">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <button @click="goToday" :class="['px-3 py-1.5 text-sm font-medium transition-colors', isAnchorToday ? 'bg-primary-600 text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300']">
-            Сегодня
-          </button>
+          <button @click="goToday" :class="['px-3 py-1.5 text-sm font-medium transition-colors', isAnchorToday ? 'bg-primary-600 text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300']">Сегодня</button>
           <button @click="navigate(1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700" :title="viewMode === 'list' ? 'Следующий день' : 'Следующая неделя'">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
-        <!-- Period label -->
-        <span class="text-sm font-semibold text-gray-900 dark:text-white capitalize whitespace-nowrap">{{ navLabel }}</span>
-        <!-- Push filters to right on desktop -->
-        <div class="flex-1 hidden sm:block min-w-0"></div>
+        <!-- List mode: DatePicker as date selector -->
+        <DatePicker v-if="viewMode === 'list'" v-model="anchorDateStr" @change="applyFilters" placeholder="Дата" class="w-40 shrink-0" />
+        <!-- Calendar mode: period text label -->
+        <span v-else class="text-sm font-semibold text-gray-900 dark:text-white capitalize whitespace-nowrap">{{ navLabel }}</span>
+        <!-- Spacer -->
+        <div class="flex-1 min-w-0 hidden sm:block"></div>
         <!-- Status -->
-        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-48" />
+        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-44" />
         <!-- Master -->
-        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-52" searchable>
+        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-48" searchable>
           <template #footer="{ close }">
             <button type="button" @click="close(); router.push('/masters?create=1')" class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -375,13 +374,7 @@ onMounted(async () => {
           </template>
         </CustomSelect>
         <!-- Reset -->
-        <button v-if="filterStatus || filterMaster" @click="filterStatus = ''; filterMaster = ''; applyFilters()" class="btn-ghost btn-sm text-gray-400 whitespace-nowrap shrink-0">
-          Сбросить
-        </button>
-      </div>
-      <!-- Row 2: DatePicker for list mode (jump to specific date) -->
-      <div v-if="viewMode === 'list'" class="flex items-center gap-2">
-        <DatePicker v-model="anchorDateStr" @change="applyFilters" placeholder="Перейти к дате..." class="w-full sm:w-52" />
+        <button v-if="filterStatus || filterMaster" @click="filterStatus = ''; filterMaster = ''; applyFilters()" class="btn-ghost btn-sm text-gray-400 whitespace-nowrap shrink-0">Сбросить</button>
       </div>
     </div>
 
