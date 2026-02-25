@@ -13,6 +13,36 @@ const categoriesStore = useCategoriesStore()
 const error    = ref('')
 const toggling = ref<string | null>(null)
 
+// ── Search & sort ──────────────────────────────────────────────────────────
+const searchQuery = ref('')
+const sortBy      = ref('')
+
+const sortOptions = [
+  { value: '',             label: 'По умолчанию' },
+  { value: 'name_asc',    label: 'А → Я' },
+  { value: 'products_desc', label: 'Больше товаров' },
+]
+
+const filteredCategories = computed(() => {
+  let list = [...categoriesStore.categories]
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.children || []).some((ch: any) => ch.name.toLowerCase().includes(q))
+    )
+  }
+
+  if (sortBy.value === 'name_asc') {
+    list = list.sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  } else if (sortBy.value === 'products_desc') {
+    list = list.sort((a, b) => (b.products_count ?? 0) - (a.products_count ?? 0))
+  }
+
+  return list
+})
+
 // ── Modal create/edit ─────────────────────────────────────────────────────
 const showModal  = ref(false)
 const modalMode  = ref<'create' | 'edit'>('create')
@@ -255,6 +285,14 @@ async function doDelete() {
       </button>
     </div>
 
+    <!-- Search + sort -->
+    <div v-if="!categoriesStore.loading && categoriesStore.categories.length > 0" class="card">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <input v-model="searchQuery" type="text" class="input flex-1" placeholder="Поиск по названию..." />
+        <CustomSelect v-model="sortBy" :options="sortOptions" class="w-full sm:w-48 shrink-0" />
+      </div>
+    </div>
+
     <!-- Error -->
     <div v-if="error || categoriesStore.error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
       {{ error || categoriesStore.error }}
@@ -279,9 +317,14 @@ async function doDelete() {
       <button @click="openCreate" class="btn-primary">Создать категорию</button>
     </UiEmptyState>
 
+    <!-- Empty search result -->
+    <div v-else-if="filteredCategories.length === 0 && searchQuery" class="card py-10 text-center text-gray-500 dark:text-gray-400 text-sm">
+      Ничего не найдено по «{{ searchQuery }}»
+    </div>
+
     <!-- Categories list -->
     <div v-else class="space-y-2">
-      <template v-for="cat in categoriesStore.categories" :key="cat.id">
+      <template v-for="cat in filteredCategories" :key="cat.id">
 
         <!-- Parent category -->
         <div class="card p-0">

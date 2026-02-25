@@ -586,9 +586,9 @@ onMounted(async () => {
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-end gap-3 p-4 pt-0 border-t border-gray-100 dark:border-gray-700">
-        <button @click="showModal = false" class="btn-secondary">Отмена</button>
-        <button @click="submitBooking" :disabled="creating || !isBookingFormValid" class="btn-primary">
+      <div class="flex gap-3 p-4 border-t border-gray-100 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 z-10">
+        <button @click="showModal = false" class="btn-secondary flex-1">Отмена</button>
+        <button @click="submitBooking" :disabled="creating || !isBookingFormValid" class="btn-primary flex-1">
           <template v-if="creating">
             <div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
             Создание...

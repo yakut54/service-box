@@ -4,7 +4,8 @@ export function formatPrice(kopecks: number): string {
     style: 'currency',
     currency: 'RUB',
     minimumFractionDigits: 0,
-  }).format(kopecks / 100)
+    maximumFractionDigits: 0,
+  }).format(Math.round(kopecks) / 100)
 }
 
 /** "2024-01-15T10:30:00" → "15 янв, 10:30" */

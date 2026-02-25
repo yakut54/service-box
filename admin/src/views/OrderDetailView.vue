@@ -91,18 +91,23 @@ async function updateStatus(status: string) {
       </div>
 
       <!-- Status actions -->
-      <div v-if="!['completed','cancelled'].includes(order.status)" class="card mb-6 flex flex-wrap items-center gap-3">
-        <span class="text-sm text-gray-500 dark:text-gray-400 mr-1">Действия:</span>
-        <button v-if="order.status === 'pending'" @click="updateStatus('processing')" :disabled="updating" class="btn-primary btn-sm">
-          В работу
-        </button>
-        <button v-if="['pending','paid','processing'].includes(order.status)" @click="updateStatus('completed')" :disabled="updating" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700">
-          Завершить
-        </button>
-        <button @click="updateStatus('cancelled')" :disabled="updating" class="btn-danger btn-sm">
-          Отменить
-        </button>
-        <UiSpinner v-if="updating" size="sm" class="ml-1" />
+      <div v-if="!['completed','cancelled'].includes(order.status)" class="card mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Действия</span>
+          <UiSpinner v-if="updating" size="sm" />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button v-if="order.status === 'pending'" @click="updateStatus('processing')" :disabled="updating" class="btn-primary btn-sm">
+            В работу
+          </button>
+          <button v-if="['pending','paid','processing'].includes(order.status)" @click="updateStatus('completed')" :disabled="updating" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700">
+            Завершить
+          </button>
+          <div class="flex-1 hidden sm:block"></div>
+          <button @click="updateStatus('cancelled')" :disabled="updating" class="btn-danger btn-sm">
+            Отменить
+          </button>
+        </div>
       </div>
 
       <!-- Body -->
