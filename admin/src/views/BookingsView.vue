@@ -34,8 +34,39 @@ function shopParts(dateStr: string) {
 // ── Filters ─────────────────────────────────────────────────
 const filterStatus = ref('')
 const filterMaster = ref('')
-const filterDate = ref('')
 const viewMode = ref<'list' | 'calendar'>('list')
+
+// ── Unified date anchor ──────────────────────────────────────
+// Single source of truth for "which date/week we're viewing"
+const anchorDateStr = ref(toYMD(new Date()))
+
+function getAnchorDate(): Date {
+  return anchorDateStr.value ? new Date(anchorDateStr.value + 'T12:00:00') : new Date()
+}
+
+const isAnchorToday = computed(() => anchorDateStr.value === toYMD(new Date()))
+
+function navigate(delta: number) {
+  const d = getAnchorDate()
+  if (viewMode.value === 'list') d.setDate(d.getDate() + delta)
+  else d.setDate(d.getDate() + delta * 7)
+  anchorDateStr.value = toYMD(d)
+  applyFilters()
+}
+
+function goToday() {
+  anchorDateStr.value = toYMD(new Date())
+  applyFilters()
+}
+
+const navLabel = computed(() => {
+  if (viewMode.value === 'list') {
+    return getAnchorDate().toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+  }
+  return formatMonthHeader()
+})
+
+watch(viewMode, () => applyFilters())
 
 const bookingStatusOptions = [
   { value: '', label: 'Все статусы' },
@@ -62,19 +93,15 @@ const masterModalOptions = computed(() => [
 ])
 
 // ── Calendar state ──────────────────────────────────────────
-const weekOffset = ref(0)
-
 const weekDays = computed(() => {
-  const today = new Date()
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + weekOffset.value * 7)
-  const days: Date[] = []
-  for (let i = 0; i < 7; i++) {
+  const anchor = getAnchorDate()
+  const monday = new Date(anchor)
+  monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7))
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday)
     d.setDate(monday.getDate() + i)
-    days.push(d)
-  }
-  return days
+    return d
+  })
 })
 
 const CAL_START_H = 8
@@ -137,7 +164,7 @@ function calBookingBg(status: string) {
 }
 
 const nowTop = computed(() => {
-  if (weekOffset.value !== 0) return null
+  if (!weekDays.value.some(d => isToday(d))) return null
   const p = shopParts(new Date().toISOString())
   const min    = p.hour * 60 + p.minute
   const topMin = min - CAL_START_H * 60
@@ -263,36 +290,27 @@ function formatTimeRange(start: string, end: string) {
   return `${formatTime(start)} – ${formatTime(end)}`
 }
 
-// ── Date navigation helpers ──────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────
 function toYMD(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
-
-function shiftDay(delta: number) {
-  const base = filterDate.value ? new Date(filterDate.value + 'T12:00:00') : new Date()
-  base.setDate(base.getDate() + delta)
-  filterDate.value = toYMD(base)
-  applyFilters()
-}
-
-function setTodayFilter() {
-  filterDate.value = toYMD(new Date())
-  applyFilters()
-}
-
-const isFilterToday = computed(() => filterDate.value === toYMD(new Date()))
 
 // ── Data loading ────────────────────────────────────────────
 async function applyFilters() {
   const params: Record<string, string> = {}
   if (filterStatus.value) params.status = filterStatus.value
   if (filterMaster.value) params.master_id = filterMaster.value
-  if (filterDate.value) params.date = filterDate.value
+  if (viewMode.value === 'list') {
+    params.date = anchorDateStr.value
+  } else {
+    params.date_from = toYMD(weekDays.value[0])
+    params.date_to   = toYMD(weekDays.value[6])
+  }
   await bookingsStore.fetchBookings(params)
 }
 
 onMounted(async () => {
-  bookingsStore.fetchBookings()
+  applyFilters()
   bookingsStore.fetchMasters()
   try {
     const resp = await api.getProducts({ type: 'service' })
@@ -327,50 +345,43 @@ onMounted(async () => {
 
     <!-- Filters -->
     <div class="card mb-6 space-y-3">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-52" />
-        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-64" searchable>
+      <!-- Row 1: navigation + period label + status + master + reset -->
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- ← Today → group -->
+        <div class="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
+          <button @click="navigate(-1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700" :title="viewMode === 'list' ? 'Предыдущий день' : 'Предыдущая неделя'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button @click="goToday" :class="['px-3 py-1.5 text-sm font-medium transition-colors', isAnchorToday ? 'bg-primary-600 text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300']">
+            Сегодня
+          </button>
+          <button @click="navigate(1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700" :title="viewMode === 'list' ? 'Следующий день' : 'Следующая неделя'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <!-- Period label -->
+        <span class="text-sm font-semibold text-gray-900 dark:text-white capitalize whitespace-nowrap">{{ navLabel }}</span>
+        <!-- Push filters to right on desktop -->
+        <div class="flex-1 hidden sm:block min-w-0"></div>
+        <!-- Status -->
+        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-48" />
+        <!-- Master -->
+        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-52" searchable>
           <template #footer="{ close }">
-            <button
-              type="button"
-              @click="close(); router.push('/masters?create=1')"
-              class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full"
-            >
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
+            <button type="button" @click="close(); router.push('/masters?create=1')" class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
               Добавить мастера
             </button>
           </template>
         </CustomSelect>
+        <!-- Reset -->
+        <button v-if="filterStatus || filterMaster" @click="filterStatus = ''; filterMaster = ''; applyFilters()" class="btn-ghost btn-sm text-gray-400 whitespace-nowrap shrink-0">
+          Сбросить
+        </button>
       </div>
-
-      <!-- Date navigation: mobile=2 rows, desktop=1 row -->
-      <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-        <!-- Quick day buttons -->
-        <div class="flex items-center gap-2 shrink-0">
-          <button @click="shiftDay(-1)" class="btn-ghost btn-sm px-2.5" title="Предыдущий день">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            @click="setTodayFilter"
-            :class="['btn-sm px-4 text-sm font-medium transition-colors flex-1 sm:flex-none', isFilterToday ? 'btn-primary' : 'btn-secondary']"
-          >Сегодня</button>
-          <button @click="shiftDay(1)" class="btn-ghost btn-sm px-2.5" title="Следующий день">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-        <!-- Arbitrary date + reset -->
-        <div class="flex items-center gap-2 flex-1">
-          <DatePicker v-model="filterDate" @change="applyFilters" placeholder="Любая дата" class="flex-1 sm:w-44 sm:flex-none" />
-          <button v-if="filterStatus || filterMaster || filterDate" @click="filterStatus = ''; filterMaster = ''; filterDate = ''; applyFilters()" class="btn-ghost btn-sm whitespace-nowrap text-gray-400 shrink-0">
-            Сбросить
-          </button>
-        </div>
+      <!-- Row 2: DatePicker for list mode (jump to specific date) -->
+      <div v-if="viewMode === 'list'" class="flex items-center gap-2">
+        <DatePicker v-model="anchorDateStr" @change="applyFilters" placeholder="Перейти к дате..." class="w-full sm:w-52" />
       </div>
     </div>
 
@@ -487,18 +498,9 @@ onMounted(async () => {
 
       <!-- Desktop calendar -->
       <div class="card p-0 overflow-hidden hidden sm:block">
-        <!-- Nav bar -->
-        <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800">
-          <button @click="weekOffset--" class="btn-ghost btn-sm p-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-          </button>
-          <div class="flex items-center gap-3">
-            <span class="font-semibold text-gray-900 dark:text-white capitalize">{{ formatMonthHeader() }}</span>
-            <button v-if="weekOffset !== 0" @click="weekOffset = 0" class="text-xs text-primary-600 dark:text-primary-400 font-medium px-2.5 py-1 rounded-full bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors">Сегодня</button>
-          </div>
-          <button @click="weekOffset++" class="btn-ghost btn-sm p-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          </button>
+        <!-- Calendar header -->
+        <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
+          <span class="font-semibold text-gray-700 dark:text-gray-300 capitalize text-sm">{{ navLabel }}</span>
         </div>
 
         <!-- Day header row -->
