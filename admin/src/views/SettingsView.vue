@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
 import TimeInput from '@/components/TimeInput.vue'
+import { timezoneOptions } from '@/shared/lib/timezones'
 
 const authStore = useAuthStore()
 
@@ -55,36 +56,6 @@ const slotOptions = [
   { value: '60', label: '1 час' },
 ]
 
-const timezoneOptions = [
-  { value: 'Etc/GMT+12',          label: 'UTC−12 — Линия перемены дат (запад)' },
-  { value: 'Pacific/Pago_Pago',   label: 'UTC−11 — Паго-Паго, Самоа' },
-  { value: 'Pacific/Honolulu',    label: 'UTC−10 — Гонолулу, Гавайи' },
-  { value: 'America/Anchorage',   label: 'UTC−9  — Анкоридж, Аляска' },
-  { value: 'America/Los_Angeles', label: 'UTC−8  — Лос-Анджелес, Сиэтл, Ванкувер' },
-  { value: 'America/Denver',      label: 'UTC−7  — Денвер, Финикс' },
-  { value: 'America/Chicago',     label: 'UTC−6  — Чикаго, Мехико, Виннипег' },
-  { value: 'America/New_York',    label: 'UTC−5  — Нью-Йорк, Торонто, Богота, Лима' },
-  { value: 'America/Caracas',     label: 'UTC−4  — Каракас, Манаус, Ла-Пас, Сантьяго' },
-  { value: 'America/Sao_Paulo',   label: 'UTC−3  — Сан-Паулу, Буэнос-Айрес, Монтевидео' },
-  { value: 'America/Noronha',     label: 'UTC−2  — Среднеатлантическое время' },
-  { value: 'Atlantic/Azores',     label: 'UTC−1  — Азорские острова' },
-  { value: 'UTC',                 label: 'UTC+0  — Лондон, Дублин, Лиссабон, Рейкьявик' },
-  { value: 'Europe/Paris',        label: 'UTC+1  — Берлин, Париж, Рим, Мадрид, Варшава' },
-  { value: 'Europe/Kaliningrad',  label: 'UTC+2  — Калининград, Хельсинки, Киев, Каир' },
-  { value: 'Europe/Moscow',       label: 'UTC+3  — Москва, Санкт-Петербург, Стамбул, Найроби' },
-  { value: 'Asia/Dubai',          label: 'UTC+4  — Дубай, Баку, Тбилиси, Ереван, Самара' },
-  { value: 'Asia/Karachi',        label: 'UTC+5  — Карачи, Ташкент, Екатеринбург' },
-  { value: 'Asia/Kolkata',        label: 'UTC+5:30 — Мумбаи, Нью-Дели (Индия)' },
-  { value: 'Asia/Dhaka',          label: 'UTC+6  — Дакка, Алматы, Астана, Омск' },
-  { value: 'Asia/Bangkok',        label: 'UTC+7  — Бангкок, Джакарта, Новосибирск, Красноярск' },
-  { value: 'Asia/Shanghai',       label: 'UTC+8  — Пекин, Сингапур, Гонконг, Иркутск' },
-  { value: 'Asia/Tokyo',          label: 'UTC+9  — Токио, Сеул, Якутск, Чита' },
-  { value: 'Australia/Sydney',    label: 'UTC+10 — Сидней, Мельбурн, Владивосток, Хабаровск' },
-  { value: 'Pacific/Guadalcanal', label: 'UTC+11 — Магадан, Сахалин, Хониара' },
-  { value: 'Pacific/Auckland',    label: 'UTC+12 — Окленд, Фиджи, Камчатка, Чукотка' },
-  { value: 'Pacific/Tongatapu',   label: 'UTC+13 — Нукуалофа (Тонга)' },
-  { value: 'Pacific/Kiritimati',  label: 'UTC+14 — Острова Лайн (Кирибати)' },
-]
 
 onMounted(() => {
   if (authStore.shop) {
