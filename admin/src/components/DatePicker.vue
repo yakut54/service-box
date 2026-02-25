@@ -189,7 +189,7 @@ onBeforeUnmount(() => {
       :disabled="disabled"
       @click="toggle"
       :class="[
-        'input flex items-center gap-2 w-full h-10 text-sm select-none overflow-hidden',
+        'input flex items-center gap-2 w-full h-10 text-xs select-none overflow-hidden',
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
         open ? '!ring-2 !ring-primary-500 !border-primary-500' : '',
       ]"
