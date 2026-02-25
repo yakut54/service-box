@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch, reactive } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch, reactive } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
@@ -46,10 +46,18 @@ function getAnchorDate(): Date {
 
 const isAnchorToday = computed(() => anchorDateStr.value === toYMD(new Date()))
 
+// Mobile detection (< 640px = Tailwind sm)
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < 640)
+function _onResize() { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', _onResize))
+onUnmounted(() => window.removeEventListener('resize', _onResize))
+
 function navigate(delta: number) {
   const d = getAnchorDate()
-  if (viewMode.value === 'list') d.setDate(d.getDate() + delta)
-  else d.setDate(d.getDate() + delta * 7)
+  // Desktop calendar → week step; everything else → day step
+  const step = (viewMode.value === 'calendar' && !isMobile.value) ? 7 : 1
+  d.setDate(d.getDate() + delta * step)
   anchorDateStr.value = toYMD(d)
   applyFilters()
 }
@@ -328,7 +336,7 @@ onMounted(async () => {
         <p class="text-gray-500 dark:text-gray-400 mt-1">{{ bookingsStore.bookings.length }} {{ plural(bookingsStore.bookings.length, 'запись', 'записи', 'записей') }}</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
-        <div class="hidden sm:flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+        <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           <button :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']" @click="viewMode = 'list'">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
           </button>
@@ -474,19 +482,33 @@ onMounted(async () => {
     <!-- ══════════ CALENDAR VIEW ══════════ -->
     <div v-else-if="viewMode === 'calendar'">
 
-      <!-- Mobile fallback -->
-      <div class="sm:hidden card overflow-hidden p-0">
-        <RouterLink
-          v-for="b in bookingsStore.bookings" :key="b.id" :to="`/bookings/${b.id}`"
-          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
-        >
-          <div class="min-w-0 flex-1">
-            <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ b.customer_name }} · {{ formatTimeRange(b.start_time, b.end_time) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(b.start_time) }}</div>
+      <!-- Mobile: day view -->
+      <div class="sm:hidden card p-0 overflow-hidden">
+        <!-- Day header -->
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 text-center">
+          <div :class="['text-sm font-semibold capitalize', isAnchorToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-700 dark:text-gray-200']">
+            {{ getAnchorDate().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) }}
           </div>
-          <span :class="`badge-${b.status} shrink-0`">{{ BOOKING_STATUS_LABELS[b.status] || b.status }}</span>
-        </RouterLink>
+        </div>
+        <!-- No bookings -->
+        <div v-if="bookingsForDay(getAnchorDate()).length === 0" class="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
+          Нет записей на этот день
+        </div>
+        <!-- Bookings by time -->
+        <div v-else>
+          <div
+            v-for="b in bookingsForDay(getAnchorDate())" :key="b.id"
+            class="flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+            @click="router.push(`/bookings/${b.id}`)"
+          >
+            <div class="text-sm font-mono font-semibold text-gray-500 dark:text-gray-400 w-12 shrink-0 pt-0.5">{{ formatTime(b.start_time) }}</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ b.customer_name }}</div>
+            </div>
+            <span :class="`badge-${b.status} shrink-0`">{{ BOOKING_STATUS_LABELS[b.status] || b.status }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- Desktop calendar -->
