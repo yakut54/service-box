@@ -133,8 +133,8 @@ onMounted(async () => {
       form.value = {
         name: p.name,
         description: p.description || '',
-        price: p.price / 100,
-        compare_price: p.compare_price ? p.compare_price / 100 : null,
+        price: Math.round(p.price / 100),
+        compare_price: p.compare_price ? Math.round(p.compare_price / 100) : null,
         type: p.type,
         category_id: p.category_id || '',
         is_active: p.is_active,
@@ -259,7 +259,7 @@ async function handleSubmit() {
             <div>
               <label for="price" class="label">Цена (руб) *</label>
               <div class="relative">
-                <input id="price" v-model.number="form.price" type="number" min="0" step="0.01" class="input pr-12" :placeholder="currentTypeConfig.pricePlaceholder" />
+                <input id="price" v-model.number="form.price" type="number" min="0" step="1" class="input pr-12" :placeholder="currentTypeConfig.pricePlaceholder" />
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
               </div>
             </div>
@@ -268,7 +268,7 @@ async function handleSubmit() {
                 <span class="text-gray-400 dark:text-gray-500 font-normal text-xs ml-1">для показа скидки</span>
               </label>
               <div class="relative">
-                <input id="compare_price" v-model.number="form.compare_price" type="number" min="0" step="0.01" class="input pr-12" placeholder="0" />
+                <input id="compare_price" v-model.number="form.compare_price" type="number" min="0" step="1" class="input pr-12" placeholder="0" />
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
               </div>
               <p v-if="form.compare_price && form.compare_price <= form.price" class="text-xs text-amber-600 dark:text-amber-400 mt-1">Старая цена должна быть больше текущей</p>

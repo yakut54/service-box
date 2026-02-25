@@ -25,6 +25,13 @@ const error = ref('')
 const search = ref('')
 const filterType = ref('')
 const filterCategory = ref('')
+const sortOrder = ref('')
+
+const sortOptions = [
+  { value: '', label: 'По умолчанию' },
+  { value: 'price_asc', label: 'Дешевле' },
+  { value: 'price_desc', label: 'Дороже' },
+]
 
 // Категории: сначала с API, дополняем из продуктов (если API пустой или категория не вошла)
 const categories = computed(() => {
@@ -63,6 +70,12 @@ const filteredProducts = computed(() => {
     )
   }
 
+  if (sortOrder.value === 'price_asc') {
+    result = [...result].sort((a, b) => a.price - b.price)
+  } else if (sortOrder.value === 'price_desc') {
+    result = [...result].sort((a, b) => b.price - a.price)
+  }
+
   return result
 })
 
@@ -97,7 +110,7 @@ const categorySelectOptions = computed(() => [
   ...categories.value.map(c => ({ value: c.id, label: c.name })),
 ])
 
-const showFilters = computed(() => showTypeSelect.value || showCategories.value)
+const showFilters = computed(() => showTypeSelect.value || showCategories.value || products.value.length > 1)
 
 onMounted(async () => {
   try {
@@ -179,6 +192,11 @@ function handleSelect(product: any) {
           v-model="filterCategory"
           :options="categorySelectOptions"
           :searchable="true"
+        />
+        <SbSelect
+          v-if="products.length > 1"
+          v-model="sortOrder"
+          :options="sortOptions"
         />
       </div>
     </div>
