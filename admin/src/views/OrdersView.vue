@@ -11,6 +11,7 @@ import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 const ordersStore = useOrdersStore()
 const filterStatus = ref('')
 const searchQuery = ref('')
+const datePreset = ref('all')
 const deleteConfirm = ref<string | null>(null)
 const deleting = ref(false)
 
@@ -30,12 +31,51 @@ const statusOptions = [
   { value: 'cancelled', label: 'Отменены' },
 ]
 
+const datePresets = [
+  { value: 'today',     label: 'Сегодня' },
+  { value: 'yesterday', label: 'Вчера' },
+  { value: 'week',      label: '7 дней' },
+  { value: 'month',     label: '30 дней' },
+  { value: 'all',       label: 'Все' },
+]
+
+function toYMD(d: Date) {
+  return d.toISOString().slice(0, 10)
+}
+
+function getDateRange(preset: string): { from: string; to: string } | null {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayStr = toYMD(today)
+  if (preset === 'today') return { from: todayStr, to: todayStr }
+  if (preset === 'yesterday') {
+    const y = new Date(today); y.setDate(y.getDate() - 1)
+    return { from: toYMD(y), to: toYMD(y) }
+  }
+  if (preset === 'week') {
+    const w = new Date(today); w.setDate(w.getDate() - 6)
+    return { from: toYMD(w), to: todayStr }
+  }
+  if (preset === 'month') {
+    const m = new Date(today); m.setDate(m.getDate() - 29)
+    return { from: toYMD(m), to: todayStr }
+  }
+  return null
+}
+
+function selectPreset(value: string) {
+  datePreset.value = value
+  applyFilters()
+}
+
 onMounted(() => { ordersStore.fetchOrders() })
 
 async function applyFilters() {
   const params: Record<string, string> = {}
   if (filterStatus.value) params.status = filterStatus.value
   if (searchQuery.value) params.search = searchQuery.value
+  const range = getDateRange(datePreset.value)
+  if (range) { params.date_from = range.from; params.date_to = range.to }
   await ordersStore.fetchOrders(params)
 }
 </script>
@@ -49,12 +89,26 @@ async function applyFilters() {
       </div>
     </div>
 
-    <div class="card mb-6">
-      <div class="flex flex-col sm:flex-row gap-4">
+    <div class="card mb-6 space-y-3">
+      <div class="flex flex-col sm:flex-row gap-3">
         <div class="flex-1">
           <input v-model="searchQuery" @input="applyFilters" type="text" class="input" placeholder="Поиск по клиенту..." />
         </div>
-        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="statusOptions" class="w-full sm:w-48" />
+        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="statusOptions" class="w-full sm:w-48 shrink-0" />
+      </div>
+      <!-- Date presets -->
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="p in datePresets" :key="p.value"
+          type="button"
+          @click="selectPreset(p.value)"
+          :class="[
+            'px-3 py-1 text-sm rounded-full border transition-colors',
+            datePreset === p.value
+              ? 'bg-primary-600 text-white border-primary-600'
+              : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-400 dark:hover:border-primary-500'
+          ]"
+        >{{ p.label }}</button>
       </div>
     </div>
 

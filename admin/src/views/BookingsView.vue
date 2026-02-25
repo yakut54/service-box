@@ -263,6 +263,25 @@ function formatTimeRange(start: string, end: string) {
   return `${formatTime(start)} – ${formatTime(end)}`
 }
 
+// ── Date navigation helpers ──────────────────────────────────
+function toYMD(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function shiftDay(delta: number) {
+  const base = filterDate.value ? new Date(filterDate.value + 'T12:00:00') : new Date()
+  base.setDate(base.getDate() + delta)
+  filterDate.value = toYMD(base)
+  applyFilters()
+}
+
+function setTodayFilter() {
+  filterDate.value = toYMD(new Date())
+  applyFilters()
+}
+
+const isFilterToday = computed(() => filterDate.value === toYMD(new Date()))
+
 // ── Data loading ────────────────────────────────────────────
 async function applyFilters() {
   const params: Record<string, string> = {}
@@ -307,8 +326,8 @@ onMounted(async () => {
     </div>
 
     <!-- Filters -->
-    <div class="card mb-6">
-      <div class="flex flex-col sm:flex-row gap-4">
+    <div class="card mb-6 space-y-3">
+      <div class="flex flex-col sm:flex-row gap-3">
         <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-52" />
         <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-64" searchable>
           <template #footer="{ close }">
@@ -324,8 +343,26 @@ onMounted(async () => {
             </button>
           </template>
         </CustomSelect>
-        <DatePicker v-model="filterDate" @change="applyFilters" placeholder="Дата" class="w-full sm:w-44" />
-        <button v-if="filterStatus || filterMaster || filterDate" @click="filterStatus = ''; filterMaster = ''; filterDate = ''; applyFilters()" class="btn-ghost btn-sm whitespace-nowrap">
+      </div>
+
+      <!-- Date navigation -->
+      <div class="flex items-center gap-2">
+        <button @click="shiftDay(-1)" class="btn-ghost btn-sm px-2.5" title="Предыдущий день">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          @click="setTodayFilter"
+          :class="['btn-sm px-3 text-sm font-medium transition-colors', isFilterToday ? 'btn-primary' : 'btn-secondary']"
+        >Сегодня</button>
+        <button @click="shiftDay(1)" class="btn-ghost btn-sm px-2.5" title="Следующий день">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        <DatePicker v-model="filterDate" @change="applyFilters" placeholder="Любая дата" class="flex-1 sm:w-44 sm:flex-none" />
+        <button v-if="filterStatus || filterMaster || filterDate" @click="filterStatus = ''; filterMaster = ''; filterDate = ''; applyFilters()" class="btn-ghost btn-sm whitespace-nowrap text-gray-400">
           Сбросить
         </button>
       </div>
