@@ -163,6 +163,11 @@ onUnmounted(() => {
             Ничего не найдено
           </li>
         </ul>
+
+        <!-- Footer slot for "add new" buttons -->
+        <div v-if="$slots.footer" class="border-t border-gray-100 dark:border-gray-700">
+          <slot name="footer" :close="() => open = false" :search="searchQuery" />
+        </div>
       </div>
     </Transition>
   </div>

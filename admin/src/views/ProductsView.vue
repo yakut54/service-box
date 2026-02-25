@@ -16,6 +16,24 @@ const deleteConfirm = ref<string | null>(null)
 const filterType = ref('')
 const filterSearch = ref('')
 const filterCategory = ref('')
+const sortBy = ref('')
+
+const sortOptions = [
+  { value: '', label: 'По умолчанию' },
+  { value: 'name', label: 'А→Я по названию' },
+  { value: 'rating_desc', label: 'По рейтингу ↓' },
+  { value: 'price_desc', label: 'По цене: дорогие' },
+  { value: 'price_asc', label: 'По цене: дешёвые' },
+]
+
+const sortedProducts = computed(() => {
+  const list = [...productsStore.products]
+  if (sortBy.value === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  if (sortBy.value === 'rating_desc') return list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  if (sortBy.value === 'price_desc') return list.sort((a, b) => b.price - a.price)
+  if (sortBy.value === 'price_asc') return list.sort((a, b) => a.price - b.price)
+  return list
+})
 
 const categoryOptions = computed(() => [
   { value: '', label: 'Все категории' },
@@ -92,6 +110,7 @@ function getStockBadge(product: any) {
           :options="categoryOptions" class="w-full sm:w-64" searchable
         />
         <CustomSelect v-model="filterType" @change="applyFilters" :options="typeOptions" class="w-full sm:w-48" />
+        <CustomSelect v-model="sortBy" :options="sortOptions" class="w-full sm:w-48" />
       </div>
     </div>
 
@@ -107,7 +126,7 @@ function getStockBadge(product: any) {
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-      <div v-for="product in productsStore.products" :key="product.id" class="card group hover:shadow-md transition-shadow">
+      <div v-for="product in sortedProducts" :key="product.id" class="card group hover:shadow-md transition-shadow">
         <div class="aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 overflow-hidden">
           <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover" />
           <div v-else class="w-full h-full flex items-center justify-center">

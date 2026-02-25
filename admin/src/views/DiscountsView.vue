@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
+import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
@@ -30,6 +32,8 @@ interface Discount {
   ends_at: string | null
   created_at: string | null
 }
+
+const categoriesStore = useCategoriesStore()
 
 // ── State ────────────────────────────────────────────────────
 const discounts = ref<Discount[]>([])
@@ -73,6 +77,13 @@ const scopeOptions = [
 
 const productOptions = computed(() =>
   products.value.map(p => ({ value: p.id, label: p.name }))
+)
+
+const categoryOptions = computed(() =>
+  categoriesStore.allCategories.map(c => ({
+    value: c.id,
+    label: c.parent_id ? `— ${c.name}` : c.name,
+  }))
 )
 
 // ── Form (human-friendly units: rubles, not kopecks) ─────────
@@ -155,10 +166,24 @@ async function load() {
     ])
     discounts.value = discRes.data
     products.value  = prodRes.data.map((p: any) => ({ id: p.id, name: p.name }))
+    if (!categoriesStore.categories.length) categoriesStore.fetchCategories()
   } catch (e: any) {
     error.value = e.message || 'Не удалось загрузить'
   } finally {
     loading.value = false
+  }
+}
+
+// ── Quick-create category from discount modal ──────────────
+async function quickCreateCategory(name: string, close: () => void) {
+  if (!name.trim()) return
+  try {
+    const res = await api.createCategory({ name: name.trim() })
+    categoriesStore.categories.push(res.data)
+    form.value.scope_value = res.data.id
+    close()
+  } catch (e: any) {
+    modalError.value = e.message || 'Не удалось создать категорию'
   }
 }
 
@@ -379,7 +404,7 @@ async function doDelete() {
               <span v-if="d.scope_value" class="block text-xs text-gray-400 truncate max-w-[120px]">
                 {{ d.scope === 'product'
                     ? (products.find(p => p.id === d.scope_value)?.name ?? d.scope_value)
-                    : d.scope_value }}
+                    : (categoriesStore.getCategoryName(d.scope_value) || d.scope_value) }}
               </span>
             </td>
             <td class="px-4 py-3 hidden lg:table-cell text-gray-600 dark:text-gray-400">
@@ -475,12 +500,52 @@ async function doDelete() {
 
         <div v-if="form.scope === 'product'">
           <label class="label">Товар</label>
-          <CustomSelect v-model="form.scope_value" :options="productOptions" placeholder="Выберите товар..." searchable />
+          <CustomSelect v-model="form.scope_value" :options="productOptions" placeholder="Выберите товар..." searchable>
+            <template #footer="{ close }">
+              <RouterLink
+                to="/products/new"
+                target="_blank"
+                @click="close()"
+                class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full"
+              >
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Добавить товар
+              </RouterLink>
+            </template>
+          </CustomSelect>
           <p v-if="productOptions.length === 0" class="text-xs text-gray-400 mt-1">Нет доступных товаров</p>
         </div>
         <div v-else-if="form.scope === 'category'">
           <label class="label">Категория</label>
-          <input v-model="form.scope_value" type="text" class="input" placeholder="Например: Масла и жидкости" />
+          <CustomSelect v-model="form.scope_value" :options="categoryOptions" placeholder="Выберите категорию..." searchable>
+            <template #footer="{ close, search }">
+              <button
+                v-if="search"
+                type="button"
+                @click="quickCreateCategory(search, close)"
+                class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full"
+              >
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Создать «{{ search }}»
+              </button>
+              <RouterLink
+                v-else
+                to="/categories"
+                target="_blank"
+                @click="close()"
+                class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full"
+              >
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Управление категориями
+              </RouterLink>
+            </template>
+          </CustomSelect>
         </div>
 
         <div>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
 import CustomSelect from '@/components/CustomSelect.vue'
 import { UiModal, UiConfirmDialog, UiEmptyState, UiSpinner } from '@/shared/ui'
+
+const route = useRoute()
 
 // ── State ────────────────────────────────────────────────────
 const masters = ref<any[]>([])
@@ -104,7 +106,10 @@ async function loadMasters() {
   }
 }
 
-onMounted(loadMasters)
+onMounted(async () => {
+  await loadMasters()
+  if (route.query.create === '1') openCreate()
+})
 
 // ── Open modal ───────────────────────────────────────────────
 function openCreate() {

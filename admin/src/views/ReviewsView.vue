@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
@@ -159,7 +160,20 @@ async function doDelete() {
     <div class="flex flex-col sm:flex-row gap-3">
       <CustomSelect v-model="filterStatus"  :options="statusOptions"  class="sm:w-52" />
       <CustomSelect v-model="filterRating"  :options="ratingOptions"  class="sm:w-44" />
-      <CustomSelect v-model="filterProduct" :options="productOptions" class="flex-1 sm:max-w-xs" searchable />
+      <CustomSelect v-model="filterProduct" :options="productOptions" class="flex-1 sm:max-w-xs" searchable>
+        <template #footer="{ close }">
+          <RouterLink
+            to="/products/new"
+            @click="close()"
+            class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full"
+          >
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Добавить товар
+          </RouterLink>
+        </template>
+      </CustomSelect>
       <button
         v-if="filterStatus !== 'all' || filterRating !== 'all' || filterProduct !== 'all'"
         @click="filterStatus = 'all'; filterRating = 'all'; filterProduct = 'all'"

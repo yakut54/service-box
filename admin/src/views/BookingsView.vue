@@ -310,7 +310,20 @@ onMounted(async () => {
     <div class="card mb-6">
       <div class="flex flex-col sm:flex-row gap-4">
         <CustomSelect v-model="filterStatus" @change="applyFilters" :options="bookingStatusOptions" class="w-full sm:w-52" />
-        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-64" searchable />
+        <CustomSelect v-model="filterMaster" @change="applyFilters" :options="masterOptions" class="w-full sm:w-64" searchable>
+          <template #footer="{ close }">
+            <button
+              type="button"
+              @click="close(); router.push('/masters?create=1')"
+              class="flex items-center gap-2 px-4 py-2.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700 w-full"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Добавить мастера
+            </button>
+          </template>
+        </CustomSelect>
         <DatePicker v-model="filterDate" @change="applyFilters" placeholder="Дата" class="w-full sm:w-44" />
         <button v-if="filterStatus || filterMaster || filterDate" @click="filterStatus = ''; filterMaster = ''; filterDate = ''; applyFilters()" class="btn-ghost btn-sm whitespace-nowrap">
           Сбросить
