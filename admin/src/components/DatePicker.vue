@@ -92,6 +92,8 @@ const isWeekend  = (d: Date) => d.getDay() === 0 || d.getDay() === 6
 // ─── Smart positioning via Teleport ──────────────────────────────────────────
 
 const POPUP_H = 340 // приблизительная высота календаря
+const POPUP_W = 268 // ширина календаря (w-[268px])
+const MARGIN  = 8   // отступ от края экрана
 
 function computeAnchor() {
   const rect = root.value?.getBoundingClientRect()
@@ -100,17 +102,24 @@ function computeAnchor() {
   const spaceBelow = window.innerHeight - rect.bottom
   openUp.value = spaceBelow < POPUP_H + 8
 
+  // Выравниваем по левому краю триггера, но не даём вылезти за правый/левый край
+  let left = rect.left
+  if (left + POPUP_W + MARGIN > window.innerWidth) {
+    left = window.innerWidth - POPUP_W - MARGIN
+  }
+  if (left < MARGIN) left = MARGIN
+
   if (openUp.value) {
     anchorStyle.value = {
       position: 'fixed',
       bottom: `${window.innerHeight - rect.top + 6}px`,
-      left: `${rect.left}px`,
+      left: `${left}px`,
     }
   } else {
     anchorStyle.value = {
       position: 'fixed',
       top: `${rect.bottom + 6}px`,
-      left: `${rect.left}px`,
+      left: `${left}px`,
     }
   }
 }
