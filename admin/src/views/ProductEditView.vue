@@ -70,6 +70,9 @@ const typeConfig = {
 
 const currentTypeConfig = computed(() => typeConfig[form.value.type as keyof typeof typeConfig] || typeConfig.physical)
 
+// При редактировании необязательные поля показывают "не указано" вместо примеров
+const ep = (fallback: string) => isEditing.value ? 'не указано' : fallback
+
 // ── Image upload ─────────────────────────────────────────────
 const imageError   = ref(false)
 const uploading    = ref(false)
@@ -385,7 +388,7 @@ async function handleSubmit() {
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="label">Артикул (SKU)</label>
-              <input v-model="physicalDetails.sku" type="text" class="input" placeholder="NOTE-GOALS-001" />
+              <input v-model="physicalDetails.sku" type="text" class="input" :placeholder="ep('NOTE-GOALS-001')" />
             </div>
             <div>
               <label class="label">Кол-во на складе</label>
@@ -395,26 +398,26 @@ async function handleSubmit() {
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="label">Вес (грамм)</label>
-              <input v-model.number="physicalDetails.weight_grams" type="number" min="0" class="input" placeholder="350" />
+              <input v-model.number="physicalDetails.weight_grams" type="number" min="0" class="input" :placeholder="ep('350')" />
             </div>
             <div>
               <label class="label">Размер (Д×Ш×В)</label>
-              <input v-model="physicalDetails.dimensions" type="text" class="input" placeholder="20×14×2 см" />
+              <input v-model="physicalDetails.dimensions" type="text" class="input" :placeholder="ep('20×14×2 см')" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="label">Цвет</label>
-              <input v-model="physicalDetails.color" type="text" class="input" placeholder="Тёмно-синий" />
+              <input v-model="physicalDetails.color" type="text" class="input" :placeholder="ep('Тёмно-синий')" />
             </div>
             <div>
               <label class="label">Материал</label>
-              <input v-model="physicalDetails.material" type="text" class="input" placeholder="Экокожа" />
+              <input v-model="physicalDetails.material" type="text" class="input" :placeholder="ep('Экокожа')" />
             </div>
           </div>
           <div>
             <label class="label">Бренд</label>
-            <input v-model="physicalDetails.brand" type="text" class="input" placeholder="MyBrand" />
+            <input v-model="physicalDetails.brand" type="text" class="input" :placeholder="ep('MyBrand')" />
           </div>
         </div>
       </div>
@@ -504,7 +507,7 @@ async function handleSubmit() {
 
       <!-- ══════════ КНОПКИ ══════════ -->
       <div class="flex gap-3">
-        <button type="button" @click="router.back()" class="btn-secondary">Отмена</button>
+        <button type="button" @click="router.back()" class="btn-secondary flex-1">Отмена</button>
         <button type="submit" class="btn-primary flex-1" :disabled="saving">
           <template v-if="saving">
             <div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>

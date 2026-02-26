@@ -56,11 +56,11 @@ const crumbs = computed(() => {
 
 <template>
   <nav v-if="crumbs.length > 1" aria-label="Хлебные крошки" class="mb-4 sm:mb-5">
-    <ol class="flex items-center flex-wrap gap-x-1 text-sm min-w-0">
+    <ol class="flex items-center gap-x-1 text-sm min-w-0 overflow-hidden">
       <li
         v-for="(crumb, i) in crumbs"
         :key="i"
-        class="flex items-center gap-1 min-w-0"
+        :class="['flex items-center gap-1', i < crumbs.length - 1 ? 'flex-shrink-0' : 'min-w-0']"
       >
         <svg
           v-if="i > 0"
