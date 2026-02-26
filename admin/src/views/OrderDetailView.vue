@@ -74,13 +74,6 @@ async function updateStatus(status: string) {
     </div>
 
     <template v-else>
-      <!-- Breadcrumb -->
-      <nav class="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500 mb-6">
-        <RouterLink to="/orders" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Заказы</RouterLink>
-        <span>/</span>
-        <span class="text-gray-600 dark:text-gray-300 font-medium">#{{ order.id.slice(0, 8) }}</span>
-      </nav>
-
       <!-- Header -->
       <div class="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>

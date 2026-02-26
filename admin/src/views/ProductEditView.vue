@@ -459,12 +459,12 @@ async function handleSubmit() {
             </div>
             <div>
               <label class="label">Размер файла (МБ)</label>
-              <input v-model.number="digitalDetails.file_size_mb" type="number" min="0" step="0.1" class="input" placeholder="256" />
+              <input v-model.number="digitalDetails.file_size_mb" type="number" min="0" step="0.1" class="input" :placeholder="ep('256')" />
             </div>
           </div>
           <div>
             <label class="label">Формат файла</label>
-            <input v-model="digitalDetails.file_format" type="text" class="input" placeholder="PDF, MP4, ZIP..." />
+            <input v-model="digitalDetails.file_format" type="text" class="input" :placeholder="ep('PDF, MP4, ZIP...')" />
           </div>
         </div>
       </div>
@@ -481,7 +481,7 @@ async function handleSubmit() {
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Шаг: 5 минут</p>
             </div>
             <div>
-              <label class="label">Перерыв между записями (мин)</label>
+              <label class="label">Перерыв (мин)</label>
               <input v-model.number="serviceDetails.break_minutes" type="number" min="0" step="5" class="input" placeholder="0" />
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Время на подготовку</p>
             </div>
