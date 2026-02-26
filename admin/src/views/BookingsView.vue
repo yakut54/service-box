@@ -239,10 +239,31 @@ const isBookingFormValid = computed(() =>
   modalForm.value.service_id && modalForm.value.slot
 )
 
+// "Сегодня" по timezone магазина — не по браузеру
+function shopToday(): string {
+  return new Date().toLocaleDateString('sv', { timeZone: shopTz.value })
+}
+
 function openModal(prefillDate?: string) {
   modalError.value = ''
-  const today = toYMD(new Date())
-  const preDate = prefillDate ?? (anchorDateStr.value >= today ? anchorDateStr.value : today)
+  let preDate: string
+  if (prefillDate) {
+    preDate = prefillDate
+  } else {
+    const today   = shopToday()
+    // Если рабочий день уже закончился — сразу предлагаем завтра
+    const shopNow = new Date().toLocaleTimeString('sv', { timeZone: shopTz.value }).slice(0, 5)
+    const workEnd = authStore.shop?.work_end || '20:00'
+    if (shopNow >= workEnd) {
+      const d = new Date(today + 'T12:00:00')
+      d.setDate(d.getDate() + 1)
+      preDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    } else if (anchorDateStr.value >= today) {
+      preDate = anchorDateStr.value
+    } else {
+      preDate = today
+    }
+  }
   modalForm.value = { service_id: '', master_id: '', date: preDate, slot: '', customer_name: '', customer_phone: '', customer_email: '', notes: '' }
   availableSlots.value = []
   resetBookingErrors()
@@ -651,7 +672,7 @@ onMounted(async () => {
         <!-- 2. Дата -->
         <div>
           <label class="label">Дата <span class="text-red-500">*</span></label>
-          <DatePicker v-model="modalForm.date" :min="new Date().toISOString().split('T')[0]" placeholder="Выберите дату" />
+          <DatePicker v-model="modalForm.date" :min="shopToday()" placeholder="Выберите дату" />
         </div>
 
         <!-- 3. Мастер -->
