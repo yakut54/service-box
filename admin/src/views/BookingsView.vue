@@ -350,7 +350,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <div class="flex flex-col flex-1 min-h-0">
     <!-- Header -->
     <div class="flex items-center justify-between gap-3 mb-6">
       <div class="min-w-0">
@@ -521,7 +521,7 @@ onMounted(async () => {
     </div>
 
     <!-- ══════════ CALENDAR VIEW ══════════ -->
-    <div v-else-if="viewMode === 'calendar'">
+    <div v-else-if="viewMode === 'calendar'" class="flex flex-col flex-1 min-h-0">
 
       <!-- Mobile: day view -->
       <div class="sm:hidden card p-0 overflow-hidden">
@@ -554,7 +554,7 @@ onMounted(async () => {
       </div>
 
       <!-- Desktop calendar -->
-      <div class="card p-0 overflow-x-hidden hidden sm:flex flex-col" style="height: calc(100dvh - 260px); min-height: 480px">
+      <div class="card p-0 overflow-x-hidden hidden sm:flex flex-col flex-1 min-h-0">
         <!-- Calendar header -->
         <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
           <span class="font-semibold text-gray-700 dark:text-gray-300 capitalize text-sm">{{ navLabel }}</span>

@@ -60,7 +60,7 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="app-bg min-h-screen bg-gray-50 transition-colors duration-200">
+  <div class="app-bg h-screen flex flex-col bg-gray-50 transition-colors duration-200">
     <!-- Mobile sidebar backdrop -->
     <div
         v-if="sidebarOpen"
@@ -191,9 +191,9 @@ async function handleLogout() {
     </aside>
 
     <!-- Main content -->
-    <div class="lg:pl-72">
+    <div class="lg:pl-72 flex flex-col flex-1 min-h-0">
       <!-- Mobile header -->
-      <header class="app-topbar lg:hidden h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 transition-colors duration-200">
+      <header class="app-topbar lg:hidden h-16 flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 transition-colors duration-200">
         <div class="flex items-center gap-2">
           <button @click="sidebarOpen = true" class="p-2 -ml-2 text-gray-600 dark:text-gray-400">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,7 +216,7 @@ async function handleLogout() {
         </button>
       </header>
 
-      <main class="p-3 sm:p-4 lg:p-6">
+      <main class="p-3 sm:p-4 lg:p-6 flex-1 overflow-auto flex flex-col min-h-0">
         <AppBreadcrumb />
         <RouterView />
       </main>
