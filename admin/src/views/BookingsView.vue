@@ -34,7 +34,7 @@ function shopParts(dateStr: string) {
 // ── Filters ─────────────────────────────────────────────────
 const filterStatus = ref('')
 const filterMaster = ref('')
-const viewMode = ref<'list' | 'calendar'>('list')
+const viewMode = ref<'list' | 'calendar'>((localStorage.getItem('bookings_viewMode') as 'list' | 'calendar') || 'list')
 
 // ── Unified date anchor ──────────────────────────────────────
 // Single source of truth for "which date/week we're viewing"
@@ -71,10 +71,16 @@ const navLabel = computed(() => {
   if (viewMode.value === 'list') {
     return getAnchorDate().toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
   }
+  if (isMobile.value) {
+    return getAnchorDate().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
   return formatMonthHeader()
 })
 
-watch(viewMode, () => applyFilters())
+watch(viewMode, (v) => {
+  localStorage.setItem('bookings_viewMode', v)
+  applyFilters()
+})
 
 const bookingStatusOptions = [
   { value: '', label: 'Все статусы' },
@@ -127,13 +133,13 @@ function isWeekend(date: Date) { return date.getDay() === 0 || date.getDay() ===
 function formatWeekDay(date: Date) { return date.toLocaleDateString('ru-RU', { weekday: 'short' }) }
 function formatDayNum(date: Date) { return date.getDate() }
 
+const RU_SHORT_MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+
 function formatMonthHeader() {
   const first = weekDays.value[0]
   const last  = weekDays.value[6]
-  if (first.getMonth() === last.getMonth()) {
-    return first.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })
-  }
-  return `${first.toLocaleDateString('ru-RU', { month: 'short' })} – ${last.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' })}`
+  const fmt = (d: Date) => `${d.getDate()} ${RU_SHORT_MONTHS[d.getMonth()]}`
+  return `${fmt(first)} – ${fmt(last)} ${last.getFullYear()}`
 }
 
 function bookingsForDay(date: Date) {
@@ -169,6 +175,22 @@ function calBookingBg(status: string) {
     no_show:   'bg-orange-400 dark:bg-orange-500',
   }
   return map[status] || 'bg-gray-400'
+}
+
+// If a booking is still pending/confirmed but its time has passed — show it as no_show visually
+function effectiveStatus(b: any): string {
+  if (['pending', 'confirmed'].includes(b.status) && new Date(b.start_time) < new Date()) {
+    return 'no_show'
+  }
+  return b.status
+}
+
+// ── Calendar date picker (programmatic open) ─────────────────────────────────
+const calPickerRef = ref<{ openAt: (el: HTMLElement) => void } | null>(null)
+const navLabelBtnEl = ref<HTMLButtonElement | null>(null)
+
+function openCalPicker() {
+  if (navLabelBtnEl.value) calPickerRef.value?.openAt(navLabelBtnEl.value)
 }
 
 const nowTop = computed(() => {
@@ -369,8 +391,20 @@ onMounted(async () => {
           </div>
           <!-- List: DatePicker fills remaining space in the row -->
           <DatePicker v-if="viewMode === 'list'" v-model="anchorDateStr" @change="applyFilters" placeholder="Дата" class="flex-1 sm:w-44 sm:flex-none" />
-          <!-- Calendar: text label -->
-          <span v-else class="text-sm font-semibold text-gray-900 dark:text-white capitalize whitespace-nowrap">{{ navLabel }}</span>
+          <!-- Calendar: clickable label → opens date picker -->
+          <template v-else>
+            <button
+              ref="navLabelBtnEl"
+              @click="openCalPicker"
+              class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white whitespace-nowrap hover:text-primary-600 dark:hover:text-primary-400 transition-colors px-1.5 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <span class="capitalize">{{ navLabel }}</span>
+              <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </button>
+            <DatePicker ref="calPickerRef" v-model="anchorDateStr" @change="applyFilters" class="hidden" />
+          </template>
         </div>
 
         <!-- Spacer (desktop) -->
@@ -398,9 +432,9 @@ onMounted(async () => {
       <UiSpinner />
     </div>
 
-    <!-- Empty -->
+    <!-- Empty (list mode only — calendar shows an empty grid) -->
     <UiEmptyState
-      v-else-if="bookingsStore.bookings.length === 0"
+      v-else-if="bookingsStore.bookings.length === 0 && viewMode === 'list'"
       title="Нет записей"
       description="Записи появятся, когда клиенты начнут бронировать"
     >
@@ -441,7 +475,7 @@ onMounted(async () => {
                   <div class="text-sm dark:text-gray-200">{{ formatDate(b.start_time) }}</div>
                   <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatTimeRange(b.start_time, b.end_time) }}</div>
                 </td>
-                <td><span :class="`badge-${b.status}`">{{ BOOKING_STATUS_LABELS[b.status] || b.status }}</span></td>
+                <td><span :class="`badge-${effectiveStatus(b)}`">{{ BOOKING_STATUS_LABELS[effectiveStatus(b)] || effectiveStatus(b) }}</span></td>
                 <td>
                   <div class="flex items-center gap-1">
                     <button v-if="b.status === 'pending'" @click="changeStatus(b.id, 'confirmed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-blue-600 hover:text-blue-700" title="Подтвердить">
@@ -479,7 +513,7 @@ onMounted(async () => {
             <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDate(b.start_time) }}</div>
           </div>
           <div class="flex flex-col items-end gap-1.5 shrink-0">
-            <span :class="`badge-${b.status}`">{{ BOOKING_STATUS_LABELS[b.status] || b.status }}</span>
+            <span :class="`badge-${effectiveStatus(b)}`">{{ BOOKING_STATUS_LABELS[effectiveStatus(b)] || effectiveStatus(b) }}</span>
             <span v-if="b.master" class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[90px]">{{ b.master.name }}</span>
           </div>
         </RouterLink>
@@ -498,8 +532,9 @@ onMounted(async () => {
           </div>
         </div>
         <!-- No bookings -->
-        <div v-if="bookingsForDay(getAnchorDate()).length === 0" class="py-10 text-center text-sm text-gray-400 dark:text-gray-500">
-          Нет записей на этот день
+        <div v-if="bookingsForDay(getAnchorDate()).length === 0" class="py-10 flex flex-col items-center gap-4">
+          <span class="text-sm text-gray-400 dark:text-gray-500">Нет записей на этот день</span>
+          <button class="btn-primary btn-sm" @click="openModal">Создать запись</button>
         </div>
         <!-- Bookings by time -->
         <div v-else>
@@ -513,13 +548,13 @@ onMounted(async () => {
               <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ b.service?.name || '—' }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ b.customer_name }}</div>
             </div>
-            <span :class="`badge-${b.status} shrink-0`">{{ BOOKING_STATUS_LABELS[b.status] || b.status }}</span>
+            <span :class="`badge-${effectiveStatus(b)} shrink-0`">{{ BOOKING_STATUS_LABELS[effectiveStatus(b)] || effectiveStatus(b) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Desktop calendar -->
-      <div class="card p-0 overflow-x-hidden hidden sm:flex flex-col" style="height: calc(100vh - 252px)">
+      <div class="card p-0 overflow-x-hidden hidden sm:flex flex-col" style="height: calc(100dvh - 260px); min-height: 480px">
         <!-- Calendar header -->
         <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
           <span class="font-semibold text-gray-700 dark:text-gray-300 capitalize text-sm">{{ navLabel }}</span>
@@ -541,7 +576,7 @@ onMounted(async () => {
         </div>
 
         <!-- Scrollable time grid -->
-        <div class="overflow-y-auto flex-1">
+        <div class="overflow-y-auto overflow-x-hidden flex-1">
           <div class="grid grid-cols-[56px_repeat(7,1fr)]" :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`">
             <!-- Time labels -->
             <div class="relative bg-gray-50 dark:bg-gray-900/60 border-r border-gray-100 dark:border-gray-800">
@@ -559,7 +594,7 @@ onMounted(async () => {
                   <div class="flex-1 h-px bg-red-400"/>
                 </div>
               </template>
-              <div v-for="b in bookingsForDay(day)" :key="b.id" class="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer overflow-hidden transition-all duration-100 hover:opacity-90 hover:shadow-md" :class="calBookingBg(b.status)" :style="bookingStyle(b)" @click="router.push(`/bookings/${b.id}`)">
+              <div v-for="b in bookingsForDay(day)" :key="b.id" class="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer overflow-hidden transition-all duration-100 hover:opacity-90 hover:shadow-md" :class="calBookingBg(effectiveStatus(b))" :style="bookingStyle(b)" @click="router.push(`/bookings/${b.id}`)">
                 <div class="text-[11px] font-bold text-white leading-tight truncate">{{ formatTime(b.start_time) }} · {{ b.service?.name || 'Запись' }}</div>
                 <div class="text-[10px] text-white/80 truncate mt-0.5">{{ b.customer_name }}</div>
               </div>

@@ -178,6 +178,24 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll, true)
   window.removeEventListener('resize', onScroll)
 })
+
+// ─── Programmatic open (for external anchor elements) ────────────────────────
+
+defineExpose({
+  openAt(anchorEl: HTMLElement) {
+    if (props.disabled) return
+    const rect = anchorEl.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    openUp.value = spaceBelow < POPUP_H + 8
+    let left = rect.left
+    if (left + POPUP_W + MARGIN > window.innerWidth) left = window.innerWidth - POPUP_W - MARGIN
+    if (left < MARGIN) left = MARGIN
+    anchorStyle.value = openUp.value
+      ? { position: 'fixed', bottom: `${window.innerHeight - rect.top + 6}px`, left: `${left}px` }
+      : { position: 'fixed', top: `${rect.bottom + 6}px`, left: `${left}px` }
+    open.value = true
+  },
+})
 </script>
 
 <template>
