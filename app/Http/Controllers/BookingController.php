@@ -190,6 +190,13 @@ class BookingController extends Controller
         ]);
 
         $service = Product::with('service')->findOrFail($request->service_id);
+
+        if (!$service->service || !$service->service->duration_minutes) {
+            return response()->json([
+                'message' => 'Для этой услуги не заданы параметры бронирования. Откройте товар и заполните раздел «Услуга» (длительность).',
+            ], 422);
+        }
+
         $date = Carbon::parse($request->date);
         $duration = $service->service->duration_minutes;
 

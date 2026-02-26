@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref, computed, watch, reactive } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
@@ -211,6 +211,7 @@ const modalForm = ref({
 })
 const availableSlots = ref<any[]>([])
 const loadingSlots = ref(false)
+const slotError = ref<string | null>(null)
 const creating = ref(false)
 const modalError = ref('')
 
@@ -266,6 +267,7 @@ function openModal(prefillDate?: string) {
   }
   modalForm.value = { service_id: '', master_id: '', date: preDate, slot: '', customer_name: '', customer_phone: '', customer_email: '', notes: '' }
   availableSlots.value = []
+  slotError.value = null
   resetBookingErrors()
   showModal.value = true
 }
@@ -281,6 +283,7 @@ const submitHint = computed(() => {
 })
 
 watch([() => modalForm.value.service_id, () => modalForm.value.date, () => modalForm.value.master_id], async () => {
+  slotError.value = null
   if (!modalForm.value.service_id || !modalForm.value.date) { availableSlots.value = []; return }
   loadingSlots.value = true
   try {
@@ -288,8 +291,9 @@ watch([() => modalForm.value.service_id, () => modalForm.value.date, () => modal
     if (modalForm.value.master_id) params.master_id = modalForm.value.master_id
     const resp = await api.getAvailableSlots(params)
     availableSlots.value = resp.slots || []
-  } catch {
+  } catch (err) {
     availableSlots.value = []
+    slotError.value = err instanceof ApiError ? err.message : 'Не удалось загрузить слоты'
   }
   loadingSlots.value = false
   modalForm.value.slot = ''
@@ -696,9 +700,13 @@ onMounted(async () => {
             <div class="animate-spin w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full flex-shrink-0"></div>
             Загрузка слотов...
           </div>
+          <div v-else-if="slotError" class="flex items-start gap-2 py-2.5 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-400">
+            <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {{ slotError }}
+          </div>
           <div v-else-if="availableSlots.length === 0" class="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-700 dark:text-amber-400">
             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Нет свободных слотов — выберите другую дату
+            <span>Нет свободных слотов<template v-if="modalForm.master_id"> для этого мастера</template> — выберите другую дату<template v-if="modalForm.master_id"> или другого мастера</template></span>
           </div>
           <div v-else class="grid grid-cols-4 gap-2">
             <button
