@@ -254,7 +254,7 @@ async function handleSubmit() {
           <!-- Описание -->
           <div>
             <label for="description" class="label">Описание</label>
-            <textarea id="description" v-model="form.description" class="input min-h-[100px]" :placeholder="currentTypeConfig.descPlaceholder" />
+            <textarea id="description" v-model="form.description" class="input min-h-[100px]" :placeholder="ep(currentTypeConfig.descPlaceholder)" />
           </div>
 
           <!-- Цена -->
@@ -267,8 +267,9 @@ async function handleSubmit() {
               </div>
             </div>
             <div>
-              <label for="compare_price" class="label">Старая цена (руб)
-                <span class="text-gray-400 dark:text-gray-500 font-normal text-xs ml-1">для показа скидки</span>
+              <label for="compare_price" class="label">
+                <span class="text-gray-400 dark:text-gray-500 font-normal text-xs">для показа скидки</span><br>
+                Старая цена (руб)
               </label>
               <div class="relative">
                 <input id="compare_price" v-model.number="form.compare_price" type="number" min="0" step="1" class="input pr-12" placeholder="0" />
