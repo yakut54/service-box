@@ -258,7 +258,7 @@ async function handleSubmit() {
           </div>
 
           <!-- Цена -->
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-4 items-end">
             <div>
               <label for="price" class="label">Цена (руб) *</label>
               <div class="relative">
