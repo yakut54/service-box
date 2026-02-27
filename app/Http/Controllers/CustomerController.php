@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -52,5 +53,27 @@ class CustomerController extends Controller
         return response()->json([
             'data' => $customer,
         ]);
+    }
+
+    /**
+     * Cascade delete customer: OrderItems → Orders → Bookings → Customer
+     *
+     * DELETE /api/admin/customers/{customer}
+     */
+    public function destroy(string $customer): JsonResponse
+    {
+        $customer = Customer::findOrFail($customer);
+
+        DB::transaction(function () use ($customer) {
+            // Delete order items first (FK constraint)
+            foreach ($customer->orders as $order) {
+                $order->items()->delete();
+            }
+            $customer->orders()->delete();
+            $customer->bookings()->delete();
+            $customer->delete();
+        });
+
+        return response()->json(['message' => 'Клиент удалён']);
     }
 }

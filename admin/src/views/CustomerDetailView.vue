@@ -1,15 +1,48 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { formatPrice, formatDateTime, formatDate } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner } from '@/shared/ui'
+import UiModal from '@/shared/ui/UiModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 const customer = ref<any>(null)
 const loading = ref(true)
+
+// ── Delete dialog ──────────────────────────────────────────────────────────
+const showDeleteModal = ref(false)
+const deleteConfirmName = ref('')
+const deleting = ref(false)
+const deleteError = ref('')
+
+const deleteConfirmValid = computed(() =>
+  deleteConfirmName.value.trim() === (customer.value?.name ?? '').trim()
+)
+
+function openDeleteModal() {
+  deleteConfirmName.value = ''
+  deleteError.value = ''
+  showDeleteModal.value = true
+}
+
+async function doDelete() {
+  if (!deleteConfirmValid.value) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.deleteCustomer(customer.value.id)
+    showDeleteModal.value = false
+    router.push('/customers')
+  } catch (e: any) {
+    deleteError.value = e.message || 'Ошибка удаления'
+  } finally {
+    deleting.value = false
+  }
+}
 
 onMounted(async () => {
   try {
@@ -38,6 +71,9 @@ onMounted(async () => {
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ customer.name || 'Без имени' }}</h1>
           <p class="text-gray-500 dark:text-gray-400 mt-1">Клиент с {{ formatDate(customer.created_at) }}</p>
         </div>
+        <button @click="openDeleteModal" class="btn-danger btn-sm shrink-0">
+          Удалить клиента
+        </button>
       </div>
 
       <!-- Stats + Contact -->
@@ -127,4 +163,42 @@ onMounted(async () => {
       </div>
     </template>
   </div>
+
+  <!-- ── Delete Modal ──────────────────────────────────────────────────────── -->
+  <UiModal v-model="showDeleteModal" maxWidth="max-w-md">
+    <div class="p-6 space-y-5">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Удалить «{{ customer?.name || 'Без имени' }}»?</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Будет удалено:
+          {{ customer?.total_orders || 0 }} {{ (customer?.total_orders || 0) === 1 ? 'заказ' : (customer?.total_orders || 0) < 5 ? 'заказа' : 'заказов' }},
+          {{ customer?.bookings?.length || 0 }} {{ (customer?.bookings?.length || 0) === 1 ? 'запись' : (customer?.bookings?.length || 0) < 5 ? 'записи' : 'записей' }}
+        </p>
+      </div>
+
+      <div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <p class="text-sm text-red-700 dark:text-red-400">Это действие необратимо. Все заказы, позиции заказов и записи клиента будут удалены навсегда.</p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="label text-sm">Введите <strong>{{ customer?.name || 'Без имени' }}</strong> для подтверждения</label>
+        <input
+          v-model="deleteConfirmName"
+          type="text"
+          class="input"
+          :placeholder="customer?.name || 'Без имени'"
+          @keydown.enter="deleteConfirmValid && doDelete()"
+        />
+      </div>
+
+      <p v-if="deleteError" class="text-xs text-red-500">{{ deleteError }}</p>
+
+      <div class="flex gap-3">
+        <button @click="showDeleteModal = false" class="btn-secondary flex-1">Отмена</button>
+        <button @click="doDelete" class="btn-danger flex-1" :disabled="deleting || !deleteConfirmValid">
+          {{ deleting ? 'Удаление...' : 'Удалить навсегда' }}
+        </button>
+      </div>
+    </div>
+  </UiModal>
 </template>

@@ -219,6 +219,12 @@ class ApiClient {
     return this.request<{ data: any }>(`/admin/customers/${id}`)
   }
 
+  async deleteCustomer(id: string) {
+    return this.request<{ message: string }>(`/admin/customers/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
   // ==========================================
   // BOOKINGS
   // ==========================================

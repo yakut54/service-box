@@ -125,6 +125,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Customers
     Route::get('/customers', [CustomerController::class, 'index']);
     Route::get('/customers/{customer}', [CustomerController::class, 'show']);
+    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);
 
     // Image upload
     Route::post('/upload/image', [ImageController::class, 'upload']);
