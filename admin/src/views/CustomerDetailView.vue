@@ -90,7 +90,7 @@ onMounted(async () => {
               </RouterLink>
               <div class="min-w-0">
                 <div class="text-sm text-gray-700 dark:text-gray-300 truncate">
-                  {{ order.items?.map((i: any) => i.product_name).join(', ') || '—' }}
+                  {{ order.items?.map((i: any) => i.quantity > 1 ? `${i.product_name} ×${i.quantity}` : i.product_name).join(', ') || '—' }}
                 </div>
                 <div class="text-xs text-gray-400 dark:text-gray-500">{{ formatDateTime(order.created_at) }}</div>
               </div>
