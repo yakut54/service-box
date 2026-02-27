@@ -412,7 +412,7 @@ onMounted(async () => {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </button>
         </div>
-        <button class="btn-primary shrink-0" @click="openModal">
+        <button class="btn-primary shrink-0" @click="openModal()">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           <span class="hidden sm:inline">Новая запись</span>
         </button>
@@ -489,7 +489,7 @@ onMounted(async () => {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </template>
-      <button class="btn-primary" @click="openModal">Создать запись</button>
+      <button class="btn-primary" @click="openModal()">Создать запись</button>
     </UiEmptyState>
 
     <!-- ══════════ LIST VIEW ══════════ -->
@@ -580,7 +580,7 @@ onMounted(async () => {
         <!-- No bookings -->
         <div v-if="bookingsForDay(getAnchorDate()).length === 0" class="py-10 flex flex-col items-center gap-4">
           <span class="text-sm text-gray-400 dark:text-gray-500">Нет записей на этот день</span>
-          <button class="btn-primary btn-sm" @click="openModal">Создать запись</button>
+          <button class="btn-primary btn-sm" @click="openModal()">Создать запись</button>
         </div>
         <!-- Bookings by time -->
         <div v-else>
