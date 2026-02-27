@@ -221,16 +221,16 @@ defineExpose({
         {{ displayValue || placeholder }}
       </span>
 
-      <button
+      <span
         v-if="modelValue"
-        type="button"
+        role="button"
         @click.stop="clearDate"
-        class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
+        class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded cursor-pointer"
       >
         <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" d="M4 4l8 8M12 4l-8 8"/>
         </svg>
-      </button>
+      </span>
     </button>
 
     <!-- ─── Popup via Teleport — выходит за пределы overflow контейнера ──────── -->

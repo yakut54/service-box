@@ -18,7 +18,16 @@ const bookingsStore = useBookingsStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
-const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
+const shopTz = computed(() => {
+  const tz = authStore.shop?.timezone
+  if (!tz) return 'Europe/Moscow'
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz })
+    return tz
+  } catch {
+    return 'Europe/Moscow'
+  }
+})
 
 // Извлекает компоненты даты/времени в timezone магазина (не браузера)
 function shopParts(dateStr: string) {
