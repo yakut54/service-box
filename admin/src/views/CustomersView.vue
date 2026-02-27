@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDate } from '@/shared/lib/format'
 import { UiSpinner, UiEmptyState } from '@/shared/ui'
+import UiModal from '@/shared/ui/UiModal.vue'
 
 const customers = ref<any[]>([])
 const loading = ref(true)
@@ -33,6 +34,37 @@ async function loadCustomers() {
 
 function onSearch() {
   loadCustomers()
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+const deleteTarget = ref<any>(null)
+const deleteConfirmName = ref('')
+const deleting = ref(false)
+const deleteError = ref('')
+
+const deleteConfirmValid = computed(() =>
+  deleteConfirmName.value.trim() === (deleteTarget.value?.name ?? '').trim()
+)
+
+function openDelete(c: any) {
+  deleteTarget.value = c
+  deleteConfirmName.value = ''
+  deleteError.value = ''
+}
+
+async function doDelete() {
+  if (!deleteConfirmValid.value) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await api.deleteCustomer(deleteTarget.value.id)
+    customers.value = customers.value.filter(c => c.id !== deleteTarget.value.id)
+    deleteTarget.value = null
+  } catch (e: any) {
+    deleteError.value = e.message || 'Ошибка удаления'
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(() => { loadCustomers() })
@@ -129,9 +161,21 @@ onMounted(() => { loadCustomers() })
                 <td><span class="font-semibold text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</span></td>
                 <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(c.last_order_at) }}</td>
                 <td>
-                  <RouterLink :to="`/customers/${c.id}`" class="btn-ghost btn-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                  </RouterLink>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      @click.prevent="openDelete(c)"
+                      class="btn-ghost btn-sm text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                      title="Удалить клиента"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                    <RouterLink :to="`/customers/${c.id}`" class="btn-ghost btn-sm">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </RouterLink>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -141,22 +185,69 @@ onMounted(() => { loadCustomers() })
 
       <!-- Mobile cards -->
       <div class="sm:hidden card overflow-hidden p-0">
-        <RouterLink
+        <div
           v-for="c in sortedCustomers"
           :key="c.id"
-          :to="`/customers/${c.id}`"
-          class="flex items-center justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors"
+          class="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0"
         >
-          <div class="min-w-0 flex-1">
-            <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ c.name || 'Без имени' }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ c.phone || c.email || '—' }}</div>
-          </div>
-          <div class="text-right shrink-0">
-            <div class="font-semibold text-sm text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500">{{ c.total_orders || 0 }} {{ plural(c.total_orders || 0, 'заказ', 'заказа', 'заказов') }}</div>
-          </div>
-        </RouterLink>
+          <RouterLink :to="`/customers/${c.id}`" class="flex-1 min-w-0 flex items-center justify-between gap-3 hover:opacity-80 transition-opacity">
+            <div class="min-w-0">
+              <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ c.name || 'Без имени' }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ c.phone || c.email || '—' }}</div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="font-semibold text-sm text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500">{{ c.total_orders || 0 }} {{ plural(c.total_orders || 0, 'заказ', 'заказа', 'заказов') }}</div>
+            </div>
+          </RouterLink>
+          <button
+            type="button"
+            @click="openDelete(c)"
+            class="shrink-0 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- ── Delete Modal ──────────────────────────────────────────────────────── -->
+  <UiModal :modelValue="!!deleteTarget" @update:modelValue="!$event && (deleteTarget = null)" maxWidth="max-w-md">
+    <div v-if="deleteTarget" class="p-6 space-y-5">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Удалить «{{ deleteTarget.name || 'Без имени' }}»?</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Будет удалено:
+          {{ deleteTarget.total_orders || 0 }} {{ (deleteTarget.total_orders || 0) === 1 ? 'заказ' : (deleteTarget.total_orders || 0) < 5 ? 'заказа' : 'заказов' }}
+        </p>
+      </div>
+
+      <div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <p class="text-sm text-red-700 dark:text-red-400">Это действие необратимо. Все заказы и записи клиента будут удалены навсегда.</p>
+      </div>
+
+      <div class="space-y-2">
+        <label class="label text-sm">Введите <strong>{{ deleteTarget.name || 'Без имени' }}</strong> для подтверждения</label>
+        <input
+          v-model="deleteConfirmName"
+          type="text"
+          class="input"
+          :placeholder="deleteTarget.name || 'Без имени'"
+          @keydown.enter="deleteConfirmValid && doDelete()"
+        />
+      </div>
+
+      <p v-if="deleteError" class="text-xs text-red-500">{{ deleteError }}</p>
+
+      <div class="flex gap-3">
+        <button @click="deleteTarget = null" class="btn-secondary flex-1">Отмена</button>
+        <button @click="doDelete" class="btn-danger flex-1" :disabled="deleting || !deleteConfirmValid">
+          {{ deleting ? 'Удаление...' : 'Удалить навсегда' }}
+        </button>
+      </div>
+    </div>
+  </UiModal>
 </template>
