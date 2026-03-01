@@ -97,6 +97,7 @@ class ApiClient {
     password: string
     password_confirmation: string
     shop_name: string
+    timezone: string
   }) {
     return this.request<{ user: any; shop: any; token: string }>('/auth/register', {
       method: 'POST',
