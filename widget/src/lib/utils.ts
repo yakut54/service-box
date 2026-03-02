@@ -55,6 +55,11 @@ export function isEmailValid(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
+/** Check if Russian postal code is valid (exactly 6 digits) */
+export function isPostalCodeValid(value: string): boolean {
+  return /^\d{6}$/.test(value.trim())
+}
+
 export function formatPrice(kopecks: number): string {
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
