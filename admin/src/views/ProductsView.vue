@@ -127,7 +127,7 @@ function getStockBadge(product: any) {
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-      <div v-for="product in sortedProducts" :key="product.id" class="card group hover:shadow-md transition-shadow">
+      <div v-for="product in sortedProducts" :key="product.id" class="card group hover:shadow-md transition-shadow flex flex-col">
         <div class="aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 overflow-hidden">
           <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover" />
           <div v-else class="w-full h-full flex items-center justify-center">
@@ -171,7 +171,7 @@ function getStockBadge(product: any) {
           <span v-if="product.service.requires_prepayment" class="badge bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">Предоплата</span>
         </div>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 mt-auto">
           <RouterLink :to="`/products/${product.id}/edit`" class="btn-secondary btn-sm flex-1">Редактировать</RouterLink>
           <button @click="deleteConfirm = product.id" class="btn-ghost btn-sm text-red-600 hover:bg-red-50">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
