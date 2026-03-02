@@ -11,6 +11,7 @@ import BookingCalendar from '@/components/BookingCalendar.vue'
 import BookingSuccess from '@/components/BookingSuccess.vue'
 import MyOrders from '@/components/MyOrders.vue'
 import MyBookings from '@/components/MyBookings.vue'
+import type { WidgetProduct, WidgetOrder, WidgetBooking } from '@/types'
 
 type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'booking-success' | 'cart' | 'checkout' | 'success' | 'orders' | 'bookings-list'
 
@@ -19,9 +20,9 @@ const cartStore = useCartStore()
 const currentView = ref<WidgetView>('loading')
 const widgetEl = ref<HTMLElement | null>(null)
 const mainEl = ref<HTMLElement | null>(null)
-const selectedProduct = ref<any>(null)
-const completedOrder = ref<any>(null)
-const completedBooking = ref<any>(null)
+const selectedProduct = ref<WidgetProduct | null>(null)
+const completedOrder = ref<WidgetOrder | null>(null)
+const completedBooking = ref<WidgetBooking | null>(null)
 const sidebarOpen = ref(false)
 const isClosing = ref(false)
 const sidebarCategories = ref<Array<{ id: string; name: string }>>([])
@@ -99,7 +100,7 @@ function handleThemeToggle() {
   shopStore.toggleTheme(widgetEl.value || undefined)
 }
 
-function handleProductSelect(product: any) {
+function handleProductSelect(product: WidgetProduct) {
   selectedProduct.value = product
   currentView.value = 'product'
   sidebarOpen.value = false
@@ -128,19 +129,19 @@ function handleCartBack() {
   scrollToTop()
 }
 
-function handleBooking(product: any) {
+function handleBooking(product: WidgetProduct) {
   selectedProduct.value = product
   currentView.value = 'booking'
   scrollToTop()
 }
 
-function handleOrderSuccess(order: any) {
+function handleOrderSuccess(order: WidgetOrder) {
   completedOrder.value = order
   currentView.value = 'success'
   scrollToTop()
 }
 
-function handleBookingSuccess(booking: any) {
+function handleBookingSuccess(booking: WidgetBooking) {
   completedBooking.value = booking
   currentView.value = 'booking-success'
   scrollToTop()
