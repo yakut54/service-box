@@ -283,10 +283,7 @@
             <div>
                 <div class="shop-selector-label">Магазин</div>
                 <div class="shop-selector-wrap">
-                    <select class="shop-selector" id="shop-selector">
-                        <option value="a11afecc-217d-47af-9590-f528d1f0e8e4">Плановая Якута</option>
-                        <option value="a11b1ef2-1c0a-4923-9450-a4c95346e5bc">Юрткий Щекотунчик</option>
-                    </select>
+                    <select class="shop-selector" id="shop-selector"></select>
                     <span class="shop-selector-arrow">▼</span>
                 </div>
             </div>
@@ -358,29 +355,55 @@
 <div id="servicebox-widget" data-api-url="/api"></div>
 
 <script>
-    // ── Список магазинов ──────────────────────────────────────
-    var SHOPS = [
-        { id: 'a11afecc-217d-47af-9590-f528d1f0e8e4', name: 'Плановая Якута' },
-        { id: 'a11b1ef2-1c0a-4923-9450-a4c95346e5bc', name: 'Юрткий Щекотунчик' },
-    ]
-    var DEFAULT_SHOP = SHOPS[0].id
+    // ── Селект магазина: список хранится в localStorage ───────
+    // Наполняется автоматически при переходе с admin-панели (?shop=api_key&name=...)
+    var STORAGE_KEY = 'sb-demo-shops'
+    var params = new URLSearchParams(location.search)
+    var urlShopId = params.get('shop')
+    var urlName   = params.get('name')
 
-    // Читаем ?shop= из URL, иначе берём дефолт
-    var urlShopId = new URLSearchParams(location.search).get('shop')
-    var activeShopId = SHOPS.find(function(s) { return s.id === urlShopId }) ? urlShopId : DEFAULT_SHOP
+    // Загружаем сохранённые магазины
+    var shops = []
+    try { shops = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch(e) {}
 
-    // Прописываем shop-id в div до загрузки widget.js
-    document.getElementById('servicebox-widget').setAttribute('data-shop-id', activeShopId)
+    // Если пришли с admin-панели — добавляем/обновляем магазин в списке
+    if (urlShopId && urlName) {
+        var idx = shops.findIndex(function(s) { return s.id === urlShopId })
+        if (idx === -1) { shops.push({ id: urlShopId, name: decodeURIComponent(urlName) }) }
+        else { shops[idx].name = decodeURIComponent(urlName) }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(shops))
+    }
 
-    // Выставляем значение селектора
+    // Наполняем селект
     var sel = document.getElementById('shop-selector')
-    sel.value = activeShopId
+    shops.forEach(function(shop) {
+        var opt = document.createElement('option')
+        opt.value = shop.id
+        opt.textContent = shop.name
+        sel.appendChild(opt)
+    })
+
+    // Определяем активный магазин
+    var activeShopId = (urlShopId && shops.find(function(s) { return s.id === urlShopId }))
+        ? urlShopId
+        : (shops[0] ? shops[0].id : '')
+
+    if (activeShopId) {
+        document.getElementById('servicebox-widget').setAttribute('data-shop-id', activeShopId)
+        sel.value = activeShopId
+    }
+
+    // Показываем/скрываем блок селектора
+    var selectorBlock = sel.closest('div').parentElement
+    selectorBlock.style.display = shops.length > 0 ? '' : 'none'
 
     // При смене магазина — обновляем URL и перезагружаем страницу
     sel.addEventListener('change', function() {
-        var params = new URLSearchParams(location.search)
-        params.set('shop', sel.value)
-        location.search = params.toString()
+        var p = new URLSearchParams(location.search)
+        p.set('shop', sel.value)
+        var found = shops.find(function(s) { return s.id === sel.value })
+        if (found) p.set('name', encodeURIComponent(found.name))
+        location.search = p.toString()
     })
 </script>
 

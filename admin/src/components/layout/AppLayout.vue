@@ -87,7 +87,7 @@ async function handleLogout() {
 
       <!-- Shop name → opens demo in new tab -->
       <a
-        :href="authStore.shop?.id ? `/demo?shop=${authStore.shop.id}` : '#'"
+        :href="authStore.shop?.api_key ? `/demo?shop=${authStore.shop.api_key}&name=${encodeURIComponent(authStore.shop?.name ?? '')}` : '#'"
         target="_blank"
         rel="noopener"
         class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 flex items-center justify-between group hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
