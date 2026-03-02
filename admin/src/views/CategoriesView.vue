@@ -342,7 +342,7 @@ async function doDelete() {
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 <RouterLink v-if="(cat.products_count ?? 0) > 0" :to="{ path: '/products', query: { category_id: cat.id } }" class="text-primary-600 dark:text-primary-400 hover:underline">
-                  {{ cat.products_count }} {{ cat.products_count === 1 ? 'товар' : cat.products_count < 5 ? 'товара' : 'товаров' }}
+                  {{ cat.products_count ?? 0 }} {{ (cat.products_count ?? 0) === 1 ? 'товар' : (cat.products_count ?? 0) < 5 ? 'товара' : 'товаров' }}
                 </RouterLink>
                 <span v-else>0 товаров</span>
                 <template v-if="cat.children && cat.children.length > 0">
@@ -386,7 +386,7 @@ async function doDelete() {
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">
                   <RouterLink v-if="(child.products_count ?? 0) > 0" :to="{ path: '/products', query: { category_id: child.id } }" class="text-primary-600 dark:text-primary-400 hover:underline">
-                    {{ child.products_count }} {{ child.products_count === 1 ? 'товар' : child.products_count < 5 ? 'товара' : 'товаров' }}
+                    {{ child.products_count ?? 0 }} {{ (child.products_count ?? 0) === 1 ? 'товар' : (child.products_count ?? 0) < 5 ? 'товара' : 'товаров' }}
                   </RouterLink>
                   <span v-else>0 товаров</span>
                 </div>

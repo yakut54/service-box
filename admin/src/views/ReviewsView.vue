@@ -8,18 +8,7 @@ import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { formatDate } from '@/shared/lib/format'
-
-interface Review {
-  id: string
-  product_id: string
-  customer_id: string | null
-  order_id: string | null
-  customer_name: string
-  rating: number
-  text: string | null
-  is_published: boolean
-  created_at: string | null
-}
+import type { Review } from '@/types'
 
 // ── State ────────────────────────────────────────────────────
 const reviews  = ref<Review[]>([])

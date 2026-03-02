@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '@/lib/api'
+import type { Booking, Master } from '@/types'
 
 export const useBookingsStore = defineStore('bookings', () => {
-  const bookings = ref<any[]>([])
-  const masters = ref<any[]>([])
+  const bookings = ref<Booking[]>([])
+  const masters = ref<Master[]>([])
   const loading = ref(false)
 
   async function fetchBookings(params?: Record<string, string>) {
@@ -34,7 +35,7 @@ export const useBookingsStore = defineStore('bookings', () => {
     }
   }
 
-  async function createBooking(payload: Record<string, any>) {
+  async function createBooking(payload: Record<string, unknown>) {
     const data = await api.createBooking(payload)
     bookings.value.unshift(data.data)
     return data.data

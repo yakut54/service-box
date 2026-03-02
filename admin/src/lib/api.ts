@@ -1,3 +1,18 @@
+import type {
+  User, Shop,
+  Category,
+  Product,
+  Order, OrderStats, OrderChartPoint,
+  Customer,
+  Booking, BookingStats, AvailableSlotsResponse,
+  Master,
+  Discount,
+  Review,
+  SubscriptionInfo,
+  TelegramStatus,
+  PaginatedResponse,
+} from '@/types'
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
 export class ApiError extends Error {
@@ -107,14 +122,14 @@ class ApiClient {
     shop_name: string
     timezone: string
   }) {
-    return this.request<{ user: any; shop: any; token: string }>('/auth/register', {
+    return this.request<{ user: User; shop: Shop; token: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async login(data: { email: string; password: string }) {
-    return this.request<{ user: any; shop: any; token: string }>('/auth/login', {
+    return this.request<{ user: User; shop: Shop; token: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -129,7 +144,7 @@ class ApiClient {
   }
 
   async me() {
-    return this.request<{ user: any; shop: any }>('/auth/me')
+    return this.request<{ user: User; shop: Shop }>('/auth/me')
   }
 
   async refreshToken() {
@@ -141,11 +156,11 @@ class ApiClient {
   // ==========================================
 
   async getShop() {
-    return this.request<any>('/admin/shop')
+    return this.request<Shop>('/admin/shop')
   }
 
-  async updateShop(data: Record<string, any>) {
-    return this.request<any>('/admin/shop', {
+  async updateShop(data: Record<string, unknown>) {
+    return this.request<Shop>('/admin/shop', {
       method: 'PUT',
       body: JSON.stringify(data),
     })
@@ -157,22 +172,22 @@ class ApiClient {
 
   async getProducts(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[]; count: number }>(`/admin/products${query}`)
+    return this.request<PaginatedResponse<Product>>(`/admin/products${query}`)
   }
 
   async getProduct(id: string) {
-    return this.request<{ data: any }>(`/admin/products/${id}`)
+    return this.request<{ data: Product }>(`/admin/products/${id}`)
   }
 
-  async createProduct(data: Record<string, any>) {
-    return this.request<{ message: string; data: any }>('/admin/products', {
+  async createProduct(data: Record<string, unknown>) {
+    return this.request<{ message: string; data: Product }>('/admin/products', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateProduct(id: string, data: Record<string, any>) {
-    return this.request<{ message: string; data: any }>(`/admin/products/${id}`, {
+  async updateProduct(id: string, data: Record<string, unknown>) {
+    return this.request<{ message: string; data: Product }>(`/admin/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
@@ -190,26 +205,26 @@ class ApiClient {
 
   async getOrders(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[]; count: number }>(`/admin/orders${query}`)
+    return this.request<PaginatedResponse<Order>>(`/admin/orders${query}`)
   }
 
   async getOrder(id: string) {
-    return this.request<{ data: any }>(`/admin/orders/${id}`)
+    return this.request<{ data: Order }>(`/admin/orders/${id}`)
   }
 
   async getOrderStats(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<any>(`/admin/orders/stats${query}`)
+    return this.request<OrderStats>(`/admin/orders/stats${query}`)
   }
 
   async getOrderChart(days = 30) {
-    return this.request<{ data: Array<{ date: string; orders: number; revenue: number }> }>(
+    return this.request<{ data: OrderChartPoint[] }>(
       `/admin/orders/chart?days=${days}`
     )
   }
 
   async updateOrderStatus(id: string, status: string) {
-    return this.request<{ message: string; data: any }>(`/admin/orders/${id}/status`, {
+    return this.request<{ message: string; data: Order }>(`/admin/orders/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     })
@@ -221,11 +236,11 @@ class ApiClient {
 
   async getCustomers(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[]; count: number }>(`/admin/customers${query}`)
+    return this.request<PaginatedResponse<Customer>>(`/admin/customers${query}`)
   }
 
   async getCustomer(id: string) {
-    return this.request<{ data: any }>(`/admin/customers/${id}`)
+    return this.request<{ data: Customer }>(`/admin/customers/${id}`)
   }
 
   async deleteCustomer(id: string) {
@@ -239,34 +254,27 @@ class ApiClient {
   // ==========================================
 
   async getBookingStats() {
-    return this.request<{
-      total_bookings: number
-      pending_bookings: number
-      confirmed_bookings: number
-      completed_bookings: number
-      cancelled_bookings: number
-      no_show_bookings: number
-    }>('/admin/bookings/stats')
+    return this.request<BookingStats>('/admin/bookings/stats')
   }
 
   async getBookings(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[]; count: number }>(`/admin/bookings${query}`)
+    return this.request<PaginatedResponse<Booking>>(`/admin/bookings${query}`)
   }
 
   async getBooking(id: string) {
-    return this.request<{ data: any }>(`/admin/bookings/${id}`)
+    return this.request<{ data: Booking }>(`/admin/bookings/${id}`)
   }
 
-  async createBooking(data: Record<string, any>) {
-    return this.request<{ message: string; data: any }>('/admin/bookings', {
+  async createBooking(data: Record<string, unknown>) {
+    return this.request<{ message: string; data: Booking }>('/admin/bookings', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async updateBookingStatus(id: string, status: string) {
-    return this.request<{ message: string; data: any }>(`/admin/bookings/${id}`, {
+    return this.request<{ message: string; data: Booking }>(`/admin/bookings/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     })
@@ -282,27 +290,27 @@ class ApiClient {
 
   async getAvailableSlots(params: Record<string, string>) {
     const query = new URLSearchParams(params).toString()
-    return this.request<any>(`/admin/bookings/available-slots?${query}`)
+    return this.request<AvailableSlotsResponse>(`/admin/bookings/available-slots?${query}`)
   }
 
   async getMaster(id: string) {
-    return this.request<{ data: any }>(`/admin/masters/${id}`)
+    return this.request<{ data: Master }>(`/admin/masters/${id}`)
   }
 
   async getMasters(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[]; count: number }>(`/admin/masters${query}`)
+    return this.request<PaginatedResponse<Master>>(`/admin/masters${query}`)
   }
 
-  async createMaster(data: Record<string, any>) {
-    return this.request<{ data: any }>('/admin/masters', {
+  async createMaster(data: Record<string, unknown>) {
+    return this.request<{ data: Master }>('/admin/masters', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateMaster(id: string, data: Record<string, any>) {
-    return this.request<{ data: any }>(`/admin/masters/${id}`, {
+  async updateMaster(id: string, data: Record<string, unknown>) {
+    return this.request<{ data: Master }>(`/admin/masters/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
@@ -316,7 +324,7 @@ class ApiClient {
 
   // legacy: used by BookingsView for slot-master dropdown
   async getBookingMasters() {
-    return this.request<{ data: any[] }>('/admin/bookings/masters')
+    return this.request<{ data: Master[] }>('/admin/bookings/masters')
   }
 
   // ==========================================
@@ -325,22 +333,22 @@ class ApiClient {
 
   async getDiscounts(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[] }>(`/admin/discounts${query}`)
+    return this.request<{ data: Discount[] }>(`/admin/discounts${query}`)
   }
 
   async getDiscount(id: string) {
-    return this.request<{ data: any }>(`/admin/discounts/${id}`)
+    return this.request<{ data: Discount }>(`/admin/discounts/${id}`)
   }
 
-  async createDiscount(data: Record<string, any>) {
-    return this.request<{ data: any }>('/admin/discounts', {
+  async createDiscount(data: Record<string, unknown>) {
+    return this.request<{ data: Discount }>('/admin/discounts', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateDiscount(id: string, data: Record<string, any>) {
-    return this.request<{ data: any }>(`/admin/discounts/${id}`, {
+  async updateDiscount(id: string, data: Record<string, unknown>) {
+    return this.request<{ data: Discount }>(`/admin/discounts/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
@@ -357,15 +365,15 @@ class ApiClient {
   // ==========================================
 
   async getSubscription() {
-    return this.request<any>('/admin/subscription')
+    return this.request<SubscriptionInfo>('/admin/subscription')
   }
 
   async getSubscriptionPayments() {
-    return this.request<any[]>('/admin/subscription/payments')
+    return this.request<SubscriptionInfo[]>('/admin/subscription/payments')
   }
 
   async createSubscriptionPayment(data: { plan: string; period_months?: number }) {
-    return this.request<any>('/admin/subscription/create-payment', {
+    return this.request<{ payment_url: string; payment_id: string }>('/admin/subscription/create-payment', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -376,7 +384,7 @@ class ApiClient {
   // ==========================================
 
   async getTelegramStatus() {
-    return this.request<any>('/admin/telegram/status')
+    return this.request<TelegramStatus>('/admin/telegram/status')
   }
 
   async generateTelegramCode() {
@@ -397,18 +405,18 @@ class ApiClient {
   // ==========================================
 
   async getCategories() {
-    return this.request<{ data: any[] }>('/admin/categories')
+    return this.request<{ data: Category[] }>('/admin/categories')
   }
 
-  async createCategory(data: Record<string, any>) {
-    return this.request<{ data: any }>('/admin/categories', {
+  async createCategory(data: Record<string, unknown>) {
+    return this.request<{ data: Category }>('/admin/categories', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateCategory(id: string, data: Record<string, any>) {
-    return this.request<{ data: any }>(`/admin/categories/${id}`, {
+  async updateCategory(id: string, data: Record<string, unknown>) {
+    return this.request<{ data: Category }>(`/admin/categories/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
@@ -434,11 +442,11 @@ class ApiClient {
 
   async getReviews(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[]; count: number }>(`/admin/reviews${query}`)
+    return this.request<PaginatedResponse<Review>>(`/admin/reviews${query}`)
   }
 
   async updateReview(id: string, data: { is_published: boolean }) {
-    return this.request<{ data: any }>(`/admin/reviews/${id}`, {
+    return this.request<{ data: Review }>(`/admin/reviews/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })

@@ -156,7 +156,7 @@ onMounted(async () => {
       }
       if (p.digital) {
         digitalDetails.value = {
-          delivery_type: p.digital.delivery_type,
+          delivery_type: p.digital.delivery_type ?? 'download',
           access_days: p.digital.access_days,
           download_url: p.digital.download_url || '',
           file_size_mb: p.digital.file_size_mb ?? null,
@@ -165,15 +165,15 @@ onMounted(async () => {
       }
       if (p.service) {
         serviceDetails.value = {
-          duration_minutes: p.service.duration_minutes,
-          max_concurrent: p.service.max_concurrent,
+          duration_minutes: p.service.duration_minutes ?? 60,
+          max_concurrent: p.service.max_concurrent ?? 1,
           break_minutes: p.service.break_minutes ?? 0,
           requires_prepayment: p.service.requires_prepayment ?? false,
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('ProductEdit load error:', e)
-      error.value = e?.message || 'Товар не найден'
+      error.value = e instanceof Error ? e.message : 'Товар не найден'
     }
     loading.value = false
   }

@@ -12,28 +12,7 @@ import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { formatPrice } from '@/shared/lib/format'
-
-type DiscountType  = 'percent' | 'fixed'
-type DiscountScope = 'cart' | 'product' | 'category'
-
-interface Discount {
-  id: string
-  name: string
-  type: DiscountType
-  value: number
-  code: string | null
-  scope: DiscountScope
-  scope_value: string | null
-  min_order_amount: number
-  max_discount_amount: number | null
-  usage_limit: number | null
-  usage_count: number
-  per_user_limit: number
-  is_active: boolean
-  starts_at: string | null
-  ends_at: string | null
-  created_at: string | null
-}
+import type { Discount, DiscountType, DiscountScope } from '@/types'
 
 const categoriesStore = useCategoriesStore()
 

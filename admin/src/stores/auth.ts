@@ -4,10 +4,11 @@ import { api, ApiError } from '@/lib/api'
 import { useProductsStore } from '@/stores/products'
 import { useOrdersStore } from '@/stores/orders'
 import router from '@/router'
+import type { User, Shop } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<any>(null)
-  const shop = ref<any>(null)
+  const user = ref<User | null>(null)
+  const shop = ref<Shop | null>(null)
   const token = ref<string | null>(api.getToken())
   const initialized = ref(false)
   const loading = ref(false)
@@ -58,7 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
       api.setToken(response.token, remember)
 
       return { success: true }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : 'Ошибка входа'
       error.value = message
       return { success: false, error: message }
@@ -93,7 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
       api.setToken(response.token)
 
       return { success: true }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : 'Ошибка регистрации'
       error.value = message
       return { success: false, error: message }
@@ -112,12 +113,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function updateShop(updates: Record<string, any>) {
+  async function updateShop(updates: Record<string, unknown>) {
     try {
       const updated = await api.updateShop(updates)
       shop.value = updated
       return { success: true }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : 'Ошибка обновления'
       return { success: false, error: message }
     }

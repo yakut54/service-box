@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/lib/api'
+import type { Order, OrderStats } from '@/types'
 
 export const useOrdersStore = defineStore('orders', () => {
-  const orders = ref<any[]>([])
-  const stats = ref<any>({
+  const orders = ref<Order[]>([])
+  const stats = ref<OrderStats>({
     total_orders: 0,
     total_revenue: 0,
     pending_orders: 0,

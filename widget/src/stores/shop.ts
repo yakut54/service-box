@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { WidgetApi } from '@/lib/api'
+import type { WidgetShop, WidgetConfig } from '@/types'
 
 export const useShopStore = defineStore('sb-shop', () => {
   const shopId = ref('')
   const apiUrl = ref('')
-  const shop = ref<{ id: string; name: string; widget_config: Record<string, any> | null; timezone: string | null } | null>(null)
+  const shop = ref<WidgetShop | null>(null)
   const loading = ref(false)
   const error = ref('')
 
@@ -14,7 +15,7 @@ export const useShopStore = defineStore('sb-shop', () => {
 
   let api: WidgetApi | null = null
 
-  const config = computed(() => shop.value?.widget_config || {})
+  const config = computed<WidgetConfig>(() => shop.value?.widget_config ?? {})
 
   function getApi(): WidgetApi {
     if (!api) {
@@ -55,8 +56,8 @@ export const useShopStore = defineStore('sb-shop', () => {
     try {
       shop.value = await getApi().getShop()
       loadTheme()
-    } catch (e: any) {
-      error.value = e.message || 'Failed to load shop'
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to load shop'
     }
     loading.value = false
   }

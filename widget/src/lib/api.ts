@@ -1,3 +1,14 @@
+import type {
+  WidgetShop,
+  WidgetCategory,
+  WidgetProduct,
+  WidgetOrder,
+  WidgetBooking,
+  AvailableSlotsResponse,
+  WidgetReview,
+  ReviewStats,
+} from '@/types'
+
 export class WidgetApiError extends Error {
   constructor(public status: number, message: string) {
     super(message)
@@ -51,51 +62,51 @@ export class WidgetApi {
 
   // Shop
   async getShop() {
-    return this.request<{ id: string; name: string; widget_config: Record<string, any> | null; timezone: string | null }>('/widget/shop')
+    return this.request<WidgetShop>('/widget/shop')
   }
 
   // Categories
   async getCategories() {
-    return this.request<{ data: any[] }>('/widget/categories')
+    return this.request<{ data: WidgetCategory[] }>('/widget/categories')
   }
 
   // Products
   async getProducts(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: any[]; count: number }>(`/widget/products${query}`)
+    return this.request<{ data: WidgetProduct[]; count: number }>(`/widget/products${query}`)
   }
 
   async getProduct(id: string) {
-    return this.request<{ data: any }>(`/widget/products/${id}`)
+    return this.request<{ data: WidgetProduct }>(`/widget/products/${id}`)
   }
 
   // Orders
-  async createOrder(data: Record<string, any>) {
-    return this.request<{ data: any }>('/widget/orders', {
+  async createOrder(data: Record<string, unknown>) {
+    return this.request<{ data: WidgetOrder }>('/widget/orders', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async getOrder(id: string) {
-    return this.request<{ data: any }>(`/widget/orders/${id}`)
+    return this.request<{ data: WidgetOrder }>(`/widget/orders/${id}`)
   }
 
   // Bookings
   async getAvailableSlots(params: Record<string, string>) {
     const query = new URLSearchParams(params).toString()
-    return this.request<any>(`/widget/bookings/available-slots?${query}`)
+    return this.request<AvailableSlotsResponse>(`/widget/bookings/available-slots?${query}`)
   }
 
-  async createBooking(data: Record<string, any>) {
-    return this.request<{ data: any }>('/widget/bookings', {
+  async createBooking(data: Record<string, unknown>) {
+    return this.request<{ data: WidgetBooking }>('/widget/bookings', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
   async getBooking(id: string) {
-    return this.request<{ data: any }>(`/widget/bookings/${id}`)
+    return this.request<{ data: WidgetBooking }>(`/widget/bookings/${id}`)
   }
 
   // Phone verification (OTP)
@@ -116,14 +127,14 @@ export class WidgetApi {
   // Customer history (by phone, requires verified token)
   async getOrdersByPhone(phone: string, token: string) {
     const query = new URLSearchParams({ phone }).toString()
-    return this.request<{ data: any[] }>(`/widget/orders?${query}`, {
+    return this.request<{ data: WidgetOrder[] }>(`/widget/orders?${query}`, {
       headers: { 'X-Phone-Token': token },
     })
   }
 
   async getBookingsByPhone(phone: string, token: string) {
     const query = new URLSearchParams({ phone }).toString()
-    return this.request<{ data: any[] }>(`/widget/bookings?${query}`, {
+    return this.request<{ data: WidgetBooking[] }>(`/widget/bookings?${query}`, {
       headers: { 'X-Phone-Token': token },
     })
   }
@@ -139,8 +150,8 @@ export class WidgetApi {
   // Reviews
   async getProductReviews(productId: string) {
     return this.request<{
-      data: Array<{ id: string; customer_name: string; rating: number; text: string | null; created_at: string | null }>
-      stats: { count: number; average: number | null; distribution: Record<number, number> }
+      data: WidgetReview[]
+      stats: ReviewStats
     }>(`/widget/reviews/${productId}`)
   }
 
@@ -151,7 +162,7 @@ export class WidgetApi {
     customer_name: string
     customer_phone?: string
   }) {
-    return this.request<{ message: string; data: any }>('/widget/reviews', {
+    return this.request<{ message: string; data: WidgetReview }>('/widget/reviews', {
       method: 'POST',
       body: JSON.stringify(data),
     })
