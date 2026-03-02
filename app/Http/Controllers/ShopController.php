@@ -9,6 +9,19 @@ use Illuminate\Http\Request;
 class ShopController extends Controller
 {
     /**
+     * Список всех магазинов для демо-страницы
+     *
+     * GET /api/shops
+     */
+    public function index(): JsonResponse
+    {
+        $shops = Shop::orderBy('name')
+            ->get(['name', 'api_key']);
+
+        return response()->json($shops);
+    }
+
+    /**
      * Get public shop info (для виджета)
      *
      * GET /api/widget/shop
