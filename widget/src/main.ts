@@ -93,6 +93,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
   const openKey = `sb-open:${opts.shopId}`
   const wasOpen = localStorage.getItem(openKey) === 'true'
   let configLoaded = false
+  let historyPushed = false
 
   function showFab() {
     fab.classList.remove('sb-fab--hidden')
@@ -107,6 +108,12 @@ function init(options: WidgetOptions | string): WidgetInstance {
     hideFab()
     localStorage.setItem(openKey, 'true')
 
+    // Push history entry so browser/mobile Back closes the widget instead of leaving the page
+    if (!historyPushed) {
+      history.pushState({ sbWidget: opts.shopId }, '')
+      historyPushed = true
+    }
+
     // Deferred load: fetch config on first open
     if (!configLoaded) {
       configLoaded = true
@@ -114,11 +121,27 @@ function init(options: WidgetOptions | string): WidgetInstance {
     }
   }
 
-  // Watch isOpen to show FAB and persist state when widget closes
+  // Browser Back → close widget, stay on page
+  function onPopState(e: PopStateEvent) {
+    if (shopStore.isOpen && !e.state?.sbWidget) {
+      shopStore.isOpen = false
+      showFab()
+      localStorage.setItem(openKey, 'false')
+      historyPushed = false
+    }
+  }
+  window.addEventListener('popstate', onPopState)
+
+  // Watch isOpen to show FAB, persist state, and sync history when closed via button
   const stopWatch = watch(() => shopStore.isOpen, (open) => {
     if (!open) {
       showFab()
       localStorage.setItem(openKey, 'false')
+      // Pop the history entry we pushed so browser history stays consistent
+      if (historyPushed) {
+        historyPushed = false
+        history.back()
+      }
     }
   })
 
@@ -137,6 +160,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
     container,
     destroy: () => {
       stopWatch()
+      window.removeEventListener('popstate', onPopState)
       app.unmount()
       fab.remove()
       fabStyleEl?.remove()

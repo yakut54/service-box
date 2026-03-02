@@ -206,6 +206,42 @@
             .stat-num { font-size: 20px; }
             .status-dot { display: none; }
         }
+
+        /* Shop selector */
+        .shop-selector-wrap { position: relative; display: inline-block; }
+        .shop-selector {
+            appearance: none; -webkit-appearance: none;
+            background: rgba(0,245,196,0.04);
+            border: 1px solid rgba(0,245,196,0.25);
+            color: var(--neon);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            padding: 6px 28px 6px 10px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 8px rgba(0,245,196,0.08);
+            min-width: 180px;
+        }
+        .shop-selector:hover, .shop-selector:focus {
+            border-color: var(--neon);
+            box-shadow: 0 0 16px rgba(0,245,196,0.2);
+        }
+        .shop-selector option { background: #030a06; color: var(--neon); }
+        .shop-selector-arrow {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            pointer-events: none; color: var(--neon); font-size: 9px; opacity: 0.7;
+        }
+        .shop-selector-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px; color: rgba(0,245,196,0.35);
+            letter-spacing: 0.15em; margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        @media (max-width: 768px) {
+            .shop-selector { font-size: 10px; min-width: 140px; }
+        }
     </style>
 </head>
 <body>
@@ -243,7 +279,17 @@
             <div class="logo-text">ServiceBox</div>
             <div class="logo-sub">WIDGET ENGINE v2.4.1</div>
         </div>
-        <div class="header-right">
+        <div class="header-right" style="display:flex;align-items:center;gap:20px;">
+            <div>
+                <div class="shop-selector-label">Магазин</div>
+                <div class="shop-selector-wrap">
+                    <select class="shop-selector" id="shop-selector">
+                        <option value="a11afecc-217d-47af-9590-f528d1f0e8e4">Плановая Якута</option>
+                        <option value="a11b1ef2-1c0a-4923-9450-a4c95346e5bc">Юрткий Щекотунчик</option>
+                    </select>
+                    <span class="shop-selector-arrow">▼</span>
+                </div>
+            </div>
             <div class="status-dot">SYSTEM ONLINE</div>
         </div>
     </header>
@@ -309,7 +355,34 @@
     </footer>
 </div>
 
-<div id="servicebox-widget" data-shop-id="9617ebae-6df0-4306-8794-d64d3c4b43d3" data-api-url="/api"></div>
+<div id="servicebox-widget" data-api-url="/api"></div>
+
+<script>
+    // ── Список магазинов ──────────────────────────────────────
+    var SHOPS = [
+        { id: 'a11afecc-217d-47af-9590-f528d1f0e8e4', name: 'Плановая Якута' },
+        { id: 'a11b1ef2-1c0a-4923-9450-a4c95346e5bc', name: 'Юрткий Щекотунчик' },
+    ]
+    var DEFAULT_SHOP = SHOPS[0].id
+
+    // Читаем ?shop= из URL, иначе берём дефолт
+    var urlShopId = new URLSearchParams(location.search).get('shop')
+    var activeShopId = SHOPS.find(function(s) { return s.id === urlShopId }) ? urlShopId : DEFAULT_SHOP
+
+    // Прописываем shop-id в div до загрузки widget.js
+    document.getElementById('servicebox-widget').setAttribute('data-shop-id', activeShopId)
+
+    // Выставляем значение селектора
+    var sel = document.getElementById('shop-selector')
+    sel.value = activeShopId
+
+    // При смене магазина — обновляем URL и перезагружаем страницу
+    sel.addEventListener('change', function() {
+        var params = new URLSearchParams(location.search)
+        params.set('shop', sel.value)
+        location.search = params.toString()
+    })
+</script>
 
 <script src="/widget.js"></script>
 <script>
