@@ -6,6 +6,7 @@ import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import CategorySelect from '@/components/CategorySelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
@@ -280,21 +281,17 @@ async function doDelete() {
   <div class="space-y-6">
 
     <!-- Header -->
-    <div class="flex items-center justify-between gap-3">
-      <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Скидки и промокоды</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {{ discounts.length }} {{ discounts.length === 1 ? 'акция' : discounts.length < 5 ? 'акции' : 'акций' }},
-          {{ activeCount }} активных
-        </p>
-      </div>
+    <PageHeader
+      title="Скидки и промокоды"
+      :subtitle="`${discounts.length} ${discounts.length === 1 ? 'акция' : discounts.length < 5 ? 'акции' : 'акций'}, ${activeCount} активных`"
+    >
       <button @click="openCreate" class="btn-primary shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
         <span class="hidden sm:inline">Создать скидку</span>
       </button>
-    </div>
+    </PageHeader>
 
     <!-- Filters -->
     <div class="flex flex-col sm:flex-row gap-3">

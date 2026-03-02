@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
@@ -269,21 +270,17 @@ async function doDelete() {
   <div class="space-y-6">
 
     <!-- Header -->
-    <div class="flex items-center justify-between gap-3">
-      <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Категории</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {{ categoriesStore.categories.length }}
-          {{ categoriesStore.categories.length === 1 ? 'категория' : categoriesStore.categories.length < 5 ? 'категории' : 'категорий' }}
-        </p>
-      </div>
+    <PageHeader
+      title="Категории"
+      :subtitle="`${categoriesStore.categories.length} ${categoriesStore.categories.length === 1 ? 'категория' : categoriesStore.categories.length < 5 ? 'категории' : 'категорий'}`"
+    >
       <button @click="openCreate" class="btn-primary shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
         <span class="hidden sm:inline">Добавить</span>
       </button>
-    </div>
+    </PageHeader>
 
     <!-- Search + sort -->
     <div v-if="!categoriesStore.loading && categoriesStore.categories.length > 0" class="card">

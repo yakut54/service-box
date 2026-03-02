@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDate } from '@/shared/lib/format'
 import { UiSpinner, UiEmptyState } from '@/shared/ui'
+import PageHeader from '@/components/PageHeader.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 
 const customers = ref<any[]>([])
@@ -73,12 +74,11 @@ onMounted(() => { loadCustomers() })
 <template>
   <div>
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Клиенты</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ totalCustomers }} {{ plural(totalCustomers, 'клиент', 'клиента', 'клиентов') }}</p>
-      </div>
-    </div>
+    <PageHeader
+      class="mb-6"
+      title="Клиенты"
+      :subtitle="`${totalCustomers} ${plural(totalCustomers, 'клиент', 'клиента', 'клиентов')}`"
+    />
 
     <!-- Stats -->
     <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-6">

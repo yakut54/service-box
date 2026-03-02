@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useOrdersStore } from '@/stores/orders'
 import CustomSelect from '@/components/CustomSelect.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import { plural } from '@/lib/utils'
@@ -63,11 +64,6 @@ function getDateRange(preset: string): { from: string; to: string } | null {
   return null
 }
 
-function selectPreset(value: string) {
-  datePreset.value = value
-  applyFilters()
-}
-
 onMounted(() => { ordersStore.fetchOrders() })
 
 async function applyFilters() {
@@ -82,33 +78,19 @@ async function applyFilters() {
 
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Заказы</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ ordersStore.orders.length }} {{ plural(ordersStore.orders.length, 'заказ', 'заказа', 'заказов') }}</p>
-      </div>
-    </div>
+    <PageHeader
+      class="mb-6"
+      title="Заказы"
+      :subtitle="`${ordersStore.orders.length} ${plural(ordersStore.orders.length, 'заказ', 'заказа', 'заказов')}`"
+    />
 
-    <div class="card mb-6 space-y-3">
+    <div class="card mb-6">
       <div class="flex flex-col sm:flex-row gap-3">
         <div class="flex-1">
           <input v-model="searchQuery" @input="applyFilters" type="text" class="input" placeholder="Поиск по клиенту..." />
         </div>
-        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="statusOptions" class="w-full sm:w-48 shrink-0" />
-      </div>
-      <!-- Date presets -->
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="p in datePresets" :key="p.value"
-          type="button"
-          @click="selectPreset(p.value)"
-          :class="[
-            'px-3 py-1 text-sm rounded-full border transition-colors',
-            datePreset === p.value
-              ? 'bg-primary-600 text-white border-primary-600'
-              : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-primary-400 dark:hover:border-primary-500'
-          ]"
-        >{{ p.label }}</button>
+        <CustomSelect v-model="filterStatus" @change="applyFilters" :options="statusOptions" class="w-full sm:w-44 shrink-0" />
+        <CustomSelect v-model="datePreset" @change="applyFilters" :options="datePresets" class="w-full sm:w-36 shrink-0" />
       </div>
     </div>
 

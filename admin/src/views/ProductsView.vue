@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useProductsStore } from '@/stores/products'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { plural } from '@/lib/utils'
@@ -86,18 +87,18 @@ function getStockBadge(product: any) {
 
 <template>
   <div>
-    <div class="flex items-center justify-between gap-3 mb-6">
-      <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white truncate">Товары и услуги</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ productsStore.products.length }} {{ plural(productsStore.products.length, 'позиция', 'позиции', 'позиций') }}</p>
-      </div>
+    <PageHeader
+      class="mb-6"
+      title="Товары и услуги"
+      :subtitle="`${productsStore.products.length} ${plural(productsStore.products.length, 'позиция', 'позиции', 'позиций')}`"
+    >
       <RouterLink to="/products/new" class="btn-primary shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
         <span class="hidden sm:inline">Добавить</span>
       </RouterLink>
-    </div>
+    </PageHeader>
 
     <div class="card mb-6">
       <div class="flex flex-col sm:flex-row gap-4">

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
@@ -123,16 +124,10 @@ async function doDelete() {
   <div class="space-y-6">
 
     <!-- Header -->
-    <div class="flex items-center justify-between gap-3">
-      <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Отзывы</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {{ reviews.length }} {{ reviews.length === 1 ? 'отзыв' : reviews.length < 5 ? 'отзыва' : 'отзывов' }},
-          <span v-if="pendingCount > 0" class="text-amber-600 dark:text-amber-400 font-medium">{{ pendingCount }} ждут модерации</span>
-          <span v-else>все проверены</span>
-        </p>
-      </div>
-    </div>
+    <PageHeader
+      title="Отзывы"
+      :subtitle="`${reviews.length} ${reviews.length === 1 ? 'отзыв' : reviews.length < 5 ? 'отзыва' : 'отзывов'} · ${pendingCount > 0 ? pendingCount + ' ждут модерации' : 'все проверены'}`"
+    />
 
     <!-- Stats row -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -158,6 +153,7 @@ async function doDelete() {
 
     <!-- Filters -->
     <div class="flex flex-col sm:flex-row gap-3">
+      <div class="hidden sm:block flex-1"></div>
       <CustomSelect v-model="filterStatus"  :options="statusOptions"  class="sm:w-52" />
       <CustomSelect v-model="filterRating"  :options="ratingOptions"  class="sm:w-44" />
       <CustomSelect v-model="filterProduct" :options="productOptions" class="flex-1 sm:max-w-xs" searchable>

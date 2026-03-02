@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api, ApiError } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
+import PageHeader from '@/components/PageHeader.vue'
 import DatePicker from '@/components/DatePicker.vue'
 import { handlePhoneInput, isValidPhone } from '@/composables/usePhoneInput'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
@@ -398,26 +399,24 @@ onMounted(async () => {
 <template>
   <div class="flex flex-col flex-1 min-h-0">
     <!-- Header -->
-    <div class="flex items-center justify-between gap-3 mb-6">
-      <div class="min-w-0">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Записи</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ bookingsStore.bookings.length }} {{ plural(bookingsStore.bookings.length, 'запись', 'записи', 'записей') }}</p>
-      </div>
-      <div class="flex items-center gap-2 shrink-0">
-        <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-          <button :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']" @click="viewMode = 'list'">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-          </button>
-          <button :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'calendar' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']" @click="viewMode = 'calendar'">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          </button>
-        </div>
-        <button class="btn-primary shrink-0" @click="openModal()">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          <span class="hidden sm:inline">Новая запись</span>
+    <PageHeader
+      class="mb-6"
+      title="Записи"
+      :subtitle="`${bookingsStore.bookings.length} ${plural(bookingsStore.bookings.length, 'запись', 'записи', 'записей')}`"
+    >
+      <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+        <button :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']" @click="viewMode = 'list'">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <button :class="['px-3 py-1.5 text-sm font-medium rounded-md transition-colors', viewMode === 'calendar' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']" @click="viewMode = 'calendar'">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         </button>
       </div>
-    </div>
+      <button class="btn-primary shrink-0" @click="openModal()">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="hidden sm:inline">Новая запись</span>
+      </button>
+    </PageHeader>
 
     <!-- Filters -->
     <div class="card mb-6">
