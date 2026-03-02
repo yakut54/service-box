@@ -46,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
     shop.value = data.shop
   }
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, remember = true) {
     try {
       loading.value = true
       error.value = null
@@ -55,7 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.token
       user.value = response.user
       shop.value = response.shop
-      api.setToken(response.token)
+      api.setToken(response.token, remember)
 
       return { success: true }
     } catch (err: any) {

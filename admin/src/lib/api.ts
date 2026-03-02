@@ -12,15 +12,23 @@ class ApiClient {
   private unauthorizedHandler: (() => void) | null = null
 
   constructor() {
-    this.token = localStorage.getItem('auth_token')
+    // Restore token from whichever storage it was saved to
+    this.token = localStorage.getItem('auth_token') ?? sessionStorage.getItem('auth_token')
   }
 
-  setToken(token: string | null) {
+  setToken(token: string | null, remember = true) {
     this.token = token
     if (token) {
-      localStorage.setItem('auth_token', token)
+      if (remember) {
+        localStorage.setItem('auth_token', token)
+        sessionStorage.removeItem('auth_token')
+      } else {
+        sessionStorage.setItem('auth_token', token)
+        localStorage.removeItem('auth_token')
+      }
     } else {
       localStorage.removeItem('auth_token')
+      sessionStorage.removeItem('auth_token')
     }
   }
 

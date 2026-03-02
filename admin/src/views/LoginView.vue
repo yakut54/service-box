@@ -7,10 +7,11 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const email = ref('')
+const email    = ref('')
 const password = ref('')
-const loading = ref(false)
-const error = ref('')
+const remember = ref(true)
+const loading  = ref(false)
+const error    = ref('')
 
 async function handleSubmit() {
   if (!email.value || !password.value) {
@@ -21,7 +22,7 @@ async function handleSubmit() {
   loading.value = true
   error.value = ''
 
-  const result = await authStore.login(email.value, password.value)
+  const result = await authStore.login(email.value, password.value, remember.value)
 
   if (result.success) {
     const redirect = route.query.redirect as string || '/'
@@ -60,6 +61,11 @@ async function handleSubmit() {
             <label for="password" class="label">Пароль</label>
             <input id="password" v-model="password" type="password" class="input" placeholder="********" autocomplete="current-password" />
           </div>
+
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input v-model="remember" type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+            <span class="text-sm text-gray-600 dark:text-gray-400">Запомнить меня</span>
+          </label>
 
           <button type="submit" class="btn-primary w-full" :disabled="loading">
             {{ loading ? 'Вход...' : 'Войти' }}
