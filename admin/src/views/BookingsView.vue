@@ -14,6 +14,7 @@ import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
+import type { Booking, Product, BookingSlot } from '@/types'
 
 const bookingsStore = useBookingsStore()
 const authStore = useAuthStore()
@@ -108,7 +109,7 @@ const masterOptions = computed(() => [
 
 const serviceOptions = computed(() => [
   { value: '', label: 'Выберите услугу' },
-  ...services.value.map((s: any) => ({ value: s.id, label: s.name }))
+  ...services.value.map((s) => ({ value: s.id, label: s.name }))
 ])
 
 const masterModalOptions = computed(() => [
@@ -160,7 +161,7 @@ function bookingsForDay(date: Date) {
   })
 }
 
-function bookingStyle(b: any) {
+function bookingStyle(b: Booking) {
   const s = shopParts(b.start_time)
   const startMin = s.hour * 60 + s.minute
   let endMin = startMin + 60
@@ -188,7 +189,7 @@ function calBookingBg(status: string) {
 }
 
 // If a booking is still pending/confirmed but its time has passed — show it as no_show visually
-function effectiveStatus(b: any): string {
+function effectiveStatus(b: Booking): string {
   if (['pending', 'confirmed'].includes(b.status) && new Date(b.start_time) < new Date()) {
     return 'no_show'
   }
@@ -214,12 +215,12 @@ const nowTop = computed(() => {
 
 // ── Create modal ────────────────────────────────────────────
 const showModal = ref(false)
-const services = ref<any[]>([])
+const services = ref<Product[]>([])
 const modalForm = ref({
   service_id: '', master_id: '', date: '', slot: '',
   customer_name: '', customer_phone: '', customer_email: '', notes: '',
 })
-const availableSlots = ref<any[]>([])
+const availableSlots = ref<BookingSlot[]>([])
 const loadingSlots = ref(false)
 const slotError = ref<string | null>(null)
 const creating = ref(false)
@@ -330,8 +331,8 @@ async function submitBooking() {
     })
     showModal.value = false
     applyFilters()
-  } catch (e: any) {
-    modalError.value = e.message || 'Не удалось создать запись'
+  } catch (e: unknown) {
+    modalError.value = e instanceof Error ? e.message : 'Не удалось создать запись'
   }
   creating.value = false
 }

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
+import type { Category } from '@/types'
 import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
@@ -31,7 +32,7 @@ const filteredCategories = computed(() => {
     const q = searchQuery.value.trim().toLowerCase()
     list = list.filter(c =>
       c.name.toLowerCase().includes(q) ||
-      (c.children || []).some((ch: any) => ch.name.toLowerCase().includes(q))
+      (c.children || []).some((ch) => ch.name.toLowerCase().includes(q))
     )
   }
 
@@ -87,9 +88,9 @@ async function handleFile(file: File) {
   try {
     const result         = await api.uploadImage(file)
     form.value.image_url = result.url
-  } catch (e: any) {
+  } catch (e: unknown) {
     form.value.image_url = ''
-    uploadError.value    = e.message || 'Не удалось загрузить'
+    uploadError.value    = e instanceof Error ? e.message : 'Не удалось загрузить'
   }
   uploading.value = false
 }
@@ -113,7 +114,7 @@ function clearImage() {
 }
 
 // ── Delete flow ────────────────────────────────────────────────────────────
-const deleteTarget      = ref<any | null>(null)
+const deleteTarget      = ref<Category | null>(null)
 const deleteAction      = ref<'nullify' | 'move'>('nullify')
 const deleteMoveTarget  = ref('')
 const deleteConfirmName = ref('')
@@ -123,7 +124,7 @@ const deleteError       = ref('')
 const deleteSubcatCount  = computed(() => deleteTarget.value?.children?.length ?? 0)
 const deleteProductCount = computed(() => {
   if (!deleteTarget.value) return 0
-  const childProducts = (deleteTarget.value.children ?? []).reduce((sum: number, c: any) => sum + (c.products_count ?? 0), 0)
+  const childProducts = (deleteTarget.value.children ?? []).reduce((sum: number, c) => sum + (c.products_count ?? 0), 0)
   return (deleteTarget.value.products_count ?? 0) + childProducts
 })
 
@@ -131,7 +132,7 @@ const moveTargetOptions = computed(() => {
   if (!deleteTarget.value) return []
   const deletedIds = new Set([
     deleteTarget.value.id,
-    ...(deleteTarget.value.children ?? []).map((c: any) => c.id),
+    ...(deleteTarget.value.children ?? []).map((c) => c.id),
   ])
   return categoriesStore.allCategories
     .filter(c => !deletedIds.has(c.id))
@@ -167,7 +168,7 @@ function openCreate() {
   showModal.value   = true
 }
 
-function openEdit(cat: any) {
+function openEdit(cat: Category) {
   modalMode.value   = 'edit'
   editingId.value   = cat.id
   form.value = {
@@ -190,7 +191,7 @@ async function save() {
   saving.value     = true
   modalError.value = ''
   try {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       name:        form.value.name.trim(),
       parent_id:   form.value.parent_id || null,
       description: form.value.description.trim() || null,
@@ -205,15 +206,15 @@ async function save() {
     }
     showModal.value = false
     await categoriesStore.fetchCategories()
-  } catch (e: any) {
-    modalError.value = e.message || 'Ошибка сохранения'
+  } catch (e: unknown) {
+    modalError.value = e instanceof Error ? e.message : 'Ошибка сохранения'
   } finally {
     saving.value = false
   }
 }
 
 // ── Toggle visibility ──────────────────────────────────────────────────────
-async function toggleVisible(cat: any) {
+async function toggleVisible(cat: Category) {
   toggling.value = cat.id
   try {
     await api.updateCategory(cat.id, { is_visible: !cat.is_visible })
@@ -224,7 +225,7 @@ async function toggleVisible(cat: any) {
 }
 
 // ── Delete modal open ──────────────────────────────────────────────────────
-function openDelete(cat: any) {
+function openDelete(cat: Category) {
   deleteTarget.value      = cat
   deleteAction.value      = 'nullify'
   deleteMoveTarget.value  = ''
@@ -233,12 +234,12 @@ function openDelete(cat: any) {
 }
 
 // ── Hide (soft action) ─────────────────────────────────────────────────────
-async function hideCategory(cat: any) {
+async function hideCategory(cat: Category) {
   try {
     await api.deleteCategory(cat.id, { action: 'hide' })
     await categoriesStore.fetchCategories()
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Ошибка'
   }
 }
 
@@ -258,8 +259,8 @@ async function doDelete() {
     await api.deleteCategory(deleteTarget.value.id, params)
     deleteTarget.value = null
     await categoriesStore.fetchCategories()
-  } catch (e: any) {
-    deleteError.value = e.message || 'Ошибка удаления'
+  } catch (e: unknown) {
+    deleteError.value = e instanceof Error ? e.message : 'Ошибка удаления'
   } finally {
     deleting.value = false
   }

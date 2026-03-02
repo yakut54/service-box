@@ -6,11 +6,12 @@ import { formatPrice, formatDateTime, formatDate } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner } from '@/shared/ui'
 import UiModal from '@/shared/ui/UiModal.vue'
+import type { Customer } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 
-const customer = ref<any>(null)
+const customer = ref<Customer | null>(null)
 const loading = ref(true)
 
 // ── Delete dialog ──────────────────────────────────────────────────────────
@@ -30,15 +31,15 @@ function openDeleteModal() {
 }
 
 async function doDelete() {
-  if (!deleteConfirmValid.value) return
+  if (!deleteConfirmValid.value || !customer.value) return
   deleting.value = true
   deleteError.value = ''
   try {
     await api.deleteCustomer(customer.value.id)
     showDeleteModal.value = false
     router.push('/customers')
-  } catch (e: any) {
-    deleteError.value = e.message || 'Ошибка удаления'
+  } catch (e: unknown) {
+    deleteError.value = e instanceof Error ? e.message : 'Ошибка удаления'
   } finally {
     deleting.value = false
   }
@@ -126,7 +127,7 @@ onMounted(async () => {
               </RouterLink>
               <div class="min-w-0">
                 <div class="text-sm text-gray-700 dark:text-gray-300 truncate">
-                  {{ order.items?.map((i: any) => i.quantity > 1 ? `${i.product_name} ×${i.quantity}` : i.product_name).join(', ') || '—' }}
+                  {{ order.items?.map((i) => i.quantity > 1 ? `${i.product_name} ×${i.quantity}` : i.product_name).join(', ') || '—' }}
                 </div>
                 <div class="text-xs text-gray-400 dark:text-gray-500">{{ formatDateTime(order.created_at) }}</div>
               </div>

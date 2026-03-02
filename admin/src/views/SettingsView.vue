@@ -32,8 +32,8 @@ async function generateTelegramCode() {
   try {
     const resp = await api.generateTelegramCode()
     telegramCode.value = resp.code
-  } catch (e: any) {
-    telegramError.value = e.message || 'Ошибка генерации кода'
+  } catch (e: unknown) {
+    telegramError.value = e instanceof Error ? e.message : 'Ошибка генерации кода'
   }
   generatingCode.value = false
 }
@@ -62,7 +62,7 @@ onMounted(() => {
     workStart.value = authStore.shop.work_start || '09:00'
     workEnd.value = authStore.shop.work_end || '20:00'
     slotDuration.value = String(authStore.shop.slot_duration || 30)
-    timezone.value = (authStore.shop as any).timezone || 'Europe/Moscow'
+    timezone.value = authStore.shop.timezone || 'Europe/Moscow'
   }
 })
 
@@ -85,12 +85,12 @@ async function saveWorkHours() {
       authStore.shop.work_start = updated.work_start
       authStore.shop.work_end = updated.work_end
       authStore.shop.slot_duration = updated.slot_duration
-      ;(authStore.shop as any).timezone = updated.timezone
+      authStore.shop.timezone = updated.timezone
     }
     hoursSuccess.value = true
     setTimeout(() => hoursSuccess.value = false, 3000)
-  } catch (e: any) {
-    hoursError.value = e.message || 'Ошибка сохранения'
+  } catch (e: unknown) {
+    hoursError.value = e instanceof Error ? e.message : 'Ошибка сохранения'
   } finally {
     savingHours.value = false
   }

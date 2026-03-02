@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { formatPrice } from '@/lib/utils'
+import type { WidgetOrder } from '@/types'
 
-const props = defineProps<{ order: any }>()
+const props = defineProps<{ order: WidgetOrder | null }>()
 const emit = defineEmits<{ back: [] }>()
 </script>
 

@@ -6,6 +6,7 @@ import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
+import type { OrderStats, BookingStats, Booking } from '@/types'
 
 const authStore     = useAuthStore()
 const ordersStore   = useOrdersStore()
@@ -28,7 +29,7 @@ const chartDays: Record<Period, number> = {
 }
 
 // ── Stats ────────────────────────────────────────────────────
-const stats        = ref<any>({})
+const stats        = ref<Partial<OrderStats>>({})
 const loadingStats = ref(false)
 
 async function loadStats() {
@@ -53,7 +54,7 @@ async function loadChart() {
 }
 
 // ── Booking stats ─────────────────────────────────────────────
-const bookingStats        = ref<any>({})
+const bookingStats        = ref<Partial<BookingStats>>({})
 const loadingBookingStats = ref(false)
 
 async function loadBookingStats() {
@@ -76,7 +77,7 @@ const bookingStatusBreakdown = computed(() => {
 })
 
 // ── Today's bookings ─────────────────────────────────────────
-const todayBookings        = ref<any[]>([])
+const todayBookings        = ref<Booking[]>([])
 const loadingTodayBookings = ref(false)
 
 async function loadTodayBookings() {
@@ -159,7 +160,7 @@ const hasDelta = computed(() => stats.value.prev_revenue !== undefined)
 const prevAvgOrderValue = computed(() => {
   const { prev_revenue, prev_orders } = stats.value
   if (!prev_orders) return 0
-  return Math.round(prev_revenue / prev_orders)
+  return Math.round((prev_revenue ?? 0) / prev_orders)
 })
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -177,18 +178,21 @@ function formatPriceFull(kopecks: number): string {
 }
 
 // Returns formatted delta string, or '' if no meaningful delta
-function growthPct(cur: number, prev: number): string {
-  if (!prev && !cur) return ''
-  if (!prev)         return 'Новый'
-  const pct = Math.round(((cur - prev) / prev) * 100)
+function growthPct(cur: number | undefined, prev: number | undefined): string {
+  const c = cur ?? 0
+  const p = prev ?? 0
+  if (!p && !c) return ''
+  if (!p)       return 'Новый'
+  const pct = Math.round(((c - p) / p) * 100)
   return (pct > 0 ? '+' : '') + pct + '%'
 }
 
-function isUp(cur: number, prev: number): boolean { return cur >= prev }
+function isUp(cur: number | undefined, prev: number | undefined): boolean { return (cur ?? 0) >= (prev ?? 0) }
 
-function deltaClass(cur: number, prev: number): string {
-  if (!prev) return 'text-gray-400 dark:text-gray-500'
-  return cur >= prev
+function deltaClass(cur: number | undefined, prev: number | undefined): string {
+  const p = prev ?? 0
+  if (!p) return 'text-gray-400 dark:text-gray-500'
+  return (cur ?? 0) >= p
     ? 'text-emerald-600 dark:text-emerald-400'
     : 'text-red-500 dark:text-red-400'
 }

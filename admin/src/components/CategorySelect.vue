@@ -46,8 +46,8 @@ async function quickCreate(name: string, close: () => void) {
     newCatMode.value = false
     newCatName.value = ''
     close()
-  } catch (e: any) {
-    createError.value = e.message || 'Не удалось создать категорию'
+  } catch (e: unknown) {
+    createError.value = e instanceof Error ? e.message : 'Не удалось создать категорию'
   }
 }
 

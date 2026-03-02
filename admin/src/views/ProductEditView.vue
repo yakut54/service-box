@@ -101,9 +101,9 @@ async function handleFile(file: File) {
   try {
     const result = await api.uploadImage(file)
     form.value.image_url = result.url
-  } catch (e: any) {
+  } catch (e: unknown) {
     form.value.image_url = ''
-    uploadError.value = e.message || 'Не удалось загрузить'
+    uploadError.value = e instanceof Error ? e.message : 'Не удалось загрузить'
   }
   uploading.value = false
 }
@@ -205,7 +205,7 @@ async function handleSubmit() {
     if (isEditing.value) { await api.updateProduct(route.params.id as string, data) }
     else { await api.createProduct(data) }
     await router.push('/products')
-  } catch (e: any) { error.value = e.message || 'Ошибка сохранения' }
+  } catch (e: unknown) { error.value = e instanceof Error ? e.message : 'Ошибка сохранения' }
   saving.value = false
 }
 </script>

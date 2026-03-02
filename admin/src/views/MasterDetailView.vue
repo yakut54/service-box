@@ -2,11 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
+import type { Master, Booking } from '@/types'
 
 const route = useRoute()
 
-const master = ref<any>(null)
-const bookings = ref<any[]>([])
+const master = ref<Master | null>(null)
+const bookings = ref<Booking[]>([])
 const loading = ref(true)
 
 function formatDate(dateStr: string | null) {

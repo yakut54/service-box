@@ -3,11 +3,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { formatPrice, plural } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
+import type { WidgetProduct } from '@/types'
 
-const props = defineProps<{ product: any }>()
+const props = defineProps<{ product: WidgetProduct }>()
 const emit = defineEmits<{
   back: []
-  booking: [product: any]
+  booking: [product: WidgetProduct]
   goToCart: []
 }>()
 
@@ -40,10 +41,10 @@ const badge = computed(() => {
 })
 
 const hasDiscount = computed(() =>
-  props.product.compare_price && props.product.compare_price > props.product.price
+  props.product.compare_price != null && props.product.compare_price > props.product.price
 )
 const discountPercent = computed(() => {
-  if (!hasDiscount.value) return 0
+  if (!hasDiscount.value || props.product.compare_price == null) return 0
   return Math.round((1 - props.product.price / props.product.compare_price) * 100)
 })
 
@@ -121,8 +122,8 @@ async function submitReview() {
     formName.value     = ''
     formRating.value   = 0
     formText.value     = ''
-  } catch (e: any) {
-    formError.value = e.message || 'Ошибка отправки'
+  } catch (e: unknown) {
+    formError.value = e instanceof Error ? e.message : 'Ошибка отправки'
   } finally {
     formLoading.value = false
   }
@@ -135,7 +136,7 @@ function formatReviewDate(s: string | null): string {
 
 const displayRating  = computed(() => {
   const r = props.product.rating ?? reviewStats.value.average
-  return r != null ? parseFloat(r) : null
+  return r != null ? parseFloat(String(r)) : null
 })
 const displayCount   = computed(() => props.product.review_count ?? reviewStats.value.count)
 </script>
@@ -194,7 +195,7 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         <!-- Price -->
         <div class="sb-pd-price-row">
           <span class="sb-pd-price">{{ formatPrice(product.price) }}</span>
-          <span v-if="hasDiscount" class="sb-pd-old-price">{{ formatPrice(product.compare_price) }}</span>
+          <span v-if="hasDiscount" class="sb-pd-old-price">{{ formatPrice(product.compare_price!) }}</span>
         </div>
 
         <!-- Description -->
@@ -206,11 +207,11 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
             <span class="sb-pd-meta-label">Длительность</span>
             <span>{{ product.service.duration_minutes }} мин</span>
           </div>
-          <div v-if="product.service.break_minutes > 0" class="sb-pd-meta-row">
+          <div v-if="(product.service.break_minutes ?? 0) > 0" class="sb-pd-meta-row">
             <span class="sb-pd-meta-label">Перерыв</span>
             <span>{{ product.service.break_minutes }} мин</span>
           </div>
-          <div v-if="product.service.max_concurrent > 1" class="sb-pd-meta-row">
+          <div v-if="(product.service.max_concurrent ?? 0) > 1" class="sb-pd-meta-row">
             <span class="sb-pd-meta-label">Мест одновременно</span>
             <span>{{ product.service.max_concurrent }}</span>
           </div>
@@ -446,7 +447,7 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
     <div class="sb-pd-footer">
       <div class="sb-pd-footer-price">
         <span class="sb-pd-footer-amount">{{ formatPrice(inCart ? product.price * inCartQty : product.price) }}</span>
-        <span v-if="hasDiscount && !inCart" class="sb-pd-footer-old">{{ formatPrice(product.compare_price) }}</span>
+        <span v-if="hasDiscount && !inCart" class="sb-pd-footer-old">{{ formatPrice(product.compare_price!) }}</span>
       </div>
       <template v-if="isService">
         <button class="sb-btn sb-btn-primary" @click="emit('booking', product)">Записаться</button>

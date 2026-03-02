@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
+import type { SubscriptionStatus, SubscriptionPayment } from '@/types'
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -9,8 +10,8 @@ const paying  = ref(false)
 const error   = ref('')
 const success = ref('')
 
-const subscription = ref<any>(null)
-const payments     = ref<any[]>([])
+const subscription = ref<SubscriptionStatus | null>(null)
+const payments     = ref<SubscriptionPayment[]>([])
 
 const selectedPlan   = ref('start')
 const selectedPeriod = ref(1)
@@ -128,8 +129,8 @@ async function load() {
     payments.value     = pays
     // Pre-select current plan
     if (sub.plan) selectedPlan.value = sub.plan
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка загрузки данных'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Ошибка загрузки данных'
   } finally {
     loading.value = false
   }
@@ -148,8 +149,8 @@ async function handlePay() {
     })
     // In real integration this would redirect to YooKassa payment page
     success.value = `Заявка создана (ID: ${result.payment_id}). Интеграция с платёжной системой в разработке.`
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка создания платежа'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Ошибка создания платежа'
   } finally {
     paying.value = false
   }

@@ -4,9 +4,10 @@ import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
 import SbSelect from '@/components/SbSelect.vue'
+import type { WidgetProduct, WidgetBooking } from '@/types'
 
-const props = defineProps<{ product: any }>()
-const emit = defineEmits<{ back: []; success: [booking: any] }>()
+const props = defineProps<{ product: WidgetProduct }>()
+const emit = defineEmits<{ back: []; success: [booking: WidgetBooking] }>()
 
 const shopStore = useShopStore()
 
@@ -208,8 +209,8 @@ async function loadSlots() {
     console.log('[BookingCalendar] slots from API:', result.slots)
     slots.value = result.slots ?? []
     console.log('[BookingCalendar] after isPastSlot filter:', availableSlots.value.map(s => s.time))
-  } catch (e: any) {
-    error.value = e.message || 'Не удалось загрузить расписание'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Не удалось загрузить расписание'
     slots.value = []
     console.error('[BookingCalendar] error loading slots:', e)
   } finally {
@@ -296,7 +297,7 @@ async function handleSubmit() {
   error.value = ''
 
   try {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       service_id: props.product.id,
       start_time: selectedSlot.value.datetime,
       customer: {
@@ -312,8 +313,8 @@ async function handleSubmit() {
 
     const result = await shopStore.getApi().createBooking(payload)
     emit('success', result.data)
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка при записи'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Ошибка при записи'
   } finally {
     submitting.value = false
   }

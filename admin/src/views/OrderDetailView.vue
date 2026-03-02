@@ -7,13 +7,14 @@ import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner } from '@/shared/ui'
+import type { Order } from '@/types'
 
 const route      = useRoute()
 const ordersStore = useOrdersStore()
 const authStore  = useAuthStore()
 const shopTz     = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
-const order   = ref<any>(null)
+const order   = ref<Order | null>(null)
 const loading = ref(true)
 const updating = ref(false)
 const errorMsg = ref<string | null>(null)

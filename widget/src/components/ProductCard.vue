@@ -2,12 +2,13 @@
 import { computed } from 'vue'
 import { formatPrice, plural } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart'
+import type { WidgetProduct } from '@/types'
 
-const props = defineProps<{ product: any }>()
+const props = defineProps<{ product: WidgetProduct }>()
 const emit = defineEmits<{
-  select: [product: any]
+  select: [product: WidgetProduct]
   'open-cart': []
-  book: [product: any]
+  book: [product: WidgetProduct]
 }>()
 
 const cartStore = useCartStore()
@@ -42,15 +43,15 @@ const isService  = computed(() => props.product.type === 'service')
 const isDigital  = computed(() => props.product.type === 'digital')
 
 const hasDiscount = computed(() =>
-  props.product.compare_price && props.product.compare_price > props.product.price
+  props.product.compare_price != null && props.product.compare_price > props.product.price
 )
 
 const discountPercent = computed(() => {
-  if (!hasDiscount.value) return 0
+  if (!hasDiscount.value || props.product.compare_price == null) return 0
   return Math.round((1 - props.product.price / props.product.compare_price) * 100)
 })
 
-const rating      = computed(() => props.product.rating != null ? parseFloat(props.product.rating) : null)
+const rating      = computed(() => props.product.rating != null ? parseFloat(String(props.product.rating)) : null)
 const reviewCount = computed(() => props.product.review_count ?? 0)
 
 function addToCart() {
@@ -143,7 +144,7 @@ function decrement() {
     <div class="sb-pc-body">
       <div class="sb-pc-prices">
         <span class="sb-pc-price">{{ formatPrice(product.price) }}</span>
-        <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price) }}</span>
+        <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price!) }}</span>
       </div>
       <h3 class="sb-pc-name">{{ product.name }}</h3>
       <div v-if="rating" class="sb-pc-rating">

@@ -33,8 +33,8 @@ async function applyPromo() {
     cartStore.setDiscount({ code, name: res.name, amount: res.discount_amount })
     promoExpanded.value = false
     promoInput.value = ''
-  } catch (e: any) {
-    promoError.value = e.message || 'Промокод недействителен'
+  } catch (e: unknown) {
+    promoError.value = e instanceof Error ? e.message : 'Промокод недействителен'
   } finally {
     promoLoading.value = false
   }

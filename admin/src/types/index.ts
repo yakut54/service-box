@@ -133,6 +133,7 @@ export interface OrderItem {
   price: number
   product_name: string
   product_type: string
+  product?: Product | null
 }
 
 export interface ShippingAddress {
@@ -174,6 +175,8 @@ export interface OrderStats {
   completed_orders: number
   cancelled_orders: number
   average_order_value: number
+  prev_revenue?: number
+  prev_orders?: number
 }
 
 export interface OrderChartPoint {
@@ -196,6 +199,8 @@ export interface Customer {
   total_spent: number
   last_order_at: string | null
   created_at: string
+  orders?: Order[]
+  bookings?: Booking[]
 }
 
 // ==========================================
@@ -233,6 +238,7 @@ export interface Booking {
   customer_phone: string
   customer_email: string | null
   notes: string | null
+  service_name?: string | null
   service?: Product | null
   customer?: Customer | null
   master?: Master | null
@@ -315,6 +321,30 @@ export interface Review {
 // ==========================================
 // SUBSCRIPTION
 // ==========================================
+
+export interface SubscriptionLimits {
+  max_orders_per_month: number | null
+  max_masters: number | null
+}
+
+export interface SubscriptionStatus {
+  plan: string
+  is_active: boolean
+  is_expiring_soon: boolean
+  days_until_expiration: number
+  expires_at: string | null
+  limits: SubscriptionLimits | null
+}
+
+export interface SubscriptionPayment {
+  id: string
+  plan: string
+  amount: number
+  status: string
+  period_start: string | null
+  period_end: string | null
+  created_at: string
+}
 
 export interface SubscriptionInfo {
   id: string

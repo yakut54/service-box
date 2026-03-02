@@ -2,13 +2,14 @@
 import { ref } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import SbPhoneAuth from '@/components/SbPhoneAuth.vue'
+import type { WidgetBooking } from '@/types'
 
 const emit = defineEmits<{ back: [] }>()
 
 const shopStore = useShopStore()
 const sbAuth    = ref<InstanceType<typeof SbPhoneAuth>>()
 
-const bookings  = ref<any[]>([])
+const bookings  = ref<WidgetBooking[]>([])
 const loading   = ref(false)
 const searched  = ref(false)
 const error     = ref('')
@@ -59,13 +60,14 @@ async function loadBookings(phone: string, token: string) {
   try {
     const resp = await shopStore.getApi().getBookingsByPhone(phone, token)
     bookings.value = resp.data
-  } catch (e: any) {
-    if (e.status === 401) {
+  } catch (e: unknown) {
+    const err = e as { status?: number; message?: string }
+    if (err.status === 401) {
       bookings.value = []
       searched.value = false
       sbAuth.value?.reset('Сессия истекла. Подтвердите телефон заново.')
     } else {
-      error.value = e.message || 'Ошибка загрузки'
+      error.value = err.message || 'Ошибка загрузки'
     }
   }
   loading.value = false
@@ -80,30 +82,31 @@ function handleLogout() {
 }
 
 // ── Cancel booking ────────────────────────────────────────────
-const cancelTarget = ref<any | null>(null)
+const cancelTarget = ref<WidgetBooking | null>(null)
 const cancelling   = ref(false)
 const cancelError  = ref('')
 
-function canCancel(booking: any) {
+function canCancel(booking: WidgetBooking) {
   return ['pending', 'confirmed'].includes(booking.status) && !isPast(booking.start_time)
 }
 
-function openCancelConfirm(booking: any) {
+function openCancelConfirm(booking: WidgetBooking) {
   cancelTarget.value = booking
   cancelError.value  = ''
 }
 
 async function doCancel() {
   if (!cancelTarget.value) return
+  const targetId = cancelTarget.value.id
   cancelling.value  = true
   cancelError.value = ''
   try {
-    await shopStore.getApi().cancelBooking(cancelTarget.value.id, _phone, _token)
-    const idx = bookings.value.findIndex(b => b.id === cancelTarget.value.id)
+    await shopStore.getApi().cancelBooking(targetId, _phone, _token)
+    const idx = bookings.value.findIndex(b => b.id === targetId)
     if (idx !== -1) bookings.value[idx] = { ...bookings.value[idx], status: 'cancelled' }
     cancelTarget.value = null
-  } catch (e: any) {
-    cancelError.value = e.message || 'Ошибка отмены'
+  } catch (e: unknown) {
+    cancelError.value = e instanceof Error ? e.message : 'Ошибка отмены'
   } finally {
     cancelling.value = false
   }

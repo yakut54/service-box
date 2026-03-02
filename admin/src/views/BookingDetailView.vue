@@ -4,13 +4,14 @@ import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
+import type { Booking } from '@/types'
 
 const route = useRoute()
 const bookingsStore = useBookingsStore()
 const authStore = useAuthStore()
 const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
-const booking = ref<any>(null)
+const booking = ref<Booking | null>(null)
 const loading = ref(true)
 const updatingStatus = ref(false)
 const statusError = ref('')
@@ -56,8 +57,8 @@ async function changeStatus(status: string) {
   try {
     const res = await api.updateBookingStatus(booking.value.id, status)
     booking.value = res.data
-  } catch (e: any) {
-    statusError.value = e.message || 'Не удалось изменить статус'
+  } catch (e: unknown) {
+    statusError.value = e instanceof Error ? e.message : 'Не удалось изменить статус'
   }
   updatingStatus.value = false
 }

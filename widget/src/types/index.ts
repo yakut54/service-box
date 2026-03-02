@@ -44,6 +44,11 @@ export interface WidgetProductPhysical {
   sku: string | null
   stock_quantity: number
   allow_backorder: boolean
+  brand?: string | null
+  color?: string | null
+  material?: string | null
+  weight_grams?: number | null
+  dimensions?: string | null
 }
 
 export interface WidgetProductDigital {
@@ -51,6 +56,7 @@ export interface WidgetProductDigital {
   delivery_type: string | null
   access_days: number | null
   file_format: string | null
+  file_size_mb?: number | null
 }
 
 export interface WidgetProductService {
@@ -80,6 +86,8 @@ export interface WidgetProduct {
   physical?: WidgetProductPhysical | null
   digital?: WidgetProductDigital | null
   service?: WidgetProductService | null
+  rating?: number | string | null
+  review_count?: number | null
   created_at: string
   updated_at: string
 }

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { formatPrice } from '@/lib/utils'
 import { useShopStore } from '@/stores/shop'
+import type { WidgetBooking, WidgetProduct } from '@/types'
 
-const props = defineProps<{ booking: any; product: any }>()
+const props = defineProps<{ booking: WidgetBooking | null; product: WidgetProduct | null }>()
 const emit = defineEmits<{ back: [] }>()
 
 const shopStore = useShopStore()

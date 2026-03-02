@@ -4,10 +4,11 @@ import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid, isPostalCodeValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
+import type { WidgetOrder } from '@/types'
 
 const emit = defineEmits<{
   back: []
-  success: [order: any]
+  success: [order: WidgetOrder]
 }>()
 
 const cartStore = useCartStore()
@@ -170,7 +171,7 @@ async function handleSubmit() {
   loading.value = true
   error.value   = ''
 
-  const payload: Record<string, any> = {
+  const payload: Record<string, unknown> = {
     items: cartStore.items.map(i => ({ product_id: i.id, quantity: i.quantity })),
     customer: {
       name:  form.value.name.trim(),
@@ -196,8 +197,8 @@ async function handleSubmit() {
     const result = await shopStore.getApi().createOrder(payload)
     cartStore.clear()
     emit('success', result.data)
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка оформления заказа'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Ошибка оформления заказа'
     // Scroll to top so the error banner is visible
     await nextTick()
     formRef.value?.closest('.sb-co')?.scrollTo({ top: 0, behavior: 'smooth' })

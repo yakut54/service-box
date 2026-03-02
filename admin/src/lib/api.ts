@@ -8,7 +8,8 @@ import type {
   Master,
   Discount,
   Review,
-  SubscriptionInfo,
+  SubscriptionStatus,
+  SubscriptionPayment,
   TelegramStatus,
   PaginatedResponse,
 } from '@/types'
@@ -365,11 +366,11 @@ class ApiClient {
   // ==========================================
 
   async getSubscription() {
-    return this.request<SubscriptionInfo>('/admin/subscription')
+    return this.request<SubscriptionStatus>('/admin/subscription')
   }
 
   async getSubscriptionPayments() {
-    return this.request<SubscriptionInfo[]>('/admin/subscription/payments')
+    return this.request<SubscriptionPayment[]>('/admin/subscription/payments')
   }
 
   async createSubscriptionPayment(data: { plan: string; period_months?: number }) {

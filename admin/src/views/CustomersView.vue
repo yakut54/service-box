@@ -6,8 +6,9 @@ import { formatPrice, formatDate } from '@/shared/lib/format'
 import { UiSpinner, UiEmptyState } from '@/shared/ui'
 import PageHeader from '@/components/PageHeader.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
+import type { Customer } from '@/types'
 
-const customers = ref<any[]>([])
+const customers = ref<Customer[]>([])
 const loading = ref(true)
 const searchQuery = ref('')
 
@@ -38,7 +39,7 @@ function onSearch() {
 }
 
 // ── Delete ─────────────────────────────────────────────────────────────────
-const deleteTarget = ref<any>(null)
+const deleteTarget = ref<Customer | null>(null)
 const deleteConfirmName = ref('')
 const deleting = ref(false)
 const deleteError = ref('')
@@ -47,22 +48,23 @@ const deleteConfirmValid = computed(() =>
   deleteConfirmName.value.trim() === (deleteTarget.value?.name ?? '').trim()
 )
 
-function openDelete(c: any) {
+function openDelete(c: Customer) {
   deleteTarget.value = c
   deleteConfirmName.value = ''
   deleteError.value = ''
 }
 
 async function doDelete() {
-  if (!deleteConfirmValid.value) return
+  if (!deleteConfirmValid.value || !deleteTarget.value) return
+  const targetId = deleteTarget.value.id
   deleting.value = true
   deleteError.value = ''
   try {
-    await api.deleteCustomer(deleteTarget.value.id)
-    customers.value = customers.value.filter(c => c.id !== deleteTarget.value.id)
+    await api.deleteCustomer(targetId)
+    customers.value = customers.value.filter(c => c.id !== targetId)
     deleteTarget.value = null
-  } catch (e: any) {
-    deleteError.value = e.message || 'Ошибка удаления'
+  } catch (e: unknown) {
+    deleteError.value = e instanceof Error ? e.message : 'Ошибка удаления'
   } finally {
     deleting.value = false
   }

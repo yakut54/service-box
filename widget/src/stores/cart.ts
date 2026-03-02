@@ -56,7 +56,7 @@ export const useCartStore = defineStore('sb-cart', () => {
     if (shopId.value) saveToStorage(shopId.value, items.value)
   }
 
-  function addItem(product: { id: string; name: string; price: number; compare_price?: number; type: string; image_url?: string; physical?: { stock_quantity: number } | null }) {
+  function addItem(product: { id: string; name: string; price: number; compare_price?: number | null; type: string; image_url?: string | null; physical?: { stock_quantity: number } | null }) {
     const existing = items.value.find(i => i.id === product.id)
 
     if (existing) {
@@ -72,7 +72,7 @@ export const useCartStore = defineStore('sb-cart', () => {
         price: product.price,
         compare_price: product.compare_price ?? undefined,
         type: product.type,
-        image_url: product.image_url,
+        image_url: product.image_url ?? undefined,
         quantity: 1,
         maxStock: product.type === 'physical' ? (product.physical?.stock_quantity ?? undefined) : undefined,
       })

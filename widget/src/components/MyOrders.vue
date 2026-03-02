@@ -3,13 +3,14 @@ import { ref } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice } from '@/lib/utils'
 import SbPhoneAuth from '@/components/SbPhoneAuth.vue'
+import type { WidgetOrder } from '@/types'
 
 const emit = defineEmits<{ back: [] }>()
 
 const shopStore = useShopStore()
 const sbAuth    = ref<InstanceType<typeof SbPhoneAuth>>()
 
-const orders    = ref<any[]>([])
+const orders    = ref<WidgetOrder[]>([])
 const loading   = ref(false)
 const searched  = ref(false)
 const error     = ref('')
@@ -42,13 +43,14 @@ async function loadOrders(phone: string, token: string) {
   try {
     const resp = await shopStore.getApi().getOrdersByPhone(phone, token)
     orders.value = resp.data
-  } catch (e: any) {
-    if (e.status === 401) {
+  } catch (e: unknown) {
+    const err = e as { status?: number; message?: string }
+    if (err.status === 401) {
       orders.value   = []
       searched.value = false
       sbAuth.value?.reset('Сессия истекла. Подтвердите телефон заново.')
     } else {
-      error.value = e.message || 'Ошибка загрузки'
+      error.value = err.message || 'Ошибка загрузки'
     }
   }
   loading.value = false

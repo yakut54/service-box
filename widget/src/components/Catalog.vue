@@ -4,20 +4,21 @@ import { useShopStore } from '@/stores/shop'
 import { debounce } from '@/lib/utils'
 import ProductCard from './ProductCard.vue'
 import SbSelect from './SbSelect.vue'
+import type { WidgetProduct, WidgetProductType } from '@/types'
 
 const props = defineProps<{
   activeCategory?: string
 }>()
 
 const emit = defineEmits<{
-  select: [product: any]
+  select: [product: WidgetProduct]
   'open-cart': []
-  book: [product: any]
+  book: [product: WidgetProduct]
   'categories-loaded': [categories: Array<{ id: string; name: string }>]
 }>()
 
 const shopStore = useShopStore()
-const products = ref<any[]>([])
+const products = ref<WidgetProduct[]>([])
 const apiCategories = ref<Array<{ id: string; name: string }>>([])
 const loading = ref(true)
 const error = ref('')
@@ -92,7 +93,7 @@ const typeFilters = [
 // Only show type filters that have products
 const activeTypeFilters = computed(() => {
   const types = new Set(products.value.map(p => p.type))
-  return typeFilters.filter(f => f.value === '' || types.has(f.value))
+  return typeFilters.filter(f => f.value === '' || types.has(f.value as WidgetProductType))
 })
 
 // Show type select only when multiple types exist (>1 actual type)
@@ -121,7 +122,7 @@ onMounted(async () => {
     if (productsResp.status === 'fulfilled') {
       products.value = productsResp.value.data || []
     } else {
-      error.value = (productsResp.reason as any)?.message || 'Failed to load products'
+      error.value = (productsResp.reason as Error)?.message || 'Failed to load products'
     }
     if (categoriesResp.status === 'fulfilled') {
       // Flatten: родители + дочерние
@@ -134,8 +135,8 @@ onMounted(async () => {
       }
       apiCategories.value = flat
     }
-  } catch (e: any) {
-    error.value = e.message || 'Failed to load products'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Failed to load products'
   }
   loading.value = false
 })
@@ -156,7 +157,7 @@ const onSearchInput = debounce(() => {
   // Local filtering — no API call needed
 }, 300)
 
-function handleSelect(product: any) {
+function handleSelect(product: WidgetProduct) {
   emit('select', product)
 }
 </script>

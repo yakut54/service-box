@@ -7,11 +7,12 @@ import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/us
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { UiModal, UiConfirmDialog, UiEmptyState, UiSpinner } from '@/shared/ui'
+import type { Master } from '@/types'
 
 const route = useRoute()
 
 // ── State ────────────────────────────────────────────────────
-const masters = ref<any[]>([])
+const masters = ref<Master[]>([])
 const loading = ref(false)
 const error = ref('')
 
@@ -61,7 +62,7 @@ const isFormValid = computed(() =>
 
 
 // ── Delete confirm ───────────────────────────────────────────
-const deleteTarget = ref<any | null>(null)
+const deleteTarget = ref<Master | null>(null)
 const deleting = ref(false)
 
 // ── Filter ───────────────────────────────────────────────────
@@ -100,8 +101,8 @@ async function loadMasters() {
     const res = await api.getMasters()
     masters.value = res.data
     sortMasters()
-  } catch (e: any) {
-    error.value = e.message || 'Не удалось загрузить мастеров'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Не удалось загрузить мастеров'
   } finally {
     loading.value = false
   }
@@ -123,7 +124,7 @@ function openCreate() {
   showModal.value = true
 }
 
-function openEdit(master: any) {
+function openEdit(master: Master) {
   modalMode.value = 'edit'
   editingId.value = master.id
   form.value = {
@@ -165,15 +166,15 @@ async function save() {
     }
 
     showModal.value = false
-  } catch (e: any) {
-    modalError.value = e.message || 'Ошибка сохранения'
+  } catch (e: unknown) {
+    modalError.value = e instanceof Error ? e.message : 'Ошибка сохранения'
   } finally {
     saving.value = false
   }
 }
 
 // ── Toggle active ─────────────────────────────────────────────
-async function toggleActive(master: any) {
+async function toggleActive(master: Master) {
   try {
     const res = await api.updateMaster(master.id, { is_active: !master.is_active })
     const idx = masters.value.findIndex(m => m.id === master.id)
@@ -184,19 +185,20 @@ async function toggleActive(master: any) {
 }
 
 // ── Delete ────────────────────────────────────────────────────
-function confirmDelete(master: any) {
+function confirmDelete(master: Master) {
   deleteTarget.value = master
 }
 
 async function doDelete() {
   if (!deleteTarget.value) return
+  const targetId = deleteTarget.value.id
   deleting.value = true
   try {
-    await api.deleteMaster(deleteTarget.value.id)
-    masters.value = masters.value.filter(m => m.id !== deleteTarget.value.id)
+    await api.deleteMaster(targetId)
+    masters.value = masters.value.filter(m => m.id !== targetId)
     deleteTarget.value = null
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка удаления'
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Ошибка удаления'
   } finally {
     deleting.value = false
   }
@@ -229,9 +231,9 @@ async function handleAvatarFile(file: File) {
   try {
     const result = await api.uploadImage(file)
     form.value.avatar_url = result.url
-  } catch (e: any) {
+  } catch (e: unknown) {
     form.value.avatar_url = ''
-    avatarUploadError.value = e.message || 'Не удалось загрузить'
+    avatarUploadError.value = e instanceof Error ? e.message : 'Не удалось загрузить'
   }
   avatarUploading.value = false
 }
