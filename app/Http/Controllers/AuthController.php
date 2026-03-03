@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Mail\ResetPasswordMail;
 use App\Models\Shop;
 use App\Models\User;
 use App\Services\TenantService;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -179,5 +182,73 @@ class AuthController extends Controller
             'message' => 'Token refreshed',
             'token' => $token,
         ]);
+    }
+
+    /**
+     * POST /api/auth/change-password  (requires auth)
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'password'         => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Текущий пароль неверен'], 422);
+        }
+
+        $user->update(['password' => Hash::make($request->password)]);
+
+        return response()->json(['message' => 'Пароль успешно изменён']);
+    }
+
+    /**
+     * POST /api/auth/forgot-password  (public)
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        // Не раскрываем информацию о существовании аккаунта
+        if ($user) {
+            $token    = Password::createToken($user);
+            $resetUrl = rtrim(config('app.frontend_url'), '/') . '/reset-password'
+                . '?token=' . $token
+                . '&email=' . urlencode($user->email);
+
+            Mail::to($user->email)->send(new ResetPasswordMail($resetUrl, $user->email));
+        }
+
+        return response()->json(['message' => 'Если аккаунт с таким email существует, письмо отправлено']);
+    }
+
+    /**
+     * POST /api/auth/reset-password  (public)
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token'    => 'required|string',
+            'email'    => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user, string $password) {
+                $user->forceFill(['password' => Hash::make($password)])->save();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json(['message' => __($status)], 422);
+        }
+
+        return response()->json(['message' => 'Пароль успешно сброшен']);
     }
 }
