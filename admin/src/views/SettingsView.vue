@@ -47,6 +47,44 @@ const savingHours = ref(false)
 const hoursSuccess = ref(false)
 const hoursError = ref('')
 
+// ── Change password ───────────────────────────────────────────
+const currentPassword = ref('')
+const newPassword = ref('')
+const newPasswordConfirm = ref('')
+const savingPassword = ref(false)
+const passwordSuccess = ref(false)
+const passwordError = ref('')
+
+async function savePassword() {
+  if (!currentPassword.value || !newPassword.value || !newPasswordConfirm.value) {
+    passwordError.value = 'Заполните все поля'
+    return
+  }
+  if (newPassword.value !== newPasswordConfirm.value) {
+    passwordError.value = 'Новые пароли не совпадают'
+    return
+  }
+  if (newPassword.value.length < 8) {
+    passwordError.value = 'Минимальная длина пароля — 8 символов'
+    return
+  }
+  savingPassword.value = true
+  passwordError.value = ''
+  passwordSuccess.value = false
+  try {
+    await api.changePassword(currentPassword.value, newPassword.value, newPasswordConfirm.value)
+    passwordSuccess.value = true
+    currentPassword.value = ''
+    newPassword.value = ''
+    newPasswordConfirm.value = ''
+    setTimeout(() => passwordSuccess.value = false, 3000)
+  } catch (e: unknown) {
+    passwordError.value = e instanceof Error ? e.message : 'Ошибка смены пароля'
+  } finally {
+    savingPassword.value = false
+  }
+}
+
 const slotOptions = [
   { value: '10', label: '10 минут' },
   { value: '15', label: '15 минут' },
@@ -152,6 +190,30 @@ async function saveWorkHours() {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
               {{ copied ? 'Скопировано!' : 'Копировать' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Change password -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Смена пароля</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="label">Текущий пароль</label>
+              <input v-model="currentPassword" type="password" class="input" placeholder="Введите текущий пароль" autocomplete="current-password" />
+            </div>
+            <div>
+              <label class="label">Новый пароль</label>
+              <input v-model="newPassword" type="password" class="input" placeholder="Минимум 8 символов" autocomplete="new-password" />
+            </div>
+            <div>
+              <label class="label">Подтверждение нового пароля</label>
+              <input v-model="newPasswordConfirm" type="password" class="input" placeholder="Повторите новый пароль" autocomplete="new-password" />
+            </div>
+            <div v-if="passwordError" class="text-sm text-red-600 dark:text-red-400">{{ passwordError }}</div>
+            <div v-if="passwordSuccess" class="text-sm text-green-600 dark:text-green-400">Пароль успешно изменён!</div>
+            <button @click="savePassword" :disabled="savingPassword" class="btn-primary">
+              {{ savingPassword ? 'Сохранение...' : 'Сменить пароль' }}
             </button>
           </div>
         </div>

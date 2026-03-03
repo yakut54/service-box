@@ -152,6 +152,27 @@ class ApiClient {
     return this.request<{ token: string }>('/auth/refresh', { method: 'POST' })
   }
 
+  async changePassword(currentPassword: string, password: string, passwordConfirmation: string) {
+    return this.request<{ message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: currentPassword, password, password_confirmation: passwordConfirmation }),
+    })
+  }
+
+  async forgotPassword(email: string) {
+    return this.request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  }
+
+  async resetPassword(token: string, email: string, password: string, passwordConfirmation: string) {
+    return this.request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, email, password, password_confirmation: passwordConfirmation }),
+    })
+  }
+
   // ==========================================
   // SHOP
   // ==========================================

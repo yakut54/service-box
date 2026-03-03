@@ -62,10 +62,13 @@ async function handleSubmit() {
             <input id="password" v-model="password" type="password" class="input" placeholder="********" autocomplete="current-password" />
           </div>
 
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input v-model="remember" type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
-            <span class="text-sm text-gray-600 dark:text-gray-400">Запомнить меня</span>
-          </label>
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input v-model="remember" type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+              <span class="text-sm text-gray-600 dark:text-gray-400">Запомнить меня</span>
+            </label>
+            <RouterLink to="/forgot-password" class="text-sm text-primary-600 hover:text-primary-700">Забыли пароль?</RouterLink>
+          </div>
 
           <button type="submit" class="btn-primary w-full" :disabled="loading">
             {{ loading ? 'Вход...' : 'Войти' }}
