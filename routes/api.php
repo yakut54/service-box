@@ -81,6 +81,7 @@ Route::prefix('widget')->middleware('tenant')->group(function () {
     // Orders (widget can create orders)
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{order}', [OrderController::class, 'show']);
+    Route::post('/orders/{order}/payment', [PaymentController::class, 'createOrderPayment']);
 
     // Bookings (widget can create bookings)
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);

@@ -171,7 +171,18 @@ else
   docker compose -f docker-compose.prod.yml up -d --remove-orphans app web
 fi
 
-# ── 3.5. Restart nginx if config changed ─────────────────────────
+# ── 3.5. Update vendor volume if composer deps changed ───────────
+# Docker named volumes не обновляются при пересборке образа: vendor volume
+# инициализируется единожды при первом запуске. При изменении composer.json
+# нужно запустить composer install внутри контейнера чтобы обновить volume.
+if [ "$DOCKER_BUILD" = "true" ]; then
+  echo "    → running composer install inside container (vendor volume update)..."
+  sleep 3   # ждём пока контейнер поднимется
+  docker exec servicebox_app composer install --no-dev --no-interaction --no-scripts 2>&1 | tail -5 \
+    && echo "    composer install OK" || echo "    [warn] composer install failed"
+fi
+
+# ── 3.6. Restart nginx if config changed ─────────────────────────
 # Используем docker restart (не nginx -s reload): git заменяет файл новым инодом,
 # и bind mount внутри контейнера всё ещё указывает на старый — reload не помогает.
 if [ "$NGINX_RELOAD" = "true" ]; then
