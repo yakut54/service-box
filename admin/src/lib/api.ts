@@ -76,14 +76,14 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+      const error = await response.json().catch(() => ({ message: 'Неизвестная ошибка' }))
 
       if (response.status === 401 && this.token) {
         this.setToken(null)
         this.unauthorizedHandler?.()
       }
 
-      throw new ApiError(response.status, error.message || 'Request failed')
+      throw new ApiError(response.status, error.message || 'Ошибка запроса')
     }
 
     return response.json()

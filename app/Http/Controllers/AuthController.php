@@ -71,8 +71,7 @@ class AuthController extends Controller
             DB::rollBack();
 
             return response()->json([
-                'message' => 'Registration failed',
-                'error' => $e->getMessage(),
+                'message' => 'Ошибка регистрации. Попробуйте ещё раз',
             ], 500);
         }
     }
@@ -84,7 +83,7 @@ class AuthController extends Controller
     {
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'message' => 'Invalid credentials',
+                'message' => 'Неверный email или пароль',
             ], 401);
         }
 
@@ -93,7 +92,7 @@ class AuthController extends Controller
 
         if (!$shop) {
             return response()->json([
-                'message' => 'Shop not found for this user',
+                'message' => 'Магазин не найден',
             ], 404);
         }
 
@@ -214,17 +213,20 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // Не раскрываем информацию о существовании аккаунта
-        if ($user) {
-            $token    = Password::createToken($user);
-            $resetUrl = rtrim(config('app.frontend_url'), '/') . '/reset-password'
-                . '?token=' . $token
-                . '&email=' . urlencode($user->email);
-
-            Mail::to($user->email)->send(new ResetPasswordMail($resetUrl, $user->email));
+        if (!$user) {
+            return response()->json([
+                'message' => 'Аккаунт с таким email не найден',
+            ], 404);
         }
 
-        return response()->json(['message' => 'Если аккаунт с таким email существует, письмо отправлено']);
+        $token    = Password::createToken($user);
+        $resetUrl = rtrim(config('app.frontend_url'), '/') . '/reset-password'
+            . '?token=' . $token
+            . '&email=' . urlencode($user->email);
+
+        Mail::to($user->email)->send(new ResetPasswordMail($resetUrl, $user->email));
+
+        return response()->json(['message' => 'Письмо со ссылкой для сброса пароля отправлено']);
     }
 
     /**
@@ -246,7 +248,14 @@ class AuthController extends Controller
         );
 
         if ($status !== Password::PASSWORD_RESET) {
-            return response()->json(['message' => __($status)], 422);
+            $messages = [
+                Password::INVALID_TOKEN => 'Ссылка для сброса пароля недействительна или устарела',
+                Password::INVALID_USER  => 'Аккаунт с таким email не найден',
+                Password::RESET_THROTTLED => 'Слишком много попыток. Подождите немного',
+            ];
+            return response()->json([
+                'message' => $messages[$status] ?? 'Не удалось сбросить пароль',
+            ], 422);
         }
 
         return response()->json(['message' => 'Пароль успешно сброшен']);
