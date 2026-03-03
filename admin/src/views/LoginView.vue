@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -59,7 +60,7 @@ async function handleSubmit() {
 
           <div>
             <label for="password" class="label">Пароль</label>
-            <input id="password" v-model="password" type="password" class="input" placeholder="********" autocomplete="current-password" />
+            <PasswordInput id="password" v-model="password" placeholder="Введите пароль" autocomplete="current-password" />
           </div>
 
           <div class="flex items-center justify-between">

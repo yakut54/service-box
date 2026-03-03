@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import CustomSelect from '@/components/CustomSelect.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
 
 const router = useRouter()
@@ -94,12 +95,12 @@ async function handleSubmit() {
 
           <div>
             <label for="password" class="label">Пароль</label>
-            <input id="password" v-model="password" type="password" class="input" placeholder="Минимум 8 символов" autocomplete="new-password" />
+            <PasswordInput id="password" v-model="password" placeholder="Минимум 8 символов" autocomplete="new-password" with-generate @generate="v => passwordConfirm = v" />
           </div>
 
           <div>
             <label for="passwordConfirm" class="label">Повторите пароль</label>
-            <input id="passwordConfirm" v-model="passwordConfirm" type="password" class="input" placeholder="********" autocomplete="new-password" />
+            <PasswordInput id="passwordConfirm" v-model="passwordConfirm" placeholder="Повторите пароль" autocomplete="new-password" />
           </div>
 
           <button type="submit" class="btn-primary w-full" :disabled="loading">

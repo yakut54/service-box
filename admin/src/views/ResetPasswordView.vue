@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from '@/lib/api'
+import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
 const route  = useRoute()
@@ -77,12 +78,12 @@ async function handleSubmit() {
 
             <div>
               <label for="password" class="label">Новый пароль</label>
-              <input id="password" v-model="password" type="password" class="input" placeholder="Минимум 8 символов" autocomplete="new-password" />
+              <PasswordInput id="password" v-model="password" placeholder="Минимум 8 символов" autocomplete="new-password" with-generate @generate="v => passwordConfirm = v" />
             </div>
 
             <div>
               <label for="password-confirm" class="label">Подтверждение пароля</label>
-              <input id="password-confirm" v-model="passwordConfirm" type="password" class="input" placeholder="Повторите пароль" autocomplete="new-password" />
+              <PasswordInput id="password-confirm" v-model="passwordConfirm" placeholder="Повторите пароль" autocomplete="new-password" />
             </div>
 
             <button type="submit" class="btn-primary w-full" :disabled="loading">

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
 import TimeInput from '@/components/TimeInput.vue'
+import PasswordInput from '@/components/PasswordInput.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
 
 const authStore = useAuthStore()
@@ -200,15 +201,15 @@ async function saveWorkHours() {
           <div class="space-y-4">
             <div>
               <label class="label">Текущий пароль</label>
-              <input v-model="currentPassword" type="password" class="input" placeholder="Введите текущий пароль" autocomplete="current-password" />
+              <PasswordInput v-model="currentPassword" placeholder="Введите текущий пароль" autocomplete="current-password" />
             </div>
             <div>
               <label class="label">Новый пароль</label>
-              <input v-model="newPassword" type="password" class="input" placeholder="Минимум 8 символов" autocomplete="new-password" />
+              <PasswordInput v-model="newPassword" placeholder="Минимум 8 символов" autocomplete="new-password" with-generate @generate="v => newPasswordConfirm = v" />
             </div>
             <div>
               <label class="label">Подтверждение нового пароля</label>
-              <input v-model="newPasswordConfirm" type="password" class="input" placeholder="Повторите новый пароль" autocomplete="new-password" />
+              <PasswordInput v-model="newPasswordConfirm" placeholder="Повторите новый пароль" autocomplete="new-password" />
             </div>
             <div v-if="passwordError" class="text-sm text-red-600 dark:text-red-400">{{ passwordError }}</div>
             <div v-if="passwordSuccess" class="text-sm text-green-600 dark:text-green-400">Пароль успешно изменён!</div>
