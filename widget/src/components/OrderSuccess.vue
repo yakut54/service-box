@@ -4,6 +4,12 @@ import type { WidgetOrder } from '@/types'
 
 const props = defineProps<{ order: WidgetOrder | null }>()
 const emit = defineEmits<{ back: [] }>()
+
+function openPayment() {
+  if (props.order?.payment_url) {
+    window.open(props.order.payment_url, '_blank')
+  }
+}
 </script>
 
 <template>
@@ -28,11 +34,20 @@ const emit = defineEmits<{ back: [] }>()
       </div>
       <div class="sb-success-row">
         <span>Статус</span>
-        <span class="sb-badge sb-badge-warning">Ожидает оплаты</span>
+        <span v-if="order.payment_url" class="sb-badge sb-badge-warning">Ожидает оплаты</span>
+        <span v-else class="sb-badge sb-badge-success">Заказ принят</span>
       </div>
     </div>
 
-    <button class="sb-btn sb-btn-primary sb-btn-block sb-mt-4" @click="emit('back')">
+    <button
+      v-if="order?.payment_url"
+      class="sb-btn sb-btn-primary sb-btn-block sb-mt-4"
+      @click="openPayment"
+    >
+      Оплатить заказ
+    </button>
+
+    <button class="sb-btn sb-btn-secondary sb-btn-block sb-mt-2" @click="emit('back')">
       Вернуться в каталог
     </button>
   </div>

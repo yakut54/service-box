@@ -6,3 +6,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/kontakty', function () {
     return view('kontakty');
 });
+
+// Страница результата платежа — возврат после ЮКасса
+Route::get('/payment/result', function () {
+    return view('payment-result');
+});

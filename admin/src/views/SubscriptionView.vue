@@ -147,8 +147,12 @@ async function handlePay() {
       plan:          selectedPlan.value,
       period_months: selectedPeriod.value,
     })
-    // In real integration this would redirect to YooKassa payment page
-    success.value = `Заявка создана (ID: ${result.payment_id}). Интеграция с платёжной системой в разработке.`
+    // Редиректим на страницу оплаты ЮКасса
+    if (result.payment_url) {
+      window.location.href = result.payment_url
+    } else {
+      success.value = `Платёж создан (ID: ${result.payment_id}). Ожидаем подтверждения.`
+    }
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Ошибка создания платежа'
   } finally {
