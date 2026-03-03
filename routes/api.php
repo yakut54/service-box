@@ -27,6 +27,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Страница реквизитов (требуется для верификации платёжных систем)
+Route::get('/kontakty', function () {
+    return view('kontakty');
+});
+
 // Health Check
 Route::get('/health', function () {
     return response()->json([
