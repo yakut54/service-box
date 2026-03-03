@@ -171,10 +171,12 @@ else
   docker compose -f docker-compose.prod.yml up -d --remove-orphans app web
 fi
 
-# ── 3.5. Reload nginx if config changed ──────────────────────────
+# ── 3.5. Restart nginx if config changed ─────────────────────────
+# Используем docker restart (не nginx -s reload): git заменяет файл новым инодом,
+# и bind mount внутри контейнера всё ещё указывает на старый — reload не помогает.
 if [ "$NGINX_RELOAD" = "true" ]; then
-  echo "    → nginx.conf changed, reloading..."
-  docker exec servicebox_web nginx -s reload && echo "    nginx reloaded OK" || echo "    [warn] nginx reload failed"
+  echo "    → nginx.conf changed, restarting web container..."
+  docker restart servicebox_web && echo "    nginx restarted OK" || echo "    [warn] nginx restart failed"
 fi
 
 # ── 4. Post-build cleanup ────────────────────────────────────────
