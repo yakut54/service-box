@@ -228,10 +228,11 @@ const statusTab = ref<'orders' | 'bookings'>('orders')
 const statusBreakdown = computed(() => {
   const total = stats.value.total_orders || 1
   return [
-    { key: 'pending',   label: 'Ожидают',   color: 'bg-yellow-400', count: stats.value.pending_orders   || 0 },
-    { key: 'paid',      label: 'Оплачены',  color: 'bg-blue-500',   count: stats.value.paid_orders      || 0 },
-    { key: 'completed', label: 'Завершены', color: 'bg-green-500',  count: stats.value.completed_orders || 0 },
-    { key: 'cancelled', label: 'Отменены',  color: 'bg-red-400',    count: stats.value.cancelled_orders || 0 },
+    { key: 'pending',    label: 'Ожидают',   color: 'bg-yellow-400',  count: stats.value.pending_orders    || 0 },
+    { key: 'paid',       label: 'Оплачены',  color: 'bg-emerald-500', count: stats.value.paid_orders       || 0 },
+    { key: 'processing', label: 'В работе',  color: 'bg-blue-500',    count: stats.value.processing_orders || 0 },
+    { key: 'completed',  label: 'Завершены', color: 'bg-violet-500',  count: stats.value.completed_orders  || 0 },
+    { key: 'cancelled',  label: 'Отменены',  color: 'bg-red-400',     count: stats.value.cancelled_orders  || 0 },
   ].map(s => ({ ...s, pct: Math.round((s.count / total) * 100) }))
 })
 

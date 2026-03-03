@@ -289,6 +289,7 @@ class OrderController extends Controller
             'total_revenue'      => $revenue,
             'pending_orders'     => (clone $baseQuery)->where('status', 'pending')->count(),
             'paid_orders'        => (clone $baseQuery)->where('status', 'paid')->count(),
+            'processing_orders'  => (clone $baseQuery)->where('status', 'processing')->count(),
             'completed_orders'   => (clone $baseQuery)->where('status', 'completed')->count(),
             'cancelled_orders'   => (clone $baseQuery)->where('status', 'cancelled')->count(),
             'average_order_value'=> (clone $baseQuery)->where('status', '!=', 'cancelled')->avg('total_price'),
