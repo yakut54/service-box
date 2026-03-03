@@ -49,11 +49,12 @@ ADMIN_NPM=false     # run npm ci for admin
 WIDGET_BUILD=false  # rebuild widget/dist
 WIDGET_NPM=false    # run npm ci for widget
 DOCKER_BUILD=false  # rebuild Docker image (composer deps changed)
+NGINX_RELOAD=false  # reload nginx config inside web container
 
 if [ "$CHANGED" = "ALL" ]; then
   ADMIN_BUILD=true; ADMIN_NPM=true
   WIDGET_BUILD=true; WIDGET_NPM=true
-  DOCKER_BUILD=true
+  DOCKER_BUILD=true; NGINX_RELOAD=true
 else
   # Admin: build if any admin/ file changed
   if echo "$CHANGED" | grep -qE '^admin/'; then
@@ -72,6 +73,11 @@ else
   # (PHP source files are bind-mounted so they update without rebuild)
   if echo "$CHANGED" | grep -qE '^(composer\.(json|lock)|Dockerfile)$'; then
     DOCKER_BUILD=true
+  fi
+
+  # nginx.conf changed → need to reload nginx
+  if echo "$CHANGED" | grep -q '^nginx\.conf'; then
+    NGINX_RELOAD=true
   fi
 
   # deploy.sh changed → full rebuild to be safe
@@ -163,6 +169,12 @@ if [ "$DOCKER_BUILD" = "true" ]; then
 else
   echo "    → restarting containers (no image rebuild)"
   docker compose -f docker-compose.prod.yml up -d --remove-orphans app web
+fi
+
+# ── 3.5. Reload nginx if config changed ──────────────────────────
+if [ "$NGINX_RELOAD" = "true" ]; then
+  echo "    → nginx.conf changed, reloading..."
+  docker exec servicebox_web nginx -s reload && echo "    nginx reloaded OK" || echo "    [warn] nginx reload failed"
 fi
 
 # ── 4. Post-build cleanup ────────────────────────────────────────
