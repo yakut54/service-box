@@ -56,6 +56,8 @@ async function save() {
     saving.value = false
   }
 }
+
+onMounted(load)
 </script>
 
 <template>
