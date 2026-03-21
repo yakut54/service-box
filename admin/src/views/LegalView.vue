@@ -175,6 +175,7 @@ function copyUrl(type: string, key: string) {
               v-model="requisites"
               class="input"
               rows="5"
+              style="min-height: 400px"
               placeholder="ИП Иванов Иван Иванович&#10;ИНН: 123456789012&#10;ОГРНИП: 312143500000000&#10;Адрес: 677000, Якутск, ул. Ленина, д. 1"
             />
           </div>
