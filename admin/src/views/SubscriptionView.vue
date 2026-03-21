@@ -342,6 +342,13 @@ onMounted(load)
               </p>
             </div>
 
+            <div class="text-right">
+              <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">
+                Нажимая «Оплатить», вы соглашаетесь с
+                <a href="/offer" target="_blank" rel="noopener" class="text-primary-500 hover:underline">офертой</a>
+                и
+                <a href="/privacy" target="_blank" rel="noopener" class="text-primary-500 hover:underline">политикой конфиденциальности</a>
+              </p>
             <button
               @click="handlePay"
               :disabled="paying"
@@ -356,6 +363,7 @@ onMounted(load)
               </svg>
               {{ paying ? 'Обработка...' : isCurrentPlan ? 'Продлить' : 'Перейти на ' + selectedPlanData.name }}
             </button>
+            </div>
           </div>
         </div>
       </div>

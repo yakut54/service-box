@@ -17,11 +17,16 @@ const passwordConfirm = ref('')
 const timezone = ref('Europe/Moscow')
 const loading = ref(false)
 const error = ref('')
-
+const termsAccepted = ref(false)
 
 async function handleSubmit() {
   if (!name.value || !shopName.value || !email.value || !password.value) {
     error.value = 'Заполните все поля'
+    return
+  }
+
+  if (!termsAccepted.value) {
+    error.value = 'Необходимо принять условия оферты и политику конфиденциальности'
     return
   }
 
@@ -102,6 +107,20 @@ async function handleSubmit() {
             <label for="passwordConfirm" class="label">Повторите пароль</label>
             <PasswordInput id="passwordConfirm" v-model="passwordConfirm" placeholder="Повторите пароль" autocomplete="new-password" />
           </div>
+
+          <label class="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              v-model="termsAccepted"
+              class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0"
+            />
+            <span class="text-sm text-gray-600 dark:text-gray-400 leading-snug">
+              Я ознакомился и принимаю условия
+              <a href="/offer" target="_blank" rel="noopener" class="text-primary-600 hover:text-primary-700 font-medium">публичной оферты</a>
+              и
+              <a href="/privacy" target="_blank" rel="noopener" class="text-primary-600 hover:text-primary-700 font-medium">политики конфиденциальности</a>
+            </span>
+          </label>
 
           <button type="submit" class="btn-primary w-full" :disabled="loading">
             {{ loading ? 'Создание...' : 'Создать магазин' }}

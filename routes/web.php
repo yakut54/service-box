@@ -13,6 +13,10 @@ Route::get('/payment/result', function () {
     return view('payment-result');
 });
 
+// Платформенные юридические документы (от имени ИП — для шоперов/пользователей платформы)
+Route::get('/offer',   fn() => view('platform.offer'))->name('platform.offer');
+Route::get('/privacy', fn() => view('platform.privacy'))->name('platform.privacy');
+
 // Юридические документы магазина (server-rendered, SEO-friendly, print-friendly)
 Route::get('/legal/{apiKey}/{type}', [LegalController::class, 'show'])
     ->name('legal.document')

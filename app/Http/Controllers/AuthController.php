@@ -28,9 +28,11 @@ class AuthController extends Controller
             DB::beginTransaction();
 
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
+                'name'               => $request->name,
+                'email'              => $request->email,
+                'password'           => Hash::make($request->password),
+                'terms_accepted_at'  => now(),
+                'terms_accepted_ip'  => $request->ip(),
             ]);
 
             $schemaName = 'shop_' . strtolower(Str::random(12));
