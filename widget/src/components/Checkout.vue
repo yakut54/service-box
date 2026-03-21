@@ -23,9 +23,7 @@ const consentOffer   = ref(false)
 const consentPrivacy = ref(false)
 
 // ── Модал юридического документа ─────────────────────────────
-const legalModal = ref({ open: false, url: '' })
-function openLegal(url: string) { legalModal.value = { open: true, url } }
-function closeLegal()           { legalModal.value = { open: false, url: '' } }
+function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferrer') }
 
 const form = ref({
   name:  '',
@@ -574,23 +572,7 @@ async function handleSubmit() {
       </div>
     </form>
 
-    <!-- Модал юридического документа -->
-    <div v-if="legalModal.open" class="sb-legal-overlay" @click.self="closeLegal">
-      <div class="sb-legal-modal">
-        <div class="sb-legal-modal-header">
-          <span>Документ</span>
-          <button type="button" class="sb-legal-modal-close" @click="closeLegal" aria-label="Закрыть">✕</button>
-        </div>
-        <div class="sb-legal-modal-body">
-          <iframe :src="legalModal.url" loading="lazy" title="Юридический документ" />
-        </div>
-        <div class="sb-legal-modal-footer">
-          <a :href="legalModal.url" target="_blank" rel="noopener" class="sb-consent-link">
-            Открыть в новой вкладке ↗
-          </a>
-          <button type="button" class="sb-btn sb-btn-primary" @click="closeLegal">Закрыть</button>
-        </div>
-      </div>
+    <!-- (legal modal removed — links open in new tab via window.open) -->
     </div>
 
     <!-- Mobile sticky footer (outside form — type="button" is required) -->
