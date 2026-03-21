@@ -22,7 +22,7 @@ const PLANS = [
   {
     id: 'micro',
     name: 'Micro',
-    priceMonth: 500,
+    priceMonth: 1500,
     color: 'gray',
     description: 'Для старта',
     features: [
@@ -35,7 +35,7 @@ const PLANS = [
   {
     id: 'start',
     name: 'Start',
-    priceMonth: 1000,
+    priceMonth: 3000,
     color: 'primary',
     description: 'Для малого бизнеса',
     features: [
@@ -49,7 +49,7 @@ const PLANS = [
   {
     id: 'business',
     name: 'Business',
-    priceMonth: 1500,
+    priceMonth: 4500,
     color: 'indigo',
     description: 'Для растущего бизнеса',
     features: [
@@ -65,7 +65,7 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    priceMonth: 3000,
+    priceMonth: 9000,
     color: 'purple',
     description: 'Максимум возможностей',
     features: [

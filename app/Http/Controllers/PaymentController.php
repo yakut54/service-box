@@ -279,10 +279,10 @@ class PaymentController extends Controller
     private function getPlanPrice(string $plan): int
     {
         return match($plan) {
-            'micro'    => 50000,
-            'start'    => 100000,
-            'business' => 150000,
-            'pro'      => 300000,
+            'micro'    => 150000,
+            'start'    => 300000,
+            'business' => 450000,
+            'pro'      => 900000,
             default    => 0,
         };
     }
