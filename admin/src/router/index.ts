@@ -114,6 +114,11 @@ const router = createRouter({
           component: () => import('@/views/SubscriptionView.vue'),
         },
         {
+          path: 'legal',
+          name: 'legal',
+          component: () => import('@/views/LegalView.vue'),
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),

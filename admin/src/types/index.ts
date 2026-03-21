@@ -19,6 +19,17 @@ export interface WidgetConfig {
   show_categories?: boolean
 }
 
+export interface LegalConfig {
+  public_offer_text?: string | null
+  privacy_policy_text?: string | null
+  personal_data_consent_text?: string | null
+  marketing_consent_text?: string | null
+  requisites?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  legal_updated_at?: string | null
+}
+
 export interface Shop {
   id: string
   name: string
@@ -33,6 +44,7 @@ export interface Shop {
   subscription_plan: string | null
   subscription_expires_at: string | null
   widget_config: WidgetConfig | null
+  legal_config: LegalConfig | null
   work_start: string | null
   work_end: string | null
   slot_duration: number | null
