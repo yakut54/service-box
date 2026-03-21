@@ -244,21 +244,6 @@ async function handleLogout() {
           Выйти
         </button>
 
-        <!-- Platform legal links -->
-        <div class="flex flex-wrap gap-x-3 gap-y-1 px-1 pt-1">
-          <a href="/offer" target="_blank" rel="noopener"
-             class="text-xs text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
-            Оферта
-          </a>
-          <a href="/privacy" target="_blank" rel="noopener"
-             class="text-xs text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
-            Конфиденциальность
-          </a>
-          <a href="/kontakty" target="_blank" rel="noopener"
-             class="text-xs text-gray-400 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">
-            Контакты
-          </a>
-        </div>
       </div>
     </aside>
 
