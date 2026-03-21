@@ -14,18 +14,18 @@ class SuperadminRevenueController extends Controller
     {
         $pricing = PlanPricing::allAsMap(); // ['micro' => 150000, ...]
 
-        // Shops by plan
+        // Shops by plan (avoid reserved word 'count' as alias)
         $byPlan = Shop::query()
-            ->select('plan', DB::raw('count(*) as count'))
-            ->whereNotNull('plan')
-            ->groupBy('plan')
-            ->pluck('count', 'plan')
+            ->select('subscription_plan as plan', DB::raw('count(*) as shop_count'))
+            ->whereNotNull('subscription_plan')
+            ->groupBy('subscription_plan')
+            ->pluck('shop_count', 'plan')
             ->toArray();
 
         // MRR: sum of price_kopecks per active plan
         $mrrKopecks = 0;
-        foreach ($byPlan as $plan => $count) {
-            $mrrKopecks += ($pricing[$plan] ?? 0) * $count;
+        foreach ($byPlan as $plan => $cnt) {
+            $mrrKopecks += ($pricing[$plan] ?? 0) * $cnt;
         }
 
         // Total shops
@@ -34,20 +34,19 @@ class SuperadminRevenueController extends Controller
         // New shops last 30 days
         $newShops30d = Shop::where('created_at', '>=', now()->subDays(30))->count();
 
-        // Recent payments (from platform subscriptions)
-        $recentPayments = DB::table('payments')
-            ->join('shops', 'payments.shop_id', '=', 'shops.id')
+        // Recent payments from subscription_payments table
+        $recentPayments = DB::table('subscription_payments')
+            ->join('shops', 'subscription_payments.shop_id', '=', 'shops.id')
             ->select(
-                'payments.id',
-                'payments.amount_kopecks',
-                'payments.status',
-                'payments.created_at',
+                'subscription_payments.id',
+                DB::raw('subscription_payments.amount * 100 as amount_kopecks'),
+                'subscription_payments.status',
+                'subscription_payments.created_at',
                 'shops.name as shop_name',
-                'shops.plan'
+                'subscription_payments.plan as plan'
             )
-            ->where('payments.type', 'subscription')
-            ->where('payments.status', 'succeeded')
-            ->orderByDesc('payments.created_at')
+            ->where('subscription_payments.status', 'succeeded')
+            ->orderByDesc('subscription_payments.created_at')
             ->limit(20)
             ->get();
 
