@@ -16,4 +16,5 @@ Route::get('/payment/result', function () {
 // Юридические документы магазина (server-rendered, SEO-friendly, print-friendly)
 Route::get('/legal/{apiKey}/{type}', [LegalController::class, 'show'])
     ->name('legal.document')
+    ->whereUuid('apiKey')
     ->where('type', 'offer|privacy|personal-data|marketing');
