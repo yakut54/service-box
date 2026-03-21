@@ -105,6 +105,46 @@ onMounted(() => {
   }
 })
 
+// ── YooKassa ──────────────────────────────────────────────────
+const yookassaShopId    = ref('')
+const yookassaSecretKey = ref('')
+const savingYookassa    = ref(false)
+const yookassaSuccess   = ref(false)
+const yookassaError     = ref('')
+
+onMounted(() => {
+  yookassaShopId.value = authStore.shop?.yookassa_shop_id || ''
+})
+
+async function saveYookassa() {
+  if (!yookassaShopId.value) {
+    yookassaError.value = 'Укажите Shop ID'
+    return
+  }
+  savingYookassa.value = true
+  yookassaError.value  = ''
+  yookassaSuccess.value = false
+  try {
+    const payload: Record<string, string | null> = {
+      yookassa_shop_id: yookassaShopId.value,
+    }
+    if (yookassaSecretKey.value) {
+      payload.yookassa_secret_key = yookassaSecretKey.value
+    }
+    const updated = await api.updateShop(payload)
+    if (authStore.shop) {
+      authStore.shop.yookassa_shop_id = updated.yookassa_shop_id ?? yookassaShopId.value
+    }
+    yookassaSecretKey.value = ''
+    yookassaSuccess.value = true
+    setTimeout(() => yookassaSuccess.value = false, 3000)
+  } catch (e: unknown) {
+    yookassaError.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+  } finally {
+    savingYookassa.value = false
+  }
+}
+
 async function saveWorkHours() {
   if (workStart.value >= workEnd.value) {
     hoursError.value = 'Время начала должно быть раньше времени окончания'
@@ -301,21 +341,37 @@ async function saveWorkHours() {
 
         <!-- Payment settings -->
         <div class="card">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Платёжная система</h2>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">ЮКасса — приём оплаты</h2>
+
+          <div v-if="authStore.shop?.yookassa_shop_id" class="mb-4 flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <svg class="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm text-green-700 dark:text-green-400">Подключено · Shop ID: <span class="font-mono font-medium">{{ authStore.shop.yookassa_shop_id }}</span></span>
+          </div>
+
           <div class="space-y-4">
             <div>
-              <label class="label">Провайдер</label>
-              <CustomSelect
-                  model-value="yookassa"
-                  :options="[{ value: 'yookassa', label: 'YooKassa' }]"
-                  disabled
-              />
+              <label class="label">Shop ID <span class="text-gray-400 font-normal">(из личного кабинета ЮКасса)</span></label>
+              <input v-model="yookassaShopId" type="text" class="input font-mono" placeholder="123456" />
             </div>
-            <div v-if="authStore.shop?.yookassa_shop_id">
-              <label class="label">Shop ID</label>
-              <input type="text" :value="authStore.shop.yookassa_shop_id" class="input" disabled />
+            <div>
+              <label class="label">Секретный ключ <span class="text-gray-400 font-normal">(оставьте пустым чтобы не менять)</span></label>
+              <PasswordInput v-model="yookassaSecretKey" placeholder="live_xxxxxxxxxxxxxxxxxxxx" />
             </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Для изменения платёжных настроек обратитесь в поддержку.</p>
+
+            <div v-if="yookassaError" class="text-sm text-red-600">{{ yookassaError }}</div>
+            <div v-if="yookassaSuccess" class="text-sm text-green-600">Сохранено!</div>
+
+            <button @click="saveYookassa" :disabled="savingYookassa" class="btn-primary">
+              {{ savingYookassa ? 'Сохранение...' : 'Сохранить' }}
+            </button>
+
+            <p class="text-xs text-gray-400 dark:text-gray-500">
+              Настройки из раздела «Интеграции → API» в
+              <a href="https://yookassa.ru/my" target="_blank" rel="noopener" class="text-primary-500 hover:underline">личном кабинете ЮКасса</a>.
+              Секретный ключ нужен для приёма платежей в виджете магазина.
+            </p>
           </div>
         </div>
 

@@ -100,7 +100,7 @@
             '<h1>Оплата прошла успешно!</h1>' +
             '<p>Ваш заказ оплачен. Ожидайте подтверждения.</p>' +
             (orderId ? '<div class="order-id">Заказ <span>#' + orderId.slice(0, 8) + '</span></div>' : '') +
-            '<button class="btn" onclick="window.close()">Закрыть</button>' +
+            '<a class="btn" href="javascript:history.back()">← Вернуться</a>' +
             '<p class="note">Вы можете закрыть эту страницу и вернуться в магазин.</p>';
     } else {
         // Вернулись после оплаты — статус ещё неизвестен (webhook придёт позже)
@@ -111,7 +111,7 @@
             '<h1>Обрабатываем платёж</h1>' +
             '<p>Платёж принят. Статус заказа обновится в течение нескольких минут.</p>' +
             '<div class="order-id">Заказ <span>#' + orderId.slice(0, 8) + '</span></div>' +
-            '<button class="btn" onclick="window.close()">Закрыть</button>' +
+            '<a class="btn" href="javascript:history.back()">← Вернуться</a>' +
             '<p class="note">Если оплата прошла, вы получите уведомление.</p>';
     }
 })();
