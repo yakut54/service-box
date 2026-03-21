@@ -123,6 +123,25 @@ const router = createRouter({
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
         },
+        // Superadmin routes
+        {
+          path: 'superadmin/shops',
+          name: 'superadmin-shops',
+          component: () => import('@/views/superadmin/ShopsView.vue'),
+          meta: { requiresSuperadmin: true },
+        },
+        {
+          path: 'superadmin/revenue',
+          name: 'superadmin-revenue',
+          component: () => import('@/views/superadmin/RevenueView.vue'),
+          meta: { requiresSuperadmin: true },
+        },
+        {
+          path: 'superadmin/pricing',
+          name: 'superadmin-pricing',
+          component: () => import('@/views/superadmin/PricingView.vue'),
+          meta: { requiresSuperadmin: true },
+        },
       ],
     },
     {
@@ -145,6 +164,8 @@ router.beforeEach(async (to, _from, next) => {
   if (requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
+    next({ name: 'dashboard' })
+  } else if (to.meta.requiresSuperadmin && !authStore.user?.is_superadmin) {
     next({ name: 'dashboard' })
   } else {
     next()

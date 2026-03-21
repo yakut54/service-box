@@ -12,6 +12,9 @@ import type {
   SubscriptionPayment,
   TelegramStatus,
   PaginatedResponse,
+  SuperadminShop,
+  SuperadminRevenue,
+  SuperadminPricing,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -477,6 +480,41 @@ class ApiClient {
   async deleteReview(id: string) {
     return this.request<{ message: string }>(`/admin/reviews/${id}`, {
       method: 'DELETE',
+    })
+  }
+
+  // ==========================================
+  // SUPERADMIN
+  // ==========================================
+
+  async superadminGetShops(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ data: SuperadminShop[]; total: number; per_page: number; current_page: number }>(`/superadmin/shops${query}`)
+  }
+
+  async superadminGetShop(id: string) {
+    return this.request<SuperadminShop>(`/superadmin/shops/${id}`)
+  }
+
+  async superadminUpdatePlan(id: string, data: { plan: string; subscription_ends_at?: string | null }) {
+    return this.request<{ message: string; shop: SuperadminShop }>(`/superadmin/shops/${id}/plan`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async superadminGetRevenue() {
+    return this.request<SuperadminRevenue>('/superadmin/revenue')
+  }
+
+  async superadminGetPricing() {
+    return this.request<Record<string, SuperadminPricing>>('/superadmin/pricing')
+  }
+
+  async superadminUpdatePricing(items: Array<{ plan: string; price_kopecks: number }>) {
+    return this.request<{ message: string }>('/superadmin/pricing', {
+      method: 'PUT',
+      body: JSON.stringify(items),
     })
   }
 }

@@ -6,7 +6,44 @@ export interface User {
   id: string
   name: string
   email: string
+  is_superadmin: boolean
   created_at: string
+}
+
+// ==========================================
+// SUPERADMIN
+// ==========================================
+
+export interface SuperadminShop {
+  id: string
+  name: string
+  domain: string | null
+  plan: string | null
+  subscription_ends_at: string | null
+  created_at: string
+  user?: { id: string; name: string; email: string; created_at: string } | null
+}
+
+export interface SuperadminRevenue {
+  mrr_kopecks: number
+  mrr_rubles: number
+  total_shops: number
+  new_shops_30d: number
+  shops_by_plan: Record<string, number>
+  recent_payments: Array<{
+    id: string
+    amount_kopecks: number
+    status: string
+    created_at: string
+    shop_name: string
+    plan: string
+  }>
+}
+
+export interface SuperadminPricing {
+  plan: string
+  price_kopecks: number
+  price_rubles: number
 }
 
 export interface WidgetConfig {
