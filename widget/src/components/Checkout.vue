@@ -18,6 +18,15 @@ const loading  = ref(false)
 const error    = ref('')
 const formRef  = ref<HTMLFormElement | null>(null)
 
+// ── Согласия ──────────────────────────────────────────────────
+const consentOffer   = ref(false)
+const consentPrivacy = ref(false)
+
+// ── Модал юридического документа ─────────────────────────────
+const legalModal = ref({ open: false, url: '' })
+function openLegal(url: string) { legalModal.value = { open: true, url } }
+function closeLegal()           { legalModal.value = { open: false, url: '' } }
+
 const form = ref({
   name:  '',
   phone: '',   // phone before email — RU market convention
@@ -144,6 +153,12 @@ function validate(): boolean {
     else if (!isPostalCodeValid(address.value.postal_code))  e['address.postal_code'] = 'Индекс — 6 цифр'
   }
 
+  const legal = shopStore.shop?.legal
+  if (legal?.has_docs) {
+    if (!consentOffer.value)   e.consentOffer   = 'Необходимо принять условия оферты'
+    if (!consentPrivacy.value) e.consentPrivacy = 'Необходимо дать согласие на обработку данных'
+  }
+
   errors.value = e
   return Object.keys(e).length === 0
 }
@@ -178,8 +193,10 @@ async function handleSubmit() {
       email: form.value.email.trim() || null,
       phone: '+' + cleanPhone(form.value.phone),
     },
-    notes:         notes.value.trim() || null,
-    discount_code: cartStore.discount?.code ?? null,
+    notes:                   notes.value.trim() || null,
+    discount_code:           cartStore.discount?.code ?? null,
+    consent_offer_accepted:  consentOffer.value,
+    consent_privacy_accepted: consentPrivacy.value,
   }
 
   if (hasPhysical.value) {
@@ -515,6 +532,35 @@ async function handleSubmit() {
             <span class="sb-price-lg">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
           </div>
 
+          <!-- Согласия (если у шопа есть юридические документы) -->
+          <div v-if="shopStore.shop?.legal?.has_docs" class="sb-consent-block sb-mt-4">
+            <label
+              class="sb-consent-label"
+              :class="{ 'sb-consent-label-error': errors.consentOffer }"
+            >
+              <input type="checkbox" v-model="consentOffer" class="sb-consent-check" />
+              <span>
+                Принимаю условия
+                <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.offer_url)">Публичной оферты</button>
+                и
+                <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.privacy_url)">Политики конфиденциальности</button>
+              </span>
+            </label>
+            <p v-if="errors.consentOffer" class="sb-error-text" role="alert">{{ errors.consentOffer }}</p>
+
+            <label
+              class="sb-consent-label sb-mt-2"
+              :class="{ 'sb-consent-label-error': errors.consentPrivacy }"
+            >
+              <input type="checkbox" v-model="consentPrivacy" class="sb-consent-check" />
+              <span>
+                Согласен на обработку
+                <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.personal_data_url)">персональных данных</button>
+              </span>
+            </label>
+            <p v-if="errors.consentPrivacy" class="sb-error-text" role="alert">{{ errors.consentPrivacy }}</p>
+          </div>
+
           <!-- Desktop submit (inside form → Enter key works) -->
           <button
             type="submit"
@@ -527,6 +573,25 @@ async function handleSubmit() {
 
       </div>
     </form>
+
+    <!-- Модал юридического документа -->
+    <div v-if="legalModal.open" class="sb-legal-overlay" @click.self="closeLegal">
+      <div class="sb-legal-modal">
+        <div class="sb-legal-modal-header">
+          <span>Документ</span>
+          <button type="button" class="sb-legal-modal-close" @click="closeLegal" aria-label="Закрыть">✕</button>
+        </div>
+        <div class="sb-legal-modal-body">
+          <iframe :src="legalModal.url" loading="lazy" title="Юридический документ" />
+        </div>
+        <div class="sb-legal-modal-footer">
+          <a :href="legalModal.url" target="_blank" rel="noopener" class="sb-consent-link">
+            Открыть в новой вкладке ↗
+          </a>
+          <button type="button" class="sb-btn sb-btn-primary" @click="closeLegal">Закрыть</button>
+        </div>
+      </div>
+    </div>
 
     <!-- Mobile sticky footer (outside form — type="button" is required) -->
     <div class="sb-co-footer">

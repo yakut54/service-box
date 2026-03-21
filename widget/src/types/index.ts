@@ -12,11 +12,21 @@ export interface WidgetConfig {
   show_categories?: boolean
 }
 
+export interface WidgetLegal {
+  has_docs: boolean
+  offer_url: string
+  privacy_url: string
+  personal_data_url: string
+  contact_email: string | null
+  contact_phone: string | null
+}
+
 export interface WidgetShop {
   id: string
   name: string
   widget_config: WidgetConfig | null
   timezone: string | null
+  legal: WidgetLegal | null
 }
 
 // ==========================================

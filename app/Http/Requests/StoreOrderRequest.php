@@ -30,8 +30,10 @@ class StoreOrderRequest extends FormRequest
             'shipping_address.postal_code' => 'required_with:shipping_address|string|max:10',
             'shipping_address.comment' => 'nullable|string|max:500',
 
-            'notes'          => 'nullable|string|max:1000',
-            'discount_code'  => 'nullable|string|max:50',
+            'notes'                    => 'nullable|string|max:1000',
+            'discount_code'            => 'nullable|string|max:50',
+            'consent_offer_accepted'   => 'nullable|boolean',
+            'consent_privacy_accepted' => 'nullable|boolean',
         ];
     }
 

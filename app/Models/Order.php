@@ -27,15 +27,23 @@ class Order extends Model
         'shipping_address',
         'notes',
         'paid_at',
+        'consent_offer_accepted',
+        'consent_privacy_accepted',
+        'consent_accepted_at',
+        'consent_ip',
+        'consent_ua',
     ];
 
     protected $casts = [
-        'total_price'     => 'integer',
-        'discount_amount' => 'integer',
-        'shipping_address' => 'array',
-        'created_at'      => 'datetime',
-        'updated_at'      => 'datetime',
-        'paid_at'         => 'datetime',
+        'total_price'              => 'integer',
+        'discount_amount'          => 'integer',
+        'shipping_address'         => 'array',
+        'consent_offer_accepted'   => 'boolean',
+        'consent_privacy_accepted' => 'boolean',
+        'created_at'               => 'datetime',
+        'updated_at'               => 'datetime',
+        'paid_at'                  => 'datetime',
+        'consent_accepted_at'      => 'datetime',
     ];
 
     public function customer()
