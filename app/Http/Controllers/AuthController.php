@@ -121,6 +121,7 @@ class AuthController extends Controller
                 'timezone' => $shop->timezone,
                 'telegram_bot_connected' => $shop->telegram_bot_connected,
                 'yookassa_shop_id' => $shop->yookassa_shop_id,
+                'legal_config' => $shop->legal_config,
             ],
             'token' => $token,
         ]);
@@ -166,6 +167,7 @@ class AuthController extends Controller
                 'timezone' => $shop->timezone,
                 'telegram_bot_connected' => $shop->telegram_bot_connected,
                 'yookassa_shop_id' => $shop->yookassa_shop_id,
+                'legal_config' => $shop->legal_config,
             ],
         ]);
     }
