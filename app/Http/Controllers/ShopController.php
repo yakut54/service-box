@@ -37,11 +37,21 @@ class ShopController extends Controller
             ], 404);
         }
 
+        $cfg = $shop->legal_config ?? [];
+
         return response()->json([
-            'id' => $shop->id,
-            'name' => $shop->name,
+            'id'            => $shop->id,
+            'name'          => $shop->name,
             'widget_config' => $shop->widget_config,
-            'timezone' => $shop->timezone,
+            'timezone'      => $shop->timezone,
+            'legal'         => [
+                'has_docs'          => $shop->hasLegalDocs(),
+                'offer_url'         => route('legal.document', [$shop->api_key, 'offer']),
+                'privacy_url'       => route('legal.document', [$shop->api_key, 'privacy']),
+                'personal_data_url' => route('legal.document', [$shop->api_key, 'personal-data']),
+                'contact_email'     => $cfg['contact_email'] ?? null,
+                'contact_phone'     => $cfg['contact_phone'] ?? null,
+            ],
         ]);
     }
 
@@ -94,7 +104,23 @@ class ShopController extends Controller
             'work_end'          => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'slot_duration'     => 'sometimes|integer|in:10,15,20,30,45,60',
             'timezone'          => 'sometimes|string|timezone',
+            // Юридические документы
+            'legal_config'                                  => 'sometimes|array',
+            'legal_config.public_offer_text'                => 'nullable|string|max:50000',
+            'legal_config.privacy_policy_text'              => 'nullable|string|max:50000',
+            'legal_config.personal_data_consent_text'       => 'nullable|string|max:20000',
+            'legal_config.marketing_consent_text'           => 'nullable|string|max:10000',
+            'legal_config.requisites'                       => 'nullable|string|max:5000',
+            'legal_config.contact_email'                    => 'nullable|email|max:255',
+            'legal_config.contact_phone'                    => 'nullable|string|max:30',
         ]);
+
+        // Мержим legal_config с существующими данными — не затираем незатронутые поля
+        if (isset($validated['legal_config'])) {
+            $existing = $shop->legal_config ?? [];
+            $validated['legal_config'] = array_merge($existing, $validated['legal_config']);
+            $validated['legal_config']['legal_updated_at'] = now()->toISOString();
+        }
 
         $shop->update($validated);
 

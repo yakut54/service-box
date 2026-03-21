@@ -30,6 +30,7 @@ class Shop extends Model
         'subscription_plan',
         'subscription_expires_at',
         'widget_config',
+        'legal_config',
         'work_start',
         'work_end',
         'slot_duration',
@@ -40,6 +41,7 @@ class Shop extends Model
         'telegram_bot_connected' => 'boolean',
         'subscription_expires_at' => 'datetime',
         'widget_config' => 'array',
+        'legal_config' => 'array',
         'slot_duration' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -163,6 +165,12 @@ class Shop extends Model
     {
         $limits = $this->getPlanLimits();
         return in_array($feature, $limits['features']) || in_array('all_features', $limits['features']);
+    }
+
+    public function hasLegalDocs(): bool
+    {
+        $cfg = $this->legal_config ?? [];
+        return !empty($cfg['public_offer_text']) || !empty($cfg['privacy_policy_text']);
     }
 
     public function getPlanPrice(): int
