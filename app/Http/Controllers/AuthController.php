@@ -107,6 +107,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'is_superadmin' => (bool) $user->is_superadmin,
             ],
             'shop' => [
                 'id' => $shop->id,
@@ -152,6 +153,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'is_superadmin' => (bool) $user->is_superadmin,
             ],
             'shop' => [
                 'id' => $shop->id,
