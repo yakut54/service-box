@@ -572,9 +572,6 @@ async function handleSubmit() {
       </div>
     </form>
 
-    <!-- (legal modal removed — links open in new tab via window.open) -->
-    </div>
-
     <!-- Mobile sticky footer (outside form — type="button" is required) -->
     <div class="sb-co-footer">
       <div class="sb-co-footer-price">
