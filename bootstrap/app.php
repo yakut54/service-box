@@ -26,7 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify.yookassa' => \App\Http\Middleware\VerifyYooKassaWebhook::class,
             'enforce.https' => \App\Http\Middleware\EnforceHttps::class,
             'rate.phone' => \App\Http\Middleware\RateLimitPhoneLookup::class,
-            'verify.phone' => \App\Http\Middleware\VerifyPhoneToken::class,
+            'verify.phone'   => \App\Http\Middleware\VerifyPhoneToken::class,
+            'superadmin'     => \App\Http\Middleware\RequireSuperadmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

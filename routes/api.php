@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Superadmin\SuperadminShopController;
+use App\Http\Controllers\Superadmin\SuperadminPricingController;
+use App\Http\Controllers\Superadmin\SuperadminRevenueController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ProductController;
@@ -182,4 +185,22 @@ Route::prefix('webhook')->group(function () {
         ->middleware('verify.yookassa');
     Route::post('/telegram', [TelegramController::class, 'webhook'])
         ->middleware('verify.telegram');
+});
+
+
+// ============================================================================
+// SUPERADMIN (platform owner only)
+// ============================================================================
+Route::prefix('superadmin')->middleware(['auth:sanctum', 'superadmin'])->group(function () {
+    // Shops
+    Route::get('/shops',              [SuperadminShopController::class, 'index']);
+    Route::get('/shops/{id}',         [SuperadminShopController::class, 'show']);
+    Route::patch('/shops/{id}/plan',  [SuperadminShopController::class, 'updatePlan']);
+
+    // Revenue
+    Route::get('/revenue',            [SuperadminRevenueController::class, 'index']);
+
+    // Pricing
+    Route::get('/pricing',            [SuperadminPricingController::class, 'index']);
+    Route::put('/pricing',            [SuperadminPricingController::class, 'update']);
 });

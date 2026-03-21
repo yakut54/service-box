@@ -18,6 +18,7 @@ class User extends Authenticatable
         'password',
         'terms_accepted_at',
         'terms_accepted_ip',
+        'is_superadmin',
     ];
 
     protected $hidden = [
@@ -31,6 +32,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'terms_accepted_at' => 'datetime',
+            'is_superadmin'     => 'boolean',
         ];
     }
 
