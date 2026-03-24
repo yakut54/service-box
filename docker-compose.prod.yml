@@ -73,6 +73,7 @@ services:
       WEBHOOK_URL: https://n8n.yakut54.ru/
       GENERIC_TIMEZONE: Europe/Moscow
       N8N_LOG_LEVEL: info
+      N8N_RUNNERS_ENABLED: "true"
     volumes:
       - n8n_data:/home/node/.n8n
 
