@@ -9,6 +9,29 @@ import { timezoneOptions } from '@/shared/lib/timezones'
 
 const authStore = useAuthStore()
 
+// ── Shop name ─────────────────────────────────────────────────
+const shopName = ref('')
+const savingName = ref(false)
+const nameSuccess = ref(false)
+const nameError = ref('')
+
+async function saveShopName() {
+  if (!shopName.value.trim()) { nameError.value = 'Название не может быть пустым'; return }
+  savingName.value = true
+  nameError.value = ''
+  nameSuccess.value = false
+  try {
+    const updated = await api.updateShop({ name: shopName.value.trim() })
+    if (authStore.shop) authStore.shop.name = updated.name
+    nameSuccess.value = true
+    setTimeout(() => nameSuccess.value = false, 3000)
+  } catch (e: unknown) {
+    nameError.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+  } finally {
+    savingName.value = false
+  }
+}
+
 const widgetCode = computed(() => {
   const apiKey = authStore.shop?.api_key || 'YOUR_API_KEY'
   return `<script src="https://cdn.servicebox.ru/widget.js" data-shop-id="${apiKey}"><\/script>`
@@ -103,6 +126,7 @@ const slotOptions = [
 
 onMounted(() => {
   if (authStore.shop) {
+    shopName.value = authStore.shop.name || ''
     workStart.value = authStore.shop.work_start || '09:00'
     workEnd.value = authStore.shop.work_end || '20:00'
     slotDuration.value = String(authStore.shop.slot_duration || 30)
@@ -197,7 +221,13 @@ async function saveWorkHours() {
           <div class="space-y-4">
             <div>
               <label class="label">Название магазина</label>
-              <input type="text" :value="authStore.shop?.name" class="input" disabled />
+              <div class="flex gap-2">
+                <input v-model="shopName" type="text" class="input flex-1" placeholder="Название магазина" />
+                <button @click="saveShopName" :disabled="savingName" class="btn-primary whitespace-nowrap">
+                  {{ savingName ? 'Сохраняем…' : nameSuccess ? 'Сохранено!' : 'Сохранить' }}
+                </button>
+              </div>
+              <p v-if="nameError" class="text-red-500 text-xs mt-1">{{ nameError }}</p>
             </div>
             <div>
               <label class="label">API ключ</label>
