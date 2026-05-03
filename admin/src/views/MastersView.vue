@@ -7,7 +7,7 @@ import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/us
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { UiModal, UiConfirmDialog, UiEmptyState, UiSpinner } from '@/shared/ui'
-import type { Master } from '@/types'
+import type { Master, Product } from '@/types'
 
 const route = useRoute()
 
@@ -34,6 +34,35 @@ const emptyForm = () => ({
 })
 
 const form = ref(emptyForm())
+
+// ── Services (master ↔ service assignment) ───────────────────
+const allServices = ref<Product[]>([])
+const selectedServiceIds = ref<string[]>([])
+const servicesLoading = ref(false)
+
+const servicesByCategory = computed(() => {
+  const map = new Map<string, Product[]>()
+  for (const s of allServices.value) {
+    const cat = s.category?.name ?? 'Без категории'
+    if (!map.has(cat)) map.set(cat, [])
+    map.get(cat)!.push(s)
+  }
+  return map
+})
+
+function toggleService(id: string) {
+  const idx = selectedServiceIds.value.indexOf(id)
+  if (idx === -1) selectedServiceIds.value.push(id)
+  else selectedServiceIds.value.splice(idx, 1)
+}
+
+async function loadAllServices() {
+  if (allServices.value.length) return
+  try {
+    const res = await api.getProducts({ type: 'service', per_page: '100' })
+    allServices.value = res.data
+  } catch { /* ignore */ }
+}
 
 // ── Live validation ──────────────────────────────────────────
 const formErrors = reactive({ name: '', phone: '', email: '' })
@@ -114,17 +143,19 @@ onMounted(async () => {
 })
 
 // ── Open modal ───────────────────────────────────────────────
-function openCreate() {
+async function openCreate() {
   modalMode.value = 'create'
   form.value = { ...emptyForm(), sort_order: masters.value.length + 1 }
   editingId.value = null
   modalError.value = ''
   avatarUploadError.value = ''
+  selectedServiceIds.value = []
   resetErrors()
   showModal.value = true
+  loadAllServices()
 }
 
-function openEdit(master: Master) {
+async function openEdit(master: Master) {
   modalMode.value = 'edit'
   editingId.value = master.id
   form.value = {
@@ -138,8 +169,17 @@ function openEdit(master: Master) {
   }
   modalError.value = ''
   avatarUploadError.value = ''
+  selectedServiceIds.value = []
   resetErrors()
   showModal.value = true
+  servicesLoading.value = true
+  await loadAllServices()
+  try {
+    const res = await api.getMasterServices(master.id)
+    selectedServiceIds.value = res.data
+  } catch { /* ignore */ } finally {
+    servicesLoading.value = false
+  }
 }
 
 // ── Save ─────────────────────────────────────────────────────
@@ -154,16 +194,21 @@ async function save() {
 
   try {
     const payload = { ...form.value }
+    let savedId: string
 
     if (modalMode.value === 'create') {
       const res = await api.createMaster(payload)
       masters.value.unshift(res.data)
+      savedId = res.data.id
     } else {
       const res = await api.updateMaster(editingId.value!, payload)
       const idx = masters.value.findIndex(m => m.id === editingId.value)
       if (idx !== -1) masters.value[idx] = res.data
       sortMasters()
+      savedId = editingId.value!
     }
+
+    await api.updateMasterServices(savedId, selectedServiceIds.value)
 
     showModal.value = false
   } catch (e: unknown) {
@@ -518,6 +563,47 @@ function clearAvatar() {
           <div>
             <label class="label">Порядок сортировки</label>
             <input v-model.number="form.sort_order" type="number" min="0" class="input" placeholder="0" />
+          </div>
+
+          <!-- Services -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="label mb-0">Услуги мастера</label>
+              <span class="text-xs text-gray-400 dark:text-gray-500">
+                {{ selectedServiceIds.length ? `${selectedServiceIds.length} выбрано` : 'все (не ограничено)' }}
+              </span>
+            </div>
+            <div v-if="servicesLoading" class="flex items-center gap-2 text-sm text-gray-400 py-2">
+              <div class="animate-spin w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+              Загрузка...
+            </div>
+            <div v-else-if="allServices.length === 0" class="text-sm text-gray-400 italic py-1">
+              Нет услуг в магазине
+            </div>
+            <div v-else class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+              <template v-for="[cat, services] in servicesByCategory" :key="cat">
+                <div class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800/60 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-200 dark:border-gray-700">
+                  {{ cat }}
+                </div>
+                <label
+                  v-for="svc in services"
+                  :key="svc.id"
+                  class="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 border-b border-gray-100 dark:border-gray-700/50 last:border-0"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="selectedServiceIds.includes(svc.id)"
+                    @change="toggleService(svc.id)"
+                    class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer flex-shrink-0"
+                  />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ svc.name }}</span>
+                  <span class="ml-auto text-xs text-gray-400">{{ (svc.price / 100).toLocaleString('ru-RU') }} ₽</span>
+                </label>
+              </template>
+            </div>
+            <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              Если ничего не выбрано — мастер появится для всех услуг
+            </p>
           </div>
 
           <div class="flex items-center justify-between py-2">

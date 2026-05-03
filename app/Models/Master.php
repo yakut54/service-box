@@ -34,9 +34,26 @@ class Master extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function services()
+    {
+        return $this->belongsToMany(Product::class, 'master_services', 'master_id', 'product_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * Masters with no services assigned can perform any service (backward compat).
+     * Masters with services assigned can only perform their listed services.
+     */
+    public function scopeCanPerform($query, string $productId)
+    {
+        return $query->where(function ($q) use ($productId) {
+            $q->whereDoesntHave('services')
+              ->orWhereHas('services', fn ($s) => $s->where('id', $productId));
+        });
     }
 
     public function isAvailableAt($startTime, $endTime, ?string $excludeBookingId = null): bool

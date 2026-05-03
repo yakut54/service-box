@@ -81,7 +81,7 @@ class BookingController extends Controller
 
             if (!$masterId) {
                 // Автовыбор мастера внутри транзакции с блокировкой строк
-                $masters = Master::active()->get();
+                $masters = Master::active()->canPerform($service->id)->get();
                 foreach ($masters as $master) {
                     // lockForUpdate предотвращает race condition
                     $conflict = Booking::whereNotIn('status', ['cancelled', 'no_show'])
@@ -200,7 +200,7 @@ class BookingController extends Controller
         $date = Carbon::parse($request->date);
         $duration = $service->service->duration_minutes;
 
-        $mastersQuery = Master::active();
+        $mastersQuery = Master::active()->canPerform($service->id);
         if ($request->filled('master_id')) {
             $mastersQuery->where('id', $request->master_id);
         }

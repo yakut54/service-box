@@ -154,6 +154,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
 
     // Masters
     Route::apiResource('masters', MasterController::class);
+    Route::get('/masters/{master}/services',  [MasterController::class, 'getServices']);
+    Route::put('/masters/{master}/services',  [MasterController::class, 'syncServices']);
 
     // Discounts
     Route::apiResource('discounts', DiscountController::class)->only(['index', 'store', 'show', 'destroy']);

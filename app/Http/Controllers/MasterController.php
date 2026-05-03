@@ -52,9 +52,40 @@ class MasterController extends Controller
      */
     public function show(string $master): JsonResponse
     {
-        $master = Master::findOrFail($master);
+        $master = Master::with('services:id,name,category_id')->findOrFail($master);
 
         return response()->json(['data' => $master]);
+    }
+
+    /**
+     * GET /api/admin/masters/{master}/services
+     */
+    public function getServices(string $master): JsonResponse
+    {
+        $master = Master::with('services:id,name,category_id')->findOrFail($master);
+
+        return response()->json([
+            'data' => $master->services->pluck('id'),
+        ]);
+    }
+
+    /**
+     * PUT /api/admin/masters/{master}/services
+     */
+    public function syncServices(Request $request, string $master): JsonResponse
+    {
+        $master = Master::findOrFail($master);
+
+        $data = $request->validate([
+            'service_ids'   => 'present|array',
+            'service_ids.*' => 'uuid',
+        ]);
+
+        $master->services()->sync($data['service_ids']);
+
+        return response()->json([
+            'data' => $master->services()->pluck('id'),
+        ]);
     }
 
     /**

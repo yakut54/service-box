@@ -2,12 +2,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
-import type { Master, Booking } from '@/types'
+import type { Master, Booking, Product } from '@/types'
 
 const route = useRoute()
 
 const master = ref<Master | null>(null)
 const bookings = ref<Booking[]>([])
+const masterServices = ref<Product[]>([])
 const loading = ref(true)
 
 function formatDate(dateStr: string | null) {
@@ -49,12 +50,18 @@ function initials(name: string) {
 onMounted(async () => {
   const id = route.params.id as string
   try {
-    const [masterRes, bookingsRes] = await Promise.all([
+    const [masterRes, bookingsRes, servicesRes, allProductsRes] = await Promise.all([
       api.getMaster(id),
       api.getBookings({ master_id: id, per_page: '200' }),
+      api.getMasterServices(id),
+      api.getProducts({ type: 'service', per_page: '100' }),
     ])
     master.value = masterRes.data
     bookings.value = bookingsRes.data
+    const ids = new Set(servicesRes.data)
+    masterServices.value = ids.size > 0
+      ? allProductsRes.data.filter((p: Product) => ids.has(p.id))
+      : []
   } catch { /* not found */ }
   loading.value = false
 })
@@ -143,6 +150,23 @@ onMounted(async () => {
         <div class="card">
           <div class="text-sm text-gray-500 dark:text-gray-400">Предстоит</div>
           <div class="text-3xl font-bold text-primary-600 mt-1">{{ upcomingCount }}</div>
+        </div>
+      </div>
+
+      <!-- Services -->
+      <div class="card mb-6">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Услуги мастера</h3>
+        <div v-if="masterServices.length === 0" class="text-sm text-gray-400 dark:text-gray-500 italic">
+          Не ограничено — выполняет все услуги
+        </div>
+        <div v-else class="flex flex-wrap gap-2">
+          <span
+            v-for="svc in masterServices"
+            :key="svc.id"
+            class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border border-primary-200 dark:border-primary-800"
+          >
+            {{ svc.name }}
+          </span>
         </div>
       </div>
 

@@ -352,6 +352,17 @@ class ApiClient {
     return this.request<{ data: Master[] }>('/admin/bookings/masters')
   }
 
+  async getMasterServices(id: string) {
+    return this.request<{ data: string[] }>(`/admin/masters/${id}/services`)
+  }
+
+  async updateMasterServices(id: string, serviceIds: string[]) {
+    return this.request<{ data: string[] }>(`/admin/masters/${id}/services`, {
+      method: 'PUT',
+      body: JSON.stringify({ service_ids: serviceIds }),
+    })
+  }
+
   // ==========================================
   // DISCOUNTS
   // ==========================================
