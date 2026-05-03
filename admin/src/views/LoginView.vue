@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import PasswordInput from '@/components/PasswordInput.vue'
+import AppInput from '@/components/AppInput.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,11 +15,16 @@ const remember = ref(true)
 const loading  = ref(false)
 const error    = ref('')
 
+const emailTouched = ref(false)
+const emailError = computed(() => {
+  if (!emailTouched.value) return ''
+  if (!email.value) return 'Введите email'
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value) ? '' : 'Некорректный email'
+})
+
 async function handleSubmit() {
-  if (!email.value || !password.value) {
-    error.value = 'Заполните все поля'
-    return
-  }
+  emailTouched.value = true
+  if (emailError.value || !email.value || !password.value) return
 
   loading.value = true
   error.value = ''
@@ -53,15 +59,9 @@ async function handleSubmit() {
             {{ error }}
           </div>
 
-          <div>
-            <label for="email" class="label">Email</label>
-            <input id="email" v-model="email" type="email" class="input" placeholder="your@email.com" autocomplete="email" />
-          </div>
+          <AppInput label="Email" v-model="email" type="email" placeholder="your@email.com" autocomplete="email" :error="emailError" @blur="emailTouched = true" />
 
-          <div>
-            <label for="password" class="label">Пароль</label>
-            <PasswordInput id="password" v-model="password" placeholder="Введите пароль" autocomplete="current-password" />
-          </div>
+          <PasswordInput label="Пароль" v-model="password" placeholder="Введите пароль" autocomplete="current-password" />
 
           <div class="flex items-center justify-between">
             <label class="flex items-center gap-2 cursor-pointer select-none">

@@ -17,6 +17,18 @@ export default defineConfig({
         target: 'https://yakut54.ru',
         changeOrigin: true,
       },
+      '/offer': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/privacy': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/legal': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   }
 })

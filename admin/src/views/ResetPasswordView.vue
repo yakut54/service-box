@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from '@/lib/api'
 import PasswordInput from '@/components/PasswordInput.vue'
@@ -15,19 +15,24 @@ const loading  = ref(false)
 const success  = ref(false)
 const error    = ref('')
 
+const passwordTouched = ref(false)
+const confirmTouched  = ref(false)
+
+const passwordLengthError = computed(() => {
+  if (!passwordTouched.value || !password.value) return ''
+  return password.value.length >= 8 ? '' : 'Минимум 8 символов'
+})
+
+const confirmStatus = computed((): 'error' | 'success' | undefined => {
+  if (!confirmTouched.value || !passwordConfirm.value) return undefined
+  return passwordConfirm.value === password.value ? 'success' : 'error'
+})
+
 async function handleSubmit() {
-  if (!password.value || !passwordConfirm.value) {
-    error.value = 'Заполните все поля'
-    return
-  }
-  if (password.value !== passwordConfirm.value) {
-    error.value = 'Пароли не совпадают'
-    return
-  }
-  if (password.value.length < 8) {
-    error.value = 'Минимальная длина пароля — 8 символов'
-    return
-  }
+  passwordTouched.value = true
+  confirmTouched.value  = true
+  if (passwordLengthError.value || !password.value || !passwordConfirm.value) return
+  if (password.value !== passwordConfirm.value) return
   if (!token || !email) {
     error.value = 'Недействительная ссылка для сброса пароля'
     return
@@ -77,13 +82,14 @@ async function handleSubmit() {
             </div>
 
             <div>
-              <label for="password" class="label">Новый пароль</label>
-              <PasswordInput id="password" v-model="password" placeholder="Минимум 8 символов" autocomplete="new-password" with-generate @generate="v => passwordConfirm = v" />
+              <PasswordInput label="Новый пароль" v-model="password" placeholder="Минимум 8 символов" autocomplete="new-password" with-generate @generate="v => { passwordConfirm = v; confirmTouched = true }" @blur="passwordTouched = true" />
+              <p v-if="passwordLengthError" class="mt-1 text-sm text-red-500">{{ passwordLengthError }}</p>
             </div>
 
             <div>
-              <label for="password-confirm" class="label">Подтверждение пароля</label>
-              <PasswordInput id="password-confirm" v-model="passwordConfirm" placeholder="Повторите пароль" autocomplete="new-password" />
+              <PasswordInput label="Подтверждение пароля" v-model="passwordConfirm" placeholder="Повторите пароль" autocomplete="new-password" :status="confirmStatus" @blur="confirmTouched = true" />
+              <p v-if="confirmStatus === 'error'"   class="mt-1 text-sm text-red-500">Пароли не совпадают</p>
+              <p v-if="confirmStatus === 'success'" class="mt-1 text-sm text-green-600">Пароли совпадают</p>
             </div>
 
             <button type="submit" class="btn-primary w-full" :disabled="loading">

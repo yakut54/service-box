@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
+import AppInput from '@/components/AppInput.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
 
 const router = useRouter()
@@ -19,24 +20,53 @@ const loading = ref(false)
 const error = ref('')
 const termsAccepted = ref(false)
 
+// ── Touched flags ─────────────────────────────────────────────
+const nameTouched         = ref(false)
+const shopNameTouched     = ref(false)
+const emailTouched        = ref(false)
+const passwordTouched     = ref(false)
+const confirmTouched      = ref(false)
+
+// ── Field errors ──────────────────────────────────────────────
+const nameError = computed(() => {
+  if (!nameTouched.value) return ''
+  return name.value.trim() ? '' : 'Введите ваше имя'
+})
+
+const shopNameError = computed(() => {
+  if (!shopNameTouched.value) return ''
+  return shopName.value.trim() ? '' : 'Введите название магазина'
+})
+
+const emailError = computed(() => {
+  if (!emailTouched.value) return ''
+  if (!email.value) return 'Введите email'
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value) ? '' : 'Некорректный email'
+})
+
+const passwordLengthError = computed(() => {
+  if (!passwordTouched.value || !password.value) return ''
+  return password.value.length >= 8 ? '' : 'Минимум 8 символов'
+})
+
+const confirmStatus = computed((): 'error' | 'success' | undefined => {
+  if (!confirmTouched.value || !passwordConfirm.value) return undefined
+  return passwordConfirm.value === password.value ? 'success' : 'error'
+})
+
 async function handleSubmit() {
-  if (!name.value || !shopName.value || !email.value || !password.value) {
-    error.value = 'Заполните все поля'
-    return
-  }
+  nameTouched.value     = true
+  shopNameTouched.value = true
+  emailTouched.value    = true
+  passwordTouched.value = true
+  confirmTouched.value  = true
+
+  if (nameError.value || shopNameError.value || emailError.value || passwordLengthError.value) return
+  if (!password.value || !passwordConfirm.value) return
+  if (password.value !== passwordConfirm.value) return
 
   if (!termsAccepted.value) {
     error.value = 'Необходимо принять условия оферты и политику конфиденциальности'
-    return
-  }
-
-  if (password.value.length < 8) {
-    error.value = 'Пароль должен быть не менее 8 символов'
-    return
-  }
-
-  if (password.value !== passwordConfirm.value) {
-    error.value = 'Пароли не совпадают'
     return
   }
 
@@ -78,34 +108,26 @@ async function handleSubmit() {
             {{ error }}
           </div>
 
-          <div>
-            <label for="name" class="label">Ваше имя</label>
-            <input id="name" v-model="name" type="text" class="input" placeholder="Иван Петров" />
-          </div>
+          <AppInput label="Ваше имя" v-model="name" placeholder="Иван Петров" autocomplete="name" :error="nameError" @blur="nameTouched = true" />
 
-          <div>
-            <label for="shopName" class="label">Название магазина</label>
-            <input id="shopName" v-model="shopName" type="text" class="input" placeholder="Мой магазин" />
-          </div>
+          <AppInput label="Название магазина" v-model="shopName" placeholder="Мой магазин" :error="shopNameError" @blur="shopNameTouched = true" />
 
           <div>
             <label class="label">Часовой пояс</label>
             <CustomSelect v-model="timezone" :options="timezoneOptions" searchable class="w-full" />
           </div>
 
+          <AppInput label="Email" v-model="email" type="email" placeholder="your@email.com" autocomplete="email" :error="emailError" @blur="emailTouched = true" />
+
           <div>
-            <label for="email" class="label">Email</label>
-            <input id="email" v-model="email" type="email" class="input" placeholder="your@email.com" autocomplete="email" />
+            <PasswordInput label="Пароль" v-model="password" placeholder="Минимум 8 символов" autocomplete="new-password" with-generate @generate="v => { passwordConfirm = v; confirmTouched = true }" @blur="passwordTouched = true" />
+            <p v-if="passwordLengthError" class="mt-1 text-sm text-red-500">{{ passwordLengthError }}</p>
           </div>
 
           <div>
-            <label for="password" class="label">Пароль</label>
-            <PasswordInput id="password" v-model="password" placeholder="Минимум 8 символов" autocomplete="new-password" with-generate @generate="v => passwordConfirm = v" />
-          </div>
-
-          <div>
-            <label for="passwordConfirm" class="label">Повторите пароль</label>
-            <PasswordInput id="passwordConfirm" v-model="passwordConfirm" placeholder="Повторите пароль" autocomplete="new-password" />
+            <PasswordInput label="Повторите пароль" v-model="passwordConfirm" placeholder="Повторите пароль" autocomplete="new-password" :status="confirmStatus" @blur="confirmTouched = true" />
+            <p v-if="confirmStatus === 'error'"   class="mt-1 text-sm text-red-500">Пароли не совпадают</p>
+            <p v-if="confirmStatus === 'success'" class="mt-1 text-sm text-green-600">Пароли совпадают</p>
           </div>
 
           <label class="flex items-start gap-3 cursor-pointer select-none">
