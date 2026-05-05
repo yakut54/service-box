@@ -120,20 +120,23 @@ class OrderController extends Controller
             return [$order, $cartItems];
         });
 
-        // Apply discount (promo code takes priority; fallback to auto-apply)
+        // Apply discount: best amount wins between promo code and auto-apply
         $discount       = null;
         $discountAmount = 0;
 
+        $promoDiscount = null;
+        $promoAmount   = 0;
+
         if ($request->filled('discount_code')) {
             try {
-                $result         = $this->discountService->validate(
+                $result        = $this->discountService->validate(
                     $request->discount_code,
                     $order->total_price,
                     $request->input('customer.phone'),
                     $cartItems,
                 );
-                $discount       = $result['discount'];
-                $discountAmount = $result['amount'];
+                $promoDiscount = $result['discount'];
+                $promoAmount   = $result['amount'];
             } catch (\Illuminate\Validation\ValidationException $e) {
                 return response()->json([
                     'message' => $e->errors()['discount_code'][0] ?? 'Промокод недействителен',
@@ -142,15 +145,22 @@ class OrderController extends Controller
             }
         }
 
-        if (!$discount) {
-            $discount = $this->discountService->findAutoApply(
-                $order->total_price,
-                $request->input('customer.phone'),
-                $cartItems,
-            );
-            if ($discount) {
-                $discountAmount = $this->discountService->calculate($discount, $order->total_price);
-            }
+        $autoDiscount = $this->discountService->findAutoApply(
+            $order->total_price,
+            $request->input('customer.phone'),
+            $cartItems,
+        );
+        $autoAmount = $autoDiscount
+            ? $this->discountService->calculate($autoDiscount, $order->total_price, $cartItems)
+            : 0;
+
+        // Best discount wins; promo code wins on tie (user made an explicit choice)
+        if ($promoDiscount && $promoAmount >= $autoAmount) {
+            $discount       = $promoDiscount;
+            $discountAmount = $promoAmount;
+        } elseif ($autoDiscount && $autoAmount > $promoAmount) {
+            $discount       = $autoDiscount;
+            $discountAmount = $autoAmount;
         }
 
         if ($discount && $discountAmount > 0) {

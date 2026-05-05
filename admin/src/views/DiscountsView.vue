@@ -72,6 +72,7 @@ const emptyForm = () => ({
   max_discount_amount: '',
   usage_limit:        '',
   per_user_limit:     1,
+  priority:           0,
   is_active:          true,
   starts_at:          '',
   ends_at:            '',
@@ -173,6 +174,7 @@ function openEdit(d: Discount) {
     max_discount_amount: d.max_discount_amount !== null ? String(d.max_discount_amount / 100) : '',
     usage_limit:        d.usage_limit !== null ? String(d.usage_limit) : '',
     per_user_limit:     d.per_user_limit,
+    priority:           d.priority ?? 0,
     is_active:          d.is_active,
     starts_at:          d.starts_at ? d.starts_at.slice(0, 10) : '',
     ends_at:            d.ends_at   ? d.ends_at.slice(0, 10)   : '',
@@ -199,6 +201,7 @@ function buildPayload() {
                           : null,
     usage_limit:        f.usage_limit !== '' ? Number(f.usage_limit) : null,
     per_user_limit:     Number(f.per_user_limit),
+    priority:           Number(f.priority),
     is_active:          f.is_active,
     starts_at:          f.starts_at || null,
     ends_at:            f.ends_at   || null,
@@ -500,6 +503,12 @@ async function doDelete() {
             <input v-model.number="form.per_user_limit" type="number" min="0" class="input" placeholder="1" />
             <p class="text-xs text-gray-400 mt-1">0 = без ограничений</p>
           </div>
+        </div>
+
+        <div>
+          <label class="label">Приоритет</label>
+          <input v-model.number="form.priority" type="number" min="0" class="input" placeholder="0" />
+          <p class="text-xs text-gray-400 mt-1">Чем выше — тем важнее. При равной корзине побеждает скидка с бо́льшим приоритетом.</p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">

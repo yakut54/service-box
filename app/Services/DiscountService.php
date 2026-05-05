@@ -47,12 +47,19 @@ class DiscountService
         $discounts = Discount::active()
             ->whereNull('code')
             ->where('min_order_amount', '<=', $cartAmount)
+            ->orderByDesc('priority')
             ->get();
 
-        $best       = null;
-        $bestAmount = 0;
+        $best         = null;
+        $bestAmount   = 0;
+        $bestPriority = null;
 
         foreach ($discounts as $discount) {
+            // Once we have a winner at a given priority tier, stop checking lower tiers
+            if ($bestPriority !== null && $discount->priority < $bestPriority) {
+                break;
+            }
+
             try {
                 $this->assertUsable($discount, $cartAmount, $customerPhone, $cartItems);
             } catch (ValidationException) {
@@ -61,8 +68,9 @@ class DiscountService
 
             $amount = $this->calculate($discount, $cartAmount, $cartItems);
             if ($amount > $bestAmount) {
-                $bestAmount = $amount;
-                $best       = $discount;
+                $bestAmount   = $amount;
+                $best         = $discount;
+                $bestPriority = $discount->priority;
             }
         }
 

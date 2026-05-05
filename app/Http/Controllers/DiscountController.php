@@ -44,6 +44,7 @@ class DiscountController extends Controller
             'max_discount_amount' => 'nullable|integer|min:1',
             'usage_limit'         => 'nullable|integer|min:1',
             'per_user_limit'      => 'nullable|integer|min:0',
+            'priority'            => 'nullable|integer|min:0',
             'is_active'           => 'boolean',
             'starts_at'           => 'nullable|date',
             'ends_at'             => 'nullable|date|after_or_equal:starts_at',
@@ -93,7 +94,8 @@ class DiscountController extends Controller
             'per_user_limit'      => 'nullable|integer|min:0',
             'is_active'           => 'boolean',
             'starts_at'           => 'nullable|date',
-            'ends_at'             => 'nullable|date',
+            'ends_at'             => 'nullable|date|after_or_equal:starts_at',
+            'priority'            => 'nullable|integer|min:0',
         ]);
 
         if (!empty($data['code'])) {
@@ -191,6 +193,7 @@ class DiscountController extends Controller
             'usage_limit'         => $d->usage_limit,
             'usage_count'         => $d->usage_count,
             'per_user_limit'      => $d->per_user_limit,
+            'priority'            => $d->priority ?? 0,
             'is_active'           => $d->is_active,
             'starts_at'           => $d->starts_at?->toIso8601String(),
             'ends_at'             => $d->ends_at?->toIso8601String(),

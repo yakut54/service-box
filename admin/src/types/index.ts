@@ -347,6 +347,7 @@ export interface Discount {
   usage_limit: number | null
   usage_count: number
   per_user_limit: number
+  priority: number
   is_active: boolean
   starts_at: string | null
   ends_at: string | null
