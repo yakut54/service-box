@@ -4016,3 +4016,38 @@
   opacity: 0.8;
 }
 
+/* ============================================================
+   Legal footer
+   ============================================================ */
+.sb-legal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 8px;
+  padding: 16px;
+  margin-top: auto;
+}
+
+.sb-legal-footer-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--sb-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  line-height: 1.4;
+}
+
+.sb-legal-footer-link:hover {
+  color: var(--sb-text);
+}
+
+.sb-legal-footer-sep {
+  font-size: 11px;
+  color: var(--sb-border);
+  user-select: none;
+}
+

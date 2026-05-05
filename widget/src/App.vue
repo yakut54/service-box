@@ -161,6 +161,10 @@ function handleCategoriesLoaded(cats: Array<{ id: string; name: string }>) {
   sidebarCategories.value = cats
 }
 
+function openLegal(url: string) {
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
 function selectSidebarCategory(catId: string) {
   activeSidebarCategory.value = catId === activeSidebarCategory.value ? '' : catId
   currentView.value = 'catalog'
@@ -407,6 +411,18 @@ function selectSidebarCategory(catId: string) {
             </div>
 
           </div><!-- /sb-main-inner -->
+
+          <!-- Legal footer (visible on all pages except checkout) -->
+          <footer
+            v-if="shopStore.shop?.legal?.has_docs && mainView !== 'checkout'"
+            class="sb-legal-footer"
+          >
+            <button type="button" class="sb-legal-footer-link" @click="openLegal(shopStore.shop.legal.offer_url)">Публичная оферта</button>
+            <span class="sb-legal-footer-sep">·</span>
+            <button type="button" class="sb-legal-footer-link" @click="openLegal(shopStore.shop.legal.privacy_url)">Политика конфиденциальности</button>
+            <span class="sb-legal-footer-sep">·</span>
+            <button type="button" class="sb-legal-footer-link" @click="openLegal(shopStore.shop.legal.personal_data_url)">Персональные данные</button>
+          </footer>
 
           <!-- Checkout renders directly in sb-main (no padding wrapper) -->
           <Checkout
