@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
-import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 
 const authStore = useAuthStore()
 

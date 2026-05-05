@@ -19,7 +19,7 @@ class MasterController extends Controller
             $query->where('is_active', filter_var($request->active, FILTER_VALIDATE_BOOLEAN));
         }
 
-        $masters = $query->orderBy('sort_order')->orderBy('name')->get();
+        $masters = $query->with('services:id,name')->orderBy('sort_order')->orderBy('name')->get();
 
         return response()->json([
             'data' => $masters,

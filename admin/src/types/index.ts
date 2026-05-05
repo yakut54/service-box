@@ -268,6 +268,7 @@ export interface Master {
   sort_order: number
   created_at: string
   service_ids?: string[]
+  services?: { id: string; name: string }[]
 }
 
 // ==========================================

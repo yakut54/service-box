@@ -390,8 +390,21 @@ function clearAvatar() {
                 :to="`/masters/${master.id}`"
                 class="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block"
             >{{ master.name }}</RouterLink>
-            <div v-if="master.specialization" class="text-sm text-gray-500 dark:text-gray-400 truncate">
-              {{ master.specialization }}
+            <div class="flex flex-wrap gap-1 mt-1">
+              <template v-if="master.services && master.services.length > 0">
+                <span
+                  v-for="svc in master.services.slice(0, 2)"
+                  :key="svc.id"
+                  class="inline-block text-xs px-1.5 py-0.5 rounded bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                >{{ svc.name }}</span>
+                <span
+                  v-if="master.services.length > 2"
+                  class="inline-block text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                >ещё {{ master.services.length - 2 }}</span>
+              </template>
+              <span v-else class="inline-block text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500">
+                Все услуги
+              </span>
             </div>
           </div>
 
