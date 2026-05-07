@@ -18,10 +18,10 @@
     .items th.right { text-align: right; padding-right: 0; }
     .items td { padding: 10px 8px 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
     .items td.right { text-align: right; white-space: nowrap; padding-right: 0; }
-    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
-    .badge-physical { background: #f0fdf4; color: #16a34a; }
-    .badge-digital  { background: #eff6ff; color: #2563eb; }
-    .badge-service  { background: #faf5ff; color: #7c3aed; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+    .badge-physical { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-digital  { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+    .badge-service  { background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
     .summary { width: 100%; border-collapse: collapse; margin-top: 4px; }
     .summary td { padding: 5px 0; font-size: 14px; color: #6b7280; }
     .summary td.right { text-align: right; white-space: nowrap; }
