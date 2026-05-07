@@ -62,17 +62,24 @@ class SuperadminShopController extends Controller
         $shop = Shop::findOrFail($id);
 
         $data = $request->validate([
-            'plan' => ['required', Rule::in(['micro', 'start', 'business', 'pro'])],
+            'plan'                 => ['required', Rule::in(['micro', 'start', 'business', 'pro'])],
+            'subscription_ends_at' => ['nullable', 'date'],
         ]);
 
-        $shop->update(['subscription_plan' => $data['plan']]);
+        $shop->update([
+            'subscription_plan'       => $data['plan'],
+            'subscription_expires_at' => $data['subscription_ends_at'] ?? $shop->subscription_expires_at,
+        ]);
+
+        $shop->refresh();
 
         return response()->json([
             'message' => 'Plan updated',
             'shop'    => [
-                'id'   => $shop->id,
-                'name' => $shop->name,
-                'plan' => $shop->fresh()->subscription_plan,
+                'id'                   => $shop->id,
+                'name'                 => $shop->name,
+                'plan'                 => $shop->subscription_plan,
+                'subscription_ends_at' => $shop->subscription_expires_at,
             ],
         ]);
     }

@@ -508,7 +508,7 @@ class ApiClient {
   }
 
   async superadminUpdatePlan(id: string, data: { plan: string; subscription_ends_at?: string | null }) {
-    return this.request<{ message: string; shop: SuperadminShop }>(`/superadmin/shops/${id}/plan`, {
+    return this.request<{ message: string; shop: SuperadminShop & { subscription_ends_at: string | null } }>(`/superadmin/shops/${id}/plan`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })

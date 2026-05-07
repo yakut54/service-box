@@ -16,6 +16,7 @@ const totalPages = ref(1)
 // Edit plan modal
 const editShop = ref<SuperadminShop | null>(null)
 const newPlan = ref('')
+const newEndsAt = ref('')
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
@@ -56,6 +57,7 @@ async function load() {
 function openEdit(shop: SuperadminShop) {
   editShop.value = shop
   newPlan.value = shop.plan || 'micro'
+  newEndsAt.value = shop.subscription_ends_at ? shop.subscription_ends_at.slice(0, 10) : ''
   saveError.value = null
 }
 
@@ -68,10 +70,16 @@ async function savePlan() {
   saving.value = true
   saveError.value = null
   try {
-    const res = await api.superadminUpdatePlan(editShop.value.id, { plan: newPlan.value })
-    // update in list
+    const res = await api.superadminUpdatePlan(editShop.value.id, {
+      plan: newPlan.value,
+      subscription_ends_at: newEndsAt.value || null,
+    })
     const idx = shops.value.findIndex(s => s.id === editShop.value!.id)
-    if (idx !== -1) shops.value[idx] = { ...shops.value[idx], plan: res.shop.plan }
+    if (idx !== -1) shops.value[idx] = {
+      ...shops.value[idx],
+      plan: res.shop.plan,
+      subscription_ends_at: res.shop.subscription_ends_at ?? shops.value[idx].subscription_ends_at,
+    }
     closeEdit()
   } catch (e) {
     saveError.value = e instanceof ApiError ? e.message : 'Ошибка сохранения'
@@ -203,6 +211,12 @@ onMounted(load)
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Тариф</label>
           <CustomSelect v-model="newPlan" :options="planEditOptions" placeholder="Выберите тариф" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Подписка до</label>
+          <input v-model="newEndsAt" type="date" class="input w-full" />
+          <p class="text-xs text-gray-400 mt-1">Оставьте пустым — без изменений</p>
         </div>
 
         <div v-if="saveError" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ saveError }}</div>
