@@ -13,10 +13,10 @@
     .body { padding: 32px 40px; }
     .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; margin: 0 0 4px; }
     .value { font-size: 15px; color: #111827; margin: 0 0 18px; line-height: 1.5; }
-    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; margin-bottom: 6px; background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
-    .price-row { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; margin-left: 6px; vertical-align: middle; background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
+    .price-row { width: 100%; border-collapse: collapse; margin: 0 0 18px; }
     .price-row td { font-size: 15px; color: #111827; padding: 0; }
-    .price-row td.right { text-align: right; font-weight: 700; }
+    .price-row td.right { text-align: right; font-weight: 700; white-space: nowrap; }
     .footer { border-top: 1px solid #f3f4f6; padding: 18px 40px; color: #9ca3af; font-size: 12px; }
   </style>
 </head>
@@ -28,17 +28,17 @@
     </div>
     <div class="body">
 
-      <span class="badge">Услуга</span>
+      <p class="label">Услуга</p>
       @php $servicePrice = $booking->service?->price; @endphp
       @if($servicePrice !== null)
       <table class="price-row">
         <tr>
-          <td>{{ $booking->service->name }}</td>
+          <td>{{ $booking->service->name }}<span class="badge">Услуга</span></td>
           <td class="right">{{ number_format($servicePrice / 100, 0, '.', ' ') }} ₽</td>
         </tr>
       </table>
       @else
-      <p class="value">{{ $booking->service?->name ?? '—' }}</p>
+      <p class="value">{{ $booking->service?->name ?? '—' }}<span class="badge">Услуга</span></p>
       @endif
 
       <p class="label">Дата и время</p>
