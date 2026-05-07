@@ -132,14 +132,20 @@ class Shop extends Model
 
     public function getPlanLimits(): array
     {
+        $expired = ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => []];
+
         if (!$this->subscription_plan) {
-            return ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => []];
+            return $expired;
+        }
+
+        if (!$this->hasActiveSubscription()) {
+            return $expired;
         }
 
         $pricing = PlanPricing::where('plan', $this->subscription_plan)->first();
 
         if (!$pricing) {
-            return ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => []];
+            return $expired;
         }
 
         return [
