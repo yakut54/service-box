@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreBookingRequest;
+use App\Mail\NewBookingMail;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Master;
@@ -13,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class BookingController extends Controller
 {
@@ -136,6 +138,16 @@ class BookingController extends Controller
         });
 
         $booking->load(['service', 'master', 'customer']);
+
+        $shop = $request->attributes->get('shop');
+        if (!$shop && TenantService::getCurrentShopId()) {
+            $shop = Shop::with('user')->find(TenantService::getCurrentShopId());
+        }
+        if ($shop && $shop->user?->email) {
+            try {
+                Mail::to($shop->user->email)->send(new NewBookingMail($booking, $shop->name));
+            } catch (\Throwable) {}
+        }
 
         return response()->json([
             'message' => 'Booking created successfully',

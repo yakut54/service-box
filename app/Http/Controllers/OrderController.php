@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOrderRequest;
+use App\Mail\NewOrderMail;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
@@ -12,6 +13,7 @@ use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class OrderController extends Controller
 {
@@ -194,6 +196,12 @@ class OrderController extends Controller
 
         $customer->updateStats();
         $order->load(['items', 'customer']);
+
+        if ($shop && $shop->user?->email) {
+            try {
+                Mail::to($shop->user->email)->send(new NewOrderMail($order, $shop->name));
+            } catch (\Throwable) {}
+        }
 
         return response()->json([
             'message' => 'Order created successfully',
