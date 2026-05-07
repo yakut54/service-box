@@ -6,45 +6,47 @@ import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
+import KpiCard from '@/components/KpiCard.vue'
+import RevenueChart from '@/components/RevenueChart.vue'
 import type { Booking, OrderStats } from '@/types'
 
 const authStore     = useAuthStore()
 const ordersStore   = useOrdersStore()
 const productsStore = useProductsStore()
 
-// ── Today stats ───────────────────────────────────────────────
 const todayStats        = ref<Partial<OrderStats>>({})
-const loadingTodayStats = ref(false)
+const loadingStats      = ref(false)
+const chartData         = ref<Array<{ date: string; orders: number; revenue: number }>>([])
+const loadingChart      = ref(false)
+const todayBookings     = ref<Booking[]>([])
+const loadingBookings   = ref(false)
 
-async function loadTodayStats() {
-  loadingTodayStats.value = true
+async function loadStats() {
+  loadingStats.value = true
   try { todayStats.value = await api.getOrderStats({ period: 'today' }) }
   catch { /* ignore */ }
-  loadingTodayStats.value = false
+  loadingStats.value = false
 }
 
-// ── Today's bookings ─────────────────────────────────────────
-const todayBookings        = ref<Booking[]>([])
-const loadingTodayBookings = ref(false)
+async function loadChart() {
+  loadingChart.value = true
+  try { chartData.value = (await api.getOrderChart(7)).data }
+  catch { /* ignore */ }
+  loadingChart.value = false
+}
 
-async function loadTodayBookings() {
-  loadingTodayBookings.value = true
+async function loadBookings() {
+  loadingBookings.value = true
   try {
     const now   = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    const res   = await api.getBookings({ date: today })
-    todayBookings.value = res.data ?? []
+    todayBookings.value = (await api.getBookings({ date: today })).data ?? []
   } catch { /* ignore */ }
-  loadingTodayBookings.value = false
+  loadingBookings.value = false
 }
 
-// ── Derived ───────────────────────────────────────────────────
-const pendingOrders  = computed(() => ordersStore.pendingOrders)
-const recentOrders   = computed(() => ordersStore.orders.slice(0, 5))
-
-function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-}
+const pendingOrders = computed(() => ordersStore.pendingOrders)
+const recentOrders  = computed(() => ordersStore.orders.slice(0, 5))
 
 function formatPriceFull(kopecks: number) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
@@ -58,26 +60,22 @@ function formatPrice(kopecks: number) {
 }
 
 const bookingStatusLabel: Record<string, string> = {
-  pending:   'Ожидает',
-  confirmed: 'Подтверждена',
-  completed: 'Завершена',
-  cancelled: 'Отменена',
-  no_show:   'Неявка',
+  pending: 'Ожидает', confirmed: 'Подтверждена', completed: 'Завершена', cancelled: 'Отменена', no_show: 'Неявка',
+}
+const orderStatusLabel: Record<string, string> = {
+  pending: 'Ожидает', paid: 'Оплачен', processing: 'В работе', completed: 'Завершён', cancelled: 'Отменён',
 }
 
-const orderStatusLabel: Record<string, string> = {
-  pending:    'Ожидает',
-  paid:       'Оплачен',
-  processing: 'В работе',
-  completed:  'Завершён',
-  cancelled:  'Отменён',
+function formatTime(d: string) {
+  return new Date(d).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }
 
 onMounted(() => Promise.all([
   ordersStore.fetchOrders(),
   productsStore.fetchProducts(),
-  loadTodayBookings(),
-  loadTodayStats(),
+  loadStats(),
+  loadChart(),
+  loadBookings(),
 ]))
 </script>
 
@@ -87,44 +85,31 @@ onMounted(() => Promise.all([
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ authStore.shop?.name }}</h1>
-      <p class="text-gray-500 dark:text-gray-400 mt-0.5 text-sm">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
         {{ new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) }}
       </p>
     </div>
 
-    <!-- Today KPIs -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div class="card py-4">
-        <p class="text-xs text-gray-500 dark:text-gray-400">Выручка сегодня</p>
-        <div v-if="loadingTodayStats" class="h-7 w-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
-        <p v-else class="text-xl font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
-          {{ formatPrice(todayStats.total_revenue ?? 0) }}
-        </p>
-      </div>
-      <div class="card py-4">
-        <p class="text-xs text-gray-500 dark:text-gray-400">Заказов сегодня</p>
-        <div v-if="loadingTodayStats" class="h-7 w-12 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
-        <p v-else class="text-xl font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
-          {{ todayStats.total_orders ?? 0 }}
-        </p>
-      </div>
-      <div class="card py-4">
-        <p class="text-xs text-gray-500 dark:text-gray-400">Записей сегодня</p>
-        <div v-if="loadingTodayBookings" class="h-7 w-12 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
-        <p v-else class="text-xl font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
-          {{ todayBookings.length }}
-        </p>
-      </div>
-      <div class="card py-4">
-        <p class="text-xs text-gray-500 dark:text-gray-400">Ожидают оплаты</p>
-        <div v-if="loadingTodayStats" class="h-7 w-12 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
-        <p v-else :class="['text-xl font-bold mt-1 tabular-nums', (todayStats.pending_orders ?? 0) > 0 ? 'text-yellow-500' : 'text-gray-900 dark:text-white']">
-          {{ todayStats.pending_orders ?? 0 }}
-        </p>
-      </div>
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <KpiCard title="Выручка сегодня" :value="formatPrice(todayStats.total_revenue ?? 0)" :loading="loadingStats" color="green" icon="revenue"/>
+      <KpiCard title="Заказов сегодня" :value="String(todayStats.total_orders ?? 0)" :loading="loadingStats" color="blue" icon="orders"/>
+      <KpiCard title="Записей сегодня" :value="String(todayBookings.length)" :loading="loadingBookings" color="violet" icon="bookings"/>
+      <KpiCard title="Ожидают оплаты"  :value="String(todayStats.pending_orders ?? 0)" :loading="loadingStats" color="yellow" icon="pending"/>
     </div>
 
-    <!-- Pending orders alert -->
+    <!-- Chart -->
+    <div class="card flex flex-col min-h-[280px]">
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка за 7 дней</h2>
+        <RouterLink to="/analytics" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">
+          Подробная аналитика →
+        </RouterLink>
+      </div>
+      <RevenueChart :data="chartData" :loading="loadingChart"/>
+    </div>
+
+    <!-- Pending alert -->
     <RouterLink
       v-if="pendingOrders.length > 0"
       to="/orders"
@@ -140,40 +125,26 @@ onMounted(() => Promise.all([
       <span class="ml-auto text-xs text-yellow-600 dark:text-yellow-400">Открыть →</span>
     </RouterLink>
 
-    <!-- Main content -->
+    <!-- Bookings + Orders -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-      <!-- Today's bookings -->
       <div class="card">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">Записи на сегодня</h2>
-          <RouterLink to="/bookings" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">
-            Все записи →
-          </RouterLink>
+          <RouterLink to="/bookings" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">Все →</RouterLink>
         </div>
-
-        <div v-if="loadingTodayBookings" class="space-y-2">
+        <div v-if="loadingBookings" class="space-y-2">
           <div v-for="i in 4" :key="i" class="h-11 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>
         </div>
-
-        <div v-else-if="todayBookings.length === 0" class="py-10 text-center text-gray-400 text-sm">
-          Нет записей на сегодня
-        </div>
-
+        <div v-else-if="todayBookings.length === 0" class="py-10 text-center text-gray-400 text-sm">Нет записей на сегодня</div>
         <div v-else class="space-y-0.5">
           <RouterLink
-            v-for="b in todayBookings"
-            :key="b.id"
-            :to="`/bookings/${b.id}`"
-            :class="[
-              'flex items-center justify-between py-2.5 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
-              (b.status === 'cancelled' || b.status === 'no_show') ? 'opacity-40' : '',
-            ]"
+            v-for="b in todayBookings" :key="b.id" :to="`/bookings/${b.id}`"
+            :class="['flex items-center justify-between py-2.5 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
+              (b.status === 'cancelled' || b.status === 'no_show') ? 'opacity-40' : '']"
           >
             <div class="flex items-center gap-3">
-              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 w-12 tabular-nums shrink-0">
-                {{ formatTime(b.start_time) }}
-              </span>
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400 w-12 tabular-nums shrink-0">{{ formatTime(b.start_time) }}</span>
               <div>
                 <div class="text-sm font-medium text-gray-900 dark:text-white">{{ b.customer_name }}</div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ b.service?.name || '—' }}</div>
@@ -184,30 +155,20 @@ onMounted(() => Promise.all([
         </div>
       </div>
 
-      <!-- Recent orders -->
       <div class="card">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">Последние заказы</h2>
-          <RouterLink to="/orders" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">
-            Все заказы →
-          </RouterLink>
+          <RouterLink to="/orders" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">Все →</RouterLink>
         </div>
-
         <div v-if="ordersStore.loading" class="space-y-2">
           <div v-for="i in 4" :key="i" class="h-11 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>
         </div>
-
         <div v-else-if="recentOrders.length === 0" class="py-10 text-center text-gray-400 text-sm">Нет заказов</div>
-
         <div v-else class="space-y-0.5">
           <RouterLink
-            v-for="order in recentOrders"
-            :key="order.id"
-            :to="`/orders/${order.id}`"
-            :class="[
-              'flex items-center justify-between py-2.5 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
-              order.status === 'cancelled' ? 'opacity-40' : '',
-            ]"
+            v-for="order in recentOrders" :key="order.id" :to="`/orders/${order.id}`"
+            :class="['flex items-center justify-between py-2.5 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
+              order.status === 'cancelled' ? 'opacity-40' : '']"
           >
             <div>
               <div class="text-sm font-medium text-primary-600 dark:text-primary-400 tabular-nums">#{{ order.id.slice(0, 8) }}</div>
@@ -226,21 +187,21 @@ onMounted(() => Promise.all([
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <RouterLink to="/products/new" class="card hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md transition-all group">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center group-hover:bg-primary-200 dark:group-hover:bg-primary-800/50 transition-colors flex-shrink-0">
+          <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center group-hover:bg-primary-200 transition-colors flex-shrink-0">
             <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
           </div>
           <div class="min-w-0">
             <div class="font-medium text-gray-900 dark:text-white text-sm">Добавить товар</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ productsStore.activeProducts.length }} активных</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ productsStore.activeProducts.length }} активных</div>
           </div>
         </div>
       </RouterLink>
 
       <RouterLink to="/analytics" class="card hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-md transition-all group">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center group-hover:bg-violet-200 dark:group-hover:bg-violet-900/50 transition-colors flex-shrink-0">
+          <div class="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center group-hover:bg-violet-200 transition-colors flex-shrink-0">
             <svg class="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
@@ -254,7 +215,7 @@ onMounted(() => Promise.all([
 
       <RouterLink to="/masters" class="card hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all group">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-gray-600 transition-colors flex-shrink-0">
+          <div class="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center group-hover:bg-gray-200 transition-colors flex-shrink-0">
             <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
