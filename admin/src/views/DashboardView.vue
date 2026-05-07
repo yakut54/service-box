@@ -6,11 +6,22 @@ import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
-import type { Booking } from '@/types'
+import type { Booking, OrderStats } from '@/types'
 
 const authStore     = useAuthStore()
 const ordersStore   = useOrdersStore()
 const productsStore = useProductsStore()
+
+// ── Today stats ───────────────────────────────────────────────
+const todayStats        = ref<Partial<OrderStats>>({})
+const loadingTodayStats = ref(false)
+
+async function loadTodayStats() {
+  loadingTodayStats.value = true
+  try { todayStats.value = await api.getOrderStats({ period: 'today' }) }
+  catch { /* ignore */ }
+  loadingTodayStats.value = false
+}
 
 // ── Today's bookings ─────────────────────────────────────────
 const todayBookings        = ref<Booking[]>([])
@@ -39,6 +50,13 @@ function formatPriceFull(kopecks: number) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
 }
 
+function formatPrice(kopecks: number) {
+  const r = kopecks / 100
+  if (r >= 1_000_000) return (r / 1_000_000).toFixed(1) + 'M ₽'
+  if (r >= 1_000)     return Math.round(r / 1_000) + 'K ₽'
+  return Math.round(r) + ' ₽'
+}
+
 const bookingStatusLabel: Record<string, string> = {
   pending:   'Ожидает',
   confirmed: 'Подтверждена',
@@ -59,6 +77,7 @@ onMounted(() => Promise.all([
   ordersStore.fetchOrders(),
   productsStore.fetchProducts(),
   loadTodayBookings(),
+  loadTodayStats(),
 ]))
 </script>
 
@@ -71,6 +90,38 @@ onMounted(() => Promise.all([
       <p class="text-gray-500 dark:text-gray-400 mt-0.5 text-sm">
         {{ new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) }}
       </p>
+    </div>
+
+    <!-- Today KPIs -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="card py-4">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Выручка сегодня</p>
+        <div v-if="loadingTodayStats" class="h-7 w-24 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
+        <p v-else class="text-xl font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
+          {{ formatPrice(todayStats.total_revenue ?? 0) }}
+        </p>
+      </div>
+      <div class="card py-4">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Заказов сегодня</p>
+        <div v-if="loadingTodayStats" class="h-7 w-12 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
+        <p v-else class="text-xl font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
+          {{ todayStats.total_orders ?? 0 }}
+        </p>
+      </div>
+      <div class="card py-4">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Записей сегодня</p>
+        <div v-if="loadingTodayBookings" class="h-7 w-12 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
+        <p v-else class="text-xl font-bold text-gray-900 dark:text-white mt-1 tabular-nums">
+          {{ todayBookings.length }}
+        </p>
+      </div>
+      <div class="card py-4">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Ожидают оплаты</p>
+        <div v-if="loadingTodayStats" class="h-7 w-12 bg-gray-100 dark:bg-gray-800 rounded animate-pulse mt-1"/>
+        <p v-else :class="['text-xl font-bold mt-1 tabular-nums', (todayStats.pending_orders ?? 0) > 0 ? 'text-yellow-500' : 'text-gray-900 dark:text-white']">
+          {{ todayStats.pending_orders ?? 0 }}
+        </p>
+      </div>
     </div>
 
     <!-- Pending orders alert -->
