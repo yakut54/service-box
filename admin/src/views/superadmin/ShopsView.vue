@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { ApiError } from '@/lib/api'
 import type { SuperadminShop } from '@/types'
 import CustomSelect from '@/components/CustomSelect.vue'
+import DatePicker from '@/components/DatePicker.vue'
 
 const shops = ref<SuperadminShop[]>([])
 const loading = ref(true)
@@ -215,8 +216,7 @@ onMounted(load)
 
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Подписка до</label>
-          <input v-model="newEndsAt" type="date" class="input w-full" />
-          <p class="text-xs text-gray-400 mt-1">Оставьте пустым — без изменений</p>
+          <DatePicker v-model="newEndsAt" placeholder="Без изменений" />
         </div>
 
         <div v-if="saveError" class="mb-3 text-sm text-red-600 dark:text-red-400">{{ saveError }}</div>
