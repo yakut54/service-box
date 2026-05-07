@@ -70,7 +70,7 @@ Route::prefix('auth')->group(function () {
 // ============================================================================
 // WIDGET API (Public, X-Shop-ID header, no auth)
 // ============================================================================
-Route::prefix('widget')->middleware('tenant')->group(function () {
+Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(function () {
     // Shop info
     Route::get('/shop', [ShopController::class, 'getPublicInfo']);
 

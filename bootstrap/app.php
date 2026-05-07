@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'rate.phone' => \App\Http\Middleware\RateLimitPhoneLookup::class,
             'verify.phone'   => \App\Http\Middleware\VerifyPhoneToken::class,
             'superadmin'     => \App\Http\Middleware\RequireSuperadmin::class,
+            'widget.subscription' => \App\Http\Middleware\CheckWidgetSubscription::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
