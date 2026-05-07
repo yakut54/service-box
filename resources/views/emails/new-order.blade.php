@@ -11,14 +11,21 @@
     .header h1 { margin: 0; color: #fff; font-size: 20px; font-weight: 700; }
     .header p { margin: 6px 0 0; color: #bfdbfe; font-size: 14px; }
     .body { padding: 32px 40px; }
-    .body p { margin: 0 0 12px; color: #374151; font-size: 15px; line-height: 1.6; }
     .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; margin: 0 0 4px; }
-    .value { font-size: 15px; color: #111827; margin: 0 0 16px; }
-    .table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    .table th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; padding: 0 0 8px; border-bottom: 1px solid #f3f4f6; }
-    .table td { padding: 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
-    .table td.right { text-align: right; white-space: nowrap; }
-    .total { display: flex; justify-content: space-between; padding: 14px 0 0; font-weight: 700; font-size: 16px; color: #111827; }
+    .value { font-size: 15px; color: #111827; margin: 0 0 18px; line-height: 1.5; }
+    .items { width: 100%; border-collapse: collapse; margin: 16px 0 0; }
+    .items th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; padding: 0 8px 8px 0; border-bottom: 1px solid #f3f4f6; }
+    .items th.right { text-align: right; padding-right: 0; }
+    .items td { padding: 10px 8px 10px 0; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    .items td.right { text-align: right; white-space: nowrap; padding-right: 0; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+    .badge-physical { background: #f0fdf4; color: #16a34a; }
+    .badge-digital  { background: #eff6ff; color: #2563eb; }
+    .badge-service  { background: #faf5ff; color: #7c3aed; }
+    .summary { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .summary td { padding: 5px 0; font-size: 14px; color: #6b7280; }
+    .summary td.right { text-align: right; white-space: nowrap; }
+    .summary tr.total td { padding-top: 12px; font-size: 16px; font-weight: 700; color: #111827; border-top: 1px solid #e5e7eb; }
     .footer { border-top: 1px solid #f3f4f6; padding: 18px 40px; color: #9ca3af; font-size: 12px; }
   </style>
 </head>
@@ -38,7 +45,7 @@
       <p class="value">{{ $order->notes }}</p>
       @endif
 
-      <table class="table">
+      <table class="items">
         <thead>
           <tr>
             <th>Товар</th>
@@ -48,25 +55,39 @@
         </thead>
         <tbody>
           @foreach($order->items ?? [] as $item)
+          @php
+            $typeLabels = ['physical' => 'Физический', 'digital' => 'Цифровой', 'service' => 'Услуга'];
+            $typeClasses = ['physical' => 'badge-physical', 'digital' => 'badge-digital', 'service' => 'badge-service'];
+            $typeLabel = $typeLabels[$item->product_type] ?? null;
+            $typeClass = $typeClasses[$item->product_type] ?? '';
+          @endphp
           <tr>
-            <td>{{ $item->product_name }}</td>
+            <td>
+              {{ $item->product_name }}
+              @if($typeLabel)
+              <span class="badge {{ $typeClass }}">{{ $typeLabel }}</span>
+              @endif
+            </td>
             <td class="right">{{ $item->quantity }}</td>
-            <td class="right">{{ number_format($item->price, 0, '.', ' ') }} ₽</td>
+            <td class="right">{{ number_format($item->price / 100, 0, '.', ' ') }} ₽</td>
           </tr>
           @endforeach
         </tbody>
       </table>
 
-      @if($order->discount_amount > 0)
-      <div style="text-align:right; font-size:14px; color:#6b7280; margin-bottom:4px;">
-        Скидка: −{{ number_format($order->discount_amount, 0, '.', ' ') }} ₽
-      </div>
-      @endif
+      <table class="summary">
+        @if($order->discount_amount > 0)
+        <tr>
+          <td>Скидка</td>
+          <td class="right">−{{ number_format($order->discount_amount / 100, 0, '.', ' ') }} ₽</td>
+        </tr>
+        @endif
+        <tr class="total">
+          <td>Итого</td>
+          <td class="right">{{ number_format($order->total_price / 100, 0, '.', ' ') }} ₽</td>
+        </tr>
+      </table>
 
-      <div class="total">
-        <span>Итого</span>
-        <span>{{ number_format($order->total_price, 0, '.', ' ') }} ₽</span>
-      </div>
     </div>
     <div class="footer">
       &copy; {{ date('Y') }} {{ config('app.name') }}. Это автоматическое письмо — не отвечайте на него.
