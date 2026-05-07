@@ -32,6 +32,19 @@ class MasterController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $shop = $request->attributes->get('shop');
+        if ($shop) {
+            $limits = $shop->getPlanLimits();
+            if ($limits['max_masters'] !== null) {
+                $current = Master::count();
+                if ($current >= $limits['max_masters']) {
+                    return response()->json([
+                        'message' => "Ваш тариф позволяет добавить не более {$limits['max_masters']} мастеров. Обновите план для снятия ограничения.",
+                    ], 403);
+                }
+            }
+        }
+
         $data = $request->validate([
             'name'           => 'required|string|max:255',
             'phone'          => 'nullable|string|max:20',

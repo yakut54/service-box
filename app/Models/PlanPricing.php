@@ -11,9 +11,20 @@ class PlanPricing extends Model
     public    $incrementing = false;
     protected $keyType    = 'string';
 
-    protected $fillable = ['plan', 'price_kopecks'];
+    protected $fillable = [
+        'plan',
+        'price_kopecks',
+        'max_orders_per_month',
+        'max_masters',
+        'features',
+    ];
 
-    protected $casts = ['price_kopecks' => 'integer'];
+    protected $casts = [
+        'price_kopecks'        => 'integer',
+        'max_orders_per_month' => 'integer',
+        'max_masters'          => 'integer',
+        'features'             => 'array',
+    ];
 
     public static function forPlan(string $plan): int
     {

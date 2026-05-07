@@ -44,6 +44,9 @@ export interface SuperadminPricing {
   plan: string
   price_kopecks: number
   price_rubles: number
+  max_orders_per_month: number | null
+  max_masters: number | null
+  features: string[]
 }
 
 export interface WidgetConfig {

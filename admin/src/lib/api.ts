@@ -522,7 +522,7 @@ class ApiClient {
     return this.request<Record<string, SuperadminPricing>>('/superadmin/pricing')
   }
 
-  async superadminUpdatePricing(items: Array<{ plan: string; price_kopecks: number }>) {
+  async superadminUpdatePricing(items: Array<{ plan: string; price_kopecks: number; max_orders_per_month: number | null; max_masters: number | null; features: string[] }>) {
     return this.request<{ message: string }>('/superadmin/pricing', {
       method: 'PUT',
       body: JSON.stringify(items),

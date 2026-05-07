@@ -6,7 +6,9 @@ use App\Http\Requests\StoreOrderRequest;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Shop;
 use App\Services\DiscountService;
+use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +64,23 @@ class OrderController extends Controller
      */
     public function store(StoreOrderRequest $request): JsonResponse
     {
+        $shop = $request->attributes->get('shop')
+            ?? Shop::find(TenantService::getCurrentShopId());
+
+        if ($shop) {
+            $limits = $shop->getPlanLimits();
+            if ($limits['max_orders_per_month'] !== null) {
+                $monthlyCount = Order::whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)
+                    ->count();
+                if ($monthlyCount >= $limits['max_orders_per_month']) {
+                    return response()->json([
+                        'message' => "Магазин достиг лимита заказов за текущий месяц ({$limits['max_orders_per_month']}). Обратитесь к продавцу.",
+                    ], 403);
+                }
+            }
+        }
+
         $customer = Customer::findOrCreateByPhone(
             $request->input('customer.phone'),
             [

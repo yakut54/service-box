@@ -132,33 +132,21 @@ class Shop extends Model
 
     public function getPlanLimits(): array
     {
-        return match($this->subscription_plan) {
-            'micro' => [
-                'max_orders_per_month' => 100,
-                'max_masters' => 1,
-                'features' => ['email_notifications', 'basic_analytics'],
-            ],
-            'start' => [
-                'max_orders_per_month' => 1000,
-                'max_masters' => 3,
-                'features' => ['telegram_notifications', 'payment_providers', 'email_notifications', 'basic_analytics'],
-            ],
-            'business' => [
-                'max_orders_per_month' => null,
-                'max_masters' => null,
-                'features' => ['telegram_notifications', 'payment_providers', 'priority_support', 'custom_widget', 'export_data', 'advanced_analytics'],
-            ],
-            'pro' => [
-                'max_orders_per_month' => null,
-                'max_masters' => null,
-                'features' => ['all_features', 'api_access', 'white_label', 'personal_manager', 'custom_integration'],
-            ],
-            default => [
-                'max_orders_per_month' => 0,
-                'max_masters' => 0,
-                'features' => [],
-            ],
-        };
+        if (!$this->subscription_plan) {
+            return ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => []];
+        }
+
+        $pricing = PlanPricing::where('plan', $this->subscription_plan)->first();
+
+        if (!$pricing) {
+            return ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => []];
+        }
+
+        return [
+            'max_orders_per_month' => $pricing->max_orders_per_month,
+            'max_masters'          => $pricing->max_masters,
+            'features'             => $pricing->features ?? [],
+        ];
     }
 
     public function hasFeature(string $feature): bool
