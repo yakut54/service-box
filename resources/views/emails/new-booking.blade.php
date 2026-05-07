@@ -13,7 +13,8 @@
     .body { padding: 32px 40px; }
     .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; margin: 0 0 4px; }
     .value { font-size: 15px; color: #111827; margin: 0 0 18px; line-height: 1.5; }
-    .price-row { width: 100%; border-collapse: collapse; margin-top: -10px; margin-bottom: 18px; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 4px; margin-bottom: 6px; background: #ede9fe; color: #6d28d9; border: 1px solid #c4b5fd; }
+    .price-row { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
     .price-row td { font-size: 15px; color: #111827; padding: 0; }
     .price-row td.right { text-align: right; font-weight: 700; }
     .footer { border-top: 1px solid #f3f4f6; padding: 18px 40px; color: #9ca3af; font-size: 12px; }
@@ -27,7 +28,7 @@
     </div>
     <div class="body">
 
-      <p class="label">Услуга</p>
+      <span class="badge">Услуга</span>
       @php $servicePrice = $booking->service?->price; @endphp
       @if($servicePrice !== null)
       <table class="price-row">
