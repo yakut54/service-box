@@ -518,6 +518,10 @@ class ApiClient {
     return this.request<SuperadminRevenue>('/superadmin/revenue')
   }
 
+  async getPricing() {
+    return this.request<Record<string, SuperadminPricing>>('/pricing')
+  }
+
   async superadminGetPricing() {
     return this.request<Record<string, SuperadminPricing>>('/superadmin/pricing')
   }

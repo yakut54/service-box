@@ -18,65 +18,26 @@ const selectedPeriod = ref(1)
 
 // ─── Plans config ─────────────────────────────────────────────────────────────
 
-const PLANS = [
-  {
-    id: 'micro',
-    name: 'Micro',
-    priceMonth: 1500,
-    color: 'gray',
-    description: 'Для старта',
-    features: [
-      'До 100 заказов в месяц',
-      '1 мастер',
-      'Базовая аналитика',
-      'Email уведомления',
-    ],
-  },
-  {
-    id: 'start',
-    name: 'Start',
-    priceMonth: 3000,
-    color: 'primary',
-    description: 'Для малого бизнеса',
-    features: [
-      'До 1 000 заказов в месяц',
-      'До 3 мастеров',
-      'Telegram уведомления',
-      'Платёжные провайдеры',
-      'Базовая аналитика',
-    ],
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    priceMonth: 4500,
-    color: 'indigo',
-    description: 'Для растущего бизнеса',
-    features: [
-      'Неограниченные заказы',
-      'Неограниченное кол-во мастеров',
-      'Приоритетная поддержка',
-      'Кастомный виджет',
-      'Экспорт данных',
-      'Расширенная аналитика',
-    ],
-    popular: true,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    priceMonth: 9000,
-    color: 'purple',
-    description: 'Максимум возможностей',
-    features: [
-      'Всё из Business',
-      'API доступ',
-      'White label',
-      'Персональный менеджер',
-      'Кастомная интеграция',
-    ],
-  },
-]
+const PLAN_ORDER = ['micro', 'start', 'business', 'pro']
+const PLAN_META: Record<string, { name: string; description: string; popular?: boolean }> = {
+  micro:    { name: 'Micro',    description: 'Для старта' },
+  start:    { name: 'Start',    description: 'Для малого бизнеса' },
+  business: { name: 'Business', description: 'Для растущего бизнеса', popular: true },
+  pro:      { name: 'Pro',      description: 'Максимум возможностей' },
+}
+
+interface Plan {
+  id: string
+  name: string
+  description: string
+  priceMonth: number
+  features: string[]
+  maxOrders: number | null
+  maxMasters: number | null
+  popular?: boolean
+}
+
+const plans = ref<Plan[]>([])
 
 const PERIODS = [
   { months: 1,  label: '1 месяц',  discount: 0 },
@@ -87,9 +48,9 @@ const PERIODS = [
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
-const currentPlan = computed(() => PLANS.find(p => p.id === subscription.value?.plan) ?? null)
+const currentPlan = computed(() => plans.value.find(p => p.id === subscription.value?.plan) ?? null)
 
-const selectedPlanData = computed(() => PLANS.find(p => p.id === selectedPlan.value)!)
+const selectedPlanData = computed(() => plans.value.find(p => p.id === selectedPlan.value) ?? plans.value[0])
 
 const totalPrice = computed(() => {
   const plan = selectedPlanData.value
@@ -121,13 +82,29 @@ const statusClass = computed(() => {
 async function load() {
   loading.value = true
   try {
-    const [sub, pays] = await Promise.all([
+    const [sub, pays, pricing] = await Promise.all([
       api.getSubscription(),
       api.getSubscriptionPayments(),
+      api.getPricing(),
     ])
     subscription.value = sub
     payments.value     = pays
-    // Pre-select current plan
+    plans.value = PLAN_ORDER
+      .filter(id => pricing[id])
+      .map(id => {
+        const p    = pricing[id]
+        const meta = PLAN_META[id]
+        return {
+          id,
+          name:        meta.name,
+          description: meta.description,
+          popular:     meta.popular,
+          priceMonth:  Math.round(p.price_kopecks / 100),
+          features:    p.features ?? [],
+          maxOrders:   p.max_orders_per_month ?? null,
+          maxMasters:  p.max_masters ?? null,
+        }
+      })
     if (sub.plan) selectedPlan.value = sub.plan
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Ошибка загрузки данных'
@@ -263,7 +240,7 @@ onMounted(load)
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <button
-            v-for="plan in PLANS"
+            v-for="plan in plans"
             :key="plan.id"
             @click="selectedPlan = plan.id"
             :class="[
