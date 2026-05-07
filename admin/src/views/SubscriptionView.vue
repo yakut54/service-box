@@ -265,6 +265,30 @@ onMounted(load)
 
             <!-- Features -->
             <ul class="space-y-1.5">
+              <li v-if="plan.maxOrders" class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                До {{ plan.maxOrders.toLocaleString('ru-RU') }} заказов в месяц
+              </li>
+              <li v-else class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Неограниченные заказы
+              </li>
+              <li v-if="plan.maxMasters" class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                {{ plan.maxMasters === 1 ? '1 мастер' : `До ${plan.maxMasters} мастеров` }}
+              </li>
+              <li v-else class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Неограниченное кол-во мастеров
+              </li>
               <li v-for="feat in plan.features" :key="feat" class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
                 <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
