@@ -32,7 +32,8 @@ async function handleSubmit() {
   const result = await authStore.login(email.value, password.value, remember.value)
 
   if (result.success) {
-    const redirect = route.query.redirect as string || '/'
+    const raw = route.query.redirect as string || '/'
+    const redirect = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/'
     router.push(redirect)
   } else {
     error.value = result.error || 'Ошибка входа'

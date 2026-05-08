@@ -33,8 +33,8 @@ export function usePhoneAuth(onAuthenticated: (phone: string, token: string) => 
   }
 
   onMounted(() => {
-    const saved      = localStorage.getItem(`${PHONE_KEY}:${shopStore.shopId}`)
-    const savedToken = localStorage.getItem(`${TOKEN_KEY}:${shopStore.shopId}`)
+    const saved      = sessionStorage.getItem(`${PHONE_KEY}:${shopStore.shopId}`)
+    const savedToken = sessionStorage.getItem(`${TOKEN_KEY}:${shopStore.shopId}`)
 
     if (saved) {
       phone.value = formatPhone(saved)
@@ -76,8 +76,8 @@ export function usePhoneAuth(onAuthenticated: (phone: string, token: string) => 
       const resp = await shopStore.getApi().verifyPhoneCode(rawPhone(), otpCode.value)
       phoneToken.value = resp.token
 
-      localStorage.setItem(`${PHONE_KEY}:${shopStore.shopId}`, rawPhone())
-      localStorage.setItem(`${TOKEN_KEY}:${shopStore.shopId}`, resp.token)
+      sessionStorage.setItem(`${PHONE_KEY}:${shopStore.shopId}`, rawPhone())
+      sessionStorage.setItem(`${TOKEN_KEY}:${shopStore.shopId}`, resp.token)
 
       step.value = 'results'
       onAuthenticated(rawPhone(), resp.token)
@@ -92,7 +92,8 @@ export function usePhoneAuth(onAuthenticated: (phone: string, token: string) => 
     phoneToken.value = ''
     otpCode.value    = ''
     otpError.value   = message || ''
-    localStorage.removeItem(`${TOKEN_KEY}:${shopStore.shopId}`)
+    sessionStorage.removeItem(`${TOKEN_KEY}:${shopStore.shopId}`)
+    sessionStorage.removeItem(`${PHONE_KEY}:${shopStore.shopId}`)
   }
 
   return {

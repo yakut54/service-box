@@ -6,10 +6,16 @@ import SbButton from '@/components/SbButton.vue'
 const props = defineProps<{ order: WidgetOrder | null }>()
 const emit = defineEmits<{ back: [] }>()
 
+const PAYMENT_HOSTS = ['yookassa.ru', 'api.yookassa.ru', 'yoomoney.ru', 'robokassa.ru']
+
 function openPayment() {
-  if (props.order?.payment_url) {
-    window.open(props.order.payment_url, '_blank')
-  }
+  const url = props.order?.payment_url
+  if (!url) return
+  try {
+    const host = new URL(url).hostname
+    if (!PAYMENT_HOSTS.includes(host)) return
+    window.open(url, '_blank', 'noopener,noreferrer')
+  } catch { /* invalid URL — ignore */ }
 }
 </script>
 

@@ -124,8 +124,10 @@ async function handlePay() {
       plan:          selectedPlan.value,
       period_months: selectedPeriod.value,
     })
-    // Редиректим на страницу оплаты ЮКасса
     if (result.payment_url) {
+      const allowed = ['yookassa.ru', 'api.yookassa.ru', 'yoomoney.ru', 'robokassa.ru']
+      const host = (() => { try { return new URL(result.payment_url).hostname } catch { return '' } })()
+      if (!allowed.includes(host)) throw new Error('Неверный адрес платёжного шлюза')
       window.location.href = result.payment_url
     } else {
       success.value = `Платёж создан (ID: ${result.payment_id}). Ожидаем подтверждения.`
