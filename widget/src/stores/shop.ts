@@ -21,6 +21,17 @@ export const useShopStore = defineStore('sb-shop', () => {
   const prefillPhone = ref<string | null>(null)
   const prefillEmail = ref<string | null>(null)
   const bookingInProgress = ref(false)
+  const sessionId = ref('')
+
+  function initSession() {
+    const key = `sb-sid:${shopId.value}`
+    let sid = sessionStorage.getItem(key)
+    if (!sid) {
+      sid = (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36))
+      sessionStorage.setItem(key, sid)
+    }
+    sessionId.value = sid
+  }
 
   let api: WidgetApi | null = null
 
@@ -83,6 +94,7 @@ export const useShopStore = defineStore('sb-shop', () => {
     shopId, apiUrl, shop, loading, error, config,
     theme, isOpen,
     mode, deepLinkServiceId, prefillName, prefillPhone, prefillEmail, bookingInProgress,
+    sessionId, initSession,
     getApi, loadConfig, applyTheme,
     loadTheme, toggleTheme, close,
   }

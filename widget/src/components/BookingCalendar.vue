@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useShopStore } from '@/stores/shop'
+import { useAnalytics } from '@/composables/useAnalytics'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
 import SbSelect from '@/components/SbSelect.vue'
@@ -14,6 +15,7 @@ const props = defineProps<{ product: WidgetProduct }>()
 const emit = defineEmits<{ back: []; success: [booking: WidgetBooking] }>()
 
 const shopStore = useShopStore()
+const { track } = useAnalytics()
 
 type Slot = {
   time: string
@@ -287,6 +289,8 @@ const clockSS = computed(() => String(now.value.getSeconds()).padStart(2, '0'))
 function selectSlot(slot: Slot) {
   if (!slot.available) return
   selectedSlot.value = slot
+  track('service_selected', props.product.id)
+  track('booking_started', props.product.id)
   if (slot.masters.length <= 2) {
     selectedMasterId.value = slot.masters[0]?.id ?? null  // auto-select first chip
   } else {
@@ -336,6 +340,7 @@ function nextFormStep() {
       return
     }
     clearError('phone')
+    track('booking_step_phone', props.product.id)
     formStep.value = 2
     saveProgress()
   }
@@ -384,6 +389,7 @@ async function handleSubmit() {
     }
 
     const result = await shopStore.getApi().createBooking(payload)
+    track('booking_completed', props.product.id)
     clearProgress()
     shopStore.bookingInProgress = false
     emit('success', result.data)

@@ -562,6 +562,13 @@ class ApiClient {
       body: JSON.stringify(items),
     })
   }
+
+  async getWidgetAnalytics(days: 7 | 30 | 90 = 30) {
+    return this.request<{
+      days: number
+      funnel: Array<{ event: string; label: string; sessions: number; pct_top: number }>
+    }>(`/admin/widget/analytics?days=${days}`)
+  }
 }
 
 export const api = new ApiClient()

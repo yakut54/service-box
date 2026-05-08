@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import type { Product } from '@/types'
@@ -263,6 +263,10 @@ const hasWidgetFeature = computed(() =>
   ['business', 'pro'].includes(authStore.shop?.subscription_plan ?? '')
 )
 
+const hasWidgetProFeature = computed(() =>
+  authStore.shop?.subscription_plan === 'pro'
+)
+
 const widgetColor        = ref('#6366f1')
 const widgetBorderRadius = ref<4 | 8 | 16>(8)
 const widgetShowPrice       = ref(true)
@@ -270,6 +274,8 @@ const widgetShowDuration    = ref(true)
 const widgetShowMasterName  = ref(true)
 const widgetShowDescription = ref(true)
 const widgetLogoUrl      = ref<string | null>(null)
+const widgetWhiteLabel   = ref(false)
+const widgetCustomCss    = ref('')
 const savingWidget       = ref(false)
 const widgetSuccess      = ref(false)
 const widgetError        = ref('')
@@ -285,6 +291,8 @@ onMounted(() => {
     if (wc.show_master_name != null) widgetShowMasterName.value  = wc.show_master_name
     if (wc.show_description != null) widgetShowDescription.value = wc.show_description
     widgetLogoUrl.value = wc.logo_url ?? null
+    widgetWhiteLabel.value = wc.white_label ?? false
+    widgetCustomCss.value  = wc.custom_css ?? ''
   }
 })
 
@@ -320,6 +328,8 @@ async function saveWidgetConfig() {
         show_duration:    widgetShowDuration.value,
         show_master_name: widgetShowMasterName.value,
         show_description: widgetShowDescription.value,
+        white_label:      widgetWhiteLabel.value,
+        custom_css:       widgetCustomCss.value || null,
       },
     })
     if (authStore.shop) authStore.shop.widget_config = updated.widget_config
@@ -361,6 +371,33 @@ async function saveWorkHours() {
     savingHours.value = false
   }
 }
+
+// ── Widget analytics funnel ───────────────────────────────────
+type FunnelItem = { event: string; label: string; sessions: number; pct_top: number }
+const funnelDays    = ref<7 | 30 | 90>(30)
+const funnelData    = ref<FunnelItem[]>([])
+const funnelLoading = ref(false)
+const funnelError   = ref('')
+
+async function loadFunnel() {
+  if (!hasWidgetProFeature.value) return
+  funnelLoading.value = true
+  funnelError.value = ''
+  try {
+    const res = await api.getWidgetAnalytics(funnelDays.value)
+    funnelData.value = res.funnel
+  } catch (e: unknown) {
+    funnelError.value = e instanceof Error ? e.message : 'Ошибка загрузки'
+  } finally {
+    funnelLoading.value = false
+  }
+}
+
+watch(funnelDays, loadFunnel)
+
+onMounted(() => {
+  if (hasWidgetProFeature.value) loadFunnel()
+})
 </script>
 
 <template>
@@ -728,12 +765,89 @@ async function saveWorkHours() {
               </div>
             </div>
 
+            <!-- Pro: White label + Custom CSS -->
+            <div v-if="hasWidgetProFeature" class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Убрать «Powered by ServiceBox»</div>
+                  <div class="text-xs text-gray-400 mt-0.5">Виджет полностью под вашим брендом</div>
+                </div>
+                <button
+                  type="button"
+                  @click="widgetWhiteLabel = !widgetWhiteLabel"
+                  :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                    widgetWhiteLabel ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']"
+                >
+                  <span :class="['inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                    widgetWhiteLabel ? 'translate-x-6' : 'translate-x-1']" />
+                </button>
+              </div>
+              <div>
+                <label class="label">Свой CSS <span class="text-gray-400 font-normal">(переопределяет стили виджета)</span></label>
+                <textarea
+                  v-model="widgetCustomCss"
+                  class="input font-mono text-xs"
+                  rows="6"
+                  placeholder=".sb-catalog-card { border-radius: 12px; }"
+                />
+                <p class="text-xs text-gray-400 mt-1">CSS применяется внутри Shadow DOM виджета</p>
+              </div>
+            </div>
+            <div v-else class="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p class="text-xs text-gray-400">White label и Custom CSS доступны на тарифе <span class="font-medium">Pro</span></p>
+            </div>
+
             <div v-if="widgetSuccess" class="text-sm text-green-600 dark:text-green-400">Сохранено!</div>
             <div v-if="widgetError" class="text-sm text-red-600">{{ widgetError }}</div>
             <button @click="saveWidgetConfig" :disabled="savingWidget" class="btn-primary">
               {{ savingWidget ? 'Сохранение...' : 'Сохранить внешний вид' }}
             </button>
           </div>
+        </div>
+        <!-- Widget analytics funnel -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-1">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Аналитика виджета</h2>
+            <div v-if="hasWidgetProFeature" class="flex gap-1">
+              <button
+                v-for="d in ([7, 30, 90] as const)" :key="d"
+                @click="funnelDays = d"
+                :class="['text-xs px-2 py-1 rounded transition-colors',
+                  funnelDays === d
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300']"
+              >{{ d }}д</button>
+            </div>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Воронка — от открытия виджета до записи</p>
+
+          <div v-if="!hasWidgetProFeature" class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6a4 4 0 100-8 4 4 0 000 8z" />
+            </svg>
+            <div>
+              <div class="font-medium text-gray-700 dark:text-gray-300 text-sm">Только на тарифе Pro</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Отслеживайте каждый шаг клиента — уникальная функция в СНГ.</div>
+            </div>
+          </div>
+
+          <div v-else-if="funnelLoading" class="text-sm text-gray-400 py-6 text-center">Загрузка...</div>
+          <div v-else-if="funnelError" class="text-sm text-red-600">{{ funnelError }}</div>
+          <div v-else-if="funnelData.length" class="space-y-4">
+            <div v-for="item in funnelData" :key="item.event" class="space-y-1">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-700 dark:text-gray-300">{{ item.label }}</span>
+                <span class="font-semibold text-gray-900 dark:text-white">
+                  {{ item.sessions.toLocaleString('ru-RU') }}
+                  <span class="text-xs text-gray-400 font-normal ml-1">{{ item.pct_top }}%</span>
+                </span>
+              </div>
+              <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                <div class="h-2 rounded-full bg-indigo-500 transition-all duration-500" :style="{ width: item.pct_top + '%' }" />
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-sm text-gray-400 py-6 text-center">Нет данных за выбранный период</div>
         </div>
       </div>
     </div>

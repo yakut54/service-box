@@ -3509,6 +3509,19 @@
 .sb-fade-enter-active, .sb-fade-leave-active { transition: opacity 0.2s ease; }
 .sb-fade-enter-from, .sb-fade-leave-to { opacity: 0; }
 
+/* ── Powered by ── */
+.sb-powered-by {
+  text-align: center;
+  font-size: 11px;
+  color: var(--sb-text-muted);
+  padding: 8px 16px 16px;
+  opacity: 0.6;
+}
+.sb-powered-by-brand {
+  font-weight: 600;
+  color: var(--sb-primary);
+}
+
 /* ============================================================
    Top Header
    ============================================================ */

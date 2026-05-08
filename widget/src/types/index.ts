@@ -12,6 +12,8 @@ export interface WidgetConfig {
   show_description?: boolean
   show_search?: boolean
   show_categories?: boolean
+  white_label?: boolean
+  custom_css?: string | null
 }
 
 export interface WidgetLegal {

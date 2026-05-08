@@ -77,12 +77,27 @@ function init(options: WidgetOptions | string): WidgetInstance {
   shopStore.prefillName = opts.prefillName ?? null
   shopStore.prefillPhone = opts.prefillPhone ?? null
   shopStore.prefillEmail = opts.prefillEmail ?? null
+  shopStore.initSession()
+
+  // ── Custom CSS watch (injected into shadow DOM) ───────────
+  function setupCustomCss() {
+    watch(() => shopStore.config.custom_css, (css) => {
+      let el = shadow.querySelector('#sb-custom') as HTMLStyleElement | null
+      if (!el) {
+        el = document.createElement('style')
+        el.id = 'sb-custom'
+        shadow.appendChild(el)
+      }
+      el.textContent = css || ''
+    }, { immediate: true })
+  }
 
   // ── Inline mode: no FAB, always open ─────────────────────
   if (shopStore.mode === 'inline') {
     shopStore.isOpen = true
     shopStore.loadConfig()
     app.mount(mountEl)
+    setupCustomCss()
     return {
       app,
       container,
@@ -179,6 +194,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
   }
 
   app.mount(mountEl)
+  setupCustomCss()
 
   return {
     app,

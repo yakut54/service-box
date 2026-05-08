@@ -195,7 +195,7 @@ onMounted(load)
           </label>
 
           <div
-            v-for="(feat, idx) in edits[plan].features"
+            v-for="(_feat, idx) in edits[plan].features"
             :key="idx"
             class="flex items-center gap-2 group"
           >

@@ -17,6 +17,7 @@ use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
+use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -102,6 +103,9 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
     Route::get('/reviews/{productId}', [ReviewController::class, 'widgetIndex']);
     Route::post('/reviews', [ReviewController::class, 'widgetStore']);
 
+    // Widget analytics (fire-and-forget, public)
+    Route::post('/analytics', [WidgetAnalyticsController::class, 'store'])->middleware('throttle:120,1');
+
     // Phone verification (OTP)
     Route::post('/phone/request-code', [WidgetPhoneVerificationController::class, 'requestCode'])
         ->middleware('rate.phone');
@@ -123,6 +127,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Shop
     Route::get('/shop', [ShopController::class, 'show']);
     Route::put('/shop', [ShopController::class, 'update']);
+
+    // Widget analytics funnel (Pro)
+    Route::get('/widget/analytics', [WidgetAnalyticsController::class, 'funnel']);
 
     // Categories (reorder must be before {id} routes)
     Route::get('/categories', [CategoryController::class, 'index']);

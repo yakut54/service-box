@@ -13,12 +13,14 @@ import BookingSuccess from '@/components/BookingSuccess.vue'
 import MyOrders from '@/components/MyOrders.vue'
 import MyBookings from '@/components/MyBookings.vue'
 import type { WidgetOrder, WidgetBooking } from '@/types'
+import { useAnalytics } from '@/composables/useAnalytics'
 
 type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'booking-success' | 'cart' | 'checkout' | 'success' | 'orders' | 'bookings-list'
 
 const shopStore = useShopStore()
 const cartStore = useCartStore()
 const inlineMode = computed(() => shopStore.mode === 'inline')
+const { track } = useAnalytics()
 const currentView = ref<WidgetView>('loading')
 const widgetEl = ref<HTMLElement | null>(null)
 const mainEl = ref<HTMLElement | null>(null)
@@ -44,6 +46,7 @@ const cartOpen = computed(() => currentView.value === 'cart')
 watch(() => shopStore.isOpen, async (open: boolean) => {
   if (!open || initialized) return
   initialized = true
+  track('widget_opened')
   cartStore.init(shopStore.shopId)
 
   // Config already available (e.g. restored from wasOpen)
@@ -63,6 +66,11 @@ watch(() => shopStore.isOpen, async (open: boolean) => {
     })
   }
 }, { immediate: true })
+
+// Track catalog view
+watch(currentView, (view) => {
+  if (view === 'catalog') track('catalog_viewed')
+})
 
 // Deep link: navigate to specific service when catalog first loads
 watch(currentView, async (view) => {
@@ -123,6 +131,7 @@ function doClose() {
 }
 
 function confirmExit() {
+  track('booking_abandoned')
   showExitIntent.value = false
   shopStore.bookingInProgress = false
   doClose()
@@ -456,6 +465,11 @@ function selectSidebarCategory(catId: string) {
             <span class="sb-legal-footer-sep">·</span>
             <button type="button" class="sb-legal-footer-link" @click="openLegal(shopStore.shop.legal.personal_data_url)">Персональные данные</button>
           </footer>
+
+          <!-- Powered by (hidden when white_label enabled) -->
+          <div v-if="!shopStore.config.white_label && mainView !== 'checkout'" class="sb-powered-by">
+            Powered by <span class="sb-powered-by-brand">ServiceBox</span>
+          </div>
 
           <!-- Checkout renders directly in sb-main (no padding wrapper) -->
           <Checkout

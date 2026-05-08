@@ -104,6 +104,9 @@ class ShopController extends Controller
             'work_end'          => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'slot_duration'     => 'sometimes|integer|in:10,15,20,30,45,60',
             'timezone'          => 'sometimes|string|timezone',
+            // Widget Pro features
+            'widget_config.white_label' => 'sometimes|boolean',
+            'widget_config.custom_css'  => 'sometimes|nullable|string|max:10000',
             // Юридические документы
             'legal_config'                                  => 'sometimes|array',
             'legal_config.public_offer_text'                => 'nullable|string|max:50000',
@@ -120,6 +123,15 @@ class ShopController extends Controller
             return response()->json([
                 'error'   => 'plan_gate',
                 'message' => 'Кастомизация виджета доступна на тарифе Business и выше.',
+            ], 403);
+        }
+
+        // custom_css / white_label — только для Pro
+        $wc = $validated['widget_config'] ?? [];
+        if ((isset($wc['custom_css']) || isset($wc['white_label'])) && !$shop->hasFeature('custom_css')) {
+            return response()->json([
+                'error'   => 'plan_gate',
+                'message' => 'Custom CSS и white label доступны на тарифе Pro.',
             ], 403);
         }
 
