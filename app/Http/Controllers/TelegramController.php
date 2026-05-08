@@ -105,20 +105,27 @@ class TelegramController extends Controller
             return;
         }
 
-        // /start CODE — connect bot to shop
-        if (str_starts_with($text, '/start')) {
+        // Extract code: "/start CODE", plain "CODE" (6 alphanumeric), or bare "/start"
+        $code = null;
+        $isStart = str_starts_with($text, '/start');
+
+        if ($isStart) {
             $parts = explode(' ', $text, 2);
-            $code  = $parts[1] ?? null;
+            $code  = isset($parts[1]) ? trim($parts[1]) : null;
+        } elseif (preg_match('/^[A-Z0-9]{6}$/i', trim($text))) {
+            $code = trim($text);
+        }
 
-            if (!$code) {
-                $this->sendReply(
-                    $chatId,
-                    "👋 Привет! Я бот ServiceBox.\n\n" .
-                    "Чтобы подключить уведомления, зайдите в <b>Настройки → Telegram</b> в вашей админке и введите там сгенерированный код."
-                );
-                return;
-            }
+        if ($isStart && !$code) {
+            $this->sendReply(
+                $chatId,
+                "👋 Привет! Я бот ServiceBox.\n\n" .
+                "Чтобы подключить уведомления, зайдите в <b>Настройки → Telegram</b> в вашей админке и отправьте сюда сгенерированный код."
+            );
+            return;
+        }
 
+        if ($code) {
             $shop = TelegramService::verifyConnectionCode(strtoupper($code));
 
             if (!$shop) {
