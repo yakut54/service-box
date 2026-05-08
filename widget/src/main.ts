@@ -1,7 +1,7 @@
 import { createApp, watch, type App as VueApp } from 'vue'
 import { createPinia } from 'pinia'
 import AppComponent from './App.vue'
-import { useShopStore } from './stores/shop'
+import { useShopStore, type WidgetMode } from './stores/shop'
 import widgetCss from './styles/widget.css?inline'
 import fabCss from './styles/fab.css?inline'
 
@@ -9,6 +9,11 @@ interface WidgetOptions {
   shopId: string
   apiUrl?: string
   container?: HTMLElement | string
+  mode?: WidgetMode
+  serviceId?: string
+  prefillName?: string
+  prefillPhone?: string
+  prefillEmail?: string
 }
 
 interface WidgetInstance {
@@ -67,8 +72,28 @@ function init(options: WidgetOptions | string): WidgetInstance {
   const shopStore = useShopStore(pinia)
   shopStore.shopId = opts.shopId
   shopStore.apiUrl = apiUrl
+  shopStore.mode = opts.mode ?? 'popup'
+  shopStore.deepLinkServiceId = opts.serviceId ?? null
+  shopStore.prefillName = opts.prefillName ?? null
+  shopStore.prefillPhone = opts.prefillPhone ?? null
+  shopStore.prefillEmail = opts.prefillEmail ?? null
 
-  // ── FAB button ────────────────────────────────────────────
+  // ── Inline mode: no FAB, always open ─────────────────────
+  if (shopStore.mode === 'inline') {
+    shopStore.isOpen = true
+    shopStore.loadConfig()
+    app.mount(mountEl)
+    return {
+      app,
+      container,
+      destroy: () => {
+        app.unmount()
+        if (!opts.container) container.remove()
+      },
+    }
+  }
+
+  // ── FAB button (popup / auto modes) ──────────────────────
   const fabId = `sb-fab-${opts.shopId}`
   const fabStyleId = `sb-fab-style-${opts.shopId}`
 
@@ -148,8 +173,8 @@ function init(options: WidgetOptions | string): WidgetInstance {
   // FAB click handler
   fab.addEventListener('click', openWidget)
 
-  // If was open, restore immediately
-  if (wasOpen) {
+  // Open if previously open OR auto mode
+  if (wasOpen || shopStore.mode === 'auto') {
     openWidget()
   }
 
@@ -173,24 +198,40 @@ function init(options: WidgetOptions | string): WidgetInstance {
 
 // ── Auto-init from script tag or DOM element ───────────────────
 function autoInit() {
+  // URL params for QR code / deep link: ?sb_open=1&sb_service=UUID&sb_name=X&sb_phone=Y
+  const urlParams = new URLSearchParams(window.location.search)
+  const urlMode: WidgetMode | null = urlParams.get('sb_open') === '1' ? 'auto' : null
+  const urlServiceId  = urlParams.get('sb_service')  || undefined
+  const urlPrefillName  = urlParams.get('sb_name')   || undefined
+  const urlPrefillPhone = urlParams.get('sb_phone')  || undefined
+  const urlPrefillEmail = urlParams.get('sb_email')  || undefined
+
+  function attr(el: Element, name: string) { return el.getAttribute(name) || undefined }
+
+  function fromEl(el: HTMLElement, extra: Partial<WidgetOptions> = {}): WidgetOptions {
+    return {
+      shopId:       el.getAttribute('data-shop-id')!,
+      apiUrl:       attr(el, 'data-api-url'),
+      mode:         urlMode ?? ((attr(el, 'data-mode') as WidgetMode) ?? 'popup'),
+      serviceId:    urlServiceId  ?? attr(el, 'data-service-id'),
+      prefillName:  urlPrefillName  ?? attr(el, 'data-prefill-name'),
+      prefillPhone: urlPrefillPhone ?? attr(el, 'data-prefill-phone'),
+      prefillEmail: urlPrefillEmail ?? attr(el, 'data-prefill-email'),
+      ...extra,
+    }
+  }
+
   // 1. Script tag: <script src="widget.js" data-shop-id="xxx">
   const script = document.currentScript as HTMLScriptElement | null
   if (script?.getAttribute('data-shop-id')) {
-    init({
-      shopId: script.getAttribute('data-shop-id')!,
-      apiUrl: script.getAttribute('data-api-url') || undefined,
-    })
+    init(fromEl(script))
     return
   }
 
   // 2. DOM element: <div id="servicebox-widget" data-shop-id="xxx">
   const el = document.getElementById('servicebox-widget')
   if (el?.getAttribute('data-shop-id')) {
-    init({
-      shopId: el.getAttribute('data-shop-id')!,
-      apiUrl: el.getAttribute('data-api-url') || undefined,
-      container: el,
-    })
+    init(fromEl(el, { container: el }))
     return
   }
 
@@ -200,6 +241,11 @@ function autoInit() {
     const target = document.getElementById('servicebox-widget')
     init({
       shopId: envShopId,
+      mode: urlMode ?? 'popup',
+      serviceId: urlServiceId,
+      prefillName: urlPrefillName,
+      prefillPhone: urlPrefillPhone,
+      prefillEmail: urlPrefillEmail,
       container: target || undefined,
     })
     return

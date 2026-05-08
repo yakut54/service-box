@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid, isPostalCodeValid } from '@/lib/utils'
@@ -47,6 +47,12 @@ const notes = ref('')
 const { formErrors: errors, formTouched: touched, touch: touchField, clearError, isFieldValid: checkValid } = useFormValidation()
 
 const hasPhysical = computed(() => cartStore.items.some(i => i.type === 'physical'))
+
+onMounted(() => {
+  if (shopStore.prefillName)  form.value.name  = shopStore.prefillName
+  if (shopStore.prefillPhone) form.value.phone = shopStore.prefillPhone
+  if (shopStore.prefillEmail) form.value.email = shopStore.prefillEmail
+})
 
 // ── Phone input handler (mask + cursor restore) ───────────────
 function onPhoneInput(e: Event) {

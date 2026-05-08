@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { WidgetApi } from '@/lib/api'
 import type { WidgetShop, WidgetConfig } from '@/types'
 
+export type WidgetMode = 'popup' | 'inline' | 'auto'
+
 export const useShopStore = defineStore('sb-shop', () => {
   const shopId = ref('')
   const apiUrl = ref('')
@@ -12,6 +14,12 @@ export const useShopStore = defineStore('sb-shop', () => {
 
   const theme = ref<'light' | 'dark'>('light')
   const isOpen = ref(false)
+
+  const mode = ref<WidgetMode>('popup')
+  const deepLinkServiceId = ref<string | null>(null)
+  const prefillName = ref<string | null>(null)
+  const prefillPhone = ref<string | null>(null)
+  const prefillEmail = ref<string | null>(null)
 
   let api: WidgetApi | null = null
 
@@ -66,8 +74,6 @@ export const useShopStore = defineStore('sb-shop', () => {
     const c = config.value
     if (!c || !el) return
     if (c.primary_color) el.style.setProperty('--sb-primary', c.primary_color)
-    if (c.secondary_color) el.style.setProperty('--sb-secondary', c.secondary_color)
-    if (c.font_family) el.style.setProperty('--sb-font', c.font_family)
     if (c.border_radius != null) el.style.setProperty('--sb-radius', `${c.border_radius}px`)
     el.setAttribute('data-theme', theme.value)
   }
@@ -75,6 +81,7 @@ export const useShopStore = defineStore('sb-shop', () => {
   return {
     shopId, apiUrl, shop, loading, error, config,
     theme, isOpen,
+    mode, deepLinkServiceId, prefillName, prefillPhone, prefillEmail,
     getApi, loadConfig, applyTheme,
     loadTheme, toggleTheme, close,
   }

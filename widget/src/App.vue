@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, watchEffect, nextTick } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { useCartStore } from '@/stores/cart'
+import type { WidgetProduct } from '@/types'
 import Catalog from '@/components/Catalog.vue'
 import ProductDetail from '@/components/ProductDetail.vue'
 import Cart from '@/components/Cart.vue'
@@ -11,12 +12,13 @@ import BookingCalendar from '@/components/BookingCalendar.vue'
 import BookingSuccess from '@/components/BookingSuccess.vue'
 import MyOrders from '@/components/MyOrders.vue'
 import MyBookings from '@/components/MyBookings.vue'
-import type { WidgetProduct, WidgetOrder, WidgetBooking } from '@/types'
+import type { WidgetOrder, WidgetBooking } from '@/types'
 
 type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'booking-success' | 'cart' | 'checkout' | 'success' | 'orders' | 'bookings-list'
 
 const shopStore = useShopStore()
 const cartStore = useCartStore()
+const inlineMode = computed(() => shopStore.mode === 'inline')
 const currentView = ref<WidgetView>('loading')
 const widgetEl = ref<HTMLElement | null>(null)
 const mainEl = ref<HTMLElement | null>(null)
@@ -60,6 +62,21 @@ watch(() => shopStore.isOpen, async (open: boolean) => {
     })
   }
 }, { immediate: true })
+
+// Deep link: navigate to specific service when catalog first loads
+watch(currentView, async (view) => {
+  if (view !== 'catalog' || !shopStore.deepLinkServiceId) return
+  const serviceId = shopStore.deepLinkServiceId
+  shopStore.deepLinkServiceId = null // prevent repeat
+  try {
+    const res = await shopStore.getApi().getProduct(serviceId)
+    const product: WidgetProduct = res.data
+    selectedProduct.value = product
+    currentView.value = product.type === 'service' ? 'booking' : 'product'
+  } catch {
+    // deep link failed - stay on catalog
+  }
+})
 
 // Apply theme vars and data-theme attribute whenever shop config or theme changes
 watchEffect(() => {
@@ -179,6 +196,7 @@ function selectSidebarCategory(catId: string) {
         class="sb-overlay"
         :class="{
         'sb-overlay--open': shopStore.isOpen && !isClosing,
+        'sb-overlay--inline': inlineMode,
       }"
     >
       <!-- Top Header -->
@@ -224,8 +242,8 @@ function selectSidebarCategory(catId: string) {
             </svg>
           </button>
 
-          <!-- Close -->
-          <button class="sb-close-btn" @click="handleClose" aria-label="Закрыть">
+          <!-- Close (hidden in inline mode) -->
+          <button v-if="!inlineMode" class="sb-close-btn" @click="handleClose" aria-label="Закрыть">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>

@@ -225,6 +225,8 @@ let _clockTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   _clockTimer = setInterval(() => { now.value = new Date() }, 1000)
+  if (shopStore.prefillName)  form.value.name  = shopStore.prefillName
+  if (shopStore.prefillPhone) form.value.phone = shopStore.prefillPhone
 })
 
 onUnmounted(() => {
