@@ -72,6 +72,7 @@ class SuperadminShopController extends Controller
         ]);
 
         $shop->refresh();
+        $shop->enforceMasterLimit();
 
         return response()->json([
             'message' => 'Plan updated',

@@ -265,6 +265,9 @@ class PaymentController extends Controller
                 'subscription_plan'       => $subscriptionPayment->plan,
                 'subscription_expires_at' => $newExpiresAt,
             ]);
+
+            $shop->refresh();
+            $shop->enforceMasterLimit();
         }
 
         Log::info('Subscription activated via YooKassa', [

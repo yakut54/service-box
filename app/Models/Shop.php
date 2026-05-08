@@ -155,6 +155,30 @@ class Shop extends Model
         ];
     }
 
+    public function enforceMasterLimit(): void
+    {
+        $limits = $this->getPlanLimits();
+        $max    = $limits['max_masters'];
+
+        if ($max === null) {
+            return;
+        }
+
+        \App\Services\TenantService::inContext($this, function () use ($max) {
+            $activeIds = \App\Models\Master::where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('created_at')
+                ->pluck('id');
+
+            if ($activeIds->count() <= $max) {
+                return;
+            }
+
+            $toDeactivate = $activeIds->slice($max);
+            \App\Models\Master::whereIn('id', $toDeactivate)->update(['is_active' => false]);
+        });
+    }
+
     public function hasFeature(string $feature): bool
     {
         $limits = $this->getPlanLimits();
