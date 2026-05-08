@@ -38,8 +38,9 @@ class MasterController extends Controller
             if ($limits['max_masters'] !== null) {
                 $current = Master::count();
                 if ($current >= $limits['max_masters']) {
+                    $word = $limits['max_masters'] === 1 ? 'мастера' : 'мастеров';
                     return response()->json([
-                        'message' => "Ваш тариф позволяет добавить не более {$limits['max_masters']} мастеров. Обновите план для снятия ограничения.",
+                        'message' => "Ваш тариф позволяет не более {$limits['max_masters']} {$word}. Обновите план для снятия ограничения.",
                     ], 403);
                 }
             }
@@ -124,8 +125,9 @@ class MasterController extends Controller
                 $limits = $shop->getPlanLimits();
                 $max    = $limits['max_masters'];
                 if ($max !== null && Master::where('is_active', true)->count() >= $max) {
+                    $word = $max === 1 ? 'активного мастера' : 'активных мастеров';
                     return response()->json([
-                        'message' => "Ваш тариф позволяет не более {$max} активных мастеров.",
+                        'message' => "Ваш тариф позволяет не более {$max} {$word}.",
                     ], 403);
                 }
             }
