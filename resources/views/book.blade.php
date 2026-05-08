@@ -43,9 +43,10 @@
   <main>
     <p style="text-align:center;color:#64748b;font-size:14px;margin-top:40px;">Загрузка...</p>
   </main>
+  <script src="/widget.js"></script>
   <script>
-    localStorage.setItem('sb-open:{{ $apiKey }}', 'true')
+    localStorage.setItem('sb-open:{{ $apiKey }}', 'true');
+    ServiceBoxWidget.init({ shopId: '{{ $apiKey }}' });
   </script>
-  <script src="/widget.js" data-shop-id="{{ $apiKey }}"></script>
 </body>
 </html>
