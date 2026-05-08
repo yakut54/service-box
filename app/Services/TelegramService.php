@@ -104,7 +104,7 @@ class TelegramService
         $text .= "Клиент: {$booking->customer_name}\n";
         $text .= "Телефон: {$booking->customer_phone}\n";
         if (!empty($booking->notes)) {
-            $text .= "💬 {$booking->notes}\n";
+            $text .= "\n💬 {$booking->notes}\n";
         }
 
         $inlineKeyboard = [
