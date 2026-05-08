@@ -17,7 +17,8 @@ class SendBookingReminders extends Command
     {
         $shops = Shop::where('telegram_bot_connected', true)
             ->whereNotNull('telegram_chat_id')
-            ->get();
+            ->get()
+            ->filter(fn($shop) => $shop->hasFeature('telegram'));
 
         foreach ($shops as $shop) {
             $this->processShop($shop);
