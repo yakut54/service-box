@@ -196,7 +196,7 @@ class TelegramService
             if ($master) {
                 $text .= "👤 {$master}\n";
             }
-            $text .= "\n📍 {$shop->name}";
+            $text .= "\n<b>{$shop->name}</b>";
         } else {
             $text  = "❌ <b>Ваша запись отменена</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";
@@ -255,7 +255,7 @@ class TelegramService
         if ($master) {
             $text .= "👤 {$master}\n";
         }
-        $text .= "\n📍 {$shop->name}";
+        $text .= "\n<b>{$shop->name}</b>";
 
         $keyboard = [
             [['text' => '❌ Отменить запись', 'callback_data' => "client_cancel:{$booking->id}"]],
