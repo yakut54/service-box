@@ -40,7 +40,6 @@ const address = ref({
   building:    '',
   apartment:   '',
   postal_code: '',
-  comment:     '',
 })
 
 const notes = ref('')
@@ -199,7 +198,6 @@ async function handleSubmit() {
       building:    address.value.building.trim(),
       apartment:   address.value.apartment.trim() || null,
       postal_code: address.value.postal_code.trim(),
-      comment:     address.value.comment.trim()    || null,
     }
   }
 
@@ -308,9 +306,6 @@ async function handleSubmit() {
               </SbField>
             </div>
 
-            <SbField label="Комментарий к доставке" label-for="co-delivery-comment">
-              <textarea id="co-delivery-comment" v-model="address.comment" class="sb-input" rows="2" placeholder="Код домофона, подъезд..." maxlength="500" />
-            </SbField>
           </div>
 
           <!-- Order notes -->

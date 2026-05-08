@@ -79,13 +79,11 @@ class TelegramService
             if (!empty($addr['postal_code'])) {
                 $text .= "\n" . $addr['postal_code'];
             }
-            if (!empty($addr['comment'])) {
-                $text .= "\n💬 {$addr['comment']}";
+            if (!empty($order->notes)) {
+                $text .= "\n💬 {$order->notes}";
             }
             $text .= "\n";
-        }
-
-        if (!empty($order->notes)) {
+        } elseif (!empty($order->notes)) {
             $text .= "\n💬 {$order->notes}\n";
         }
 
