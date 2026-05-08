@@ -10,8 +10,9 @@ import { timezoneOptions } from '@/shared/lib/timezones'
 
 const authStore = useAuthStore()
 
-// ── Shop name ─────────────────────────────────────────────────
+// ── Shop name + domain ────────────────────────────────────────
 const shopName = ref('')
+const shopDomain = ref('')
 const savingName = ref(false)
 const nameSuccess = ref(false)
 const nameError = ref('')
@@ -22,8 +23,8 @@ async function saveShopName() {
   nameError.value = ''
   nameSuccess.value = false
   try {
-    const updated = await api.updateShop({ name: shopName.value.trim() })
-    if (authStore.shop) authStore.shop.name = updated.name
+    const updated = await api.updateShop({ name: shopName.value.trim(), domain: shopDomain.value.trim() || null })
+    if (authStore.shop) { authStore.shop.name = updated.name; authStore.shop.domain = updated.domain }
     nameSuccess.value = true
     setTimeout(() => nameSuccess.value = false, 3000)
   } catch (e: unknown) {
@@ -146,6 +147,7 @@ const slotOptions = [
 onMounted(() => {
   if (authStore.shop) {
     shopName.value = authStore.shop.name || ''
+    shopDomain.value = authStore.shop.domain || ''
     workStart.value = authStore.shop.work_start || '09:00'
     workEnd.value = authStore.shop.work_end || '20:00'
     slotDuration.value = String(authStore.shop.slot_duration || 30)
@@ -240,12 +242,16 @@ async function saveWorkHours() {
           <div class="space-y-4">
             <div>
               <label class="label">Название магазина</label>
-              <div class="flex gap-2">
-                <input v-model="shopName" type="text" class="input flex-1" placeholder="Название магазина" />
-                <button @click="saveShopName" :disabled="savingName" class="btn-primary whitespace-nowrap">
-                  {{ savingName ? 'Сохраняем…' : nameSuccess ? 'Сохранено!' : 'Сохранить' }}
-                </button>
-              </div>
+              <input v-model="shopName" type="text" class="input" placeholder="Название магазина" />
+            </div>
+            <div>
+              <label class="label">Сайт магазина <span class="text-gray-400 font-normal">(используется в Telegram-уведомлениях)</span></label>
+              <input v-model="shopDomain" type="url" class="input" placeholder="https://example.com" />
+            </div>
+            <div>
+              <button @click="saveShopName" :disabled="savingName" class="btn-primary">
+                {{ savingName ? 'Сохраняем…' : nameSuccess ? 'Сохранено!' : 'Сохранить' }}
+              </button>
               <p v-if="nameError" class="text-red-500 text-xs mt-1">{{ nameError }}</p>
             </div>
             <div>
