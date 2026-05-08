@@ -529,6 +529,7 @@ async function handleSubmit() {
         <SbButton
           type="submit"
           block
+          class="sb-mt-4"
           :disabled="submitting"
         >
           {{ submitting ? 'Записываем...' : 'Записаться' }}
