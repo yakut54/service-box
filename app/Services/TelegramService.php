@@ -193,7 +193,11 @@ class TelegramService
             $text .= "✂️ {$service}\n\n";
             $text .= "Хотите записаться на другое время?";
 
-            $bookUrl = url("/book/{$shop->api_key}");
+            if ($shop->domain) {
+                $bookUrl = str_starts_with($shop->domain, 'http') ? $shop->domain : "https://{$shop->domain}";
+            } else {
+                $bookUrl = url("/book/{$shop->api_key}");
+            }
             $keyboard = ['inline_keyboard' => [[['text' => '📅 Записаться снова', 'url' => $bookUrl]]]];
         }
 
