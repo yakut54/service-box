@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { plural } from '@/lib/utils'
+import { UiTooltip } from '@/shared/ui'
 
 const props = defineProps<{
   data: Array<{ date: string; orders: number; revenue: number }>
@@ -89,25 +90,27 @@ onBeforeUnmount(() => ro?.disconnect())
             :style="`top:${yl.pct}%;transform:translateY(-50%)`">{{ yl.label }}</span>
         </div>
         <!-- Bars + grid -->
-        <div class="flex-1 relative overflow-hidden">
+        <div class="flex-1 relative">
           <div v-for="yl in yLabels" :key="`g${yl.pct}`"
             class="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 pointer-events-none"
             :style="`top:${yl.pct}%`"/>
           <div class="absolute inset-0 flex gap-px">
-            <div v-for="bar in points.bars" :key="bar.date"
-              class="flex-1 min-w-0 relative group cursor-default flex flex-col justify-end">
-              <!-- Tooltip -->
-              <div :class="['absolute bottom-full mb-1.5 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-gray-900 dark:bg-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs whitespace-nowrap shadow-lg',
-                bar.idx < 2 ? 'left-0' : bar.idx > bar.total - 3 ? 'right-0' : 'left-1/2 -translate-x-1/2']">
-                <div class="font-medium mb-0.5">{{ bar.label }}</div>
-                <div class="text-primary-300 tabular-nums">{{ fmtFull(bar.revenue) }}</div>
-                <div class="text-gray-400">{{ bar.orders }} {{ plural(bar.orders, 'заказ', 'заказа', 'заказов') }}</div>
-              </div>
+            <UiTooltip
+              v-for="bar in points.bars"
+              :key="bar.date"
+              :align="bar.idx < 2 ? 'start' : bar.idx > bar.total - 3 ? 'end' : 'center'"
+              class="flex-1 min-w-0 flex flex-col justify-end cursor-default"
+            >
+              <template #content>
+                <div class="font-semibold mb-1">{{ bar.label }}</div>
+                <div class="text-primary-300 tabular-nums text-sm">{{ fmtFull(bar.revenue) }}</div>
+                <div class="text-gray-400 mt-0.5">{{ bar.orders }} {{ plural(bar.orders, 'заказ', 'заказа', 'заказов') }}</div>
+              </template>
               <!-- Bar -->
               <div class="w-full rounded-t-sm transition-colors"
-                :class="bar.revenue > 0 ? 'bg-primary-500 dark:bg-primary-400 group-hover:bg-primary-600' : 'bg-gray-100 dark:bg-gray-800'"
+                :class="bar.revenue > 0 ? 'bg-primary-500 dark:bg-primary-400 hover:bg-primary-600' : 'bg-gray-100 dark:bg-gray-800'"
                 :style="`height:${bar.heightPct}%;min-height:${bar.revenue > 0 ? 3 : 0}px`"/>
-            </div>
+            </UiTooltip>
           </div>
         </div>
       </div>
