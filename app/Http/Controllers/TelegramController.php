@@ -23,6 +23,13 @@ class TelegramController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
+        if (!$shop->hasFeature('telegram')) {
+            return response()->json([
+                'error'   => 'plan_gate',
+                'message' => 'Telegram-уведомления доступны на тарифах Start и выше.',
+            ], 403);
+        }
+
         $code = TelegramService::generateConnectionCode($shop);
 
         return response()->json([
@@ -209,7 +216,13 @@ class TelegramController extends Controller
 
         [$entityType, $action, $entityId] = $parts;
 
-        // Find shop by chat_id
+        // Customer-side rating callback — shop lookup is by booking id, not chat_id
+        if ($entityType === 'rate') {
+            $this->handleRatingCallback($callbackId, $entityId, $action, $chatId);
+            return;
+        }
+
+        // Find shop by chat_id (owner-side callbacks)
         $shop = Shop::where('telegram_chat_id', $chatId)
             ->where('telegram_bot_connected', true)
             ->first();
@@ -310,6 +323,76 @@ class TelegramController extends Controller
             'booking_id' => $bookingId,
             'status'     => $newStatus,
         ]);
+    }
+
+    private function handleRatingCallback(string $callbackId, string $bookingId, string $scoreStr, int $chatId): void
+    {
+        $score = (int) $scoreStr;
+        if ($score < 1 || $score > 5) {
+            $this->answerCallback($callbackId, 'Неверная оценка');
+            return;
+        }
+
+        // Find the booking across all shop schemas
+        $schemas = \DB::select("
+            SELECT schema_name FROM information_schema.schemata
+            WHERE schema_name LIKE 'shop_%'
+        ");
+
+        foreach ($schemas as $row) {
+            $s = $row->schema_name;
+
+            $booking = \DB::selectOne("
+                SELECT b.id, b.service_id, b.customer_id, b.customer_name, b.customer_phone, b.rating_sent
+                FROM {$s}.bookings b
+                WHERE b.id = ?
+            ", [$bookingId]);
+
+            if (!$booking) {
+                continue;
+            }
+
+            if ($booking->rating_sent) {
+                $this->answerCallback($callbackId, 'Вы уже оценили этот визит');
+                return;
+            }
+
+            // Verify the rating comes from the right customer
+            $customer = \DB::selectOne(
+                "SELECT telegram_chat_id FROM {$s}.customers WHERE phone = ?",
+                [$booking->customer_phone]
+            );
+
+            if (!$customer || (int) $customer->telegram_chat_id !== $chatId) {
+                $this->answerCallback($callbackId, 'Нет доступа');
+                return;
+            }
+
+            try {
+                \DB::table("{$s}.reviews")->insert([
+                    'id'            => (string) \Illuminate\Support\Str::uuid(),
+                    'product_id'    => $booking->service_id,
+                    'customer_id'   => $booking->customer_id,
+                    'customer_name' => $booking->customer_name,
+                    'rating'        => $score,
+                    'is_published'  => false,
+                    'created_at'    => now(),
+                ]);
+
+                \DB::statement("UPDATE {$s}.bookings SET rating_sent = TRUE WHERE id = ?", [$bookingId]);
+            } catch (\Throwable $e) {
+                Log::error('Failed to save rating', ['booking' => $bookingId, 'error' => $e->getMessage()]);
+                $this->answerCallback($callbackId, 'Ошибка сохранения');
+                return;
+            }
+
+            $stars = str_repeat('⭐', $score);
+            $this->answerCallback($callbackId, "Спасибо за оценку! {$stars}");
+            $this->sendReply($chatId, "Спасибо за вашу оценку {$stars}\nОтзыв отправлен на модерацию.");
+            return;
+        }
+
+        $this->answerCallback($callbackId, 'Запись не найдена');
     }
 
     // ── Telegram Bot API helpers ──────────────────────────────────────

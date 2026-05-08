@@ -69,5 +69,35 @@ class SendBookingReminders extends Command
                 }
             }
         }
+
+        // Rating request 2h after booking end_time
+        $ratingBookings = DB::select("
+            SELECT
+                b.id, b.end_time, b.customer_phone, b.customer_name,
+                s.name AS service_name
+            FROM {$s}.bookings b
+            LEFT JOIN {$s}.products s ON s.id = b.service_id
+            WHERE b.status = 'completed'
+              AND b.rating_sent = FALSE
+              AND b.end_time BETWEEN
+                    NOW() - INTERVAL '2 hours 15 minutes'
+                AND NOW() - INTERVAL '1 hours 45 minutes'
+        ");
+
+        foreach ($ratingBookings as $booking) {
+            try {
+                TelegramService::notifyRatingRequest($shop, $booking);
+
+                DB::statement("UPDATE {$s}.bookings SET rating_sent = TRUE WHERE id = ?", [$booking->id]);
+
+                Log::info('Rating request sent', ['shop' => $shop->id, 'booking' => $booking->id]);
+            } catch (\Throwable $e) {
+                Log::error('Rating request failed', [
+                    'shop'    => $shop->id,
+                    'booking' => $booking->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }

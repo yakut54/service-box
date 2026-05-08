@@ -338,6 +338,47 @@ class TelegramService
     }
 
     /**
+     * Ask customer to rate their completed booking.
+     */
+    public static function notifyRatingRequest(Shop $shop, object $booking): void
+    {
+        $chatId = \DB::table("{$shop->schema_name}.customers")
+            ->where('phone', $booking->customer_phone)
+            ->value('telegram_chat_id');
+
+        if (!$chatId) {
+            return;
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        $service = $booking->service_name ?? '—';
+
+        $text  = "⭐ <b>Как прошёл визит?</b>\n\n";
+        $text .= "📋 {$service}\n";
+        $text .= "\nОцените, пожалуйста, услугу:";
+
+        $keyboard = [[
+            ['text' => '1 ⭐', 'callback_data' => "rate:{$booking->id}:1"],
+            ['text' => '2 ⭐', 'callback_data' => "rate:{$booking->id}:2"],
+            ['text' => '3 ⭐', 'callback_data' => "rate:{$booking->id}:3"],
+            ['text' => '4 ⭐', 'callback_data' => "rate:{$booking->id}:4"],
+            ['text' => '5 ⭐', 'callback_data' => "rate:{$booking->id}:5"],
+        ]];
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'      => $chatId,
+                'text'         => $text,
+                'parse_mode'   => 'HTML',
+                'reply_markup' => json_encode(['inline_keyboard' => $keyboard]),
+            ]);
+    }
+
+    /**
      * Generate Telegram connection code
      */
     public static function generateConnectionCode(Shop $shop): string
