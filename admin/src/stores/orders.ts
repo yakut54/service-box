@@ -20,13 +20,13 @@ export const useOrdersStore = defineStore('orders', () => {
   const pendingOrders = computed(() => orders.value.filter(o => o.status === 'pending'))
   const paidOrders = computed(() => orders.value.filter(o => o.status === 'paid'))
 
-  async function fetchOrders(params?: Record<string, string>) {
-    loading.value = true
+  async function fetchOrders(params?: Record<string, string>, options?: { silent?: boolean }) {
+    if (!options?.silent) loading.value = true
     try {
       const data = await api.getOrders(params)
       orders.value = data.data
     } finally {
-      loading.value = false
+      if (!options?.silent) loading.value = false
     }
   }
 

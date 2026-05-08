@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed, watch, reactive } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
@@ -374,7 +375,7 @@ function toYMD(d: Date) {
 }
 
 // ── Data loading ────────────────────────────────────────────
-async function applyFilters() {
+function buildParams() {
   const params: Record<string, string> = {}
   if (filterStatus.value) params.status = filterStatus.value
   if (filterMaster.value) params.master_id = filterMaster.value
@@ -384,8 +385,14 @@ async function applyFilters() {
     params.date_from = toYMD(weekDays.value[0])
     params.date_to   = toYMD(weekDays.value[6])
   }
-  await bookingsStore.fetchBookings(params)
+  return params
 }
+
+async function applyFilters() {
+  await bookingsStore.fetchBookings(buildParams())
+}
+
+useAutoRefresh(() => bookingsStore.fetchBookings(buildParams(), { silent: true }))
 
 onMounted(async () => {
   applyFilters()

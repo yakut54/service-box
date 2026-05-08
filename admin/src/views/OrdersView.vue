@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useOrdersStore } from '@/stores/orders'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -66,14 +67,20 @@ function getDateRange(preset: string): { from: string; to: string } | null {
 
 onMounted(() => { ordersStore.fetchOrders() })
 
-async function applyFilters() {
+function buildParams() {
   const params: Record<string, string> = {}
   if (filterStatus.value) params.status = filterStatus.value
   if (searchQuery.value) params.search = searchQuery.value
   const range = getDateRange(datePreset.value)
   if (range) { params.date_from = range.from; params.date_to = range.to }
-  await ordersStore.fetchOrders(params)
+  return params
 }
+
+async function applyFilters() {
+  await ordersStore.fetchOrders(buildParams())
+}
+
+useAutoRefresh(() => ordersStore.fetchOrders(buildParams(), { silent: true }))
 </script>
 
 <template>

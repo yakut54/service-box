@@ -8,13 +8,13 @@ export const useBookingsStore = defineStore('bookings', () => {
   const masters = ref<Master[]>([])
   const loading = ref(false)
 
-  async function fetchBookings(params?: Record<string, string>) {
-    loading.value = true
+  async function fetchBookings(params?: Record<string, string>, options?: { silent?: boolean }) {
+    if (!options?.silent) loading.value = true
     try {
       const data = await api.getBookings(params)
       bookings.value = data.data
     } finally {
-      loading.value = false
+      if (!options?.silent) loading.value = false
     }
   }
 
