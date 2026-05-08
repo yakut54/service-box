@@ -94,12 +94,17 @@ class TelegramService
         $service = $booking->service?->name ?? '—';
         $master  = $booking->master?->name;
 
+        $price = $booking->service?->price
+            ? '💰 ' . number_format($booking->service->price, 0, '.', ' ') . " ₽\n"
+            : '';
+
         $text  = "📅 <b>Новая запись!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
         $text .= "📋 {$service}\n";
         if ($master) {
             $text .= "👤 {$master}\n";
         }
+        $text .= $price;
         $text .= "\n";
         $text .= "Клиент: {$booking->customer_name}\n";
         $text .= "Телефон: {$booking->customer_phone}\n";
