@@ -242,8 +242,10 @@ class TelegramController extends Controller
             return;
         }
 
+        $isDigitalOnly = $order->items()->where('product_type', '!=', 'digital')->doesntExist();
+
         $newStatus = match ($action) {
-            'confirm' => 'processing',
+            'confirm' => $isDigitalOnly ? 'completed' : 'processing',
             'cancel'  => 'cancelled',
             default   => null,
         };
@@ -255,7 +257,11 @@ class TelegramController extends Controller
 
         $order->update(['status' => $newStatus]);
 
-        $label = $newStatus === 'processing' ? '✅ Подтверждён' : '❌ Отменён';
+        $label = match ($newStatus) {
+            'completed'  => '✅ Подтверждён',
+            'processing' => '✅ Подтверждён',
+            default      => '❌ Отменён',
+        };
         $this->answerCallback($callbackId, "Заказ {$label}");
 
         $shortId = substr($orderId, 0, 8);
