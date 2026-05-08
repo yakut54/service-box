@@ -12,15 +12,14 @@ const width = ref(600)
 
 const hasData = computed(() => props.data.some(d => d.revenue > 0))
 
-function fmt(kopecks: number) {
-  const r = kopecks / 100
-  if (r >= 1_000_000) return (r / 1_000_000).toFixed(1) + 'M ₽'
-  if (r >= 1_000)     return Math.round(r / 1_000) + 'K ₽'
-  return Math.round(r) + ' ₽'
+function fmt(rubles: number) {
+  if (rubles >= 1_000_000) return (rubles / 1_000_000).toFixed(1) + 'M ₽'
+  if (rubles >= 1_000)     return Math.round(rubles / 1_000) + 'K ₽'
+  return Math.round(rubles) + ' ₽'
 }
 
-function fmtFull(kopecks: number) {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
+function fmtFull(rubles: number) {
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(rubles)
 }
 
 const points = computed(() => {
