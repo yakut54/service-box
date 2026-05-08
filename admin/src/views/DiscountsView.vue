@@ -564,8 +564,6 @@ async function doDelete() {
       Акция <strong>{{ deleteTarget?.name }}</strong> будет удалена. История использований сохранится в заказах.
     </UiConfirmDialog>
 
-  </div>
-
   </template><!-- v-else -->
 
   </div>
