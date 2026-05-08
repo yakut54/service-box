@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import type { Product } from '@/types'
 import CustomSelect from '@/components/CustomSelect.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
@@ -39,6 +40,26 @@ type EmbedMode = 'popup' | 'inline' | 'auto'
 
 const embedMode        = ref<EmbedMode>('popup')
 const embedServiceId   = ref('')
+const embedProducts    = ref<Product[]>([])
+
+onMounted(async () => {
+  try {
+    const res = await api.getProducts({ per_page: '200' })
+    embedProducts.value = res.data
+  } catch {
+    // не критично — поле ввода останется как fallback
+  }
+})
+
+const typeLabel: Record<string, string> = { service: 'Услуга', physical: 'Товар', digital: 'Цифровой' }
+
+const embedProductOptions = computed(() => [
+  { value: '', label: 'Весь каталог (без deep link)' },
+  ...embedProducts.value.map(p => ({
+    value: p.id,
+    label: `${p.name} · ${typeLabel[p.type] ?? p.type}`,
+  })),
+])
 const embedPrefillName  = ref('')
 const embedPrefillPhone = ref('')
 const copied = ref(false)
@@ -410,8 +431,13 @@ async function saveWorkHours() {
 
           <!-- Optional service deep link -->
           <div class="mb-3">
-            <label class="label">ID услуги <span class="text-gray-400 font-normal">(deep link, опционально)</span></label>
-            <input v-model="embedServiceId" type="text" class="input font-mono text-sm" placeholder="uuid услуги — виджет откроется на ней" />
+            <label class="label">Открыть сразу на услуге <span class="text-gray-400 font-normal">(опционально)</span></label>
+            <CustomSelect
+              v-model="embedServiceId"
+              :options="embedProductOptions"
+              placeholder="Весь каталог (без deep link)"
+              searchable
+            />
           </div>
 
           <!-- Prefill -->
