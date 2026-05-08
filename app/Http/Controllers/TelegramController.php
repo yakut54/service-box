@@ -225,7 +225,7 @@ class TelegramController extends Controller
         try {
             match ($entityType) {
                 'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $chatId),
-                'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $chatId),
+                'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $chatId, $shop),
                 default   => $this->answerCallback($callbackId, 'Неизвестный тип'),
             };
         } finally {
@@ -267,7 +267,7 @@ class TelegramController extends Controller
         ]);
     }
 
-    private function handleBookingAction(string $callbackId, string $bookingId, string $action, int $chatId): void
+    private function handleBookingAction(string $callbackId, string $bookingId, string $action, int $chatId, Shop $shop): void
     {
         $booking = Booking::find($bookingId);
 
@@ -287,6 +287,7 @@ class TelegramController extends Controller
             return;
         }
 
+        $booking->load(['service', 'master']);
         $booking->update(['status' => $newStatus]);
 
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
@@ -294,6 +295,10 @@ class TelegramController extends Controller
 
         $date = \Carbon\Carbon::parse($booking->start_time)->format('d.m H:i');
         $this->sendReply($chatId, "Запись {$date} ({$booking->customer_name}) — {$label}");
+
+        try {
+            TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus);
+        } catch (\Throwable) {}
 
         Log::info('Booking status updated via Telegram', [
             'booking_id' => $bookingId,

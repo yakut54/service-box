@@ -153,6 +153,54 @@ class TelegramService
     }
 
     /**
+     * Notify customer when owner confirms or cancels their booking.
+     */
+    public static function notifyBookingStatusToCustomer(Shop $shop, $booking, string $status): void
+    {
+        $chatId = \DB::table("{$shop->schema_name}.customers")
+            ->where('phone', $booking->customer_phone)
+            ->value('telegram_chat_id');
+
+        if (!$chatId) {
+            return;
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        $tz   = $shop->timezone ?? 'Europe/Moscow';
+        $dt   = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz);
+        $date = $dt->translatedFormat('j M');
+        $time = $dt->format('H:i');
+        $service = $booking->service?->name ?? '—';
+        $master  = $booking->master?->name;
+
+        if ($status === 'confirmed') {
+            $text  = "✅ <b>Ваша запись подтверждена!</b>\n\n";
+            $text .= "🕐 <b>{$date} в {$time}</b>\n";
+            $text .= "✂️ {$service}\n";
+            if ($master) {
+                $text .= "👤 {$master}\n";
+            }
+            $text .= "\n📍 {$shop->name}";
+        } else {
+            $text  = "❌ <b>Ваша запись отменена</b>\n\n";
+            $text .= "🕐 {$date} в {$time}\n";
+            $text .= "✂️ {$service}\n\n";
+            $text .= "Для записи на другое время откройте наш сайт.";
+        }
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $chatId,
+                'text'       => $text,
+                'parse_mode' => 'HTML',
+            ]);
+    }
+
+    /**
      * Send booking confirmation to the customer's Telegram.
      */
     public static function notifyBookingConfirmedToCustomer(Shop $shop, $booking): void
