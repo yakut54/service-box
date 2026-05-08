@@ -288,7 +288,7 @@ async function handleSubmit() {
             </SbField>
 
             <SbField label="Улица *" label-for="co-street" :error="errors['address.street']" error-id="co-street-error" :valid="isFieldValid('address.street')">
-              <input id="co-street" v-model="address.street" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.street'] }" placeholder="ул. Ленина" autocomplete="street-address" maxlength="200" aria-required="true" :aria-invalid="!!errors['address.street']" :aria-describedby="errors['address.street'] ? 'co-street-error' : undefined" @blur="touch('address.street')" @input="validateField('address.street')" />
+              <input id="co-street" v-model="address.street" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.street'] }" placeholder="ул. Ленина" autocomplete="off" maxlength="200" aria-required="true" :aria-invalid="!!errors['address.street']" :aria-describedby="errors['address.street'] ? 'co-street-error' : undefined" @blur="touch('address.street')" @input="validateField('address.street')" />
             </SbField>
 
             <!-- Building / Apartment / Postal code row -->
