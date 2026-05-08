@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
 
 const authStore = useAuthStore()
@@ -457,13 +457,13 @@ async function saveWorkHours() {
     </div>
   </div>
 
-  <ConfirmDialog
-    v-if="showDisconnectConfirm"
+  <UiConfirmDialog
+    v-model="showDisconnectConfirm"
     title="Отключить Telegram?"
-    message="Уведомления о новых записях и заказах перестанут приходить. Подключить заново можно в любой момент."
-    confirm-text="Отключить"
+    confirm-label="Отключить"
     :danger="true"
     @confirm="showDisconnectConfirm = false; disconnectTelegram()"
-    @cancel="showDisconnectConfirm = false"
-  />
+  >
+    Уведомления о новых записях и заказах перестанут приходить. Подключить заново можно в любой момент.
+  </UiConfirmDialog>
 </template>

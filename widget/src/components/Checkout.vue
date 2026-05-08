@@ -6,6 +6,8 @@ import { formatPrice, cleanPhone, isPhoneValid, isEmailValid, isPostalCodeValid 
 import { handlePhoneInput } from '@/lib/phoneInput'
 import type { WidgetOrder } from '@/types'
 import ConsentBlock from '@/components/ConsentBlock.vue'
+import SbField from '@/components/SbField.vue'
+import { useFormValidation } from '@/composables/useFormValidation'
 
 const emit = defineEmits<{
   back: []
@@ -42,8 +44,7 @@ const address = ref({
 
 const notes = ref('')
 
-const errors  = ref<Record<string, string>>({})
-const touched = ref<Record<string, boolean>>({})
+const { formErrors: errors, formTouched: touched, touch: touchField, clearError, isFieldValid: checkValid } = useFormValidation()
 
 const hasPhysical = computed(() => cartStore.items.some(i => i.type === 'physical'))
 
@@ -56,68 +57,61 @@ function onPhoneInput(e: Event) {
 }
 
 // ── Touch + validate on blur ──────────────────────────────────
-function touch(field: string) {
-  touched.value[field] = true
-  validateField(field)
-}
+function touch(field: string) { touchField(field, validateField) }
 
 // ── Per-field validation (only when touched) ──────────────────
 function validateField(field: string) {
-  const e = { ...errors.value }
-  delete e[field]
+  clearError(field)
 
   switch (field) {
     case 'name':
       if (touched.value.name) {
-        if (!form.value.name.trim())                    e.name = 'Укажите имя'
-        else if (form.value.name.trim().length < 2)    e.name = 'Минимум 2 символа'
+        if (!form.value.name.trim())                 errors.value.name = 'Укажите имя'
+        else if (form.value.name.trim().length < 2)  errors.value.name = 'Минимум 2 символа'
       }
       break
     case 'phone':
       if (touched.value.phone) {
-        if (!form.value.phone.trim())                   e.phone = 'Укажите телефон'
-        else if (!isPhoneValid(form.value.phone))       e.phone = 'Введите номер полностью'
+        if (!form.value.phone.trim())               errors.value.phone = 'Укажите телефон'
+        else if (!isPhoneValid(form.value.phone))   errors.value.phone = 'Введите номер полностью'
       }
       break
     case 'email':
       if (touched.value.email && form.value.email.trim() && !isEmailValid(form.value.email))
-        e.email = 'Неверный формат email'
+        errors.value.email = 'Неверный формат email'
       break
     case 'address.city':
       if (touched.value['address.city'] && hasPhysical.value && !address.value.city.trim())
-        e['address.city'] = 'Укажите город'
+        errors.value['address.city'] = 'Укажите город'
       break
     case 'address.street':
       if (touched.value['address.street'] && hasPhysical.value && !address.value.street.trim())
-        e['address.street'] = 'Укажите улицу'
+        errors.value['address.street'] = 'Укажите улицу'
       break
     case 'address.building':
       if (touched.value['address.building'] && hasPhysical.value && !address.value.building.trim())
-        e['address.building'] = 'Укажите дом'
+        errors.value['address.building'] = 'Укажите дом'
       break
     case 'address.postal_code':
       if (touched.value['address.postal_code'] && hasPhysical.value) {
-        if (!address.value.postal_code.trim())              e['address.postal_code'] = 'Укажите индекс'
-        else if (!isPostalCodeValid(address.value.postal_code)) e['address.postal_code'] = 'Индекс — 6 цифр'
+        if (!address.value.postal_code.trim())                   errors.value['address.postal_code'] = 'Укажите индекс'
+        else if (!isPostalCodeValid(address.value.postal_code))  errors.value['address.postal_code'] = 'Индекс — 6 цифр'
       }
       break
   }
-
-  errors.value = e
 }
 
 // ── Show green checkmark ──────────────────────────────────────
 function isFieldValid(field: string): boolean {
-  if (!touched.value[field] || errors.value[field]) return false
   switch (field) {
-    case 'name':              return form.value.name.trim().length >= 2
-    case 'phone':             return isPhoneValid(form.value.phone)
-    case 'email':             return form.value.email.trim() !== '' && isEmailValid(form.value.email)
-    case 'address.city':      return address.value.city.trim().length > 0
-    case 'address.street':    return address.value.street.trim().length > 0
-    case 'address.building':  return address.value.building.trim().length > 0
-    case 'address.postal_code': return isPostalCodeValid(address.value.postal_code)
-    default:                  return false
+    case 'name':               return checkValid(field, () => form.value.name.trim().length >= 2)
+    case 'phone':              return checkValid(field, () => isPhoneValid(form.value.phone))
+    case 'email':              return checkValid(field, () => form.value.email.trim() !== '' && isEmailValid(form.value.email))
+    case 'address.city':       return checkValid(field, () => address.value.city.trim().length > 0)
+    case 'address.street':     return checkValid(field, () => address.value.street.trim().length > 0)
+    case 'address.building':   return checkValid(field, () => address.value.building.trim().length > 0)
+    case 'address.postal_code':return checkValid(field, () => isPostalCodeValid(address.value.postal_code))
+    default:                   return false
   }
 }
 
@@ -273,233 +267,56 @@ async function handleSubmit() {
           <div class="sb-checkout-section">
             <h3 class="sb-checkout-section-title">Контактные данные</h3>
 
-            <!-- Name -->
-            <div class="sb-field">
-              <label class="sb-label" for="co-name">Имя *</label>
-              <div class="sb-field-wrap">
-                <input
-                  id="co-name"
-                  v-model="form.name"
-                  type="text"
-                  class="sb-input"
-                  :class="{ 'sb-input-error': errors.name, 'sb-input-success': isFieldValid('name') }"
-                  placeholder="Ваше имя"
-                  autocomplete="name"
-                  maxlength="100"
-                  aria-required="true"
-                  :aria-invalid="!!errors.name"
-                  :aria-describedby="errors.name ? 'co-name-error' : undefined"
-                  @blur="touch('name')"
-                  @input="validateField('name')"
-                />
-                <svg v-if="isFieldValid('name')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <p v-if="errors.name" id="co-name-error" class="sb-error-text" role="alert">{{ errors.name }}</p>
-            </div>
+            <SbField label="Имя *" label-for="co-name" :error="errors.name" error-id="co-name-error" :valid="isFieldValid('name')">
+              <input id="co-name" v-model="form.name" type="text" class="sb-input" :class="{ 'sb-input-error': errors.name }" placeholder="Ваше имя" autocomplete="name" maxlength="100" aria-required="true" :aria-invalid="!!errors.name" :aria-describedby="errors.name ? 'co-name-error' : undefined" @blur="touch('name')" @input="validateField('name')" />
+            </SbField>
 
-            <!-- Phone — PRIMARY field for RU market, comes before email -->
-            <div class="sb-field">
-              <label class="sb-label" for="co-phone">Телефон *</label>
-              <div class="sb-field-wrap">
-                <input
-                  id="co-phone"
-                  :value="form.phone"
-                  type="tel"
-                  class="sb-input"
-                  :class="{ 'sb-input-error': errors.phone, 'sb-input-success': isFieldValid('phone') }"
-                  placeholder="+7 (___) ___-__-__"
-                  autocomplete="tel"
-                  inputmode="tel"
-                  aria-required="true"
-                  :aria-invalid="!!errors.phone"
-                  :aria-describedby="errors.phone ? 'co-phone-error' : undefined"
-                  @input="onPhoneInput"
-                  @change="onPhoneInput"
-                  @blur="touch('phone')"
-                />
-                <svg v-if="isFieldValid('phone')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <p v-if="errors.phone" id="co-phone-error" class="sb-error-text" role="alert">{{ errors.phone }}</p>
-            </div>
+            <SbField label="Телефон *" label-for="co-phone" :error="errors.phone" error-id="co-phone-error" :valid="isFieldValid('phone')">
+              <input id="co-phone" :value="form.phone" type="tel" class="sb-input" :class="{ 'sb-input-error': errors.phone }" placeholder="+7 (___) ___-__-__" autocomplete="tel" inputmode="tel" aria-required="true" :aria-invalid="!!errors.phone" :aria-describedby="errors.phone ? 'co-phone-error' : undefined" @input="onPhoneInput" @change="onPhoneInput" @blur="touch('phone')" />
+            </SbField>
 
-            <!-- Email — optional, after phone -->
-            <div class="sb-field">
-              <label class="sb-label" for="co-email">Email</label>
-              <div class="sb-field-wrap">
-                <input
-                  id="co-email"
-                  v-model="form.email"
-                  type="email"
-                  class="sb-input"
-                  :class="{ 'sb-input-error': errors.email, 'sb-input-success': isFieldValid('email') }"
-                  placeholder="email@example.com"
-                  autocomplete="email"
-                  maxlength="254"
-                  :aria-invalid="errors.email ? true : undefined"
-                  :aria-describedby="errors.email ? 'co-email-error' : undefined"
-                  @blur="touch('email')"
-                  @input="validateField('email')"
-                />
-                <svg v-if="isFieldValid('email')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <p v-if="errors.email" id="co-email-error" class="sb-error-text" role="alert">{{ errors.email }}</p>
-            </div>
+            <SbField label="Email" label-for="co-email" :error="errors.email" error-id="co-email-error" :valid="isFieldValid('email')">
+              <input id="co-email" v-model="form.email" type="email" class="sb-input" :class="{ 'sb-input-error': errors.email }" placeholder="email@example.com" autocomplete="email" maxlength="254" :aria-invalid="errors.email ? true : undefined" :aria-describedby="errors.email ? 'co-email-error' : undefined" @blur="touch('email')" @input="validateField('email')" />
+            </SbField>
           </div>
 
           <!-- Shipping address (only for physical items) -->
           <div v-if="hasPhysical" class="sb-checkout-section">
             <h3 class="sb-checkout-section-title">Адрес доставки</h3>
 
-            <div class="sb-field">
-              <label class="sb-label" for="co-city">Город *</label>
-              <div class="sb-field-wrap">
-                <input
-                  id="co-city"
-                  v-model="address.city"
-                  type="text"
-                  class="sb-input"
-                  :class="{ 'sb-input-error': errors['address.city'], 'sb-input-success': isFieldValid('address.city') }"
-                  placeholder="Москва"
-                  autocomplete="address-level2"
-                  maxlength="100"
-                  aria-required="true"
-                  :aria-invalid="!!errors['address.city']"
-                  :aria-describedby="errors['address.city'] ? 'co-city-error' : undefined"
-                  @blur="touch('address.city')"
-                  @input="validateField('address.city')"
-                />
-                <svg v-if="isFieldValid('address.city')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <p v-if="errors['address.city']" id="co-city-error" class="sb-error-text" role="alert">{{ errors['address.city'] }}</p>
-            </div>
+            <SbField label="Город *" label-for="co-city" :error="errors['address.city']" error-id="co-city-error" :valid="isFieldValid('address.city')">
+              <input id="co-city" v-model="address.city" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.city'] }" placeholder="Москва" autocomplete="address-level2" maxlength="100" aria-required="true" :aria-invalid="!!errors['address.city']" :aria-describedby="errors['address.city'] ? 'co-city-error' : undefined" @blur="touch('address.city')" @input="validateField('address.city')" />
+            </SbField>
 
-            <div class="sb-field">
-              <label class="sb-label" for="co-street">Улица *</label>
-              <div class="sb-field-wrap">
-                <input
-                  id="co-street"
-                  v-model="address.street"
-                  type="text"
-                  class="sb-input"
-                  :class="{ 'sb-input-error': errors['address.street'], 'sb-input-success': isFieldValid('address.street') }"
-                  placeholder="ул. Ленина"
-                  autocomplete="street-address"
-                  maxlength="200"
-                  aria-required="true"
-                  :aria-invalid="!!errors['address.street']"
-                  :aria-describedby="errors['address.street'] ? 'co-street-error' : undefined"
-                  @blur="touch('address.street')"
-                  @input="validateField('address.street')"
-                />
-                <svg v-if="isFieldValid('address.street')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
-              <p v-if="errors['address.street']" id="co-street-error" class="sb-error-text" role="alert">{{ errors['address.street'] }}</p>
-            </div>
+            <SbField label="Улица *" label-for="co-street" :error="errors['address.street']" error-id="co-street-error" :valid="isFieldValid('address.street')">
+              <input id="co-street" v-model="address.street" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.street'] }" placeholder="ул. Ленина" autocomplete="street-address" maxlength="200" aria-required="true" :aria-invalid="!!errors['address.street']" :aria-describedby="errors['address.street'] ? 'co-street-error' : undefined" @blur="touch('address.street')" @input="validateField('address.street')" />
+            </SbField>
 
             <!-- Building / Apartment / Postal code row -->
             <div class="sb-field-row">
-              <div class="sb-field">
-                <label class="sb-label" for="co-building">Дом *</label>
-                <div class="sb-field-wrap">
-                  <input
-                    id="co-building"
-                    v-model="address.building"
-                    type="text"
-                    class="sb-input"
-                    :class="{ 'sb-input-error': errors['address.building'], 'sb-input-success': isFieldValid('address.building') }"
-                    placeholder="12"
-                    autocomplete="off"
-                    maxlength="20"
-                    aria-required="true"
-                    :aria-invalid="!!errors['address.building']"
-                    :aria-describedby="errors['address.building'] ? 'co-building-error' : undefined"
-                    @blur="touch('address.building')"
-                    @input="validateField('address.building')"
-                  />
-                  <svg v-if="isFieldValid('address.building')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-                <p v-if="errors['address.building']" id="co-building-error" class="sb-error-text" role="alert">{{ errors['address.building'] }}</p>
-              </div>
+              <SbField label="Дом *" label-for="co-building" :error="errors['address.building']" error-id="co-building-error" :valid="isFieldValid('address.building')">
+                <input id="co-building" v-model="address.building" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.building'] }" placeholder="12" autocomplete="off" maxlength="20" aria-required="true" :aria-invalid="!!errors['address.building']" :aria-describedby="errors['address.building'] ? 'co-building-error' : undefined" @blur="touch('address.building')" @input="validateField('address.building')" />
+              </SbField>
 
-              <div class="sb-field">
-                <label class="sb-label" for="co-apartment">Квартира</label>
-                <input
-                  id="co-apartment"
-                  v-model="address.apartment"
-                  type="text"
-                  class="sb-input"
-                  placeholder="34"
-                  autocomplete="off"
-                  inputmode="numeric"
-                  maxlength="10"
-                />
-              </div>
+              <SbField label="Квартира" label-for="co-apartment">
+                <input id="co-apartment" v-model="address.apartment" type="text" class="sb-input" placeholder="34" autocomplete="off" inputmode="numeric" maxlength="10" />
+              </SbField>
 
-              <div class="sb-field">
-                <label class="sb-label" for="co-postal">Индекс *</label>
-                <div class="sb-field-wrap">
-                  <input
-                    id="co-postal"
-                    v-model="address.postal_code"
-                    type="text"
-                    class="sb-input"
-                    :class="{ 'sb-input-error': errors['address.postal_code'], 'sb-input-success': isFieldValid('address.postal_code') }"
-                    placeholder="101000"
-                    autocomplete="postal-code"
-                    inputmode="numeric"
-                    maxlength="6"
-                    aria-required="true"
-                    :aria-invalid="!!errors['address.postal_code']"
-                    :aria-describedby="errors['address.postal_code'] ? 'co-postal-error' : undefined"
-                    @blur="touch('address.postal_code')"
-                    @input="validateField('address.postal_code')"
-                  />
-                  <svg v-if="isFieldValid('address.postal_code')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                  </svg>
-                </div>
-                <p v-if="errors['address.postal_code']" id="co-postal-error" class="sb-error-text" role="alert">{{ errors['address.postal_code'] }}</p>
-              </div>
+              <SbField label="Индекс *" label-for="co-postal" :error="errors['address.postal_code']" error-id="co-postal-error" :valid="isFieldValid('address.postal_code')">
+                <input id="co-postal" v-model="address.postal_code" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.postal_code'] }" placeholder="101000" autocomplete="postal-code" inputmode="numeric" maxlength="6" aria-required="true" :aria-invalid="!!errors['address.postal_code']" :aria-describedby="errors['address.postal_code'] ? 'co-postal-error' : undefined" @blur="touch('address.postal_code')" @input="validateField('address.postal_code')" />
+              </SbField>
             </div>
 
-            <div class="sb-field">
-              <label class="sb-label" for="co-delivery-comment">Комментарий к доставке</label>
-              <textarea
-                id="co-delivery-comment"
-                v-model="address.comment"
-                class="sb-input"
-                rows="2"
-                placeholder="Код домофона, подъезд..."
-                maxlength="500"
-              />
-            </div>
+            <SbField label="Комментарий к доставке" label-for="co-delivery-comment">
+              <textarea id="co-delivery-comment" v-model="address.comment" class="sb-input" rows="2" placeholder="Код домофона, подъезд..." maxlength="500" />
+            </SbField>
           </div>
 
           <!-- Order notes -->
           <div class="sb-checkout-section">
-            <div class="sb-field">
-              <label class="sb-label" for="co-notes">Комментарий к заказу</label>
-              <textarea
-                id="co-notes"
-                v-model="notes"
-                class="sb-input"
-                rows="2"
-                placeholder="Пожелания..."
-                maxlength="500"
-              />
-            </div>
+            <SbField label="Комментарий к заказу" label-for="co-notes">
+              <textarea id="co-notes" v-model="notes" class="sb-input" rows="2" placeholder="Пожелания..." maxlength="500" />
+            </SbField>
           </div>
 
         </div>

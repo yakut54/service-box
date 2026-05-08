@@ -68,6 +68,14 @@ export function formatPrice(rubles: number): string {
   }).format(rubles)
 }
 
+export function formatDateTime(iso: string, timezone = 'Europe/Moscow'): string {
+  return new Date(iso).toLocaleDateString('ru-RU', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    timeZone: timezone,
+  })
+}
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 export function debounce(fn: (...args: any[]) => void, ms: number) {
   return (...args: any[]) => {

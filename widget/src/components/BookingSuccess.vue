@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, formatDateTime } from '@/lib/utils'
 import { useShopStore } from '@/stores/shop'
 import type { WidgetBooking, WidgetProduct } from '@/types'
 
@@ -7,18 +7,7 @@ const props = defineProps<{ booking: WidgetBooking | null; product: WidgetProduc
 const emit = defineEmits<{ back: [] }>()
 
 const shopStore = useShopStore()
-
-function formatDateTime(iso: string): string {
-  const tz = shopStore.shop?.timezone || 'Europe/Moscow'
-  return new Date(iso).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: tz,
-  })
-}
+const tz = () => shopStore.shop?.timezone || 'Europe/Moscow'
 </script>
 
 <template>
@@ -39,7 +28,7 @@ function formatDateTime(iso: string): string {
       </div>
       <div v-if="booking.start_time" class="sb-success-row">
         <span>Дата и время</span>
-        <span class="sb-success-value">{{ formatDateTime(booking.start_time) }}</span>
+        <span class="sb-success-value">{{ formatDateTime(booking.start_time, tz()) }}</span>
       </div>
       <div v-if="booking.master" class="sb-success-row">
         <span>Мастер</span>

@@ -4,7 +4,9 @@ import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
 import SbSelect from '@/components/SbSelect.vue'
+import SbField from '@/components/SbField.vue'
 import ConsentBlock from '@/components/ConsentBlock.vue'
+import { useFormValidation } from '@/composables/useFormValidation'
 import type { WidgetProduct, WidgetBooking } from '@/types'
 
 const props = defineProps<{ product: WidgetProduct }>()
@@ -37,44 +39,36 @@ const form = ref({
 const consentOffer   = ref(false)
 const consentPrivacy = ref(false)
 
-const formErrors = ref<Record<string, string>>({})
-const formTouched = ref<Record<string, boolean>>({})
+const { formErrors, formTouched, touch: touchField, clearError, isFieldValid: checkValid } = useFormValidation()
 
 const durationMinutes = computed(() => props.product?.service?.duration_minutes ?? 60)
 
 // ── Live validation ─────────────────────────────────────────
-function touch(field: string) {
-  formTouched.value[field] = true
-  validateField(field)
-}
+function touch(field: string) { touchField(field, validateField) }
 
 function validateField(field: string) {
-  const e = { ...formErrors.value }
-  delete e[field]
+  clearError(field)
   switch (field) {
     case 'name':
-      if (formTouched.value.name && !form.value.name.trim()) e.name = 'Укажите имя'
-      else if (formTouched.value.name && form.value.name.trim().length < 2) e.name = 'Минимум 2 символа'
+      if (formTouched.value.name && !form.value.name.trim()) formErrors.value.name = 'Укажите имя'
+      else if (formTouched.value.name && form.value.name.trim().length < 2) formErrors.value.name = 'Минимум 2 символа'
       break
     case 'phone':
-      if (formTouched.value.phone && !form.value.phone.trim()) e.phone = 'Укажите телефон'
-      else if (formTouched.value.phone && !isPhoneValid(form.value.phone)) e.phone = 'Введите полный номер: +7 (XXX) XXX-XX-XX'
+      if (formTouched.value.phone && !form.value.phone.trim()) formErrors.value.phone = 'Укажите телефон'
+      else if (formTouched.value.phone && !isPhoneValid(form.value.phone)) formErrors.value.phone = 'Введите полный номер: +7 (XXX) XXX-XX-XX'
       break
     case 'email':
-      if (formTouched.value.email && form.value.email.trim() && !isEmailValid(form.value.email)) e.email = 'Некорректный email'
+      if (formTouched.value.email && form.value.email.trim() && !isEmailValid(form.value.email)) formErrors.value.email = 'Некорректный email'
       break
   }
-  formErrors.value = e
 }
 
 function isFieldValid(field: string): boolean {
-  if (!formTouched.value[field]) return false
-  if (formErrors.value[field]) return false
   switch (field) {
-    case 'name': return form.value.name.trim().length >= 2
-    case 'phone': return isPhoneValid(form.value.phone)
-    case 'email': return form.value.email.trim() !== '' && isEmailValid(form.value.email)
-    default: return false
+    case 'name':  return checkValid(field, () => form.value.name.trim().length >= 2)
+    case 'phone': return checkValid(field, () => isPhoneValid(form.value.phone))
+    case 'email': return checkValid(field, () => form.value.email.trim() !== '' && isEmailValid(form.value.email))
+    default:      return false
   }
 }
 
@@ -506,66 +500,21 @@ async function handleSubmit() {
         <div class="sb-checkout-section">
           <h3 class="sb-checkout-section-title">Ваши данные</h3>
 
-          <div class="sb-field">
-            <label class="sb-label">Имя *</label>
-            <div class="sb-field-wrap">
-              <input
-                v-model="form.name"
-                type="text"
-                class="sb-input"
-                :class="{ 'sb-input-error': formErrors.name, 'sb-input-success': isFieldValid('name') }"
-                placeholder="Ваше имя"
-                @blur="touch('name')"
-                @input="validateField('name')"
-              />
-              <svg v-if="isFieldValid('name')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-            <p v-if="formErrors.name" class="sb-error-text">{{ formErrors.name }}</p>
-          </div>
+          <SbField label="Имя *" :error="formErrors.name" :valid="isFieldValid('name')">
+            <input v-model="form.name" type="text" class="sb-input" :class="{ 'sb-input-error': formErrors.name }" placeholder="Ваше имя" @blur="touch('name')" @input="validateField('name')" />
+          </SbField>
 
-          <div class="sb-field">
-            <label class="sb-label">Телефон *</label>
-            <div class="sb-field-wrap">
-              <input
-                :value="form.phone"
-                type="tel"
-                class="sb-input"
-                :class="{ 'sb-input-error': formErrors.phone, 'sb-input-success': isFieldValid('phone') }"
-                placeholder="+7 (___) ___-__-__"
-                @input="onPhoneInput"
-                @blur="touch('phone')"
-              />
-              <svg v-if="isFieldValid('phone')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-            <p v-if="formErrors.phone" class="sb-error-text">{{ formErrors.phone }}</p>
-          </div>
+          <SbField label="Телефон *" :error="formErrors.phone" :valid="isFieldValid('phone')">
+            <input :value="form.phone" type="tel" class="sb-input" :class="{ 'sb-input-error': formErrors.phone }" placeholder="+7 (___) ___-__-__" @input="onPhoneInput" @blur="touch('phone')" />
+          </SbField>
 
-          <div class="sb-field">
-            <label class="sb-label">Email</label>
-            <div class="sb-field-wrap">
-              <input
-                v-model="form.email"
-                type="email"
-                class="sb-input"
-                :class="{ 'sb-input-error': formErrors.email, 'sb-input-success': isFieldValid('email') }"
-                placeholder="email@example.com"
-                @blur="touch('email')"
-                @input="validateField('email')"
-              />
-              <svg v-if="isFieldValid('email')" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            </div>
-            <p v-if="formErrors.email" class="sb-error-text">{{ formErrors.email }}</p>
-          </div>
+          <SbField label="Email" :error="formErrors.email" :valid="isFieldValid('email')">
+            <input v-model="form.email" type="email" class="sb-input" :class="{ 'sb-input-error': formErrors.email }" placeholder="email@example.com" @blur="touch('email')" @input="validateField('email')" />
+          </SbField>
 
-          <div class="sb-field">
-            <label class="sb-label">Комментарий</label>
-            <textarea
-              v-model="form.notes"
-              class="sb-input"
-              rows="2"
-              placeholder="Пожелания..."
-            />
-          </div>
+          <SbField label="Комментарий">
+            <textarea v-model="form.notes" class="sb-input" rows="2" placeholder="Пожелания..." />
+          </SbField>
         </div>
 
         <!-- Согласия -->
