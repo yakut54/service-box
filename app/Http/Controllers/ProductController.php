@@ -164,6 +164,17 @@ class ProductController extends Controller
         ]);
     }
 
+    protected function prepareDigital(array $data): array
+    {
+        if (isset($data['file_size_mb'])) {
+            $data['file_size_bytes'] = $data['file_size_mb'] !== null
+                ? (int) round((float) $data['file_size_mb'] * 1024 * 1024)
+                : null;
+            unset($data['file_size_mb']);
+        }
+        return $data;
+    }
+
     protected function deleteProductImage(?string $imageUrl): void
     {
         if ($imageUrl && str_contains($imageUrl, '/storage/')) {
@@ -179,7 +190,7 @@ class ProductController extends Controller
         }
 
         if ($product->type === 'digital' && $request->has('digital')) {
-            $product->digital()->create($request->digital);
+            $product->digital()->create($this->prepareDigital($request->digital));
         }
 
         if ($product->type === 'service' && $request->has('service')) {
@@ -198,10 +209,11 @@ class ProductController extends Controller
         }
 
         if ($request->has('digital') && $product->type === 'digital') {
+            $digital = $this->prepareDigital($request->digital);
             if ($product->digital) {
-                $product->digital->update($request->digital);
+                $product->digital->update($digital);
             } else {
-                $product->digital()->create($request->digital);
+                $product->digital()->create($digital);
             }
         }
 

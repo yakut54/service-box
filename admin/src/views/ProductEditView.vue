@@ -450,7 +450,7 @@ async function handleSubmit() {
           </div>
           <div>
             <label class="label">{{ digitalDetails.delivery_type === 'code' ? 'Код / Инструкция' : 'URL для скачивания / доступа' }}</label>
-            <input v-model="digitalDetails.download_url" type="url" class="input"
+            <input v-model="digitalDetails.download_url" type="text" class="input"
               :placeholder="digitalDetails.delivery_type === 'code' ? 'Код будет отправлен на email' : 'https://storage.example.com/file.zip'" />
           </div>
           <div class="grid grid-cols-2 gap-4">

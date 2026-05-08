@@ -37,8 +37,9 @@ class UpdateProductRequest extends FormRequest
 
             'digital.delivery_type' => 'sometimes|in:download,link,code',
             'digital.access_days' => 'nullable|integer|min:1',
-            'digital.download_url' => 'nullable|url|max:500',
-            'digital.file_size_bytes' => 'nullable|integer|min:0',
+            'digital.download_url' => 'nullable|string|max:500',
+            'digital.file_size_mb' => 'nullable|numeric|min:0',
+            'digital.file_format' => 'nullable|string|max:50',
 
             'service.duration_minutes' => 'sometimes|integer|min:1|max:1440',
             'service.max_concurrent' => 'sometimes|integer|min:1|max:100',

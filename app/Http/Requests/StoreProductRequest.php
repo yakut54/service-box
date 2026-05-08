@@ -42,8 +42,9 @@ class StoreProductRequest extends FormRequest
             $rules = array_merge($rules, [
                 'digital.delivery_type' => 'required|in:download,link,code',
                 'digital.access_days' => 'nullable|integer|min:1',
-                'digital.download_url' => 'nullable|url|max:500',
-                'digital.file_size_bytes' => 'nullable|integer|min:0',
+                'digital.download_url' => 'nullable|string|max:500',
+                'digital.file_size_mb' => 'nullable|numeric|min:0',
+                'digital.file_format' => 'nullable|string|max:50',
             ]);
         }
 

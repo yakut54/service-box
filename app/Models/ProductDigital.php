@@ -19,12 +19,21 @@ class ProductDigital extends Model
         'access_days',
         'download_url',
         'file_size_bytes',
+        'file_format',
     ];
 
     protected $casts = [
         'access_days' => 'integer',
         'file_size_bytes' => 'integer',
     ];
+
+    protected $appends = ['file_size_mb'];
+
+    public function getFileSizeMbAttribute(): ?float
+    {
+        if ($this->file_size_bytes === null) return null;
+        return round($this->file_size_bytes / 1024 / 1024, 1);
+    }
 
     public function product()
     {
