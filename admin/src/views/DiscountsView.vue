@@ -566,6 +566,7 @@ async function doDelete() {
 
   </div>
 
-    </template>
+  </template><!-- v-else -->
+
   </div>
 </template>
