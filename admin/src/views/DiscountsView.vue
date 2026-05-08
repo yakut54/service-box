@@ -181,12 +181,12 @@ function openEdit(d: Discount) {
   form.value = {
     name:               d.name,
     type:               d.type,
-    value:              d.type === 'percent' ? d.value : d.value / 100,
+    value:              d.value,
     code:               d.code || '',
     scope:              d.scope,
     scope_value:        d.scope_value || '',
-    min_order_amount:   d.min_order_amount / 100,
-    max_discount_amount: d.max_discount_amount !== null ? String(d.max_discount_amount / 100) : '',
+    min_order_amount:   d.min_order_amount,
+    max_discount_amount: d.max_discount_amount !== null ? String(d.max_discount_amount) : '',
     usage_limit:        d.usage_limit !== null ? String(d.usage_limit) : '',
     per_user_limit:     d.per_user_limit,
     priority:           d.priority ?? 0,
@@ -204,15 +204,13 @@ function buildPayload() {
   return {
     name:               f.name.trim(),
     type:               f.type,
-    value:              f.type === 'percent'
-                          ? Number(f.value)
-                          : Math.round(Number(f.value) * 100),
+    value:              Math.round(Number(f.value)),
     code:               f.code.trim().toUpperCase() || null,
     scope:              f.scope,
     scope_value:        f.scope_value.trim() || null,
-    min_order_amount:   Math.round(Number(f.min_order_amount) * 100),
+    min_order_amount:   Math.round(Number(f.min_order_amount)),
     max_discount_amount: f.max_discount_amount !== ''
-                          ? Math.round(Number(f.max_discount_amount) * 100)
+                          ? Math.round(Number(f.max_discount_amount))
                           : null,
     usage_limit:        f.usage_limit !== '' ? Number(f.usage_limit) : null,
     per_user_limit:     Number(f.per_user_limit),

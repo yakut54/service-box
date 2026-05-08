@@ -48,15 +48,14 @@ async function loadBookings() {
 const pendingOrders = computed(() => ordersStore.pendingOrders)
 const recentOrders  = computed(() => ordersStore.orders.slice(0, 5))
 
-function formatPriceFull(kopecks: number) {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(kopecks / 100)
+function formatPriceFull(rubles: number) {
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(rubles)
 }
 
-function formatPrice(kopecks: number) {
-  const r = kopecks / 100
-  if (r >= 1_000_000) return (r / 1_000_000).toFixed(1) + 'M ₽'
-  if (r >= 1_000)     return Math.round(r / 1_000) + 'K ₽'
-  return Math.round(r) + ' ₽'
+function formatPrice(rubles: number) {
+  if (rubles >= 1_000_000) return (rubles / 1_000_000).toFixed(1) + 'M ₽'
+  if (rubles >= 1_000)     return Math.round(rubles / 1_000) + 'K ₽'
+  return Math.round(rubles) + ' ₽'
 }
 
 const bookingStatusLabel: Record<string, string> = {

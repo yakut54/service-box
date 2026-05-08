@@ -173,7 +173,7 @@ class DiscountService
         }
 
         if ($cartAmount < $discount->min_order_amount) {
-            $minRub = number_format($discount->min_order_amount / 100, 0, '.', ' ');
+            $minRub = number_format($discount->min_order_amount, 0, '.', ' ');
             throw ValidationException::withMessages([
                 'discount_code' => "Промокод действует от {$minRub} ₽",
             ]);

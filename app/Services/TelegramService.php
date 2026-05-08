@@ -58,7 +58,7 @@ class TelegramService
      */
     public static function notifyNewOrder(Shop $shop, $order): void
     {
-        $total = number_format($order->total_price / 100, 0, '.', ' ');
+        $total = number_format($order->total_price, 0, '.', ' ');
 
         $text = "🛒 <b>Новый заказ!</b>\n\n";
         $text .= "Заказ #" . substr($order->id, 0, 8) . "\n";

@@ -36,7 +36,7 @@
           @endif
         </td>
         <td class="right">{{ $item->quantity }}</td>
-        <td class="right">{{ number_format($item->price / 100, 0, '.', ' ') }} ₽</td>
+        <td class="right">{{ number_format($item->price, 0, '.', ' ') }} ₽</td>
       </tr>
       @endforeach
     </tbody>
@@ -46,12 +46,12 @@
     @if($order->discount_amount > 0)
     <tr>
       <td>Скидка</td>
-      <td class="right">−{{ number_format($order->discount_amount / 100, 0, '.', ' ') }} ₽</td>
+      <td class="right">−{{ number_format($order->discount_amount, 0, '.', ' ') }} ₽</td>
     </tr>
     @endif
     <tr class="total">
       <td>Итого</td>
-      <td class="right">{{ number_format($order->total_price / 100, 0, '.', ' ') }} ₽</td>
+      <td class="right">{{ number_format($order->total_price, 0, '.', ' ') }} ₽</td>
     </tr>
   </table>
 @endsection

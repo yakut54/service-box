@@ -18,8 +18,8 @@ const planColors: Record<string, string> = {
   pro:      'bg-amber-400 dark:bg-amber-500',
 }
 
-function formatRub(kopecks: number) {
-  return (kopecks / 100).toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 })
+function formatRub(rubles: number) {
+  return rubles.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 })
 }
 
 function formatDate(d: string) {

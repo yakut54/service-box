@@ -37,7 +37,7 @@ const planBadges: Record<string, string> = {
 
 function initEdits(p: SuperadminPricing): PlanEdit {
   return {
-    price_rubles: String(Math.round(p.price_kopecks / 100)),
+    price_rubles: String(p.price_kopecks),
     max_orders:   p.max_orders_per_month != null ? String(p.max_orders_per_month) : '',
     max_masters:  p.max_masters != null ? String(p.max_masters) : '',
     features:     [...(p.features ?? [])],
@@ -89,7 +89,7 @@ async function save() {
       const ed = edits.value[plan]
       return {
         plan,
-        price_kopecks:        Math.round((parseFloat(ed.price_rubles) || 0) * 100),
+        price_kopecks:        Math.round(parseFloat(ed.price_rubles) || 0),
         max_orders_per_month: ed.max_orders ? (parseInt(ed.max_orders) || null) : null,
         max_masters:          ed.max_masters ? (parseInt(ed.max_masters) || null) : null,
         features:             ed.features,

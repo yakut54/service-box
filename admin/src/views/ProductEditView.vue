@@ -136,8 +136,8 @@ onMounted(async () => {
       form.value = {
         name: p.name,
         description: p.description || '',
-        price: Math.round(p.price / 100),
-        compare_price: p.compare_price ? Math.round(p.compare_price / 100) : null,
+        price: p.price,
+        compare_price: p.compare_price ?? null,
         type: p.type,
         category_id: p.category_id || '',
         is_active: p.is_active,
@@ -189,8 +189,8 @@ async function handleSubmit() {
   const data: Record<string, any> = {
     name: form.value.name.trim(),
     description: form.value.description.trim() || null,
-    price: Math.round(form.value.price * 100),
-    compare_price: form.value.compare_price ? Math.round(form.value.compare_price * 100) : null,
+    price: Math.round(form.value.price),
+    compare_price: form.value.compare_price ? Math.round(form.value.compare_price) : null,
     type: form.value.type,
     category_id: form.value.category_id || null,
     is_active: form.value.is_active,

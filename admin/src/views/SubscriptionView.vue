@@ -99,7 +99,7 @@ async function load() {
           name:        meta.name,
           description: meta.description,
           popular:     meta.popular,
-          priceMonth:  Math.round(p.price_kopecks / 100),
+          priceMonth:  p.price_kopecks,
           features:    p.features ?? [],
           maxOrders:   p.max_orders_per_month ?? null,
           maxMasters:  p.max_masters ?? null,
@@ -145,7 +145,7 @@ function formatDate(iso: string) {
 }
 
 function formatAmount(amount: number) {
-  return (amount / 100).toLocaleString('ru-RU') + ' ₽'
+  return amount.toLocaleString('ru-RU') + ' ₽'
 }
 
 function paymentStatusLabel(status: string) {

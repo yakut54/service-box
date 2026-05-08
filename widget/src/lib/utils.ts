@@ -60,12 +60,12 @@ export function isPostalCodeValid(value: string): boolean {
   return /^\d{6}$/.test(value.trim())
 }
 
-export function formatPrice(kopecks: number): string {
+export function formatPrice(rubles: number): string {
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',
     minimumFractionDigits: 0,
-  }).format(kopecks / 100)
+  }).format(rubles)
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null

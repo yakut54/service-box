@@ -24,14 +24,14 @@ class YooKassaService
     /**
      * Создать платёж в ЮКасса.
      *
-     * @param  int    $amountKopecks  Сумма в копейках (100 ₽ = 10000)
-     * @param  string $description    Описание для пользователя
-     * @param  string $returnUrl      Куда редиректить после оплаты
-     * @param  array  $metadata       Произвольные данные (shop_id, order_id и т.д.)
+     * @param  int    $amount      Сумма в рублях
+     * @param  string $description Описание для пользователя
+     * @param  string $returnUrl   Куда редиректить после оплаты
+     * @param  array  $metadata    Произвольные данные (shop_id, order_id и т.д.)
      * @return array{payment_id: string, payment_url: string, status: string}
      */
     public function createPayment(
-        int    $amountKopecks,
+        int    $amount,
         string $description,
         string $returnUrl,
         array  $metadata = []
@@ -40,7 +40,7 @@ class YooKassaService
 
         $response = $this->client->createPayment([
             'amount' => [
-                'value'    => number_format($amountKopecks / 100, 2, '.', ''),
+                'value'    => number_format($amount, 2, '.', ''),
                 'currency' => 'RUB',
             ],
             'confirmation' => [

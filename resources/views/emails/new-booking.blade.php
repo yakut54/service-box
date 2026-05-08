@@ -15,7 +15,7 @@
   <table class="summary" style="margin-top: -10px;">
     <tr class="total">
       <td>Стоимость</td>
-      <td class="right">{{ number_format($booking->service->price / 100, 0, '.', ' ') }} ₽</td>
+      <td class="right">{{ number_format($booking->service->price, 0, '.', ' ') }} ₽</td>
     </tr>
   </table>
   @endif
