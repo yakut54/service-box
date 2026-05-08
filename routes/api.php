@@ -40,9 +40,7 @@ Route::get('/kontakty', function () {
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
-        'service' => 'ServiceBox API v2', // ← тут меняем
         'timestamp' => now()->toIso8601String(),
-        'database' => \DB::connection()->getDatabaseName(),
     ]);
 });
 
@@ -57,10 +55,10 @@ Route::get('/pricing', [SuperadminPricingController::class, 'index']);
 // ============================================================================
 Route::prefix('auth')->group(function () {
     // Public
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
     // Protected (Bearer token)
     Route::middleware('auth:sanctum')->group(function () {

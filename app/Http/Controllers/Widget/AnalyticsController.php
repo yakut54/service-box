@@ -40,7 +40,7 @@ class AnalyticsController extends Controller
             return response()->json(['ok' => true]); // silently ignore unknown events
         }
 
-        $schema = $shop->schema_name;
+        $schema = $this->safeSchema($shop->schema_name);
 
         DB::statement("
             INSERT INTO {$schema}.widget_analytics (session_id, event, product_id, meta)
@@ -70,14 +70,14 @@ class AnalyticsController extends Controller
         $days = (int) $request->query('days', 30);
         $days = in_array($days, [7, 30, 90]) ? $days : 30;
 
-        $schema = $shop->schema_name;
+        $schema = $this->safeSchema($shop->schema_name);
 
         $rows = DB::select("
             SELECT event, COUNT(DISTINCT session_id) AS sessions
             FROM {$schema}.widget_analytics
-            WHERE created_at >= NOW() - INTERVAL '{$days} days'
+            WHERE created_at >= NOW() - (? * INTERVAL '1 day')
             GROUP BY event
-        ");
+        ", [$days]);
 
         $counts = collect($rows)->pluck('sessions', 'event')->map(fn($v) => (int) $v);
 
@@ -105,5 +105,13 @@ class AnalyticsController extends Controller
             'days'   => $days,
             'funnel' => $result,
         ]);
+    }
+
+    private function safeSchema(string $schema): string
+    {
+        if (!preg_match('/^shop_[a-z0-9_]+$/', $schema)) {
+            abort(500, 'Invalid schema name');
+        }
+        return $schema;
     }
 }

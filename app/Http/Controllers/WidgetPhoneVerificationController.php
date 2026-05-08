@@ -49,9 +49,7 @@ class WidgetPhoneVerificationController extends Controller
         }
         RateLimiter::hit($ipKey, 600);
 
-        // TODO: replace with random + SMS/Telegram before going live
-        // Весь проект пока DEV — всегда 1111
-        $code = '1111';
+        $code = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
 
         // Store in cache for 5 minutes
         $cacheKey = "otp:{$shopId}:{$phone}";
@@ -61,18 +59,25 @@ class WidgetPhoneVerificationController extends Controller
             'ip' => $ip,
         ], 300);
 
+        // TODO: send $code via SMS or Telegram to $phone
+
         // Mask phone for display: +7 (913) ***-**-12
         $digits = preg_replace('/\D/', '', $phone);
         $masked = strlen($digits) >= 4
             ? substr($digits, 0, 4) . str_repeat('*', max(0, strlen($digits) - 6)) . substr($digits, -2)
             : $phone;
 
-        return response()->json([
+        $response = [
             'message' => 'Код подтверждения отправлен',
             'masked_phone' => $masked,
             'expires_in' => 300,
-            '_dev_code' => $code, // всегда возвращаем — проект DEV
-        ]);
+        ];
+
+        if (app()->isLocal()) {
+            $response['_dev_code'] = $code;
+        }
+
+        return response()->json($response);
     }
 
     /**

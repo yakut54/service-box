@@ -16,7 +16,7 @@ class ShopController extends Controller
     public function index(): JsonResponse
     {
         $shops = Shop::orderBy('name')
-            ->get(['name', 'api_key']);
+            ->get(['name']);
 
         return response()->json($shops);
     }
