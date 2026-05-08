@@ -96,13 +96,16 @@ class TelegramService
 
         $text  = "📅 <b>Новая запись!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
-        $text .= "✂️ {$service}\n";
+        $text .= "📋 {$service}\n";
         if ($master) {
             $text .= "👤 {$master}\n";
         }
         $text .= "\n";
         $text .= "Клиент: {$booking->customer_name}\n";
         $text .= "Телефон: {$booking->customer_phone}\n";
+        if (!empty($booking->notes)) {
+            $text .= "💬 {$booking->notes}\n";
+        }
 
         $inlineKeyboard = [
             [
