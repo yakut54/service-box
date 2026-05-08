@@ -149,7 +149,7 @@ if [ "$WIDGET_BUILD" = "true" ]; then
   fi
 
   echo "    → building..."
-  npm run build:server
+  VITE_API_URL=https://yakut54.ru/api VITE_SHOP_ID= npm run build:server
   cd ..
   echo "    widget/dist ready ($(du -sh widget/dist | cut -f1))"
 
