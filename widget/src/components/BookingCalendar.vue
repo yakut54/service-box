@@ -4,6 +4,7 @@ import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
 import SbSelect from '@/components/SbSelect.vue'
+import ConsentBlock from '@/components/ConsentBlock.vue'
 import type { WidgetProduct, WidgetBooking } from '@/types'
 
 const props = defineProps<{ product: WidgetProduct }>()
@@ -35,8 +36,6 @@ const form = ref({
 
 const consentOffer   = ref(false)
 const consentPrivacy = ref(false)
-
-function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferrer') }
 
 const formErrors = ref<Record<string, string>>({})
 const formTouched = ref<Record<string, boolean>>({})
@@ -570,27 +569,12 @@ async function handleSubmit() {
         </div>
 
         <!-- Согласия -->
-        <div v-if="shopStore.shop?.legal?.has_docs" class="sb-consent-block sb-mt-4">
-          <label class="sb-consent-label" :class="{ 'sb-consent-label-error': formErrors.consentOffer }">
-            <input type="checkbox" v-model="consentOffer" class="sb-consent-check" />
-            <span>
-              Принимаю условия
-              <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.offer_url)">Публичной оферты</button>
-              и
-              <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.privacy_url)">Политики конфиденциальности</button>
-            </span>
-          </label>
-          <p v-if="formErrors.consentOffer" class="sb-error-text" role="alert">{{ formErrors.consentOffer }}</p>
-
-          <label class="sb-consent-label sb-mt-2" :class="{ 'sb-consent-label-error': formErrors.consentPrivacy }">
-            <input type="checkbox" v-model="consentPrivacy" class="sb-consent-check" />
-            <span>
-              Согласен на обработку
-              <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.personal_data_url)">персональных данных</button>
-            </span>
-          </label>
-          <p v-if="formErrors.consentPrivacy" class="sb-error-text" role="alert">{{ formErrors.consentPrivacy }}</p>
-        </div>
+        <ConsentBlock
+          v-model:offer="consentOffer"
+          v-model:privacy="consentPrivacy"
+          :error-offer="formErrors.consentOffer"
+          :error-privacy="formErrors.consentPrivacy"
+        />
 
         <button
           type="submit"

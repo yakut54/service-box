@@ -5,6 +5,7 @@ import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid, isPostalCodeValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
 import type { WidgetOrder } from '@/types'
+import ConsentBlock from '@/components/ConsentBlock.vue'
 
 const emit = defineEmits<{
   back: []
@@ -23,7 +24,6 @@ const consentOffer   = ref(false)
 const consentPrivacy = ref(false)
 
 // ── Модал юридического документа ─────────────────────────────
-function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferrer') }
 
 const form = ref({
   name:  '',
@@ -530,34 +530,13 @@ async function handleSubmit() {
             <span class="sb-price-lg">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
           </div>
 
-          <!-- Согласия (если у шопа есть юридические документы) -->
-          <div v-if="shopStore.shop?.legal?.has_docs" class="sb-consent-block sb-mt-4">
-            <label
-              class="sb-consent-label"
-              :class="{ 'sb-consent-label-error': errors.consentOffer }"
-            >
-              <input type="checkbox" v-model="consentOffer" class="sb-consent-check" />
-              <span>
-                Принимаю условия
-                <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.offer_url)">Публичной оферты</button>
-                и
-                <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.privacy_url)">Политики конфиденциальности</button>
-              </span>
-            </label>
-            <p v-if="errors.consentOffer" class="sb-error-text" role="alert">{{ errors.consentOffer }}</p>
-
-            <label
-              class="sb-consent-label sb-mt-2"
-              :class="{ 'sb-consent-label-error': errors.consentPrivacy }"
-            >
-              <input type="checkbox" v-model="consentPrivacy" class="sb-consent-check" />
-              <span>
-                Согласен на обработку
-                <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.personal_data_url)">персональных данных</button>
-              </span>
-            </label>
-            <p v-if="errors.consentPrivacy" class="sb-error-text" role="alert">{{ errors.consentPrivacy }}</p>
-          </div>
+          <!-- Согласия -->
+          <ConsentBlock
+            v-model:offer="consentOffer"
+            v-model:privacy="consentPrivacy"
+            :error-offer="errors.consentOffer"
+            :error-privacy="errors.consentPrivacy"
+          />
 
           <!-- Desktop submit (inside form → Enter key works) -->
           <button
