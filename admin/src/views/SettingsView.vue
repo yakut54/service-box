@@ -449,93 +449,6 @@ async function saveWorkHours() {
           </div>
         </div>
 
-        <!-- Widget customization -->
-        <div class="card">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Внешний вид виджета</h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Цвет, логотип и отображение элементов</p>
-
-          <!-- Plan gate -->
-          <div v-if="!hasWidgetFeature" class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6a4 4 0 100-8 4 4 0 000 8z" />
-            </svg>
-            <div>
-              <div class="font-medium text-gray-700 dark:text-gray-300 text-sm">Недоступно на текущем тарифе</div>
-              <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Кастомизация виджета доступна на тарифе <span class="font-medium">Business и выше</span>.</div>
-            </div>
-          </div>
-
-          <!-- Settings -->
-          <div v-else class="space-y-5">
-
-            <!-- Color -->
-            <div>
-              <label class="label">Основной цвет</label>
-              <div class="flex items-center gap-3">
-                <input type="color" v-model="widgetColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-                <input type="text" v-model="widgetColor" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
-                <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: widgetColor }" />
-              </div>
-              <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
-            </div>
-
-            <!-- Border radius -->
-            <div>
-              <label class="label">Скругление кнопок</label>
-              <div class="flex gap-2">
-                <button v-for="opt in ([{ v: 4, label: 'Острые' }, { v: 8, label: 'Средние' }, { v: 16, label: 'Круглые' }] as const)"
-                  :key="opt.v"
-                  @click="widgetBorderRadius = opt.v"
-                  :class="['btn-secondary text-sm flex-1 transition-all', widgetBorderRadius === opt.v ? 'ring-2 ring-indigo-500' : '']"
-                  :style="{ borderRadius: opt.v + 'px' }">
-                  {{ opt.label }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Logo -->
-            <div>
-              <label class="label">Логотип магазина</label>
-              <div v-if="widgetLogoUrl" class="flex items-center gap-3 mb-2">
-                <img :src="widgetLogoUrl" class="h-12 w-12 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white p-1" />
-                <button @click="removeLogo" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
-              </div>
-              <label class="flex items-center gap-2 cursor-pointer w-fit">
-                <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип' }}</span>
-                <input type="file" accept="image/*" @change="uploadLogo" class="hidden" :disabled="uploadingLogo" />
-              </label>
-              <p class="text-xs text-gray-400 mt-1">PNG или SVG, рекомендуется квадратный</p>
-            </div>
-
-            <!-- Show/hide elements -->
-            <div>
-              <label class="label mb-2">Показывать в карточке услуги</label>
-              <div class="space-y-2">
-                <label class="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" v-model="widgetShowPrice" class="w-4 h-4 rounded text-indigo-600" />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">Цену</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" v-model="widgetShowDuration" class="w-4 h-4 rounded text-indigo-600" />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">Длительность</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" v-model="widgetShowMasterName" class="w-4 h-4 rounded text-indigo-600" />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">Имя мастера</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" v-model="widgetShowDescription" class="w-4 h-4 rounded text-indigo-600" />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">Описание</span>
-                </label>
-              </div>
-            </div>
-
-            <div v-if="widgetSuccess" class="text-sm text-green-600 dark:text-green-400">Сохранено!</div>
-            <div v-if="widgetError" class="text-sm text-red-600">{{ widgetError }}</div>
-            <button @click="saveWidgetConfig" :disabled="savingWidget" class="btn-primary">
-              {{ savingWidget ? 'Сохранение...' : 'Сохранить внешний вид' }}
-            </button>
-          </div>
         </div>
       </div>
 
@@ -625,6 +538,94 @@ async function saveWorkHours() {
           </div>
         </div>
 
+        <!-- Widget customization -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Внешний вид виджета</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Цвет, логотип и отображение элементов</p>
+
+          <!-- Plan gate -->
+          <div v-if="!hasWidgetFeature" class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6a4 4 0 100-8 4 4 0 000 8z" />
+            </svg>
+            <div>
+              <div class="font-medium text-gray-700 dark:text-gray-300 text-sm">Недоступно на текущем тарифе</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Кастомизация виджета доступна на тарифе <span class="font-medium">Business и выше</span>.</div>
+            </div>
+          </div>
+
+          <!-- Settings -->
+          <div v-else class="space-y-5">
+
+            <!-- Color -->
+            <div>
+              <label class="label">Основной цвет</label>
+              <div class="flex items-center gap-3">
+                <input type="color" v-model="widgetColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+                <input type="text" v-model="widgetColor" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
+                <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: widgetColor }" />
+              </div>
+              <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
+            </div>
+
+            <!-- Border radius -->
+            <div>
+              <label class="label">Скругление кнопок</label>
+              <div class="flex gap-2">
+                <button v-for="opt in ([{ v: 4, label: 'Острые' }, { v: 8, label: 'Средние' }, { v: 16, label: 'Круглые' }] as const)"
+                  :key="opt.v"
+                  @click="widgetBorderRadius = opt.v"
+                  :class="['btn-secondary text-sm flex-1 transition-all', widgetBorderRadius === opt.v ? 'ring-2 ring-indigo-500' : '']"
+                  :style="{ borderRadius: opt.v + 'px' }">
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Logo -->
+            <div>
+              <label class="label">Логотип магазина</label>
+              <div v-if="widgetLogoUrl" class="flex items-center gap-3 mb-2">
+                <img :src="widgetLogoUrl" class="h-12 w-12 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white p-1" />
+                <button @click="removeLogo" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer w-fit">
+                <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип' }}</span>
+                <input type="file" accept="image/*" @change="uploadLogo" class="hidden" :disabled="uploadingLogo" />
+              </label>
+              <p class="text-xs text-gray-400 mt-1">PNG или SVG, рекомендуется квадратный</p>
+            </div>
+
+            <!-- Show/hide elements -->
+            <div>
+              <label class="label mb-2">Показывать в карточке услуги</label>
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowPrice" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Цену</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowDuration" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Длительность</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowMasterName" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Имя мастера</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowDescription" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Описание</span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="widgetSuccess" class="text-sm text-green-600 dark:text-green-400">Сохранено!</div>
+            <div v-if="widgetError" class="text-sm text-red-600">{{ widgetError }}</div>
+            <button @click="saveWidgetConfig" :disabled="savingWidget" class="btn-primary">
+              {{ savingWidget ? 'Сохранение...' : 'Сохранить внешний вид' }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
