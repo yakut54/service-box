@@ -192,7 +192,7 @@ class TelegramService
         if ($status === 'confirmed') {
             $text  = "✅ <b>Ваша запись подтверждена!</b>\n\n";
             $text .= "🕐 <b>{$date} в {$time}</b>\n";
-            $text .= "✂️ {$service}\n";
+            $text .= "📋 {$service}\n";
             if ($master) {
                 $text .= "👤 {$master}\n";
             }
@@ -200,7 +200,7 @@ class TelegramService
         } else {
             $text  = "❌ <b>Ваша запись отменена</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";
-            $text .= "✂️ {$service}\n\n";
+            $text .= "📋 {$service}\n\n";
             $text .= "Хотите записаться на другое время?";
 
             if ($shop->domain) {
@@ -251,7 +251,7 @@ class TelegramService
 
         $text  = "✅ <b>Запись подтверждена!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
-        $text .= "✂️ {$service}\n";
+        $text .= "📋 {$service}\n";
         if ($master) {
             $text .= "👤 {$master}\n";
         }
