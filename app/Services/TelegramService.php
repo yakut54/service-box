@@ -61,7 +61,7 @@ class TelegramService
         $total = number_format($order->total_price, 0, '.', ' ');
 
         $text  = "🛒 <b>Новый заказ!</b>\n\n";
-        $text .= "🔖 #" . substr($order->id, 0, 8) . "\n";
+        $text .= "🔖 №" . substr($order->id, 0, 8) . "\n";
         $text .= "💰 <b>{$total} ₽</b>\n";
         $text .= "\n";
         $text .= "Клиент: {$order->customer_name}\n";
