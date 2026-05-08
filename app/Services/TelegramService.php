@@ -66,6 +66,9 @@ class TelegramService
         $text .= "\n";
         $text .= "Клиент: {$order->customer_name}\n";
         $text .= "Телефон: {$order->customer_phone}\n";
+        if (!empty($order->notes)) {
+            $text .= "\n💬 {$order->notes}\n";
+        }
 
         $inlineKeyboard = [
             [
