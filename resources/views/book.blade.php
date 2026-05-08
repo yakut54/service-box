@@ -41,8 +41,11 @@
     <h1>{{ $shopName }}</h1>
   </header>
   <main>
-    <div id="sb-widget"></div>
+    <p style="text-align:center;color:#64748b;font-size:14px;margin-top:40px;">Загрузка...</p>
   </main>
-  <script src="/widget.js" data-shop-id="{{ $apiKey }}" data-target="#sb-widget"></script>
+  <script>
+    localStorage.setItem('sb-open:{{ $apiKey }}', 'true')
+  </script>
+  <script src="/widget.js" data-shop-id="{{ $apiKey }}"></script>
 </body>
 </html>
