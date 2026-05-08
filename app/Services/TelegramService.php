@@ -129,10 +129,13 @@ class TelegramService
         $code = strtoupper(substr(md5($shop->id . time()), 0, 6));
 
         \DB::table('telegram_codes')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
             'code' => $code,
             'shop_id' => $shop->id,
             'expires_at' => now()->addMinutes(10),
             'used' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return $code;
