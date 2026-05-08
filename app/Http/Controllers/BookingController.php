@@ -148,6 +148,11 @@ class BookingController extends Controller
                 Mail::to($shop->user->email)->send(new NewBookingMail($booking, $shop->name));
             } catch (\Throwable) {}
         }
+        if ($shop) {
+            try {
+                \App\Services\TelegramService::notifyNewBooking($shop, $booking);
+            } catch (\Throwable) {}
+        }
 
         return response()->json([
             'message' => 'Booking created successfully',

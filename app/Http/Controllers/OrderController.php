@@ -202,6 +202,11 @@ class OrderController extends Controller
                 Mail::to($shop->user->email)->send(new NewOrderMail($order, $shop->name));
             } catch (\Throwable) {}
         }
+        if ($shop) {
+            try {
+                \App\Services\TelegramService::notifyNewOrder($shop, $order);
+            } catch (\Throwable) {}
+        }
 
         return response()->json([
             'message' => 'Order created successfully',

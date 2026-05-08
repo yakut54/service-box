@@ -60,16 +60,16 @@ class TelegramService
     {
         $total = number_format($order->total_price / 100, 0, '.', ' ');
 
-        $text = "New order!\n\n";
-        $text .= "Order #" . substr($order->id, 0, 8) . "\n";
-        $text .= "Total: {$total} RUB\n";
-        $text .= "Customer: {$order->customer_name}\n";
-        $text .= "Phone: {$order->customer_phone}\n";
+        $text = "🛒 *Новый заказ!*\n\n";
+        $text .= "Заказ #" . substr($order->id, 0, 8) . "\n";
+        $text .= "Сумма: {$total} ₽\n";
+        $text .= "Клиент: {$order->customer_name}\n";
+        $text .= "Телефон: {$order->customer_phone}\n";
 
         $inlineKeyboard = [
             [
-                ['text' => 'Confirm', 'callback_data' => "order:confirm:{$order->id}"],
-                ['text' => 'Cancel', 'callback_data' => "order:cancel:{$order->id}"],
+                ['text' => '✅ Подтвердить', 'callback_data' => "order:confirm:{$order->id}"],
+                ['text' => '❌ Отменить',    'callback_data' => "order:cancel:{$order->id}"],
             ],
         ];
 
@@ -91,15 +91,18 @@ class TelegramService
         $date = \Carbon\Carbon::parse($booking->start_time)->format('d.m.Y');
         $time = \Carbon\Carbon::parse($booking->start_time)->format('H:i');
 
-        $text = "New booking!\n\n";
-        $text .= "Date: {$date} at {$time}\n";
-        $text .= "Customer: {$booking->customer_name}\n";
-        $text .= "Phone: {$booking->customer_phone}\n";
+        $service = $booking->service?->name ?? '—';
+
+        $text = "📅 *Новая запись!*\n\n";
+        $text .= "Дата: {$date} в {$time}\n";
+        $text .= "Услуга: {$service}\n";
+        $text .= "Клиент: {$booking->customer_name}\n";
+        $text .= "Телефон: {$booking->customer_phone}\n";
 
         $inlineKeyboard = [
             [
-                ['text' => 'Confirm', 'callback_data' => "booking:confirm:{$booking->id}"],
-                ['text' => 'Cancel', 'callback_data' => "booking:cancel:{$booking->id}"],
+                ['text' => '✅ Подтвердить', 'callback_data' => "booking:confirm:{$booking->id}"],
+                ['text' => '❌ Отменить',    'callback_data' => "booking:cancel:{$booking->id}"],
             ],
         ];
 
