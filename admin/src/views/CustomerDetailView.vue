@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
 import { formatPrice, formatDateTime, formatDate } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner } from '@/shared/ui'
@@ -10,6 +11,8 @@ import type { Customer } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
 const customer = ref<Customer | null>(null)
 const loading = ref(true)
@@ -154,7 +157,7 @@ onMounted(async () => {
             <div class="min-w-0">
               <div class="font-medium text-sm text-gray-900 dark:text-gray-100">{{ booking.service?.name || '—' }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">
-                {{ formatDateTime(booking.start_time) }}
+                {{ formatDateTime(booking.start_time, shopTz) }}
                 <span v-if="booking.master"> &middot; <RouterLink :to="`/masters/${booking.master.id}`" class="hover:text-primary-600 dark:hover:text-primary-400">{{ booking.master.name }}</RouterLink></span>
               </div>
             </div>

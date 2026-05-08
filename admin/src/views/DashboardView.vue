@@ -13,6 +13,7 @@ import type { Booking, OrderStats } from '@/types'
 const authStore     = useAuthStore()
 const ordersStore   = useOrdersStore()
 const productsStore = useProductsStore()
+const shopTz        = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
 const todayStats        = ref<Partial<OrderStats>>({})
 const loadingStats      = ref(false)
@@ -66,7 +67,7 @@ const orderStatusLabel: Record<string, string> = {
 }
 
 function formatTime(d: string) {
-  return new Date(d).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: shopTz.value })
 }
 
 onMounted(() => Promise.all([

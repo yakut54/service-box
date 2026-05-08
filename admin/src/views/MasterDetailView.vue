@@ -2,9 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
 import type { Master, Booking, Product } from '@/types'
 
 const route = useRoute()
+const authStore = useAuthStore()
+const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
 const master = ref<Master | null>(null)
 const bookings = ref<Booking[]>([])
@@ -16,6 +19,7 @@ function formatDate(dateStr: string | null) {
   return new Date(dateStr).toLocaleString('ru-RU', {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    timeZone: shopTz.value,
   })
 }
 
