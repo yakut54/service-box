@@ -47,7 +47,7 @@ function openPayment() {
       Оплатить заказ
     </button>
 
-    <button class="sb-btn sb-btn-secondary sb-btn-block sb-mt-2" @click="emit('back')">
+    <button :class="['sb-btn sb-btn-block', order?.payment_url ? 'sb-btn-secondary sb-mt-2' : 'sb-btn-primary sb-mt-4']" @click="emit('back')">
       Вернуться в каталог
     </button>
   </div>
