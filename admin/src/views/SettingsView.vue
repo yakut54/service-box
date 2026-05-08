@@ -448,8 +448,6 @@ async function saveWorkHours() {
             <div v-if="telegramError" class="text-red-600 text-sm">{{ telegramError }}</div>
           </div>
         </div>
-
-        </div>
       </div>
 
       <!-- Правая колонка -->
