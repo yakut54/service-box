@@ -115,6 +115,20 @@ class ShopController extends Controller
             'legal_config.contact_phone'                    => 'nullable|string|max:30',
         ]);
 
+        // widget_config — только для Business и выше
+        if (isset($validated['widget_config']) && !$shop->hasFeature('widget_customization')) {
+            return response()->json([
+                'error'   => 'plan_gate',
+                'message' => 'Кастомизация виджета доступна на тарифе Business и выше.',
+            ], 403);
+        }
+
+        // Мержим widget_config с существующими данными
+        if (isset($validated['widget_config'])) {
+            $existing = $shop->widget_config ?? [];
+            $validated['widget_config'] = array_merge($existing, $validated['widget_config']);
+        }
+
         // Мержим legal_config с существующими данными — не затираем незатронутые поля
         if (isset($validated['legal_config'])) {
             $existing = $shop->legal_config ?? [];
