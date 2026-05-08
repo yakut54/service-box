@@ -30,9 +30,22 @@ class DiscountController extends Controller
         ]);
     }
 
+    private function checkPlanAccess(Request $request): ?JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+        if ($shop && !in_array($shop->subscription_plan, ['start', 'business', 'pro'])) {
+            return response()->json([
+                'message' => 'Промокоды и скидки доступны с тарифа Start.',
+            ], 403);
+        }
+        return null;
+    }
+
     // POST /admin/discounts
     public function store(Request $request): JsonResponse
     {
+        if ($error = $this->checkPlanAccess($request)) return $error;
+
         $data = $request->validate([
             'name'                => 'required|string|max:255',
             'type'                => 'required|in:percent,fixed',

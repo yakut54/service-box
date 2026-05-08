@@ -3,16 +3,23 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { useCategoriesStore } from '@/stores/categories'
+import { useAuthStore } from '@/stores/auth'
 import CustomSelect from '@/components/CustomSelect.vue'
 import CategorySelect from '@/components/CategorySelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import PlanGate from '@/components/PlanGate.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { formatPrice } from '@/shared/lib/format'
 import type { Discount, DiscountType, DiscountScope } from '@/types'
+
+const authStore = useAuthStore()
+const hasDiscounts = computed(() =>
+  ['start', 'business', 'pro'].includes(authStore.shop?.subscription_plan ?? '')
+)
 
 const categoriesStore = useCategoriesStore()
 
@@ -261,6 +268,10 @@ async function doDelete() {
 
 <template>
   <div class="space-y-6">
+
+    <PlanGate v-if="!hasDiscounts" required-plan="Start" feature="Промокоды и скидки"/>
+
+    <template v-else>
 
     <!-- Header -->
     <PageHeader
@@ -553,5 +564,8 @@ async function doDelete() {
       Акция <strong>{{ deleteTarget?.name }}</strong> будет удалена. История использований сохранится в заказах.
     </UiConfirmDialog>
 
+  </div>
+
+    </template>
   </div>
 </template>
