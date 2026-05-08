@@ -38,7 +38,7 @@ const mainView = computed<WidgetView>(() =>
 const cartOpen = computed(() => currentView.value === 'cart')
 
 // ── Init on first open ──────────────────────────────────────
-watch(() => shopStore.isOpen, async (open) => {
+watch(() => shopStore.isOpen, async (open: boolean) => {
   if (!open || initialized) return
   initialized = true
   cartStore.init(shopStore.shopId)
@@ -52,7 +52,7 @@ watch(() => shopStore.isOpen, async (open) => {
   if (!shopStore.loading) {
     currentView.value = shopStore.error ? 'error' : 'catalog'
   } else {
-    const unwatch = watch(() => shopStore.loading, (loading) => {
+    const unwatch = watch(() => shopStore.loading, (loading: boolean) => {
       if (!loading) {
         currentView.value = shopStore.error ? 'error' : 'catalog'
         unwatch()
