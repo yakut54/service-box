@@ -118,6 +118,19 @@ class MasterController extends Controller
             'sort_order'     => 'integer|min:0',
         ]);
 
+        if (isset($data['is_active']) && $data['is_active'] && !$master->is_active) {
+            $shop = $request->attributes->get('shop');
+            if ($shop) {
+                $limits = $shop->getPlanLimits();
+                $max    = $limits['max_masters'];
+                if ($max !== null && Master::where('is_active', true)->count() >= $max) {
+                    return response()->json([
+                        'message' => "Ваш тариф позволяет не более {$max} активных мастеров.",
+                    ], 403);
+                }
+            }
+        }
+
         $master->update($data);
 
         return response()->json(['data' => $master]);
