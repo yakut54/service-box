@@ -48,6 +48,7 @@ function copyCode() {
 const telegramCode = ref('')
 const generatingCode = ref(false)
 const telegramError = ref('')
+const disconnecting = ref(false)
 
 async function generateTelegramCode() {
   if (!authStore.shop) return
@@ -60,6 +61,22 @@ async function generateTelegramCode() {
     telegramError.value = e instanceof Error ? e.message : 'Ошибка генерации кода'
   }
   generatingCode.value = false
+}
+
+async function disconnectTelegram() {
+  if (!authStore.shop) return
+  disconnecting.value = true
+  try {
+    await api.disconnectTelegram()
+    if (authStore.shop) {
+      authStore.shop.telegram_bot_connected = false
+      authStore.shop.telegram_chat_id = null
+    }
+    telegramCode.value = ''
+  } catch (e: unknown) {
+    telegramError.value = e instanceof Error ? e.message : 'Ошибка отключения'
+  }
+  disconnecting.value = false
 }
 
 // ── Work hours ───────────────────────────────────────────────
@@ -297,23 +314,29 @@ async function saveWorkHours() {
         <!-- Telegram -->
         <div class="card">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Telegram уведомления</h2>
-          <div v-if="authStore.shop?.telegram_bot_connected" class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <div>
-              <div class="font-medium text-green-800 dark:text-green-300">Telegram подключён</div>
-              <div class="text-sm text-green-600 dark:text-green-400">Вы будете получать уведомления о новых заказах</div>
+          <div v-if="authStore.shop?.telegram_bot_connected" class="space-y-3">
+            <div class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <svg class="w-6 h-6 text-green-600 dark:text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <div class="flex-1">
+                <div class="font-medium text-green-800 dark:text-green-300">Telegram подключён</div>
+                <div class="text-sm text-green-600 dark:text-green-400">Уведомления о новых записях и заказах активны</div>
+              </div>
             </div>
+            <button @click="disconnectTelegram" :disabled="disconnecting" class="btn-secondary text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800">
+              {{ disconnecting ? 'Отключение...' : 'Отключить Telegram' }}
+            </button>
+            <div v-if="telegramError" class="text-red-600 text-sm">{{ telegramError }}</div>
           </div>
           <div v-else class="space-y-4">
             <p class="text-gray-500 dark:text-gray-400 text-sm">
               Подключите Telegram для получения уведомлений о новых заказах и записях.
             </p>
             <div v-if="telegramCode" class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div class="text-sm text-blue-800 dark:text-blue-300 mb-2">1. Откройте бота <strong>@sb_widget_bot</strong></div>
-              <div class="text-sm text-blue-800 dark:text-blue-300 mb-2">2. Отправьте команду: <span class="font-mono">/start {{ telegramCode }}</span></div>
-              <div class="text-sm text-blue-800 dark:text-blue-300">3. Бот ответит подтверждением</div>
+              <div class="text-sm text-blue-800 dark:text-blue-300 mb-2">1. Откройте бота <a href="https://t.me/sb_widget_bot" target="_blank" class="font-semibold underline">@sb_widget_bot</a></div>
+              <div class="text-sm text-blue-800 dark:text-blue-300 mb-1">2. Отправьте код:</div>
+              <div class="font-mono text-lg font-bold text-blue-900 dark:text-blue-200 tracking-widest">{{ telegramCode }}</div>
               <div class="text-xs text-blue-600 dark:text-blue-400 mt-2">Код действителен 10 минут</div>
             </div>
             <button v-if="!telegramCode" @click="generateTelegramCode" :disabled="generatingCode" class="btn-primary">
