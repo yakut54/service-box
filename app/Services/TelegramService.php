@@ -66,6 +66,22 @@ class TelegramService
         $text .= "\n";
         $text .= "Клиент: {$order->customer_name}\n";
         $text .= "Телефон: {$order->customer_phone}\n";
+
+        $addr = $order->shipping_address;
+        if ($addr && $order->items()->where('product_type', 'physical')->exists()) {
+            $line = implode(', ', array_filter([
+                $addr['city']     ?? null,
+                $addr['street']   ?? null,
+                $addr['building'] ?? null,
+                !empty($addr['apartment']) ? 'кв. ' . $addr['apartment'] : null,
+            ]));
+            $text .= "\n📦 Доставка:\n{$line}";
+            if (!empty($addr['postal_code'])) {
+                $text .= "\n" . $addr['postal_code'];
+            }
+            $text .= "\n";
+        }
+
         if (!empty($order->notes)) {
             $text .= "\n💬 {$order->notes}\n";
         }
