@@ -122,6 +122,82 @@ class TelegramService
     }
 
     /**
+     * Generate a deep-link token so a customer can link their Telegram.
+     * Returns the full t.me URL to put in the widget.
+     */
+    public static function generateCustomerLinkToken(Shop $shop, string $customerPhone): string
+    {
+        $token = bin2hex(random_bytes(16)); // 32-char hex
+
+        \DB::table("{$shop->schema_name}.telegram_link_tokens")->insert([
+            'token'          => $token,
+            'customer_phone' => $customerPhone,
+            'expires_at'     => now()->addHours(24),
+            'used'           => false,
+            'created_at'     => now(),
+        ]);
+
+        $botUsername = config('services.telegram.bot_username', 'sb_widget_bot');
+
+        return "https://t.me/{$botUsername}?start=c{$token}";
+    }
+
+    /**
+     * Link customer's Telegram chat_id to their phone in the shop schema.
+     */
+    public static function linkCustomer(Shop $shop, string $customerPhone, int $chatId): void
+    {
+        \DB::table("{$shop->schema_name}.customers")
+            ->where('phone', $customerPhone)
+            ->update(['telegram_chat_id' => $chatId]);
+    }
+
+    /**
+     * Send booking confirmation to the customer's Telegram.
+     */
+    public static function notifyBookingConfirmedToCustomer(Shop $shop, $booking): void
+    {
+        $chatId = \DB::table("{$shop->schema_name}.customers")
+            ->where('phone', $booking->customer_phone)
+            ->value('telegram_chat_id');
+
+        if (!$chatId) {
+            return;
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($shop->timezone ?? 'Europe/Moscow');
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
+        $service = $booking->service?->name ?? '—';
+        $master  = $booking->master?->name;
+
+        $text  = "✅ <b>Запись подтверждена!</b>\n\n";
+        $text .= "🕐 <b>{$date} в {$time}</b>\n";
+        $text .= "✂️ {$service}\n";
+        if ($master) {
+            $text .= "👤 {$master}\n";
+        }
+        $text .= "\n📍 {$shop->name}";
+
+        $keyboard = [
+            [['text' => '❌ Отменить запись', 'callback_data' => "client_cancel:{$booking->id}"]],
+        ];
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'      => $chatId,
+                'text'         => $text,
+                'parse_mode'   => 'HTML',
+                'reply_markup' => json_encode(['inline_keyboard' => $keyboard]),
+            ]);
+    }
+
+    /**
      * Generate Telegram connection code
      */
     public static function generateConnectionCode(Shop $shop): string

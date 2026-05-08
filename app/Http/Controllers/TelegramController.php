@@ -126,6 +126,13 @@ class TelegramController extends Controller
         }
 
         if ($code) {
+            // Customer link token: starts with 'c', 33 chars total (c + 32 hex)
+            if (str_starts_with($code, 'c') && strlen($code) === 33) {
+                $this->handleCustomerLink(ltrim($code, 'c'), $chatId);
+                return;
+            }
+
+            // Shop connection code: 6 alphanumeric chars
             $shop = TelegramService::verifyConnectionCode(strtoupper($code));
 
             if (!$shop) {
@@ -140,6 +147,47 @@ class TelegramController extends Controller
                 "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
             );
         }
+    }
+
+    private function handleCustomerLink(string $token, int $chatId): void
+    {
+        // Find the token across all shop schemas
+        $schemas = \DB::select("
+            SELECT schema_name FROM information_schema.schemata
+            WHERE schema_name LIKE 'shop_%'
+        ");
+
+        foreach ($schemas as $row) {
+            $s = $row->schema_name;
+
+            $record = \DB::table("{$s}.telegram_link_tokens")
+                ->where('token', $token)
+                ->where('used', false)
+                ->where('expires_at', '>', now())
+                ->first();
+
+            if (!$record) {
+                continue;
+            }
+
+            // Mark used
+            \DB::table("{$s}.telegram_link_tokens")
+                ->where('token', $token)
+                ->update(['used' => true]);
+
+            // Link customer
+            \DB::table("{$s}.customers")
+                ->where('phone', $record->customer_phone)
+                ->update(['telegram_chat_id' => $chatId]);
+
+            $this->sendReply(
+                $chatId,
+                "✅ <b>Готово!</b> Теперь вы будете получать уведомления о записях прямо сюда."
+            );
+            return;
+        }
+
+        $this->sendReply($chatId, '❌ Ссылка недействительна или устарела. Создайте новую запись.');
     }
 
     private function handleCallbackQuery(array $callbackQuery): void

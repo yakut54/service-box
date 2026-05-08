@@ -177,6 +177,7 @@ export interface WidgetBooking {
   master?: WidgetBookingMaster | null
   created_at: string
   updated_at: string
+  telegram_link?: string | null
 }
 
 // ==========================================

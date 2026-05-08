@@ -148,15 +148,28 @@ class BookingController extends Controller
                 Mail::to($shop->user->email)->send(new NewBookingMail($booking, $shop->name));
             } catch (\Throwable) {}
         }
+        $telegramLink = null;
         if ($shop) {
             try {
                 \App\Services\TelegramService::notifyNewBooking($shop, $booking);
             } catch (\Throwable) {}
+
+            if ($shop->telegram_bot_connected) {
+                try {
+                    $telegramLink = \App\Services\TelegramService::generateCustomerLinkToken(
+                        $shop,
+                        $booking->customer_phone
+                    );
+                } catch (\Throwable) {}
+            }
         }
+
+        $bookingData = $booking->toArray();
+        $bookingData['telegram_link'] = $telegramLink;
 
         return response()->json([
             'message' => 'Booking created successfully',
-            'data'    => $booking,
+            'data'    => $bookingData,
         ], 201);
     }
 

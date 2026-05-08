@@ -55,6 +55,20 @@ function formatDateTime(iso: string): string {
       </div>
     </div>
 
+    <a
+      v-if="booking?.telegram_link"
+      :href="booking.telegram_link"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="sb-btn sb-btn-block sb-mt-4"
+      style="background:#2AABEE;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 14.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
+      </svg>
+      Получать уведомления в Telegram
+    </a>
+
     <button class="sb-btn sb-btn-primary sb-btn-block sb-mt-4" @click="emit('back')">
       Вернуться в каталог
     </button>
