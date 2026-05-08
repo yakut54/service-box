@@ -293,7 +293,7 @@ class TelegramController extends Controller
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
         $this->answerCallback($callbackId, "Запись {$label}");
 
-        $date = \Carbon\Carbon::parse($booking->start_time)->format('d.m H:i');
+        $date = \Carbon\Carbon::parse($booking->start_time)->setTimezone($shop->timezone ?? 'Europe/Moscow')->format('d.m H:i');
         $this->sendReply($chatId, "Запись {$date} ({$booking->customer_name}) — {$label}");
 
         try {

@@ -89,7 +89,8 @@ class TelegramService
      */
     public static function notifyNewBooking(Shop $shop, $booking): void
     {
-        $dt      = \Carbon\Carbon::parse($booking->start_time);
+        $tz      = $shop->timezone ?? 'Europe/Moscow';
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz)->locale('ru');
         $date    = $dt->translatedFormat('j M, D');
         $time    = $dt->format('H:i');
         $service = $booking->service?->name ?? '—';
