@@ -151,6 +151,12 @@ class ProductController extends Controller
     public function destroy(string $product): JsonResponse
     {
         $product = Product::findOrFail($product);
+
+        if ($product->image_url && str_contains($product->image_url, '/storage/')) {
+            $path = str_replace('/storage/', '', parse_url($product->image_url, PHP_URL_PATH));
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+        }
+
         $product->delete();
 
         return response()->json([
