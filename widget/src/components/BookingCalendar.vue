@@ -33,6 +33,11 @@ const form = ref({
   notes: '',
 })
 
+const consentOffer   = ref(false)
+const consentPrivacy = ref(false)
+
+function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferrer') }
+
 const formErrors = ref<Record<string, string>>({})
 const formTouched = ref<Record<string, boolean>>({})
 
@@ -285,6 +290,12 @@ function validate(): boolean {
   if (!form.value.phone.trim()) e.phone = 'Укажите телефон'
   else if (!isPhoneValid(form.value.phone)) e.phone = 'Введите полный номер: +7 (XXX) XXX-XX-XX'
   if (form.value.email.trim() && !isEmailValid(form.value.email)) e.email = 'Некорректный email'
+  const legal = shopStore.shop?.legal
+  if (legal?.has_docs) {
+    if (!consentOffer.value)   e.consentOffer   = 'Необходимо принять условия оферты'
+    if (!consentPrivacy.value) e.consentPrivacy = 'Необходимо дать согласие на обработку данных'
+  }
+
   formErrors.value = e
   return Object.keys(e).length === 0
 }
@@ -306,6 +317,8 @@ async function handleSubmit() {
         email: form.value.email.trim() || null,
       },
       notes: form.value.notes.trim() || null,
+      consent_offer_accepted:   consentOffer.value,
+      consent_privacy_accepted: consentPrivacy.value,
     }
     if (selectedMasterId.value) {
       payload.master_id = selectedMasterId.value
@@ -554,6 +567,29 @@ async function handleSubmit() {
               placeholder="Пожелания..."
             />
           </div>
+        </div>
+
+        <!-- Согласия -->
+        <div v-if="shopStore.shop?.legal?.has_docs" class="sb-consent-block sb-mt-4">
+          <label class="sb-consent-label" :class="{ 'sb-consent-label-error': formErrors.consentOffer }">
+            <input type="checkbox" v-model="consentOffer" class="sb-consent-check" />
+            <span>
+              Принимаю условия
+              <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.offer_url)">Публичной оферты</button>
+              и
+              <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.privacy_url)">Политики конфиденциальности</button>
+            </span>
+          </label>
+          <p v-if="formErrors.consentOffer" class="sb-error-text" role="alert">{{ formErrors.consentOffer }}</p>
+
+          <label class="sb-consent-label sb-mt-2" :class="{ 'sb-consent-label-error': formErrors.consentPrivacy }">
+            <input type="checkbox" v-model="consentPrivacy" class="sb-consent-check" />
+            <span>
+              Согласен на обработку
+              <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.personal_data_url)">персональных данных</button>
+            </span>
+          </label>
+          <p v-if="formErrors.consentPrivacy" class="sb-error-text" role="alert">{{ formErrors.consentPrivacy }}</p>
         </div>
 
         <button

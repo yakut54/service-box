@@ -130,10 +130,15 @@ class BookingController extends Controller
                 'start_time'     => $startTime,
                 'end_time'       => $endTime,
                 'status'         => 'pending',
-                'customer_name'  => $request->input('customer.name'),
-                'customer_phone' => $customerPhone,
-                'customer_email' => $request->input('customer.email'),
-                'notes'          => $request->notes,
+                'customer_name'           => $request->input('customer.name'),
+                'customer_phone'          => $customerPhone,
+                'customer_email'          => $request->input('customer.email'),
+                'notes'                   => $request->notes,
+                'consent_offer_accepted'  => (bool) $request->input('consent_offer_accepted', false),
+                'consent_privacy_accepted'=> (bool) $request->input('consent_privacy_accepted', false),
+                'consent_accepted_at'     => now(),
+                'consent_ip'              => $request->ip(),
+                'consent_ua'              => substr($request->userAgent() ?? '', 0, 500),
             ]);
         });
 
