@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, reactive } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { plural } from '@/lib/utils'
+import { useToast } from '@/composables/useToast'
 import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -15,6 +16,7 @@ const route = useRoute()
 const masters = ref<Master[]>([])
 const loading = ref(false)
 const error = ref('')
+const toast = useToast()
 
 // ── Modal ────────────────────────────────────────────────────
 const showModal = ref(false)
@@ -224,8 +226,9 @@ async function toggleActive(master: Master) {
     const res = await api.updateMaster(master.id, { is_active: !master.is_active })
     const idx = masters.value.findIndex(m => m.id === master.id)
     if (idx !== -1) masters.value[idx] = res.data
-  } catch {
-    // silent
+  } catch (e: unknown) {
+    const msg = e instanceof ApiError ? e.message : 'Не удалось изменить статус мастера'
+    toast.error(msg)
   }
 }
 

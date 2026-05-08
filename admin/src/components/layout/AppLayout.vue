@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
+import ToastContainer from '@/components/ToastContainer.vue'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -287,6 +288,7 @@ async function handleLogout() {
       <main class="p-3 sm:p-4 lg:p-6 flex-1 overflow-auto flex flex-col min-h-0">
         <AppBreadcrumb />
         <RouterView />
+        <ToastContainer />
       </main>
     </div>
   </div>
