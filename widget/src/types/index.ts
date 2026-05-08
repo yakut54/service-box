@@ -4,10 +4,12 @@
 
 export interface WidgetConfig {
   primary_color?: string
-  secondary_color?: string
-  font_family?: string
   logo_url?: string | null
   border_radius?: number
+  show_price?: boolean
+  show_duration?: boolean
+  show_master_name?: boolean
+  show_description?: boolean
   show_search?: boolean
   show_categories?: boolean
 }

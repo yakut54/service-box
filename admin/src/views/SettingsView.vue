@@ -199,6 +199,80 @@ async function saveYookassa() {
   }
 }
 
+// ── Widget customization ──────────────────────────────────────
+const hasWidgetFeature = computed(() =>
+  ['business', 'pro'].includes(authStore.shop?.subscription_plan ?? '')
+)
+
+const widgetColor        = ref('#6366f1')
+const widgetBorderRadius = ref<4 | 8 | 16>(8)
+const widgetShowPrice       = ref(true)
+const widgetShowDuration    = ref(true)
+const widgetShowMasterName  = ref(true)
+const widgetShowDescription = ref(true)
+const widgetLogoUrl      = ref<string | null>(null)
+const savingWidget       = ref(false)
+const widgetSuccess      = ref(false)
+const widgetError        = ref('')
+const uploadingLogo      = ref(false)
+
+onMounted(() => {
+  const wc = authStore.shop?.widget_config
+  if (wc) {
+    if (wc.primary_color)   widgetColor.value = wc.primary_color
+    if (wc.border_radius != null) widgetBorderRadius.value = wc.border_radius as 4 | 8 | 16
+    if (wc.show_price       != null) widgetShowPrice.value       = wc.show_price
+    if (wc.show_duration    != null) widgetShowDuration.value    = wc.show_duration
+    if (wc.show_master_name != null) widgetShowMasterName.value  = wc.show_master_name
+    if (wc.show_description != null) widgetShowDescription.value = wc.show_description
+    widgetLogoUrl.value = wc.logo_url ?? null
+  }
+})
+
+async function uploadLogo(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  uploadingLogo.value = true
+  try {
+    const res = await api.uploadImage(file)
+    widgetLogoUrl.value = res.url
+  } catch {
+    widgetError.value = 'Ошибка загрузки логотипа'
+  } finally {
+    uploadingLogo.value = false
+  }
+}
+
+function removeLogo() {
+  widgetLogoUrl.value = null
+}
+
+async function saveWidgetConfig() {
+  savingWidget.value = true
+  widgetError.value  = ''
+  widgetSuccess.value = false
+  try {
+    const updated = await api.updateShop({
+      widget_config: {
+        primary_color:    widgetColor.value,
+        border_radius:    widgetBorderRadius.value,
+        logo_url:         widgetLogoUrl.value,
+        show_price:       widgetShowPrice.value,
+        show_duration:    widgetShowDuration.value,
+        show_master_name: widgetShowMasterName.value,
+        show_description: widgetShowDescription.value,
+      },
+    })
+    if (authStore.shop) authStore.shop.widget_config = updated.widget_config
+    widgetSuccess.value = true
+    setTimeout(() => widgetSuccess.value = false, 3000)
+  } catch (e: unknown) {
+    widgetError.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+  } finally {
+    savingWidget.value = false
+  }
+}
+
 async function saveWorkHours() {
   if (workStart.value >= workEnd.value) {
     hoursError.value = 'Время начала должно быть раньше времени окончания'
@@ -374,6 +448,95 @@ async function saveWorkHours() {
             <div v-if="telegramError" class="text-red-600 text-sm">{{ telegramError }}</div>
           </div>
         </div>
+
+        <!-- Widget customization -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Внешний вид виджета</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Цвет, логотип и отображение элементов</p>
+
+          <!-- Plan gate -->
+          <div v-if="!hasWidgetFeature" class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6a4 4 0 100-8 4 4 0 000 8z" />
+            </svg>
+            <div>
+              <div class="font-medium text-gray-700 dark:text-gray-300 text-sm">Недоступно на текущем тарифе</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Кастомизация виджета доступна на тарифе <span class="font-medium">Business и выше</span>.</div>
+            </div>
+          </div>
+
+          <!-- Settings -->
+          <div v-else class="space-y-5">
+
+            <!-- Color -->
+            <div>
+              <label class="label">Основной цвет</label>
+              <div class="flex items-center gap-3">
+                <input type="color" v-model="widgetColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+                <input type="text" v-model="widgetColor" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
+                <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: widgetColor }" />
+              </div>
+              <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
+            </div>
+
+            <!-- Border radius -->
+            <div>
+              <label class="label">Скругление кнопок</label>
+              <div class="flex gap-2">
+                <button v-for="opt in ([{ v: 4, label: 'Острые' }, { v: 8, label: 'Средние' }, { v: 16, label: 'Круглые' }] as const)"
+                  :key="opt.v"
+                  @click="widgetBorderRadius = opt.v"
+                  :class="['btn-secondary text-sm flex-1 transition-all', widgetBorderRadius === opt.v ? 'ring-2 ring-indigo-500' : '']"
+                  :style="{ borderRadius: opt.v + 'px' }">
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Logo -->
+            <div>
+              <label class="label">Логотип магазина</label>
+              <div v-if="widgetLogoUrl" class="flex items-center gap-3 mb-2">
+                <img :src="widgetLogoUrl" class="h-12 w-12 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white p-1" />
+                <button @click="removeLogo" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
+              </div>
+              <label class="flex items-center gap-2 cursor-pointer w-fit">
+                <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип' }}</span>
+                <input type="file" accept="image/*" @change="uploadLogo" class="hidden" :disabled="uploadingLogo" />
+              </label>
+              <p class="text-xs text-gray-400 mt-1">PNG или SVG, рекомендуется квадратный</p>
+            </div>
+
+            <!-- Show/hide elements -->
+            <div>
+              <label class="label mb-2">Показывать в карточке услуги</label>
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowPrice" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Цену</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowDuration" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Длительность</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowMasterName" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Имя мастера</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="widgetShowDescription" class="w-4 h-4 rounded text-indigo-600" />
+                  <span class="text-sm text-gray-700 dark:text-gray-300">Описание</span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="widgetSuccess" class="text-sm text-green-600 dark:text-green-400">Сохранено!</div>
+            <div v-if="widgetError" class="text-sm text-red-600">{{ widgetError }}</div>
+            <button @click="saveWidgetConfig" :disabled="savingWidget" class="btn-primary">
+              {{ savingWidget ? 'Сохранение...' : 'Сохранить внешний вид' }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Правая колонка -->
@@ -462,18 +625,6 @@ async function saveWorkHours() {
           </div>
         </div>
 
-        <!-- Widget customization -->
-        <div class="card">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Внешний вид виджета</h2>
-          <div class="py-8 text-center text-gray-500 dark:text-gray-400">
-            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-            </svg>
-            <p>Настройка цветов, шрифтов и логотипа</p>
-            <p class="text-sm text-primary-600 mt-2">В разработке</p>
-          </div>
-        </div>
       </div>
     </div>
   </div>
