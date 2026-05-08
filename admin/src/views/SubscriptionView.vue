@@ -238,13 +238,13 @@ onMounted(load)
       <div>
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Выберите тариф</h3>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 items-stretch">
           <button
             v-for="plan in plans"
             :key="plan.id"
             @click="selectedPlan = plan.id"
             :class="[
-              'relative text-left border rounded-xl p-4 transition-all focus:outline-none',
+              'relative text-left border rounded-xl p-4 transition-all focus:outline-none flex flex-col',
               selectedPlan === plan.id
                 ? 'border-primary-500 ring-2 ring-primary-500/30 bg-primary-50 dark:bg-primary-900/20'
                 : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600',
@@ -264,33 +264,31 @@ onMounted(load)
             <p class="text-xs text-gray-400 mb-3">в месяц</p>
 
             <!-- Features -->
-            <ul class="space-y-1.5">
-              <li v-if="plan.maxOrders" class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-                До {{ plan.maxOrders.toLocaleString('ru-RU') }} заказов в месяц
-              </li>
-              <li v-else class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-                Неограниченные заказы
-              </li>
-              <li v-if="plan.maxMasters" class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-                {{ plan.maxMasters === 1 ? '1 мастер' : `До ${plan.maxMasters} мастеров` }}
-              </li>
-              <li v-else class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-                Неограниченное кол-во мастеров
-              </li>
-              <li v-for="feat in plan.features" :key="feat" class="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                <svg class="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <ul class="space-y-1.5 flex-1">
+              <template v-if="plan.maxOrders !== null">
+                <li class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                  <svg class="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  До {{ plan.maxOrders.toLocaleString('ru-RU') }} заказов/мес
+                </li>
+                <li class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                  <svg class="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  {{ plan.maxMasters === 1 ? '1 мастер' : `До ${plan.maxMasters} мастеров` }}
+                </li>
+              </template>
+              <template v-else>
+                <li class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                  <svg class="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Неограниченные заказы и мастера
+                </li>
+              </template>
+              <li v-for="feat in plan.features" :key="feat" class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                <svg class="w-3.5 h-3.5 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                 </svg>
                 {{ feat }}
