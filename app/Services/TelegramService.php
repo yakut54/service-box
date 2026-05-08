@@ -290,6 +290,54 @@ class TelegramService
     }
 
     /**
+     * Send booking reminder to customer (24h or 2h before).
+     */
+    public static function notifyBookingReminder(Shop $shop, object $booking, string $type): void
+    {
+        $chatId = \DB::table("{$shop->schema_name}.customers")
+            ->where('phone', $booking->customer_phone)
+            ->value('telegram_chat_id');
+
+        if (!$chatId) {
+            return;
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        $tz      = $shop->timezone ?? 'Europe/Moscow';
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz)->locale('ru');
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
+        $service = $booking->service_name ?? '—';
+        $master  = $booking->master_name  ?? null;
+
+        $label = $type === '24h' ? 'Завтра' : 'Через 2 часа';
+
+        $text  = "⏰ <b>Напоминание о записи</b>\n\n";
+        $text .= "🕐 <b>{$label}, {$date} в {$time}</b>\n";
+        $text .= "📋 {$service}\n";
+        if ($master) {
+            $text .= "👤 {$master}\n";
+        }
+        $text .= "\n<b>{$shop->name}</b>";
+
+        $keyboard = [
+            [['text' => '❌ Отменить запись', 'callback_data' => "client_cancel:{$booking->id}"]],
+        ];
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'      => $chatId,
+                'text'         => $text,
+                'parse_mode'   => 'HTML',
+                'reply_markup' => json_encode(['inline_keyboard' => $keyboard]),
+            ]);
+    }
+
+    /**
      * Generate Telegram connection code
      */
     public static function generateConnectionCode(Shop $shop): string
