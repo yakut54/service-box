@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
 
 const authStore = useAuthStore()
@@ -49,6 +50,7 @@ const telegramCode = ref('')
 const generatingCode = ref(false)
 const telegramError = ref('')
 const disconnecting = ref(false)
+const showDisconnectConfirm = ref(false)
 
 async function generateTelegramCode() {
   if (!authStore.shop) return
@@ -324,7 +326,7 @@ async function saveWorkHours() {
                 <div class="text-sm text-green-600 dark:text-green-400">Уведомления о новых записях и заказах активны</div>
               </div>
             </div>
-            <button @click="disconnectTelegram" :disabled="disconnecting" class="btn-secondary text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800">
+            <button @click="showDisconnectConfirm = true" :disabled="disconnecting" class="btn-secondary text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-200 dark:border-red-800">
               {{ disconnecting ? 'Отключение...' : 'Отключить Telegram' }}
             </button>
             <div v-if="telegramError" class="text-red-600 text-sm">{{ telegramError }}</div>
@@ -448,4 +450,14 @@ async function saveWorkHours() {
       </div>
     </div>
   </div>
+
+  <ConfirmDialog
+    v-if="showDisconnectConfirm"
+    title="Отключить Telegram?"
+    message="Уведомления о новых записях и заказах перестанут приходить. Подключить заново можно в любой момент."
+    confirm-text="Отключить"
+    :danger="true"
+    @confirm="showDisconnectConfirm = false; disconnectTelegram()"
+    @cancel="showDisconnectConfirm = false"
+  />
 </template>
