@@ -17,8 +17,9 @@ import { formatPrice } from '@/shared/lib/format'
 import type { Discount, DiscountType, DiscountScope } from '@/types'
 
 const authStore = useAuthStore()
+const currentPlan = ref(authStore.shop?.subscription_plan ?? '')
 const hasDiscounts = computed(() =>
-  ['start', 'business', 'pro'].includes(authStore.shop?.subscription_plan ?? '')
+  ['start', 'business', 'pro'].includes(currentPlan.value)
 )
 
 const categoriesStore = useCategoriesStore()
@@ -156,7 +157,14 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  try {
+    const sub = await api.getSubscription()
+    currentPlan.value = sub.plan ?? ''
+    if (authStore.shop) authStore.shop.subscription_plan = sub.plan ?? null
+  } catch {}
+  load()
+})
 
 // ── Modal open ────────────────────────────────────────────────
 function openCreate() {
