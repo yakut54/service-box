@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { formatPrice, plural } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
+import SbButton from '@/components/SbButton.vue'
 import type { WidgetProduct } from '@/types'
 
 const props = defineProps<{ product: WidgetProduct }>()
@@ -268,12 +269,12 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         <!-- Actions -->
         <div class="sb-pd-actions">
           <template v-if="isService">
-            <button class="sb-btn sb-btn-primary sb-btn-block" @click="emit('booking', product)">
+            <SbButton block @click="emit('booking', product)">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Записаться
-            </button>
+            </SbButton>
           </template>
           <template v-else-if="inCart">
             <div v-if="isPhysical" class="sb-pd-qty-row">
@@ -284,17 +285,17 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
               </div>
               <span class="sb-pd-qty-total">{{ formatPrice(product.price * inCartQty) }}</span>
             </div>
-            <button class="sb-btn sb-btn-primary sb-btn-block" @click="emit('goToCart')">
+            <SbButton block @click="emit('goToCart')">
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
               </svg>
               Перейти в корзину
-            </button>
+            </SbButton>
           </template>
           <template v-else>
-            <button class="sb-btn sb-btn-primary sb-btn-block" :disabled="isOutOfStock" @click="handleAddToCart">
+            <SbButton block :disabled="isOutOfStock" @click="handleAddToCart">
               {{ isOutOfStock ? 'Нет в наличии' : 'В корзину' }}
-            </button>
+            </SbButton>
           </template>
         </div>
       </div>
@@ -309,13 +310,14 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
           Отзывы
           <span v-if="reviewStats.count > 0" class="sb-reviews-count">{{ reviewStats.count }}</span>
         </h3>
-        <button
+        <SbButton
           v-if="!formExpanded && !formSuccess"
-          class="sb-btn sb-btn-secondary sb-btn-sm"
+          variant="secondary"
+          sm
           @click="formExpanded = true"
         >
           Оставить отзыв
-        </button>
+        </SbButton>
       </div>
 
       <!-- Average rating bar -->
@@ -395,14 +397,13 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         <p v-if="formError" class="sb-review-form-error">{{ formError }}</p>
 
         <div class="sb-review-form-actions">
-          <button class="sb-btn sb-btn-ghost" @click="formExpanded = false; formError = ''">Отмена</button>
-          <button
-            class="sb-btn sb-btn-primary"
+          <SbButton variant="ghost" @click="formExpanded = false; formError = ''">Отмена</SbButton>
+          <SbButton
             :disabled="formLoading || !formName.trim() || formRating === 0"
             @click="submitReview"
           >
             {{ formLoading ? 'Отправка...' : 'Отправить' }}
-          </button>
+          </SbButton>
         </div>
       </div>
 
@@ -450,7 +451,7 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         <span v-if="hasDiscount && !inCart" class="sb-pd-footer-old">{{ formatPrice(product.compare_price!) }}</span>
       </div>
       <template v-if="isService">
-        <button class="sb-btn sb-btn-primary" @click="emit('booking', product)">Записаться</button>
+        <SbButton @click="emit('booking', product)">Записаться</SbButton>
       </template>
       <template v-else-if="inCart">
         <div v-if="isPhysical" class="sb-quantity sb-quantity-sm">
@@ -458,12 +459,12 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
           <span class="sb-quantity-value">{{ inCartQty }}</span>
           <button class="sb-quantity-btn" :disabled="inCartQty >= maxStock" @click="handleIncrement">+</button>
         </div>
-        <button class="sb-btn sb-btn-primary" @click="emit('goToCart')">В корзину</button>
+        <SbButton @click="emit('goToCart')">В корзину</SbButton>
       </template>
       <template v-else>
-        <button class="sb-btn sb-btn-primary" :disabled="isOutOfStock" @click="handleAddToCart">
+        <SbButton :disabled="isOutOfStock" @click="handleAddToCart">
           {{ isOutOfStock ? 'Нет в наличии' : 'В корзину' }}
-        </button>
+        </SbButton>
       </template>
     </div>
   </div>

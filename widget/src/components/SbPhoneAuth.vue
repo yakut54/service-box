@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { usePhoneAuth } from '@/composables/usePhoneAuth'
+import SbButton from '@/components/SbButton.vue'
 
 const props = withDefaults(defineProps<{
   hint?: string
@@ -44,9 +45,9 @@ defineExpose({ reset: resetAuth })
           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
         </svg>
       </div>
-      <button class="sb-btn sb-btn-primary" @click="requestCode" :disabled="otpSending || !phoneValid">
+      <SbButton @click="requestCode" :disabled="otpSending || !phoneValid">
         {{ otpSending ? '...' : 'Получить код' }}
-      </button>
+      </SbButton>
     </div>
     <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
     <p style="font-size: 12px; color: var(--sb-text-muted); margin-top: 8px;">
@@ -83,18 +84,18 @@ defineExpose({ reset: resetAuth })
         style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: 700; max-width: 180px;"
         @keyup.enter="verifyCode"
       />
-      <button class="sb-btn sb-btn-primary" @click="verifyCode" :disabled="otpSending || otpCode.length !== 4">
+      <SbButton @click="verifyCode" :disabled="otpSending || otpCode.length !== 4">
         {{ otpSending ? '...' : 'Подтвердить' }}
-      </button>
+      </SbButton>
     </div>
     <p v-if="otpError" class="sb-error-text sb-mt-2">{{ otpError }}</p>
     <div class="sb-flex sb-items-center sb-gap-3 sb-mt-4">
-      <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="requestCode" :disabled="otpSending">
+      <SbButton variant="ghost" style="padding: 4px 8px; font-size: 13px;" @click="requestCode" :disabled="otpSending">
         Отправить повторно
-      </button>
-      <button class="sb-btn sb-btn-ghost" style="padding: 4px 8px; font-size: 13px;" @click="step = 'phone'">
+      </SbButton>
+      <SbButton variant="ghost" style="padding: 4px 8px; font-size: 13px;" @click="step = 'phone'">
         Изменить номер
-      </button>
+      </SbButton>
     </div>
   </div>
 
@@ -109,13 +110,13 @@ defineExpose({ reset: resetAuth })
           </svg>
           <span style="font-size: 13px; color: var(--sb-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ phone }}</span>
         </div>
-        <button
-          class="sb-btn sb-btn-ghost"
+        <SbButton
+          variant="ghost"
           style="flex-shrink: 0; padding: 5px 10px; font-size: 12px; font-weight: 600; color: #ef4444; border: 1.5px solid #ef4444; border-radius: 6px; line-height: 1;"
           @click="logout"
         >
           Выйти
-        </button>
+        </SbButton>
       </div>
     </div>
 

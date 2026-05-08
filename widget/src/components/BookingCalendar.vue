@@ -6,6 +6,7 @@ import { handlePhoneInput } from '@/lib/phoneInput'
 import SbSelect from '@/components/SbSelect.vue'
 import SbField from '@/components/SbField.vue'
 import ConsentBlock from '@/components/ConsentBlock.vue'
+import SbButton from '@/components/SbButton.vue'
 import { useFormValidation } from '@/composables/useFormValidation'
 import type { WidgetProduct, WidgetBooking } from '@/types'
 
@@ -331,12 +332,12 @@ async function handleSubmit() {
   <div class="sb-booking">
     <!-- Header -->
     <div class="sb-booking-header sb-mb-4">
-      <button class="sb-btn sb-btn-ghost" @click="emit('back')">
+      <SbButton variant="ghost" @click="emit('back')">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
         Назад
-      </button>
+      </SbButton>
       <h2 class="sb-booking-header-title">Запись на услугу</h2>
       <div class="sb-booking-clock" aria-label="Текущее время">
         <span class="sb-booking-clock-date">{{ clockDate }}</span>
@@ -525,13 +526,13 @@ async function handleSubmit() {
           :error-privacy="formErrors.consentPrivacy"
         />
 
-        <button
+        <SbButton
           type="submit"
-          class="sb-btn sb-btn-primary sb-btn-block"
+          block
           :disabled="submitting"
         >
           {{ submitting ? 'Записываем...' : 'Записаться' }}
-        </button>
+        </SbButton>
       </form>
     </div>
   </div>

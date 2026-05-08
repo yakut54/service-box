@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatPrice } from '@/lib/utils'
 import type { WidgetOrder } from '@/types'
+import SbButton from '@/components/SbButton.vue'
 
 const props = defineProps<{ order: WidgetOrder | null }>()
 const emit = defineEmits<{ back: [] }>()
@@ -39,16 +40,22 @@ function openPayment() {
       </div>
     </div>
 
-    <button
+    <SbButton
       v-if="order?.payment_url"
-      class="sb-btn sb-btn-primary sb-btn-block sb-mt-4"
+      block
+      class="sb-mt-4"
       @click="openPayment"
     >
       Оплатить заказ
-    </button>
+    </SbButton>
 
-    <button :class="['sb-btn sb-btn-block', order?.payment_url ? 'sb-btn-secondary sb-mt-2' : 'sb-btn-primary sb-mt-4']" @click="emit('back')">
+    <SbButton
+      :variant="order?.payment_url ? 'secondary' : 'primary'"
+      block
+      :class="order?.payment_url ? 'sb-mt-2' : 'sb-mt-4'"
+      @click="emit('back')"
+    >
       Вернуться в каталог
-    </button>
+    </SbButton>
   </div>
 </template>

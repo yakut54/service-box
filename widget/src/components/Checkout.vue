@@ -7,6 +7,7 @@ import { handlePhoneInput } from '@/lib/phoneInput'
 import type { WidgetOrder } from '@/types'
 import ConsentBlock from '@/components/ConsentBlock.vue'
 import SbField from '@/components/SbField.vue'
+import SbButton from '@/components/SbButton.vue'
 import { useFormValidation } from '@/composables/useFormValidation'
 
 const emit = defineEmits<{
@@ -222,12 +223,12 @@ async function handleSubmit() {
 
     <!-- Back + title -->
     <div class="sb-flex sb-items-center sb-gap-3 sb-mb-4">
-      <button type="button" class="sb-btn sb-btn-ghost" @click="emit('back')">
+      <SbButton variant="ghost" @click="emit('back')">
         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
         Назад
-      </button>
+      </SbButton>
       <h2 class="sb-title" style="margin-bottom: 0;">Оформление заказа</h2>
     </div>
 
@@ -356,13 +357,14 @@ async function handleSubmit() {
           />
 
           <!-- Desktop submit (inside form → Enter key works) -->
-          <button
+          <SbButton
             type="submit"
-            class="sb-btn sb-btn-primary sb-btn-block sb-mt-4 sb-co-submit-desktop"
+            block
+            class="sb-mt-4 sb-co-submit-desktop"
             :disabled="loading"
           >
             {{ loading ? 'Оформление...' : 'Подтвердить заказ' }}
-          </button>
+          </SbButton>
         </div>
 
       </div>
@@ -374,14 +376,12 @@ async function handleSubmit() {
         <span class="sb-co-footer-label">{{ cartStore.discount ? 'К оплате' : 'Итого' }}</span>
         <span class="sb-co-footer-amount">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
       </div>
-      <button
-        type="button"
-        class="sb-btn sb-btn-primary"
+      <SbButton
         :disabled="loading"
         @click="handleSubmit"
       >
         {{ loading ? '...' : 'Подтвердить' }}
-      </button>
+      </SbButton>
     </div>
 
   </div>

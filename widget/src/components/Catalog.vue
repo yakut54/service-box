@@ -4,6 +4,7 @@ import { useShopStore } from '@/stores/shop'
 import { debounce } from '@/lib/utils'
 import ProductCard from './ProductCard.vue'
 import SbSelect from './SbSelect.vue'
+import SbButton from './SbButton.vue'
 import type { WidgetProduct, WidgetProductType } from '@/types'
 
 const props = defineProps<{
@@ -243,9 +244,9 @@ function handleSelect(product: WidgetProduct) {
       </svg>
       <p class="sb-empty-title">Ничего не найдено</p>
       <p class="sb-empty-text">Попробуйте изменить фильтры или поисковый запрос</p>
-      <button class="sb-btn sb-btn-secondary sb-mt-4" @click="search = ''; filterType = ''; filterCategory = ''">
+      <SbButton variant="secondary" class="sb-mt-4" @click="search = ''; filterType = ''; filterCategory = ''">
         Сбросить фильтры
-      </button>
+      </SbButton>
     </div>
 
     <!-- Empty: shop has no products -->

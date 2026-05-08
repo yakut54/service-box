@@ -2,6 +2,7 @@
 import { formatPrice, formatDateTime } from '@/lib/utils'
 import { useShopStore } from '@/stores/shop'
 import type { WidgetBooking, WidgetProduct } from '@/types'
+import SbButton from '@/components/SbButton.vue'
 
 const props = defineProps<{ booking: WidgetBooking | null; product: WidgetProduct | null }>()
 const emit = defineEmits<{ back: [] }>()
@@ -58,8 +59,8 @@ const tz = () => shopStore.shop?.timezone || 'Europe/Moscow'
       Получать уведомления в Telegram
     </a>
 
-    <button class="sb-btn sb-btn-primary sb-btn-block sb-mt-4" @click="emit('back')">
+    <SbButton block class="sb-mt-4" @click="emit('back')">
       Вернуться в каталог
-    </button>
+    </SbButton>
   </div>
 </template>

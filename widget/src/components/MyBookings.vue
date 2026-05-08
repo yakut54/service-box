@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import SbPhoneAuth from '@/components/SbPhoneAuth.vue'
+import SbButton from '@/components/SbButton.vue'
 import type { WidgetBooking } from '@/types'
 
 const emit = defineEmits<{ back: [] }>()
@@ -116,9 +117,9 @@ async function doCancel() {
 <template>
   <div>
     <div class="sb-flex sb-items-center sb-gap-3 sb-mb-4">
-      <button class="sb-btn sb-btn-ghost" @click="emit('back')">
+      <SbButton variant="ghost" @click="emit('back')">
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      </button>
+      </SbButton>
       <h2 class="sb-title" style="margin-bottom: 0;">Мои записи</h2>
     </div>
 
@@ -187,13 +188,14 @@ async function doCancel() {
 
           <!-- Cancel button -->
           <div v-if="canCancel(booking)" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sb-border);">
-            <button
-              class="sb-btn sb-btn-ghost"
-              style="color: var(--sb-danger); border: 1px solid var(--sb-danger); padding: 6px 14px; font-size: 13px;"
+            <SbButton
+              variant="ghost"
+              sm
+              style="color: var(--sb-danger); border: 1px solid var(--sb-danger);"
               @click="openCancelConfirm(booking)"
             >
               Отменить запись
-            </button>
+            </SbButton>
           </div>
         </div>
       </div>
@@ -209,15 +211,15 @@ async function doCancel() {
         </p>
         <p v-if="cancelError" style="font-size: 13px; color: var(--sb-danger); margin-bottom: 12px;">{{ cancelError }}</p>
         <div class="sb-flex sb-gap-2">
-          <button class="sb-btn sb-btn-ghost" style="flex: 1;" @click="cancelTarget = null">Назад</button>
-          <button
-            class="sb-btn"
-            style="flex: 1; background: var(--sb-danger); color: #fff;"
+          <SbButton variant="ghost" style="flex: 1;" @click="cancelTarget = null">Назад</SbButton>
+          <SbButton
+            variant="danger"
+            style="flex: 1;"
             :disabled="cancelling"
             @click="doCancel"
           >
             {{ cancelling ? 'Отмена...' : 'Да, отменить' }}
-          </button>
+          </SbButton>
         </div>
       </div>
     </div>

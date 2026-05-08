@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice } from '@/lib/utils'
 import SbPhoneAuth from '@/components/SbPhoneAuth.vue'
+import SbButton from '@/components/SbButton.vue'
 import type { WidgetOrder } from '@/types'
 
 const emit = defineEmits<{ back: [] }>()
@@ -66,9 +67,9 @@ function handleLogout() {
 <template>
   <div>
     <div class="sb-flex sb-items-center sb-gap-3 sb-mb-4">
-      <button class="sb-btn sb-btn-ghost" @click="emit('back')">
+      <SbButton variant="ghost" @click="emit('back')">
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      </button>
+      </SbButton>
       <h2 class="sb-title" style="margin-bottom: 0;">Мои заказы</h2>
     </div>
 

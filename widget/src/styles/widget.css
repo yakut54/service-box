@@ -215,6 +215,20 @@
   background: var(--sb-bg-muted);
 }
 
+.sb-btn-danger {
+  background: var(--sb-danger);
+  color: #fff;
+}
+
+.sb-btn-danger:hover {
+  opacity: 0.9;
+}
+
+.sb-btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .sb-btn-sm {
   padding: 6px 14px;
   font-size: 13px;

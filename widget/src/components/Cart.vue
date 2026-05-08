@@ -3,6 +3,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, plural } from '@/lib/utils'
+import SbButton from './SbButton.vue'
 
 const emit = defineEmits<{
   back: []
@@ -97,9 +98,9 @@ watch(() => cartStore.total, (newVal, oldVal) => {
         </svg>
         <p class="sb-empty-title">Корзина пуста</p>
         <p class="sb-empty-text">Добавьте товары из каталога</p>
-        <button class="sb-btn sb-btn-primary sb-mt-4" @click="emit('back')">
+        <SbButton class="sb-mt-4" @click="emit('back')">
           Перейти в каталог
-        </button>
+        </SbButton>
       </div>
 
       <!-- Items -->
@@ -204,13 +205,12 @@ watch(() => cartStore.total, (newVal, oldVal) => {
                 autofocus
                 @keyup.enter="applyPromo"
               />
-              <button
-                class="sb-btn sb-btn-primary"
+              <SbButton
                 :disabled="promoLoading || !promoInput.trim()"
                 @click="applyPromo"
               >
                 {{ promoLoading ? '...' : 'Применить' }}
-              </button>
+              </SbButton>
             </div>
             <p v-if="promoError" class="sb-promo-error">{{ promoError }}</p>
           </div>
@@ -238,12 +238,12 @@ watch(() => cartStore.total, (newVal, oldVal) => {
         </span>
         <span class="sb-cart-total-price">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
       </div>
-      <button class="sb-btn sb-btn-primary sb-btn-block" @click="emit('checkout')">
+      <SbButton block @click="emit('checkout')">
         Оформить заказ
-      </button>
-      <button class="sb-btn sb-btn-ghost sb-btn-block" style="margin-top: 6px;" @click="cartStore.clear()">
+      </SbButton>
+      <SbButton variant="ghost" block style="margin-top: 6px;" @click="cartStore.clear()">
         Очистить корзину
-      </button>
+      </SbButton>
     </div>
   </div>
 </template>
