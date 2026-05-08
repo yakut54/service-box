@@ -120,6 +120,10 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($product);
 
+        if ($request->has('image_url') && $request->image_url !== $product->image_url) {
+            $this->deleteProductImage($product->image_url);
+        }
+
         $product->update($request->only([
             'type',
             'name',
@@ -152,16 +156,20 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($product);
 
-        if ($product->image_url && str_contains($product->image_url, '/storage/')) {
-            $path = str_replace('/storage/', '', parse_url($product->image_url, PHP_URL_PATH));
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
-        }
-
+        $this->deleteProductImage($product->image_url);
         $product->delete();
 
         return response()->json([
             'message' => 'Product deleted successfully',
         ]);
+    }
+
+    protected function deleteProductImage(?string $imageUrl): void
+    {
+        if ($imageUrl && str_contains($imageUrl, '/storage/')) {
+            $path = str_replace('/storage/', '', parse_url($imageUrl, PHP_URL_PATH));
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+        }
     }
 
     protected function storeProductDetails(Product $product, Request $request): void
