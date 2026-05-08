@@ -177,6 +177,8 @@ class TelegramService
         $service = $booking->service?->name ?? '—';
         $master  = $booking->master?->name;
 
+        $keyboard = null;
+
         if ($status === 'confirmed') {
             $text  = "✅ <b>Ваша запись подтверждена!</b>\n\n";
             $text .= "🕐 <b>{$date} в {$time}</b>\n";
@@ -189,15 +191,26 @@ class TelegramService
             $text  = "❌ <b>Ваша запись отменена</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";
             $text .= "✂️ {$service}\n\n";
-            $text .= "Для записи на другое время откройте наш сайт.";
+            $text .= "Хотите записаться на другое время?";
+
+            if ($shop->domain) {
+                $url = str_starts_with($shop->domain, 'http') ? $shop->domain : "https://{$shop->domain}";
+                $keyboard = ['inline_keyboard' => [[['text' => '📅 Записаться снова', 'url' => $url]]]];
+            }
+        }
+
+        $payload = [
+            'chat_id'    => $chatId,
+            'text'       => $text,
+            'parse_mode' => 'HTML',
+        ];
+
+        if ($keyboard) {
+            $payload['reply_markup'] = json_encode($keyboard);
         }
 
         \Illuminate\Support\Facades\Http::timeout(5)
-            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-                'chat_id'    => $chatId,
-                'text'       => $text,
-                'parse_mode' => 'HTML',
-            ]);
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
     }
 
     /**
