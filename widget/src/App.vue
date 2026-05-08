@@ -27,6 +27,7 @@ const completedOrder = ref<WidgetOrder | null>(null)
 const completedBooking = ref<WidgetBooking | null>(null)
 const sidebarOpen = ref(false)
 const isClosing = ref(false)
+const showExitIntent = ref(false)
 const sidebarCategories = ref<Array<{ id: string; name: string }>>([])
 const activeSidebarCategory = ref('')
 const categoriesOpen = ref(true)
@@ -106,11 +107,25 @@ function scrollToTop() {
 }
 
 function handleClose() {
+  if (shopStore.bookingInProgress) {
+    showExitIntent.value = true
+    return
+  }
+  doClose()
+}
+
+function doClose() {
   isClosing.value = true
   setTimeout(() => {
     isClosing.value = false
     shopStore.close()
   }, 200)
+}
+
+function confirmExit() {
+  showExitIntent.value = false
+  shopStore.bookingInProgress = false
+  doClose()
 }
 
 function handleThemeToggle() {
@@ -466,6 +481,20 @@ function selectSidebarCategory(catId: string) {
         :class="{ 'sb-cart-scrim--visible': cartOpen }"
         @click="handleCartBack"
       ></div>
+
+      <!-- Exit intent dialog -->
+      <Transition name="sb-fade">
+        <div v-if="showExitIntent" class="sb-exit-overlay" @click.self="showExitIntent = false">
+          <div class="sb-exit-dialog">
+            <div class="sb-exit-title">Уйти из записи?</div>
+            <div class="sb-exit-text">Прогресс сохранён — вернитесь когда будет удобно</div>
+            <div class="sb-exit-actions">
+              <button class="sb-btn sb-btn-primary" @click="showExitIntent = false">Остаться</button>
+              <button class="sb-btn sb-btn-ghost" @click="confirmExit">Выйти</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
 
       <!-- Floating Cart Button (inside overlay, fixed position) -->
       <!-- Hidden on product/booking views — sticky footer already visible there -->

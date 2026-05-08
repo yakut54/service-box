@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
@@ -36,6 +36,33 @@ const form = ref({
   email: '',
   notes: '',
 })
+
+// ── Step form ─────────────────────────────────────────────────
+const formStep = ref(0) // 0=name 1=phone 2=confirm
+const nameInputRef  = ref<HTMLInputElement | null>(null)
+const phoneInputRef = ref<HTMLInputElement | null>(null)
+
+watch(selectedSlot, (slot) => {
+  if (!slot) formStep.value = 0
+})
+
+// ── Progress save ─────────────────────────────────────────────
+function progressKey() { return `sb-bp:${shopStore.shopId}` }
+
+function saveProgress() {
+  if (!form.value.name && !form.value.phone) return
+  localStorage.setItem(progressKey(), JSON.stringify({
+    name: form.value.name,
+    phone: form.value.phone,
+    email: form.value.email,
+  }))
+}
+
+function clearProgress() {
+  localStorage.removeItem(progressKey())
+}
+
+watch(form, saveProgress, { deep: true })
 
 const consentOffer   = ref(false)
 const consentPrivacy = ref(false)
@@ -225,8 +252,21 @@ let _clockTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   _clockTimer = setInterval(() => { now.value = new Date() }, 1000)
+  // Restore saved progress
+  try {
+    const saved = localStorage.getItem(progressKey())
+    if (saved) {
+      const p = JSON.parse(saved)
+      if (p.name)  form.value.name  = p.name
+      if (p.phone) form.value.phone = p.phone
+      if (p.email) form.value.email = p.email
+    }
+  } catch {}
+  // Prefill overrides saved progress
   if (shopStore.prefillName)  form.value.name  = shopStore.prefillName
   if (shopStore.prefillPhone) form.value.phone = shopStore.prefillPhone
+  // Notify store if form has data from previous session
+  if (form.value.name || form.value.phone) shopStore.bookingInProgress = true
 })
 
 onUnmounted(() => {
@@ -278,6 +318,29 @@ const masterSelectValue = computed({
   set: (v: string) => { selectedMasterId.value = v || null },
 })
 
+function nextFormStep() {
+  if (formStep.value === 0) {
+    if (!form.value.name.trim() || form.value.name.trim().length < 2) {
+      formErrors.value = { ...formErrors.value, name: form.value.name.trim() ? 'Минимум 2 символа' : 'Укажите имя' }
+      formTouched.value = { ...formTouched.value, name: true }
+      return
+    }
+    clearError('name')
+    formStep.value = 1
+    shopStore.bookingInProgress = true
+    nextTick(() => phoneInputRef.value?.focus())
+  } else if (formStep.value === 1) {
+    if (!form.value.phone.trim() || !isPhoneValid(form.value.phone)) {
+      formErrors.value = { ...formErrors.value, phone: form.value.phone.trim() ? 'Введите полный номер: +7 (XXX) XXX-XX-XX' : 'Укажите телефон' }
+      formTouched.value = { ...formTouched.value, phone: true }
+      return
+    }
+    clearError('phone')
+    formStep.value = 2
+    saveProgress()
+  }
+}
+
 function validate(): boolean {
   formTouched.value = { name: true, phone: true, email: true }
   const e: Record<string, string> = {}
@@ -321,6 +384,8 @@ async function handleSubmit() {
     }
 
     const result = await shopStore.getApi().createBooking(payload)
+    clearProgress()
+    shopStore.bookingInProgress = false
     emit('success', result.data)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Ошибка при записи'
@@ -499,44 +564,90 @@ async function handleSubmit() {
         />
       </div>
 
-      <form @submit.prevent="handleSubmit">
-        <div class="sb-checkout-section">
-          <h3 class="sb-checkout-section-title">Ваши данные</h3>
+      <!-- Step-by-step customer form -->
+      <div class="sb-step-form">
+        <!-- Progress dots -->
+        <div class="sb-step-dots">
+          <span v-for="i in 3" :key="i" :class="['sb-step-dot', formStep >= i - 1 ? 'sb-step-dot--active' : '']" />
+        </div>
 
-          <SbField label="Имя *" :error="formErrors.name" :valid="isFieldValid('name')">
-            <input v-model="form.name" type="text" class="sb-input" :class="{ 'sb-input-error': formErrors.name }" placeholder="Ваше имя" @blur="touch('name')" @input="validateField('name')" />
+        <!-- Step 0: Name -->
+        <template v-if="formStep === 0">
+          <div class="sb-step-question">Как вас зовут?</div>
+          <SbField :error="formErrors.name">
+            <input
+              ref="nameInputRef"
+              v-model="form.name"
+              type="text"
+              class="sb-input sb-input--lg"
+              placeholder="Ваше имя"
+              @keydown.enter.prevent="nextFormStep"
+              @input="formErrors.name ? validateField('name') : undefined"
+            />
           </SbField>
+          <div class="sb-step-actions">
+            <SbButton variant="ghost" sm @click="selectedSlot = null">← Время</SbButton>
+            <SbButton @click="nextFormStep">Далее →</SbButton>
+          </div>
+        </template>
 
-          <SbField label="Телефон *" :error="formErrors.phone" :valid="isFieldValid('phone')">
-            <input :value="form.phone" type="tel" class="sb-input" :class="{ 'sb-input-error': formErrors.phone }" placeholder="+7 (___) ___-__-__" @input="onPhoneInput" @blur="touch('phone')" />
+        <!-- Step 1: Phone -->
+        <template v-else-if="formStep === 1">
+          <div class="sb-step-question">Ваш телефон?</div>
+          <SbField :error="formErrors.phone">
+            <input
+              ref="phoneInputRef"
+              :value="form.phone"
+              type="tel"
+              class="sb-input sb-input--lg"
+              placeholder="+7 (___) ___-__-__"
+              @input="onPhoneInput"
+              @keydown.enter.prevent="nextFormStep"
+            />
           </SbField>
+          <div class="sb-step-actions">
+            <SbButton variant="ghost" sm @click="formStep = 0">← Назад</SbButton>
+            <SbButton @click="nextFormStep">Далее →</SbButton>
+          </div>
+        </template>
 
-          <SbField label="Email" :error="formErrors.email" :valid="isFieldValid('email')">
-            <input v-model="form.email" type="email" class="sb-input" :class="{ 'sb-input-error': formErrors.email }" placeholder="email@example.com" @blur="touch('email')" @input="validateField('email')" />
+        <!-- Step 2: Confirm -->
+        <template v-else>
+          <div class="sb-step-summary">
+            <div class="sb-step-summary-row">
+              <span class="sb-step-summary-label">Имя</span>
+              <span>{{ form.name }}</span>
+              <button class="sb-step-summary-edit" @click="formStep = 0">Изменить</button>
+            </div>
+            <div class="sb-step-summary-row">
+              <span class="sb-step-summary-label">Телефон</span>
+              <span>{{ form.phone }}</span>
+              <button class="sb-step-summary-edit" @click="formStep = 1">Изменить</button>
+            </div>
+          </div>
+
+          <SbField label="Email" :error="formErrors.email">
+            <input v-model="form.email" type="email" class="sb-input" placeholder="email@example.com (необязательно)" @blur="touch('email')" @input="validateField('email')" />
           </SbField>
 
           <SbField label="Комментарий">
             <textarea v-model="form.notes" class="sb-input" rows="2" placeholder="Пожелания..." />
           </SbField>
-        </div>
 
-        <!-- Согласия -->
-        <ConsentBlock
-          v-model:offer="consentOffer"
-          v-model:privacy="consentPrivacy"
-          :error-offer="formErrors.consentOffer"
-          :error-privacy="formErrors.consentPrivacy"
-        />
+          <ConsentBlock
+            v-model:offer="consentOffer"
+            v-model:privacy="consentPrivacy"
+            :error-offer="formErrors.consentOffer"
+            :error-privacy="formErrors.consentPrivacy"
+          />
 
-        <SbButton
-          type="submit"
-          block
-          class="sb-mt-4"
-          :disabled="submitting"
-        >
-          {{ submitting ? 'Записываем...' : 'Записаться' }}
-        </SbButton>
-      </form>
+          <SbButton block class="sb-mt-4" :disabled="submitting" @click="handleSubmit">
+            {{ submitting ? 'Записываем...' : 'Записаться' }}
+          </SbButton>
+
+          <button class="sb-step-back-link" @click="formStep = 1">← Назад</button>
+        </template>
+      </div>
     </div>
   </div>
 </template>

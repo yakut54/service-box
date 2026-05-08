@@ -20,6 +20,7 @@ export const useShopStore = defineStore('sb-shop', () => {
   const prefillName = ref<string | null>(null)
   const prefillPhone = ref<string | null>(null)
   const prefillEmail = ref<string | null>(null)
+  const bookingInProgress = ref(false)
 
   let api: WidgetApi | null = null
 
@@ -81,7 +82,7 @@ export const useShopStore = defineStore('sb-shop', () => {
   return {
     shopId, apiUrl, shop, loading, error, config,
     theme, isOpen,
-    mode, deepLinkServiceId, prefillName, prefillPhone, prefillEmail,
+    mode, deepLinkServiceId, prefillName, prefillPhone, prefillEmail, bookingInProgress,
     getApi, loadConfig, applyTheme,
     loadTheme, toggleTheme, close,
   }
