@@ -60,9 +60,9 @@ class TelegramService
     {
         $total = number_format($order->total_price / 100, 0, '.', ' ');
 
-        $text = "🛒 *Новый заказ!*\n\n";
+        $text = "🛒 <b>Новый заказ!</b>\n\n";
         $text .= "Заказ #" . substr($order->id, 0, 8) . "\n";
-        $text .= "Сумма: {$total} ₽\n";
+        $text .= "Сумма: <b>{$total} ₽</b>\n";
         $text .= "Клиент: {$order->customer_name}\n";
         $text .= "Телефон: {$order->customer_phone}\n";
 
@@ -88,14 +88,19 @@ class TelegramService
      */
     public static function notifyNewBooking(Shop $shop, $booking): void
     {
-        $date = \Carbon\Carbon::parse($booking->start_time)->format('d.m.Y');
-        $time = \Carbon\Carbon::parse($booking->start_time)->format('H:i');
-
+        $dt      = \Carbon\Carbon::parse($booking->start_time);
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
         $service = $booking->service?->name ?? '—';
+        $master  = $booking->master?->name;
 
-        $text = "📅 *Новая запись!*\n\n";
-        $text .= "Дата: {$date} в {$time}\n";
-        $text .= "Услуга: {$service}\n";
+        $text  = "📅 <b>Новая запись!</b>\n\n";
+        $text .= "🕐 <b>{$date} в {$time}</b>\n";
+        $text .= "✂️ {$service}\n";
+        if ($master) {
+            $text .= "👤 {$master}\n";
+        }
+        $text .= "\n";
         $text .= "Клиент: {$booking->customer_name}\n";
         $text .= "Телефон: {$booking->customer_phone}\n";
 

@@ -111,14 +111,18 @@ class TelegramController extends Controller
             $code  = $parts[1] ?? null;
 
             if (!$code) {
-                $this->sendReply($chatId, 'Отправьте код из настроек ServiceBox: /start КОД');
+                $this->sendReply(
+                    $chatId,
+                    "👋 Привет! Я бот ServiceBox.\n\n" .
+                    "Чтобы подключить уведомления, зайдите в <b>Настройки → Telegram</b> в вашей админке и введите там сгенерированный код."
+                );
                 return;
             }
 
             $shop = TelegramService::verifyConnectionCode(strtoupper($code));
 
             if (!$shop) {
-                $this->sendReply($chatId, 'Код неверный или истёк. Сгенерируйте новый в настройках ServiceBox.');
+                $this->sendReply($chatId, '❌ Код неверный или истёк. Сгенерируйте новый в <b>Настройки → Telegram</b>.');
                 return;
             }
 
@@ -126,7 +130,7 @@ class TelegramController extends Controller
 
             $this->sendReply(
                 $chatId,
-                "✅ Бот успешно подключён к магазину *{$shop->name}*!\n\nТеперь вы будете получать уведомления о новых заказах и записях."
+                "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
             );
         }
     }
@@ -254,7 +258,7 @@ class TelegramController extends Controller
         Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
             'chat_id'    => $chatId,
             'text'       => $text,
-            'parse_mode' => 'Markdown',
+            'parse_mode' => 'HTML',
         ]);
     }
 
