@@ -114,6 +114,28 @@ class ApiClient {
     return response.json()
   }
 
+  private async download(endpoint: string, params?: Record<string, string>): Promise<void> {
+    const url = new URL(`${API_BASE_URL}${endpoint}`, window.location.origin)
+    if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
+
+    const response = await fetch(url.toString(), {
+      headers: { ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}) },
+    })
+
+    if (!response.ok) throw new ApiError(response.status, 'Ошибка экспорта')
+
+    const blob = await response.blob()
+    const disposition = response.headers.get('Content-Disposition') ?? ''
+    const match = disposition.match(/filename="?([^"]+)"?/)
+    const filename = match?.[1] ?? 'export.csv'
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
   // ==========================================
   // AUTH
   // ==========================================
@@ -255,6 +277,10 @@ class ApiClient {
     })
   }
 
+  async exportOrders(params?: Record<string, string>) {
+    return this.download('/admin/orders/export', params)
+  }
+
   // ==========================================
   // CUSTOMERS
   // ==========================================
@@ -272,6 +298,10 @@ class ApiClient {
     return this.request<{ message: string }>(`/admin/customers/${id}`, {
       method: 'DELETE',
     })
+  }
+
+  async exportCustomers(params?: Record<string, string>) {
+    return this.download('/admin/customers/export', params)
   }
 
   // ==========================================

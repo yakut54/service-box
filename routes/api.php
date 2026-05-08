@@ -137,10 +137,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Orders
     Route::get('/orders/stats', [OrderController::class, 'stats']);
     Route::get('/orders/chart', [OrderController::class, 'chart']);
+    Route::get('/orders/export', [OrderController::class, 'export']);
     Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
 
     // Customers
+    Route::get('/customers/export', [CustomerController::class, 'export']);
     Route::get('/customers', [CustomerController::class, 'index']);
     Route::get('/customers/{customer}', [CustomerController::class, 'show']);
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy']);

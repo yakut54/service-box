@@ -71,6 +71,12 @@ async function doDelete() {
 }
 
 onMounted(() => { loadCustomers() })
+
+const exporting = ref(false)
+async function doExport() {
+  exporting.value = true
+  try { await api.exportCustomers(searchQuery.value ? { search: searchQuery.value } : undefined) } finally { exporting.value = false }
+}
 </script>
 
 <template>
@@ -80,7 +86,11 @@ onMounted(() => { loadCustomers() })
       class="mb-6"
       title="Клиенты"
       :subtitle="`${totalCustomers} ${plural(totalCustomers, 'клиент', 'клиента', 'клиентов')}`"
-    />
+    >
+      <button @click="doExport" :disabled="exporting" class="btn-secondary text-sm">
+        {{ exporting ? 'Экспорт...' : 'Скачать CSV' }}
+      </button>
+    </PageHeader>
 
     <!-- Stats -->
     <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-6">

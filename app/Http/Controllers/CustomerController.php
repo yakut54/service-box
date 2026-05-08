@@ -76,4 +76,40 @@ class CustomerController extends Controller
 
         return response()->json(['message' => 'Клиент удалён']);
     }
+
+    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $query = Customer::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'ILIKE', "%{$search}%")
+                  ->orWhere('phone', 'ILIKE', "%{$search}%")
+                  ->orWhere('email', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        $customers = $query->latest('created_at')->get();
+        $filename = 'customers_' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($customers) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Имя', 'Телефон', 'Email', 'Заказов', 'Потрачено (₽)', 'Дата регистрации'], ';');
+
+            foreach ($customers as $c) {
+                fputcsv($out, [
+                    $c->name,
+                    $c->phone,
+                    $c->email ?? '',
+                    $c->total_orders,
+                    $c->total_spent,
+                    $c->created_at->format('d.m.Y'),
+                ], ';');
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
 }

@@ -401,4 +401,61 @@ class OrderController extends Controller
 
         return response()->json(['message' => 'Заказ удалён']);
     }
+
+    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $query = Order::query()->with('items');
+
+        if ($request->filled('status')) {
+            $query->withStatus($request->status);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('customer_name', 'ILIKE', "%{$search}%")
+                  ->orWhere('customer_phone', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        $orders = $query->latest('created_at')->get();
+        $filename = 'orders_' . now()->format('Y-m-d') . '.csv';
+
+        $statusLabels = [
+            'pending'    => 'Ожидает',
+            'paid'       => 'Оплачен',
+            'processing' => 'В работе',
+            'completed'  => 'Завершён',
+            'cancelled'  => 'Отменён',
+        ];
+
+        return response()->streamDownload(function () use ($orders, $statusLabels) {
+            $out = fopen('php://output', 'w');
+            // UTF-8 BOM — чтобы Excel открывал без кракозябр
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Дата', 'Номер', 'Клиент', 'Телефон', 'Email', 'Состав', 'Сумма (₽)', 'Статус', 'Примечание'], ';');
+
+            foreach ($orders as $order) {
+                $items = $order->items->map(fn($i) => "{$i->product_name} ×{$i->quantity}")->implode(', ');
+                fputcsv($out, [
+                    $order->created_at->format('d.m.Y H:i'),
+                    strtoupper(substr($order->id, 0, 8)),
+                    $order->customer_name,
+                    $order->customer_phone,
+                    $order->customer_email,
+                    $items,
+                    $order->total_price,
+                    $statusLabels[$order->status] ?? $order->status,
+                    $order->notes ?? '',
+                ], ';');
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
 }

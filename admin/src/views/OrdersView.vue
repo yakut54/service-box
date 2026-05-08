@@ -81,6 +81,12 @@ async function applyFilters() {
 }
 
 useAutoRefresh(() => ordersStore.fetchOrders(buildParams(), { silent: true }))
+
+const exporting = ref(false)
+async function doExport() {
+  exporting.value = true
+  try { await api.exportOrders(buildParams()) } finally { exporting.value = false }
+}
 </script>
 
 <template>
@@ -89,7 +95,11 @@ useAutoRefresh(() => ordersStore.fetchOrders(buildParams(), { silent: true }))
       class="mb-6"
       title="Заказы"
       :subtitle="`${ordersStore.orders.length} ${plural(ordersStore.orders.length, 'заказ', 'заказа', 'заказов')}`"
-    />
+    >
+      <button @click="doExport" :disabled="exporting" class="btn-secondary text-sm">
+        {{ exporting ? 'Экспорт...' : 'Скачать CSV' }}
+      </button>
+    </PageHeader>
 
     <div class="card mb-6">
       <div class="flex flex-col sm:flex-row gap-3">
