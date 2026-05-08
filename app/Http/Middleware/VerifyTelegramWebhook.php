@@ -11,25 +11,12 @@ class VerifyTelegramWebhook
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$this->isFromTelegram($request)) {
-            Log::warning('Telegram webhook blocked: invalid IP', [
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-            return response()->json(['error' => 'Forbidden'], 403);
-        }
-
         if (!$this->verifySecretToken($request)) {
             Log::warning('Telegram webhook blocked: invalid secret token', [
                 'ip' => $request->ip(),
             ]);
             return response()->json(['error' => 'Unauthorized'], 401);
         }
-
-        Log::info('Telegram webhook verified', [
-            'ip' => $request->ip(),
-            'update_id' => $request->input('update_id'),
-        ]);
 
         return $next($request);
     }
