@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useOrdersStore } from '@/stores/orders'
+import { api } from '@/lib/api'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
