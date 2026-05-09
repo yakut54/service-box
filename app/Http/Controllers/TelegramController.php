@@ -290,6 +290,9 @@ class TelegramController extends Controller
         $shortId = substr($orderId, 0, 8);
         $this->sendReply($chatId, "Заказ #{$shortId} — {$label}");
 
+        $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
+        if ($shop) MaxService::sendMessage($shop, "Заказ #{$shortId} — {$label}");
+
         Log::info('Order status updated via Telegram', [
             'order_id' => $orderId,
             'status'   => $newStatus,
@@ -332,6 +335,7 @@ class TelegramController extends Controller
 
         $date = \Carbon\Carbon::parse($booking->start_time)->setTimezone($shop->timezone ?? 'Europe/Moscow')->format('d.m H:i');
         $this->sendReply($chatId, "Запись {$date} ({$booking->customer_name}) — {$label}");
+        MaxService::sendMessage($shop, "Запись {$date} ({$booking->customer_name}) — {$label}");
 
         try {
             TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus);

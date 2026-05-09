@@ -219,6 +219,7 @@ class MaxController extends Controller
         MaxService::removeButtonsByEntity('order', $orderId);
         TelegramService::removeKeyboardByEntity('Order', $orderId);
         MaxService::sendRaw($userId, "Заказ #" . substr($orderId, 0, 8) . " — {$label}");
+        TelegramService::sendMessage(shop: $shop, text: "Заказ #" . substr($orderId, 0, 8) . " — {$label}");
 
         Log::info('Order updated via MAX', ['order_id' => $orderId, 'status' => $newStatus]);
     }
@@ -256,6 +257,7 @@ class MaxController extends Controller
             ->format('d.m H:i');
 
         MaxService::sendRaw($userId, "Запись {$date} ({$booking->customer_name}) — {$label}");
+        TelegramService::sendMessage(shop: $shop, text: "Запись {$date} ({$booking->customer_name}) — {$label}");
 
         Log::info('Booking updated via MAX', ['booking_id' => $bookingId, 'status' => $newStatus]);
     }
