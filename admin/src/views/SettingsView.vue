@@ -352,6 +352,7 @@ async function uploadLogo(e: Event) {
     const res = await api.uploadImage(file)
     widgetLogoUrl.value = res.url
     if (oldUrl) await api.deleteImage(oldUrl).catch(() => {})
+    await saveWidgetConfig()
   } catch {
     widgetError.value = 'Ошибка загрузки логотипа'
   } finally {
