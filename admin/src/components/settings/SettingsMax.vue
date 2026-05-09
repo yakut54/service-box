@@ -117,8 +117,7 @@ async function disconnect() {
           </div>
         </div>
         <ol class="text-xs text-blue-600 dark:text-blue-400 space-y-1 list-decimal list-inside">
-          <li>В боте нажмите «Начать» / «Start»</li>
-          <li>Отправьте код <b class="text-blue-800 dark:text-blue-200">{{ maxCode }}</b></li>
+          <li>В боте введите код в поле чата и отправьте</li>
           <li>Вернитесь сюда и нажмите «Проверить»</li>
         </ol>
       </div>
