@@ -213,6 +213,20 @@ docker exec servicebox_app php artisan storage:link --force 2>/dev/null || true
 docker exec servicebox_app php artisan config:cache
 docker exec servicebox_app php artisan route:cache
 
+# ── 6.5. Ensure host nginx allows large uploads ──────────────────
+echo ""
+echo "[6.5/7] Checking host nginx client_max_body_size..."
+NGINX_CONF=$(nginx -t 2>&1 | grep -oP '(?<=configuration file )[^ ]+' | head -1)
+[ -z "$NGINX_CONF" ] && NGINX_CONF="/etc/nginx/nginx.conf"
+if grep -q 'client_max_body_size' "$NGINX_CONF"; then
+  sed -i 's/client_max_body_size\s\+[^;]*/client_max_body_size 15M/' "$NGINX_CONF"
+  echo "    → updated existing client_max_body_size to 15M"
+else
+  sed -i '/http\s*{/a\    client_max_body_size 15M;' "$NGINX_CONF"
+  echo "    → added client_max_body_size 15M to http block"
+fi
+nginx -t && nginx -s reload && echo "    host nginx reloaded OK" || echo "    [warn] nginx reload failed"
+
 # ── 7. Health check ──────────────────────────────────────────────
 echo ""
 echo "[7/7] Health check..."
