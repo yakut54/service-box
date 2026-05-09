@@ -16,7 +16,7 @@ function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferre
 
 <template>
   <div v-if="shopStore.shop?.legal?.has_docs" class="sb-consent-block sb-mt-4">
-    <label class="sb-consent-label" :class="{ 'sb-consent-label-error': errorOffer }">
+    <label class="sb-consent-label" :class="{ 'sb-consent-label-error': errorOffer && !consentOffer }">
       <input type="checkbox" v-model="consentOffer" class="sb-consent-check" />
       <span>
         Принимаю условия
@@ -27,7 +27,7 @@ function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferre
     </label>
     <p v-if="errorOffer && !consentOffer" class="sb-error-text" role="alert">{{ errorOffer }}</p>
 
-    <label class="sb-consent-label sb-mt-2" :class="{ 'sb-consent-label-error': errorPrivacy }">
+    <label class="sb-consent-label sb-mt-2" :class="{ 'sb-consent-label-error': errorPrivacy && !consentPrivacy }">
       <input type="checkbox" v-model="consentPrivacy" class="sb-consent-check" />
       <span>
         Согласен на обработку
