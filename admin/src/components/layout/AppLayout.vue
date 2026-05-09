@@ -94,13 +94,13 @@ async function handleLogout() {
         </RouterLink>
       </div>
 
-      <!-- Shop name → opens demo in new tab -->
+      <!-- Shop name → opens booking page in new tab -->
       <a
-        :href="authStore.shop?.api_key ? `/demo?shop=${authStore.shop.api_key}` : '#'"
+        :href="authStore.shop?.api_key ? `/book/${authStore.shop.api_key}` : '#'"
         target="_blank"
         rel="noopener"
         class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 flex items-center justify-between group hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
-        :title="authStore.shop?.id ? 'Открыть демо этого магазина' : ''"
+        :title="authStore.shop?.api_key ? 'Открыть страницу онлайн-записи' : ''"
       >
         <div class="min-w-0">
           <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Интернет-Магазин</p>
