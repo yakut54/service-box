@@ -319,6 +319,7 @@ const savingWidget       = ref(false)
 const widgetSuccess      = ref(false)
 const widgetError        = ref('')
 const uploadingLogo      = ref(false)
+const logoError          = ref('')
 const confirmDeleteLogo  = ref(false)
 
 onMounted(() => {
@@ -342,11 +343,11 @@ async function uploadLogo(e: Event) {
 
   const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
   const MAX_MB  = 1
-  if (!ALLOWED.includes(file.type)) { widgetError.value = 'Только JPG, PNG или WEBP'; return }
-  if (file.size > MAX_MB * 1024 * 1024) { widgetError.value = `Файл слишком большой — макс. ${MAX_MB} МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ`; return }
+  logoError.value = ''
+  if (!ALLOWED.includes(file.type)) { logoError.value = 'Только JPG, PNG или WEBP'; return }
+  if (file.size > MAX_MB * 1024 * 1024) { logoError.value = `Файл слишком большой — макс. ${MAX_MB} МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ`; return }
 
   uploadingLogo.value = true
-  widgetError.value   = ''
   const oldUrl = widgetLogoUrl.value
   try {
     const res = await api.uploadImage(file)
@@ -354,7 +355,7 @@ async function uploadLogo(e: Event) {
     if (oldUrl) await api.deleteImage(oldUrl).catch(() => {})
     await saveWidgetConfig()
   } catch {
-    widgetError.value = 'Ошибка загрузки логотипа'
+    logoError.value = 'Ошибка загрузки логотипа'
   } finally {
     uploadingLogo.value = false
   }
@@ -842,7 +843,8 @@ onMounted(() => {
                 <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : widgetLogoUrl ? 'Изменить логотип' : 'Загрузить логотип' }}</span>
                 <input type="file" accept="image/*" @change="uploadLogo" class="hidden" :disabled="uploadingLogo" />
               </label>
-              <p class="text-xs text-gray-400 mt-1">PNG или SVG, рекомендуется квадратный</p>
+              <p v-if="logoError" class="text-xs text-red-500 mt-1">{{ logoError }}</p>
+              <p v-else class="text-xs text-gray-400 mt-1">PNG или SVG, рекомендуется квадратный</p>
             </div>
 
             <!-- Show/hide elements -->
