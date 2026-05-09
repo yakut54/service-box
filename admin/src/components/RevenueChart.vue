@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { plural } from '@/lib/utils'
+import { UiTooltip } from '@/shared/ui'
 
 const props = defineProps<{
   data: Array<{ date: string; orders: number; revenue: number }>
@@ -94,32 +95,22 @@ onBeforeUnmount(() => ro?.disconnect())
             class="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-800 pointer-events-none"
             :style="`top:${yl.pct}%`"/>
           <div class="absolute inset-0 flex gap-px">
-            <div
+            <UiTooltip
               v-for="bar in points.bars"
               :key="bar.date"
-              class="flex-1 min-w-0 flex flex-col justify-end cursor-default relative group"
+              :align="bar.idx < 2 ? 'start' : bar.idx > bar.total - 3 ? 'end' : 'center'"
+              :bottom-pct="bar.heightPct"
+              class="flex-1 min-w-0 flex flex-col justify-end cursor-default"
             >
-              <!-- Tooltip anchored to bar top -->
-              <div
-                class="absolute z-50 pointer-events-none opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 ease-out"
-                :class="bar.idx < 2 ? 'left-0' : bar.idx > bar.total - 3 ? 'right-0' : 'left-1/2 -translate-x-1/2'"
-                :style="`bottom: calc(${bar.heightPct}% + 10px)`"
-              >
-                <div class="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-2.5 py-2 whitespace-nowrap shadow-xl ring-1 ring-black/10">
-                  <div class="font-semibold mb-1">{{ bar.label }}</div>
-                  <div class="text-primary-300 tabular-nums text-sm">{{ fmtFull(bar.revenue) }}</div>
-                  <div class="text-gray-400 mt-0.5">{{ bar.orders }} {{ plural(bar.orders, 'заказ', 'заказа', 'заказов') }}</div>
-                </div>
-                <div
-                  class="absolute top-full border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"
-                  :class="bar.idx < 2 ? 'left-3' : bar.idx > bar.total - 3 ? 'right-3' : 'left-1/2 -translate-x-1/2'"
-                />
-              </div>
-              <!-- Bar -->
+              <template #content>
+                <div class="font-semibold mb-1">{{ bar.label }}</div>
+                <div class="text-primary-300 tabular-nums text-sm">{{ fmtFull(bar.revenue) }}</div>
+                <div class="text-gray-400 mt-0.5">{{ bar.orders }} {{ plural(bar.orders, 'заказ', 'заказа', 'заказов') }}</div>
+              </template>
               <div class="w-full rounded-t-sm transition-colors"
                 :class="bar.revenue > 0 ? 'bg-primary-500 dark:bg-primary-400 hover:bg-primary-600' : 'bg-gray-100 dark:bg-gray-800'"
                 :style="`height:${bar.heightPct}%;min-height:${bar.revenue > 0 ? 3 : 0}px`"/>
-            </div>
+            </UiTooltip>
           </div>
         </div>
       </div>
