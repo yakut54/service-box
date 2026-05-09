@@ -172,8 +172,14 @@ class BookingController extends Controller
             }
         }
 
+        $maxLink = null;
+        if ($shop?->max_bot_connected && config('services.max.bot_username')) {
+            $maxLink = 'https://max.ru/' . config('services.max.bot_username');
+        }
+
         $bookingData = $booking->toArray();
         $bookingData['telegram_link'] = $telegramLink;
+        $bookingData['max_link']      = $maxLink;
 
         return response()->json([
             'message' => 'Booking created successfully',

@@ -59,6 +59,20 @@ const tz = () => shopStore.shop?.timezone || 'Europe/Moscow'
       Получать уведомления в Telegram
     </a>
 
+    <a
+      v-if="booking?.max_link"
+      :href="booking.max_link"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="sb-btn sb-btn-block sb-mt-2"
+      style="background:#0077FF;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      Получать уведомления в MAX
+    </a>
+
     <SbButton block class="sb-mt-4" @click="emit('back')">
       Вернуться в каталог
     </SbButton>
