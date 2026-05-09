@@ -106,10 +106,8 @@ function validateField(field: string) {
         errors.value['address.building'] = 'Укажите дом'
       break
     case 'address.postal_code':
-      if (touched.value['address.postal_code'] && hasPhysical.value) {
-        if (!address.value.postal_code.trim())                   errors.value['address.postal_code'] = 'Укажите индекс'
-        else if (!isPostalCodeValid(address.value.postal_code))  errors.value['address.postal_code'] = 'Индекс — 6 цифр'
-      }
+      if (touched.value['address.postal_code'] && address.value.postal_code.trim() && !isPostalCodeValid(address.value.postal_code))
+        errors.value['address.postal_code'] = 'Индекс — 6 цифр'
       break
   }
 }
@@ -152,15 +150,14 @@ function validateStep1(): boolean {
 function validateStep2(): boolean {
   touched.value = {
     ...touched.value,
-    'address.city': true, 'address.street': true,
-    'address.building': true, 'address.postal_code': true,
+    'address.city': true, 'address.street': true, 'address.building': true,
   }
   const e: Record<string, string> = {}
   if (!address.value.city.trim())                          e['address.city']        = 'Укажите город'
   if (!address.value.street.trim())                        e['address.street']      = 'Укажите улицу'
   if (!address.value.building.trim())                      e['address.building']    = 'Укажите дом'
-  if (!address.value.postal_code.trim())                   e['address.postal_code'] = 'Укажите индекс'
-  else if (!isPostalCodeValid(address.value.postal_code))  e['address.postal_code'] = 'Индекс — 6 цифр'
+  if (address.value.postal_code.trim() && !isPostalCodeValid(address.value.postal_code))
+    e['address.postal_code'] = 'Индекс — 6 цифр'
   errors.value = { ...errors.value, ...e }
   return Object.keys(e).length === 0
 }
@@ -321,8 +318,8 @@ async function handleSubmit() {
             <input id="co-apartment" v-model="address.apartment" type="text" class="sb-input" placeholder="34" autocomplete="off" inputmode="numeric" maxlength="10" />
           </SbField>
 
-          <SbField label="Индекс *" label-for="co-postal" :error="errors['address.postal_code']" error-id="co-postal-error" :valid="isFieldValid('address.postal_code')">
-            <input id="co-postal" v-model="address.postal_code" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.postal_code'] }" placeholder="101000" autocomplete="postal-code" inputmode="numeric" maxlength="6" aria-required="true" :aria-invalid="!!errors['address.postal_code']" :aria-describedby="errors['address.postal_code'] ? 'co-postal-error' : undefined" @blur="touch('address.postal_code')" @input="validateField('address.postal_code')" />
+          <SbField label="Индекс" label-for="co-postal" :error="errors['address.postal_code']" error-id="co-postal-error" :valid="isFieldValid('address.postal_code')">
+            <input id="co-postal" v-model="address.postal_code" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.postal_code'] }" placeholder="101000" autocomplete="postal-code" inputmode="numeric" maxlength="6" :aria-invalid="!!errors['address.postal_code']" :aria-describedby="errors['address.postal_code'] ? 'co-postal-error' : undefined" @blur="touch('address.postal_code')" @input="validateField('address.postal_code')" />
           </SbField>
         </div>
 
