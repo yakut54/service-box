@@ -98,15 +98,20 @@ onMounted(() => Promise.all([
       <KpiCard title="Ожидают оплаты"  :value="String(todayStats.pending_orders ?? 0)" :loading="loadingStats" color="yellow" icon="pending"/>
     </div>
 
-    <!-- Chart -->
-    <div class="card flex flex-col min-h-[280px]">
-      <div class="flex items-center justify-between mb-4 flex-shrink-0">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка за 7 дней</h2>
-        <RouterLink to="/analytics" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">
-          Подробная аналитика →
-        </RouterLink>
+    <!-- Chart (right) + TBD (left) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left: TBD -->
+      <div></div>
+      <!-- Right: Chart -->
+      <div class="card flex flex-col min-h-[280px]">
+        <div class="flex items-center justify-between mb-4 flex-shrink-0">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Выручка за 7 дней</h2>
+          <RouterLink to="/analytics" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">
+            Подробная аналитика →
+          </RouterLink>
+        </div>
+        <RevenueChart :data="chartData" :loading="loadingChart"/>
       </div>
-      <RevenueChart :data="chartData" :loading="loadingChart"/>
     </div>
 
     <!-- Pending alert -->
@@ -139,7 +144,7 @@ onMounted(() => Promise.all([
         <div v-else-if="todayBookings.length === 0" class="py-10 text-center text-gray-400 text-sm">Нет записей на сегодня</div>
         <div v-else class="space-y-0.5">
           <RouterLink
-            v-for="b in todayBookings" :key="b.id" :to="`/bookings/${b.id}`"
+            v-for="b in todayBookings.slice(0, 5)" :key="b.id" :to="`/bookings/${b.id}`"
             :class="['flex items-center justify-between py-2.5 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors',
               (b.status === 'cancelled' || b.status === 'no_show') ? 'opacity-40' : '']"
           >
