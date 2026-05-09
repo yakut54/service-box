@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, watch, reactive } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import DatePicker from '@/components/DatePicker.vue'
-import { handlePhoneInput, isValidPhone } from '@/composables/usePhoneInput'
+import BookingCreateModal from '@/components/modals/BookingCreateModal.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
-import UiModal from '@/shared/ui/UiModal.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
-import type { Booking, Product, BookingSlot } from '@/types'
+import type { Booking, Product } from '@/types'
 
 const bookingsStore = useBookingsStore()
 const authStore = useAuthStore()
@@ -105,16 +104,6 @@ const bookingStatusOptions = [
 
 const masterOptions = computed(() => [
   { value: '', label: 'Все мастера' },
-  ...bookingsStore.masters.map(m => ({ value: m.id, label: m.name }))
-])
-
-const serviceOptions = computed(() => [
-  { value: '', label: 'Выберите услугу' },
-  ...services.value.map((s) => ({ value: s.id, label: s.name }))
-])
-
-const masterModalOptions = computed(() => [
-  { value: '', label: 'Любой доступный' },
   ...bookingsStore.masters.map(m => ({ value: m.id, label: m.name }))
 ])
 
@@ -215,127 +204,18 @@ const nowTop = computed(() => {
 })
 
 // ── Create modal ────────────────────────────────────────────
-const showModal = ref(false)
-const services = ref<Product[]>([])
-const modalForm = ref({
-  service_id: '', master_id: '', date: '', slot: '',
-  customer_name: '', customer_phone: '', customer_email: '', notes: '',
-})
-const availableSlots = ref<BookingSlot[]>([])
-const loadingSlots = ref(false)
-const slotError = ref<string | null>(null)
-const creating = ref(false)
-const modalError = ref('')
+const showModal    = ref(false)
+const prefillDate  = ref<string | undefined>(undefined)
+const services     = ref<Product[]>([])
 
-// ── Booking form live validation ─────────────────────────────
-const bookingErrors = reactive({ customer_name: '', customer_phone: '', customer_email: '' })
-
-function validateBookingName(v: string) { bookingErrors.customer_name = v.trim() ? '' : 'Введите имя клиента' }
-function validateBookingPhone(v: string) {
-  if (!v) { bookingErrors.customer_phone = 'Телефон обязателен'; return }
-  bookingErrors.customer_phone = isValidPhone(v) ? '' : 'Введите полный номер: +7 (XXX) XXX-XX-XX'
-}
-function validateBookingEmail(v: string) {
-  if (!v) { bookingErrors.customer_email = ''; return }
-  bookingErrors.customer_email = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : 'Некорректный email'
-}
-function resetBookingErrors() {
-  bookingErrors.customer_name = ''
-  bookingErrors.customer_phone = ''
-  bookingErrors.customer_email = ''
-}
-
-const isBookingFormValid = computed(() =>
-  !bookingErrors.customer_name && !bookingErrors.customer_phone && !bookingErrors.customer_email &&
-  modalForm.value.customer_name.trim() && modalForm.value.customer_phone &&
-  isValidPhone(modalForm.value.customer_phone) &&
-  modalForm.value.service_id && modalForm.value.slot
-)
-
-// "Сегодня" по timezone магазина — не по браузеру
 function shopToday(): string {
   return new Date().toLocaleDateString('sv', { timeZone: shopTz.value })
 }
 
-function openModal(prefillDate?: string) {
-  modalError.value = ''
-  let preDate: string
-  if (prefillDate) {
-    preDate = prefillDate
-  } else {
-    const today   = shopToday()
-    // Если рабочий день уже закончился — сразу предлагаем завтра
-    const shopNow = new Date().toLocaleTimeString('sv', { timeZone: shopTz.value }).slice(0, 5)
-    const workEnd = authStore.shop?.work_end || '20:00'
-    if (shopNow >= workEnd) {
-      const d = new Date(today + 'T12:00:00')
-      d.setDate(d.getDate() + 1)
-      preDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    } else if (anchorDateStr.value >= today) {
-      preDate = anchorDateStr.value
-    } else {
-      preDate = today
-    }
-  }
-  modalForm.value = { service_id: '', master_id: '', date: preDate, slot: '', customer_name: '', customer_phone: '', customer_email: '', notes: '' }
-  availableSlots.value = []
-  slotError.value = null
-  resetBookingErrors()
+function openModal(date?: string) {
+  const today = shopToday()
+  prefillDate.value = date ?? (anchorDateStr.value >= today ? anchorDateStr.value : undefined)
   showModal.value = true
-}
-
-// Подсказка почему кнопка заблокирована
-const submitHint = computed(() => {
-  if (!modalForm.value.service_id) return 'Выберите услугу'
-  if (!modalForm.value.date)       return 'Выберите дату'
-  if (!modalForm.value.slot)       return 'Выберите время'
-  if (!modalForm.value.customer_name.trim()) return 'Введите имя клиента'
-  if (!modalForm.value.customer_phone || !isValidPhone(modalForm.value.customer_phone)) return 'Введите телефон'
-  return ''
-})
-
-watch([() => modalForm.value.service_id, () => modalForm.value.date, () => modalForm.value.master_id], async () => {
-  slotError.value = null
-  if (!modalForm.value.service_id || !modalForm.value.date) { availableSlots.value = []; return }
-  loadingSlots.value = true
-  try {
-    const params: Record<string, string> = { service_id: modalForm.value.service_id, date: modalForm.value.date }
-    if (modalForm.value.master_id) params.master_id = modalForm.value.master_id
-    const resp = await api.getAvailableSlots(params)
-    availableSlots.value = resp.slots || []
-  } catch (err) {
-    availableSlots.value = []
-    slotError.value = err instanceof ApiError ? err.message : 'Не удалось загрузить слоты'
-  }
-  loadingSlots.value = false
-  modalForm.value.slot = ''
-})
-
-async function submitBooking() {
-  validateBookingName(modalForm.value.customer_name)
-  validateBookingPhone(modalForm.value.customer_phone)
-  validateBookingEmail(modalForm.value.customer_email)
-  if (!isBookingFormValid.value) { modalError.value = 'Заполните все обязательные поля корректно'; return }
-  creating.value = true
-  modalError.value = ''
-  try {
-    await bookingsStore.createBooking({
-      service_id: modalForm.value.service_id,
-      start_time: modalForm.value.slot,
-      master_id: modalForm.value.master_id || undefined,
-      customer: {
-        name: modalForm.value.customer_name,
-        phone: modalForm.value.customer_phone,
-        email: modalForm.value.customer_email || undefined,
-      },
-      notes: modalForm.value.notes || undefined,
-    })
-    showModal.value = false
-    applyFilters()
-  } catch (e: unknown) {
-    modalError.value = e instanceof Error ? e.message : 'Не удалось создать запись'
-  }
-  creating.value = false
 }
 
 // ── Delete booking ───────────────────────────────────────────
@@ -666,119 +546,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ══════════ CREATE BOOKING MODAL ══════════ -->
-    <UiModal v-model="showModal">
-      <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-white">Новая запись</h2>
-        <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-
-      <!-- Body -->
-      <div class="p-4 space-y-4">
-        <div v-if="modalError" class="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">{{ modalError }}</div>
-
-        <!-- 1. Услуга -->
-        <div>
-          <label class="label">Услуга <span class="text-red-500">*</span></label>
-          <CustomSelect v-model="modalForm.service_id" :options="serviceOptions" searchable />
-          <p v-if="services.length === 0" class="mt-1 text-xs text-red-500">
-            Нет активных услуг. <RouterLink to="/products" class="underline">Добавьте услугу</RouterLink>
-          </p>
-        </div>
-
-        <!-- 2. Дата -->
-        <div>
-          <label class="label">Дата <span class="text-red-500">*</span></label>
-          <DatePicker v-model="modalForm.date" :min="shopToday()" placeholder="Выберите дату" />
-        </div>
-
-        <!-- 3. Мастер -->
-        <div>
-          <label class="label">Мастер</label>
-          <CustomSelect v-model="modalForm.master_id" :options="masterModalOptions" searchable />
-        </div>
-
-        <!-- 4. Время — всегда видно, состояние зависит от заполненности выше -->
-        <div>
-          <label class="label">Время <span class="text-red-500">*</span></label>
-          <div v-if="!modalForm.service_id" class="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/60 text-sm text-gray-400 dark:text-gray-500">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Сначала выберите услугу
-          </div>
-          <div v-else-if="!modalForm.date" class="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/60 text-sm text-gray-400 dark:text-gray-500">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            Выберите дату
-          </div>
-          <div v-else-if="loadingSlots" class="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/60 text-sm text-gray-500 dark:text-gray-400">
-            <div class="animate-spin w-3.5 h-3.5 border-2 border-primary-500 border-t-transparent rounded-full flex-shrink-0"></div>
-            Загрузка слотов...
-          </div>
-          <div v-else-if="slotError" class="flex items-start gap-2 py-2.5 px-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-400">
-            <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            {{ slotError }}
-          </div>
-          <div v-else-if="availableSlots.length === 0" class="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-700 dark:text-amber-400">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span>Нет свободных слотов<template v-if="modalForm.master_id"> для этого мастера</template> — выберите другую дату<template v-if="modalForm.master_id"> или другого мастера</template></span>
-          </div>
-          <div v-else class="grid grid-cols-4 gap-2">
-            <button
-              v-for="slot in availableSlots" :key="slot.time"
-              type="button"
-              :class="['px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                modalForm.slot === slot.datetime
-                  ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                  : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-400 dark:hover:border-primary-500']"
-              @click="modalForm.slot = slot.datetime"
-            >{{ slot.time }}</button>
-          </div>
-        </div>
-
-        <!-- 5. Клиент -->
-        <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
-          <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Клиент</div>
-          <div class="space-y-3">
-            <div>
-              <label class="label">Имя <span class="text-red-500">*</span></label>
-              <input v-model="modalForm.customer_name" @input="validateBookingName(modalForm.customer_name)" @blur="validateBookingName(modalForm.customer_name)" type="text" :class="['input', bookingErrors.customer_name ? 'input-error' : '']" placeholder="Иван Иванов" />
-              <p v-if="bookingErrors.customer_name" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_name }}</p>
-            </div>
-            <div>
-              <label class="label">Телефон <span class="text-red-500">*</span></label>
-              <input :value="modalForm.customer_phone" @input="handlePhoneInput($event, (v) => { modalForm.customer_phone = v; validateBookingPhone(v) })" @blur="validateBookingPhone(modalForm.customer_phone)" type="tel" :class="['input', bookingErrors.customer_phone ? 'input-error' : modalForm.customer_phone && !bookingErrors.customer_phone ? 'input-success' : '']" placeholder="+7 (999) 123-45-67" />
-              <p v-if="bookingErrors.customer_phone" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_phone }}</p>
-            </div>
-            <div>
-              <label class="label">Email</label>
-              <input v-model="modalForm.customer_email" @input="validateBookingEmail(modalForm.customer_email)" @blur="validateBookingEmail(modalForm.customer_email)" type="email" :class="['input', bookingErrors.customer_email ? 'input-error' : modalForm.customer_email && !bookingErrors.customer_email ? 'input-success' : '']" placeholder="email@example.com" />
-              <p v-if="bookingErrors.customer_email" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_email }}</p>
-            </div>
-            <div>
-              <label class="label">Примечание</label>
-              <textarea v-model="modalForm.notes" class="input" rows="2" placeholder="Дополнительная информация..."></textarea>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="flex flex-col gap-2 p-4 border-t border-gray-100 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800 z-10">
-        <p v-if="submitHint && !creating" class="text-xs text-center text-gray-400 dark:text-gray-500">{{ submitHint }}</p>
-        <div class="flex gap-3">
-          <button @click="showModal = false" class="btn-secondary flex-1">Отмена</button>
-          <button @click="submitBooking" :disabled="creating || !isBookingFormValid" class="btn-primary flex-1">
-            <template v-if="creating">
-              <div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-              Создание...
-            </template>
-            <template v-else>Создать запись</template>
-          </button>
-        </div>
-      </div>
-    </UiModal>
+    <BookingCreateModal v-model="showModal" :prefill-date="prefillDate" :services="services" @created="applyFilters" />
 
     <!-- Delete confirm -->
     <UiConfirmDialog
