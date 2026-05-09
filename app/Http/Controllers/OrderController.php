@@ -206,6 +206,9 @@ class OrderController extends Controller
             try {
                 \App\Services\TelegramService::notifyNewOrder($shop, $order);
             } catch (\Throwable) {}
+            try {
+                \App\Services\MaxService::notifyNewOrder($shop, $order);
+            } catch (\Throwable) {}
         }
 
         return response()->json([

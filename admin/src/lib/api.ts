@@ -466,6 +466,21 @@ class ApiClient {
     })
   }
 
+  async getMaxStatus() {
+    return this.request<{ connected: boolean; user_id: number | null }>('/admin/max/status')
+  }
+
+  async generateMaxCode() {
+    return this.request<{ code: string; expires_in_minutes: number }>(
+      '/admin/max/generate-code',
+      { method: 'POST' }
+    )
+  }
+
+  async disconnectMax() {
+    return this.request<{ message: string }>('/admin/max/disconnect', { method: 'POST' })
+  }
+
   // ==========================================
   // CATEGORIES
   // ==========================================

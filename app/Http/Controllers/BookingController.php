@@ -158,6 +158,9 @@ class BookingController extends Controller
             try {
                 \App\Services\TelegramService::notifyNewBooking($shop, $booking);
             } catch (\Throwable) {}
+            try {
+                \App\Services\MaxService::notifyNewBooking($shop, $booking);
+            } catch (\Throwable) {}
 
             if ($shop->telegram_bot_connected) {
                 try {

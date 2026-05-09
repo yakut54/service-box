@@ -18,6 +18,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
+use App\Http\Controllers\MaxController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -187,6 +188,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop'])->group(functio
     Route::post('/telegram/generate-code', [TelegramController::class, 'generateCode']);
     Route::get('/telegram/status', [TelegramController::class, 'status']);
     Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect']);
+
+    Route::post('/max/generate-code', [MaxController::class, 'generateCode']);
+    Route::get('/max/status', [MaxController::class, 'status']);
+    Route::post('/max/disconnect', [MaxController::class, 'disconnect']);
 });
 
 // ============================================================================
@@ -197,6 +202,8 @@ Route::prefix('webhook')->group(function () {
         ->middleware('verify.yookassa');
     Route::post('/telegram', [TelegramController::class, 'webhook'])
         ->middleware('verify.telegram');
+    Route::post('/max/{secret}', [MaxController::class, 'webhook'])
+        ->middleware('verify.max');
 });
 
 

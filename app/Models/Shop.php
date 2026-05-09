@@ -21,6 +21,8 @@ class Shop extends Model
         'schema_name',
         'telegram_chat_id',
         'telegram_bot_connected',
+        'max_chat_id',
+        'max_bot_connected',
         'payment_provider',
         'yookassa_shop_id',
         'yookassa_secret_key',
@@ -39,6 +41,8 @@ class Shop extends Model
 
     protected $casts = [
         'telegram_bot_connected' => 'boolean',
+        'max_bot_connected'      => 'boolean',
+        'max_chat_id'            => 'integer',
         'subscription_expires_at' => 'datetime',
         'widget_config' => 'array',
         'legal_config' => 'array',

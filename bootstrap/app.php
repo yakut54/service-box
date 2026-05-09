@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.shop' => \App\Http\Middleware\SetShopFromAuth::class,
             'subscription' => \App\Http\Middleware\CheckSubscription::class,
             'verify.telegram' => \App\Http\Middleware\VerifyTelegramWebhook::class,
+            'verify.max'      => \App\Http\Middleware\VerifyMaxWebhook::class,
             'verify.yookassa' => \App\Http\Middleware\VerifyYooKassaWebhook::class,
             'enforce.https' => \App\Http\Middleware\EnforceHttps::class,
             'rate.phone' => \App\Http\Middleware\RateLimitPhoneLookup::class,

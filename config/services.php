@@ -18,6 +18,12 @@ return [
         'secret_token' => env('TELEGRAM_SECRET_TOKEN'),
     ],
 
+    'max' => [
+        'bot_token'      => env('MAX_BOT_TOKEN'),
+        'webhook_secret' => env('MAX_WEBHOOK_SECRET'),
+        'api_url'        => 'https://platform-api.max.ru',
+    ],
+
     'yookassa' => [
         'shop_id'    => env('YOOKASSA_SHOP_ID'),
         'secret_key' => env('YOOKASSA_SECRET_KEY'),
