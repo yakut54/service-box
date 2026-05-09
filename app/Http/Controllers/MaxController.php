@@ -190,6 +190,12 @@ class MaxController extends Controller
 
         [$entityType, $action, $entityId] = $parts;
 
+        // Rating callback comes from customer, not shop owner — handle before shop lookup
+        if ($entityType === 'rate') {
+            $this->handleRatingCallback($callbackId, $action, $entityId, $userId);
+            return;
+        }
+
         $shop = Shop::where('max_chat_id', $userId)
             ->where('max_bot_connected', true)
             ->first();
@@ -288,5 +294,67 @@ class MaxController extends Controller
         TelegramService::sendMessage(shop: $shop, text: "Запись {$date} ({$booking->customer_name}) — {$label}");
 
         Log::info('Booking updated via MAX', ['booking_id' => $bookingId, 'status' => $newStatus]);
+    }
+
+    private function handleRatingCallback(string $cbId, string $bookingId, string $scoreStr, int $userId): void
+    {
+        $score = (int) $scoreStr;
+        if ($score < 1 || $score > 5) {
+            MaxService::answerCallback($cbId, 'Неверная оценка');
+            return;
+        }
+
+        $schemas = \DB::select("
+            SELECT schema_name FROM information_schema.schemata
+            WHERE schema_name LIKE 'shop_%'
+        ");
+
+        foreach ($schemas as $row) {
+            $s = $row->schema_name;
+
+            $booking = \DB::selectOne("
+                SELECT id, service_id, customer_id, customer_name, rating_sent
+                FROM {$s}.bookings WHERE id = ?
+            ", [$bookingId]);
+
+            if (!$booking) continue;
+
+            if ($booking->rating_sent) {
+                MaxService::answerCallback($cbId, 'Вы уже оценили этот визит');
+                return;
+            }
+
+            // Verify rating comes from subscribed customer
+            $subscribedUserId = MaxService::getCustomerUserId($bookingId);
+            if ($subscribedUserId !== $userId) {
+                MaxService::answerCallback($cbId, 'Нет доступа');
+                return;
+            }
+
+            try {
+                \DB::table("{$s}.reviews")->insert([
+                    'id'            => (string) \Illuminate\Support\Str::uuid(),
+                    'product_id'    => $booking->service_id,
+                    'customer_id'   => $booking->customer_id,
+                    'customer_name' => $booking->customer_name,
+                    'rating'        => $score,
+                    'is_published'  => false,
+                    'created_at'    => now(),
+                ]);
+
+                \DB::statement("UPDATE {$s}.bookings SET rating_sent = TRUE WHERE id = ?", [$bookingId]);
+            } catch (\Throwable $e) {
+                Log::error('MAX: failed to save rating', ['booking' => $bookingId, 'error' => $e->getMessage()]);
+                MaxService::answerCallback($cbId, 'Ошибка сохранения');
+                return;
+            }
+
+            $stars = str_repeat('⭐', $score);
+            MaxService::answerCallback($cbId, "Спасибо за оценку! {$stars}");
+            MaxService::sendRaw($userId, "Спасибо за оценку {$stars}\nОтзыв отправлен на модерацию.");
+            return;
+        }
+
+        MaxService::answerCallback($cbId, 'Запись не найдена');
     }
 }

@@ -220,7 +220,7 @@ class TelegramController extends Controller
 
         // Customer-side rating callback — shop lookup is by booking id, not chat_id
         if ($entityType === 'rate') {
-            $this->handleRatingCallback($callbackId, $entityId, $action, $chatId);
+            $this->handleRatingCallback($callbackId, $action, $entityId, $chatId);
             return;
         }
 

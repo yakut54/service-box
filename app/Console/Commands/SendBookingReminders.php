@@ -91,7 +91,12 @@ class SendBookingReminders extends Command
 
         foreach ($ratingBookings as $booking) {
             try {
-                TelegramService::notifyRatingRequest($shop, $booking);
+                if ($shop->telegram_bot_connected) {
+                    TelegramService::notifyRatingRequest($shop, $booking);
+                }
+                if ($shop->max_bot_connected) {
+                    MaxService::notifyRatingRequest($booking->id, $booking);
+                }
 
                 DB::statement("UPDATE {$s}.bookings SET rating_sent = TRUE WHERE id = ?", [$booking->id]);
 

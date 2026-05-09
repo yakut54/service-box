@@ -217,6 +217,28 @@ class MaxService
         return Cache::get("max_csub:{$bookingId}");
     }
 
+    public static function notifyRatingRequest(string $bookingId, object $booking): void
+    {
+        $userId = self::getCustomerUserId($bookingId);
+        if (!$userId) return;
+
+        $service = $booking->service_name ?? '—';
+
+        $text  = "⭐ <b>Как прошёл визит?</b>\n\n";
+        $text .= "📋 {$service}\n";
+        $text .= "\nОцените, пожалуйста, услугу:";
+
+        $buttons = [[
+            ['type' => 'callback', 'text' => '1 ⭐', 'payload' => "rate:{$bookingId}:1"],
+            ['type' => 'callback', 'text' => '2 ⭐', 'payload' => "rate:{$bookingId}:2"],
+            ['type' => 'callback', 'text' => '3 ⭐', 'payload' => "rate:{$bookingId}:3"],
+            ['type' => 'callback', 'text' => '4 ⭐', 'payload' => "rate:{$bookingId}:4"],
+            ['type' => 'callback', 'text' => '5 ⭐', 'payload' => "rate:{$bookingId}:5"],
+        ]];
+
+        self::sendRaw($userId, $text, $buttons);
+    }
+
     public static function notifyBookingReminder(string $bookingId, object $booking, string $type, string $timezone): void
     {
         $userId = self::getCustomerUserId($bookingId);
