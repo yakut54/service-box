@@ -80,6 +80,22 @@ class MaxService
             ]);
     }
 
+    public static function removeButtons(int $userId, ?string $mid): void
+    {
+        if (!$mid) return;
+
+        $token = self::token();
+        if (!$token) return;
+
+        try {
+            Http::timeout(5)
+                ->withHeaders(['Authorization' => $token])
+                ->patch(self::api() . '/messages?message_id=' . urlencode($mid) . '&user_id=' . $userId, [
+                    'attachments' => [],
+                ]);
+        } catch (\Throwable) {}
+    }
+
     // ── Owner notifications ───────────────────────────────────────────────
 
     public static function notifyNewOrder(Shop $shop, $order): void

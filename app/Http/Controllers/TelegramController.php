@@ -454,7 +454,7 @@ class TelegramController extends Controller
         Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
             'chat_id'      => $chatId,
             'message_id'   => $messageId,
-            'reply_markup' => json_encode(['inline_keyboard' => []]),
+            'reply_markup' => ['inline_keyboard' => []],
         ]);
     }
 }
