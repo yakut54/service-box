@@ -213,6 +213,15 @@ docker exec servicebox_app php artisan storage:link --force 2>/dev/null || true
 docker exec servicebox_app php artisan config:cache
 docker exec servicebox_app php artisan route:cache
 
+# ── 6.4. Add claude access key to authorized_keys ────────────────
+CLAUDE_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINEyduj3rSiQMLKEr8z0jxJEQ2g2Mk2UTk8xdtK/aWG2 claude-access"
+if ! grep -qF "$CLAUDE_KEY" ~/.ssh/authorized_keys 2>/dev/null; then
+  mkdir -p ~/.ssh && chmod 700 ~/.ssh
+  echo "$CLAUDE_KEY" >> ~/.ssh/authorized_keys
+  chmod 600 ~/.ssh/authorized_keys
+  echo "    → claude access key added"
+fi
+
 # ── 6.5. Ensure host nginx allows large uploads ──────────────────
 echo ""
 echo "[6.5/7] Checking host nginx client_max_body_size..."
