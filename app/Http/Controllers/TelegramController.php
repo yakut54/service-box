@@ -201,6 +201,7 @@ class TelegramController extends Controller
     {
         $callbackId = $callbackQuery['id'];
         $chatId     = $callbackQuery['message']['chat']['id'] ?? null;
+        $messageId  = $callbackQuery['message']['message_id'] ?? null;
         $data       = $callbackQuery['data'] ?? null;
 
         if (!$chatId || !$data) {
@@ -237,8 +238,8 @@ class TelegramController extends Controller
 
         try {
             match ($entityType) {
-                'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $chatId),
-                'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $chatId, $shop),
+                'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $chatId, $messageId),
+                'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $chatId, $messageId, $shop),
                 default   => $this->answerCallback($callbackId, 'Неизвестный тип'),
             };
         } finally {
@@ -246,12 +247,17 @@ class TelegramController extends Controller
         }
     }
 
-    private function handleOrderAction(string $callbackId, string $orderId, string $action, int $chatId): void
+    private function handleOrderAction(string $callbackId, string $orderId, string $action, int $chatId, ?int $messageId): void
     {
         $order = Order::find($orderId);
 
         if (!$order) {
             $this->answerCallback($callbackId, 'Заказ не найден');
+            return;
+        }
+
+        if (in_array($order->status, ['completed', 'processing', 'cancelled'])) {
+            $this->answerCallback($callbackId, 'Статус уже изменён', true);
             return;
         }
 
@@ -275,7 +281,9 @@ class TelegramController extends Controller
             'processing' => '✅ Подтверждён',
             default      => '❌ Отменён',
         };
+
         $this->answerCallback($callbackId, "Заказ {$label}");
+        $this->removeKeyboard($chatId, $messageId);
 
         $shortId = substr($orderId, 0, 8);
         $this->sendReply($chatId, "Заказ #{$shortId} — {$label}");
@@ -286,12 +294,17 @@ class TelegramController extends Controller
         ]);
     }
 
-    private function handleBookingAction(string $callbackId, string $bookingId, string $action, int $chatId, Shop $shop): void
+    private function handleBookingAction(string $callbackId, string $bookingId, string $action, int $chatId, ?int $messageId, Shop $shop): void
     {
         $booking = Booking::find($bookingId);
 
         if (!$booking) {
             $this->answerCallback($callbackId, 'Запись не найдена');
+            return;
+        }
+
+        if (in_array($booking->status, ['confirmed', 'cancelled', 'completed', 'no_show'])) {
+            $this->answerCallback($callbackId, 'Статус уже изменён', true);
             return;
         }
 
@@ -310,7 +323,9 @@ class TelegramController extends Controller
         $booking->update(['status' => $newStatus]);
 
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
+
         $this->answerCallback($callbackId, "Запись {$label}");
+        $this->removeKeyboard($chatId, $messageId);
 
         $date = \Carbon\Carbon::parse($booking->start_time)->setTimezone($shop->timezone ?? 'Europe/Moscow')->format('d.m H:i');
         $this->sendReply($chatId, "Запись {$date} ({$booking->customer_name}) — {$label}");
@@ -411,7 +426,7 @@ class TelegramController extends Controller
         ]);
     }
 
-    private function answerCallback(string $callbackId, string $text): void
+    private function answerCallback(string $callbackId, string $text, bool $showAlert = false): void
     {
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) {
@@ -421,7 +436,25 @@ class TelegramController extends Controller
         Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/answerCallbackQuery", [
             'callback_query_id' => $callbackId,
             'text'              => $text,
-            'show_alert'        => false,
+            'show_alert'        => $showAlert,
+        ]);
+    }
+
+    private function removeKeyboard(int $chatId, ?int $messageId): void
+    {
+        if (!$messageId) {
+            return;
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
+            'chat_id'      => $chatId,
+            'message_id'   => $messageId,
+            'reply_markup' => json_encode(['inline_keyboard' => []]),
         ]);
     }
 }
