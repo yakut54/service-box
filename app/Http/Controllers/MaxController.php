@@ -150,14 +150,9 @@ class MaxController extends Controller
 
     private function handleCallback(array $update): void
     {
-        Log::info('MAX callback raw', ['callback' => $update['callback'] ?? []]);
-
         $callbackId = $update['callback']['callback_id'] ?? null;
         $payload    = $update['callback']['payload'] ?? '';
         $userId     = $update['callback']['user']['user_id'] ?? null;
-        $mid        = $update['callback']['message']['body']['mid'] ?? null;
-
-        Log::info('MAX callback parsed', ['mid' => $mid, 'userId' => $userId, 'payload' => $payload]);
 
         if (!$callbackId || !$userId) return;
 
@@ -182,8 +177,8 @@ class MaxController extends Controller
 
         try {
             match ($entityType) {
-                'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $userId, $mid, $shop),
-                'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $userId, $mid, $shop),
+                'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $userId, $shop),
+                'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $userId, $shop),
                 default   => MaxService::answerCallback($callbackId, 'Неизвестный тип'),
             };
         } finally {
@@ -191,7 +186,7 @@ class MaxController extends Controller
         }
     }
 
-    private function handleOrderAction(string $cbId, string $orderId, string $action, int $userId, ?string $mid, Shop $shop): void
+    private function handleOrderAction(string $cbId, string $orderId, string $action, int $userId, Shop $shop): void
     {
         $order = Order::find($orderId);
 
@@ -221,14 +216,14 @@ class MaxController extends Controller
         };
 
         MaxService::answerCallback($cbId, "Заказ {$label}");
-        MaxService::removeButtons($userId, $mid);
+        MaxService::removeButtonsByEntity('order', $orderId);
         TelegramService::removeKeyboardByEntity('Order', $orderId);
         MaxService::sendRaw($userId, "Заказ #" . substr($orderId, 0, 8) . " — {$label}");
 
         Log::info('Order updated via MAX', ['order_id' => $orderId, 'status' => $newStatus]);
     }
 
-    private function handleBookingAction(string $cbId, string $bookingId, string $action, int $userId, ?string $mid, Shop $shop): void
+    private function handleBookingAction(string $cbId, string $bookingId, string $action, int $userId, Shop $shop): void
     {
         $booking = Booking::find($bookingId);
 
@@ -253,7 +248,7 @@ class MaxController extends Controller
 
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
         MaxService::answerCallback($cbId, "Запись {$label}");
-        MaxService::removeButtons($userId, $mid);
+        MaxService::removeButtonsByEntity('booking', $bookingId);
         TelegramService::removeKeyboardByEntity('Booking', $bookingId);
 
         $date = \Carbon\Carbon::parse($booking->start_time)
