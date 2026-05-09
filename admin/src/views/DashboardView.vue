@@ -47,6 +47,14 @@ async function loadBookings() {
 }
 
 const pendingOrders = computed(() => ordersStore.pendingOrders)
+
+const upcomingBookings = computed(() => {
+  const now = new Date()
+  return todayBookings.value
+    .filter(b => new Date(b.start_time) >= now && !['cancelled', 'no_show'].includes(b.status))
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    .slice(0, 4)
+})
 const recentOrders = computed(() => ordersStore.orders.slice(0, 5))
 
 function formatPriceFull(rubles: number) {
@@ -116,10 +124,42 @@ onMounted(() => Promise.all([
       <span class="ml-auto text-xs text-yellow-600 dark:text-yellow-400">Открыть →</span>
     </RouterLink>
 
-    <!-- Chart (right) + TBD (left) -->
+    <!-- Upcoming bookings + Chart -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Left: TBD -->
-      <div></div>
+      <!-- Left: Upcoming bookings -->
+      <div class="card flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Ближайшие записи</h2>
+          <RouterLink to="/bookings" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">Все →</RouterLink>
+        </div>
+        <div v-if="loadingBookings" class="space-y-3">
+          <div v-for="i in 3" :key="i" class="h-14 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        </div>
+        <template v-else-if="upcomingBookings.length">
+          <div class="space-y-1 flex-1">
+            <RouterLink
+              v-for="b in upcomingBookings" :key="b.id"
+              :to="`/bookings/${b.id}`"
+              class="flex items-center gap-3 py-2.5 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            >
+              <div class="w-12 text-center flex-shrink-0">
+                <div class="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{{ formatTime(b.start_time) }}</div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ b.customer_name }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ b.service?.name || '—' }}<template v-if="b.master"> · {{ b.master.name }}</template></div>
+              </div>
+              <span :class="`badge-${b.status} flex-shrink-0`">{{ bookingStatusLabel[b.status] || b.status }}</span>
+            </RouterLink>
+          </div>
+        </template>
+        <div v-else class="flex-1 flex flex-col items-center justify-center py-8 text-center">
+          <svg class="w-10 h-10 text-gray-200 dark:text-gray-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p class="text-sm text-gray-400 dark:text-gray-500">Ближайших записей нет</p>
+        </div>
+      </div>
       <!-- Right: Chart -->
       <div class="card flex flex-col min-h-[280px]">
         <div class="flex items-center justify-between mb-4 flex-shrink-0">
