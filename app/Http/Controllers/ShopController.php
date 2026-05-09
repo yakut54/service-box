@@ -91,7 +91,16 @@ class ShopController extends Controller
         $validated = $request->validate([
             'name'              => 'sometimes|string|max:255',
             'domain'            => 'sometimes|nullable|string|max:255',
-            'widget_config'     => 'sometimes|array',
+            'widget_config'                     => 'sometimes|array',
+            'widget_config.logo_url'            => 'sometimes|nullable|string|max:1000',
+            'widget_config.primary_color'       => 'sometimes|nullable|string|max:20',
+            'widget_config.border_radius'       => 'sometimes|nullable|integer|in:4,8,16',
+            'widget_config.show_price'          => 'sometimes|boolean',
+            'widget_config.show_duration'       => 'sometimes|boolean',
+            'widget_config.show_master_name'    => 'sometimes|boolean',
+            'widget_config.show_description'    => 'sometimes|boolean',
+            'widget_config.white_label'         => 'sometimes|boolean',
+            'widget_config.custom_css'          => 'sometimes|nullable|string|max:10000',
             'yookassa_shop_id'  => 'sometimes|nullable|string',
             'yookassa_secret_key' => 'sometimes|nullable|string',
             'robokassa_login'   => 'sometimes|nullable|string',
@@ -104,9 +113,6 @@ class ShopController extends Controller
             'work_end'          => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
             'slot_duration'     => 'sometimes|integer|in:10,15,20,30,45,60',
             'timezone'          => 'sometimes|string|timezone',
-            // Widget Pro features
-            'widget_config.white_label' => 'sometimes|boolean',
-            'widget_config.custom_css'  => 'sometimes|nullable|string|max:10000',
             // Юридические документы
             'legal_config'                                  => 'sometimes|array',
             'legal_config.public_offer_text'                => 'nullable|string|max:50000',
@@ -118,20 +124,22 @@ class ShopController extends Controller
             'legal_config.contact_phone'                    => 'nullable|string|max:30',
         ]);
 
-        // widget_config — только для Business и выше
-        if (isset($validated['widget_config']) && !$shop->hasFeature('widget_customization')) {
-            return response()->json([
-                'error'   => 'plan_gate',
-                'message' => 'Кастомизация виджета доступна на тарифе Business и выше.',
-            ], 403);
-        }
-
         // custom_css / white_label — только для Pro
         $wc = $validated['widget_config'] ?? [];
         if ((isset($wc['custom_css']) || isset($wc['white_label'])) && !$shop->hasFeature('custom_css')) {
             return response()->json([
                 'error'   => 'plan_gate',
                 'message' => 'Custom CSS и white label доступны на тарифе Pro.',
+            ], 403);
+        }
+
+        // Остальная кастомизация виджета (цвет, отступы, показатели) — Business и выше
+        $basicFields = ['logo_url', 'custom_css', 'white_label'];
+        $hasProOnlyChanges = !empty(array_diff(array_keys($wc), $basicFields));
+        if ($hasProOnlyChanges && !$shop->hasFeature('widget_customization')) {
+            return response()->json([
+                'error'   => 'plan_gate',
+                'message' => 'Кастомизация виджета доступна на тарифе Business и выше.',
             ], 403);
         }
 
