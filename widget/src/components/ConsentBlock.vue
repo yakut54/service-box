@@ -25,7 +25,7 @@ function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferre
         <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.privacy_url)">Политики конфиденциальности</button>
       </span>
     </label>
-    <p v-if="errorOffer" class="sb-error-text" role="alert">{{ errorOffer }}</p>
+    <p v-if="errorOffer && !consentOffer" class="sb-error-text" role="alert">{{ errorOffer }}</p>
 
     <label class="sb-consent-label sb-mt-2" :class="{ 'sb-consent-label-error': errorPrivacy }">
       <input type="checkbox" v-model="consentPrivacy" class="sb-consent-check" />
@@ -34,6 +34,6 @@ function openLegal(url: string) { window.open(url, '_blank', 'noopener,noreferre
         <button type="button" class="sb-consent-link" @click="openLegal(shopStore.shop.legal.personal_data_url)">персональных данных</button>
       </span>
     </label>
-    <p v-if="errorPrivacy" class="sb-error-text" role="alert">{{ errorPrivacy }}</p>
+    <p v-if="errorPrivacy && !consentPrivacy" class="sb-error-text" role="alert">{{ errorPrivacy }}</p>
   </div>
 </template>

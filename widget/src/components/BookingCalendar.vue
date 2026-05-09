@@ -71,9 +71,6 @@ const consentPrivacy = ref(false)
 
 const { formErrors, formTouched, touch: touchField, clearError, isFieldValid: checkValid } = useFormValidation()
 
-watch(consentOffer,   (val) => { if (val) clearError('consentOffer') })
-watch(consentPrivacy, (val) => { if (val) clearError('consentPrivacy') })
-
 const durationMinutes = computed(() => props.product?.service?.duration_minutes ?? 60)
 
 // ── Live validation ─────────────────────────────────────────
