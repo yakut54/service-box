@@ -90,18 +90,24 @@ class MaxService
 
     public static function removeButtons(int $userId, ?string $mid): void
     {
-        if (!$mid) return;
+        if (!$mid) {
+            Log::warning('MAX removeButtons: mid is null');
+            return;
+        }
 
         $token = self::token();
         if (!$token) return;
 
         try {
-            Http::timeout(5)
+            $response = Http::timeout(5)
                 ->withHeaders(['Authorization' => $token])
                 ->patch(self::api() . '/messages?message_id=' . urlencode($mid) . '&user_id=' . $userId, [
                     'attachments' => [],
                 ]);
-        } catch (\Throwable) {}
+            Log::info('MAX removeButtons response', ['status' => $response->status(), 'body' => $response->body()]);
+        } catch (\Throwable $e) {
+            Log::error('MAX removeButtons error', ['error' => $e->getMessage()]);
+        }
     }
 
     // ── Owner notifications ───────────────────────────────────────────────

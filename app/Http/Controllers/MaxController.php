@@ -150,10 +150,14 @@ class MaxController extends Controller
 
     private function handleCallback(array $update): void
     {
+        Log::info('MAX callback raw', ['callback' => $update['callback'] ?? []]);
+
         $callbackId = $update['callback']['callback_id'] ?? null;
         $payload    = $update['callback']['payload'] ?? '';
         $userId     = $update['callback']['user']['user_id'] ?? null;
         $mid        = $update['callback']['message']['body']['mid'] ?? null;
+
+        Log::info('MAX callback parsed', ['mid' => $mid, 'userId' => $userId, 'payload' => $payload]);
 
         if (!$callbackId || !$userId) return;
 
