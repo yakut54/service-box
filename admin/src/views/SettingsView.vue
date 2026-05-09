@@ -319,6 +319,7 @@ const savingWidget       = ref(false)
 const widgetSuccess      = ref(false)
 const widgetError        = ref('')
 const uploadingLogo      = ref(false)
+const confirmDeleteLogo  = ref(false)
 
 onMounted(() => {
   const wc = authStore.shop?.widget_config
@@ -834,7 +835,7 @@ onMounted(() => {
               <label class="label">Логотип магазина</label>
               <div v-if="widgetLogoUrl" class="flex items-center gap-3 mb-2">
                 <img :src="widgetLogoUrl" class="h-12 w-12 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white p-1" />
-                <button @click="removeLogo" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
+                <button @click="confirmDeleteLogo = true" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
               </div>
               <label class="flex items-center gap-2 cursor-pointer w-fit">
                 <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : widgetLogoUrl ? 'Изменить логотип' : 'Загрузить логотип' }}</span>
@@ -972,5 +973,14 @@ onMounted(() => {
     @confirm="showMaxDisconnectConfirm = false; disconnectMax()"
   >
     Уведомления через MAX перестанут приходить. Подключить заново можно в любой момент.
+  </UiConfirmDialog>
+
+  <UiConfirmDialog
+    v-model="confirmDeleteLogo"
+    title="Удалить логотип?"
+    confirmLabel="Удалить"
+    @confirm="removeLogo(); confirmDeleteLogo = false"
+  >
+    Логотип будет удалён с сервера без возможности восстановления.
   </UiConfirmDialog>
 </template>
