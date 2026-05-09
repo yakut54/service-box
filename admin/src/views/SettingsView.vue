@@ -340,9 +340,9 @@ async function uploadLogo(e: Event) {
   if (!file) return
 
   const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-  const MAX_MB  = 5
+  const MAX_MB  = 1
   if (!ALLOWED.includes(file.type)) { widgetError.value = 'Только JPG, PNG или WEBP'; return }
-  if (file.size > MAX_MB * 1024 * 1024) { widgetError.value = `Файл слишком большой (макс. ${MAX_MB} МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ)`; return }
+  if (file.size > MAX_MB * 1024 * 1024) { widgetError.value = `Файл слишком большой — макс. ${MAX_MB} МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ`; return }
 
   uploadingLogo.value = true
   widgetError.value   = ''
