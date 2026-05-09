@@ -346,9 +346,11 @@ async function uploadLogo(e: Event) {
 
   uploadingLogo.value = true
   widgetError.value   = ''
+  const oldUrl = widgetLogoUrl.value
   try {
     const res = await api.uploadImage(file)
     widgetLogoUrl.value = res.url
+    if (oldUrl) await api.deleteImage(oldUrl).catch(() => {})
   } catch {
     widgetError.value = 'Ошибка загрузки логотипа'
   } finally {
@@ -835,7 +837,7 @@ onMounted(() => {
                 <button @click="removeLogo" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
               </div>
               <label class="flex items-center gap-2 cursor-pointer w-fit">
-                <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип' }}</span>
+                <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : widgetLogoUrl ? 'Изменить логотип' : 'Загрузить логотип' }}</span>
                 <input type="file" accept="image/*" @change="uploadLogo" class="hidden" :disabled="uploadingLogo" />
               </label>
               <p class="text-xs text-gray-400 mt-1">PNG или SVG, рекомендуется квадратный</p>
