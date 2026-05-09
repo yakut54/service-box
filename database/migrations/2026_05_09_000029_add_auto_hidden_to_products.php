@@ -13,9 +13,28 @@ return new class extends Migration
         ");
 
         foreach ($schemas as $row) {
+            $s = $row->schema_name;
+
             DB::statement("
-                ALTER TABLE \"{$row->schema_name}\".products
+                ALTER TABLE \"{$s}\".products
                 ADD COLUMN IF NOT EXISTS auto_hidden BOOLEAN NOT NULL DEFAULT FALSE
+            ");
+
+            // Hide products that have ONLY inactive masters right now
+            DB::statement("
+                UPDATE \"{$s}\".products p
+                SET is_active = FALSE, auto_hidden = TRUE
+                WHERE p.is_active = TRUE
+                  AND EXISTS (
+                      SELECT 1 FROM \"{$s}\".master_services ms WHERE ms.product_id = p.id
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM \"{$s}\".master_services ms2
+                      JOIN \"{$s}\".masters m ON m.id = ms2.master_id
+                      WHERE ms2.product_id = p.id
+                        AND m.is_active = TRUE
+                  )
             ");
         }
     }
