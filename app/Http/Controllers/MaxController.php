@@ -89,7 +89,13 @@ class MaxController extends Controller
         $code = isset($update['payload']) ? trim($update['payload']) : null;
 
         if ($code) {
-            $this->tryConnect($userId, strtoupper($code));
+            $code = strtoupper($code);
+            $bookingId = MaxService::verifyCustomerCode($code);
+            if ($bookingId) {
+                $this->trySubscribeCustomer($userId, $bookingId);
+                return;
+            }
+            $this->tryConnect($userId, $code);
             return;
         }
 
@@ -127,8 +133,28 @@ class MaxController extends Controller
         }
 
         if (preg_match('/^[A-Z0-9]{6}$/i', $text)) {
-            $this->tryConnect($userId, strtoupper($text));
+            $code = strtoupper($text);
+
+            // Try customer booking code first
+            $bookingId = MaxService::verifyCustomerCode($code);
+            if ($bookingId) {
+                $this->trySubscribeCustomer($userId, $bookingId);
+                return;
+            }
+
+            // Fall back to shop owner connect code
+            $this->tryConnect($userId, $code);
         }
+    }
+
+    private function trySubscribeCustomer(int $userId, string $bookingId): void
+    {
+        MaxService::subscribeCustomer($bookingId, $userId);
+
+        MaxService::sendRaw(
+            $userId,
+            "✅ Готово! Вы подписаны на уведомления по вашей записи.\n\nКак только статус изменится — я сразу напишу."
+        );
     }
 
     private function tryConnect(int $userId, string $code): void
@@ -246,6 +272,8 @@ class MaxController extends Controller
 
         $booking->load(['service', 'master']);
         $booking->update(['status' => $newStatus]);
+
+        MaxService::notifyCustomerStatus($bookingId, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow');
 
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
         MaxService::answerCallback($cbId, "Запись {$label}");

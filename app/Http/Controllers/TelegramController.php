@@ -327,6 +327,8 @@ class TelegramController extends Controller
         $booking->load(['service', 'master']);
         $booking->update(['status' => $newStatus]);
 
+        try { \App\Services\MaxService::notifyCustomerStatus($bookingId, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
+
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
 
         $this->answerCallback($callbackId, "Запись {$label}");

@@ -190,6 +190,58 @@ class MaxService
         self::removeButtons((int) $cached['user_id'], $cached['mid']);
     }
 
+    // ── Customer subscription flow ────────────────────────────────────────
+
+    public static function generateCustomerCode(string $bookingId): string
+    {
+        $code = strtoupper(substr(md5($bookingId . microtime()), 0, 6));
+        Cache::put("max_ccode:{$code}", $bookingId, now()->addMinutes(30));
+        return $code;
+    }
+
+    public static function verifyCustomerCode(string $code): ?string
+    {
+        $bookingId = Cache::get("max_ccode:{$code}");
+        if (!$bookingId) return null;
+        Cache::forget("max_ccode:{$code}");
+        return $bookingId;
+    }
+
+    public static function subscribeCustomer(string $bookingId, int $userId): void
+    {
+        Cache::put("max_csub:{$bookingId}", $userId, now()->addDays(30));
+    }
+
+    public static function getCustomerUserId(string $bookingId): ?int
+    {
+        return Cache::get("max_csub:{$bookingId}");
+    }
+
+    public static function notifyCustomerStatus(string $bookingId, string $status, $booking, string $timezone): void
+    {
+        $userId = self::getCustomerUserId($bookingId);
+        if (!$userId) return;
+
+        $label = match($status) {
+            'confirmed'  => '✅ Ваша запись <b>подтверждена</b>',
+            'cancelled'  => '❌ Ваша запись <b>отменена</b>',
+            'completed'  => '✅ Визит <b>завершён</b>. Спасибо!',
+            default      => null,
+        };
+        if (!$label) return;
+
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');
+        $date    = $dt->translatedFormat('j M');
+        $time    = $dt->format('H:i');
+        $service = $booking->service?->name ?? '';
+
+        $text = "{$label}\n\n📋 {$service}\n🕐 {$date} в {$time}";
+
+        try {
+            self::sendRaw($userId, $text);
+        } catch (\Throwable) {}
+    }
+
     // ── Connection flow ───────────────────────────────────────────────────
 
     public static function generateConnectionCode(Shop $shop): string

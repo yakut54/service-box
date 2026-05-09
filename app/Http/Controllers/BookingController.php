@@ -173,13 +173,16 @@ class BookingController extends Controller
         }
 
         $maxLink = null;
+        $maxCode = null;
         if ($shop?->max_bot_connected && config('services.max.bot_username')) {
-            $maxLink = 'https://max.ru/' . config('services.max.bot_username');
+            $maxCode = \App\Services\MaxService::generateCustomerCode($booking->id);
+            $maxLink = 'https://max.ru/' . config('services.max.bot_username') . '?start=' . $maxCode;
         }
 
         $bookingData = $booking->toArray();
         $bookingData['telegram_link'] = $telegramLink;
         $bookingData['max_link']      = $maxLink;
+        $bookingData['max_code']      = $maxCode;
 
         return response()->json([
             'message' => 'Booking created successfully',
@@ -213,6 +216,12 @@ class BookingController extends Controller
 
         $booking->update(['status' => $request->status]);
         $booking->load(['service', 'master', 'customer']);
+
+        $shop = $request->attributes->get('shop');
+        if ($shop) {
+            $tz = $shop->timezone ?? 'Europe/Moscow';
+            try { \App\Services\MaxService::notifyCustomerStatus($booking->id, $request->status, $booking, $tz); } catch (\Throwable) {}
+        }
 
         return response()->json([
             'message' => 'Booking status updated',

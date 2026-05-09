@@ -183,6 +183,7 @@ export interface WidgetBooking {
   updated_at: string
   telegram_link?: string | null
   max_link?:      string | null
+  max_code?:      string | null
 }
 
 // ==========================================
