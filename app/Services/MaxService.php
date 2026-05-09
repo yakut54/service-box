@@ -101,8 +101,9 @@ class MaxService
         try {
             $response = Http::timeout(5)
                 ->withHeaders(['Authorization' => $token])
-                ->patch(self::api() . '/messages?message_id=' . urlencode($mid) . '&user_id=' . $userId, [
+                ->put(self::api() . '/messages?message_id=' . urlencode($mid), [
                     'attachments' => [],
+                    'notify'      => false,
                 ]);
             Log::info('MAX removeButtons response', ['status' => $response->status(), 'body' => $response->body()]);
         } catch (\Throwable $e) {
