@@ -12,8 +12,6 @@ type EmbedMode = 'popup' | 'inline' | 'auto'
 const embedMode      = ref<EmbedMode>('popup')
 const embedServiceId = ref('')
 const embedProducts  = ref<Product[]>([])
-const embedPrefillName  = ref('')
-const embedPrefillPhone = ref('')
 const copied = ref(false)
 
 const embedModes: { value: EmbedMode; label: string; desc: string }[] = [
@@ -37,8 +35,6 @@ const generatedEmbedCode = computed(() => {
   const src = 'https://cdn.servicebox.ru/widget.js'
   const extras: string[] = []
   if (embedServiceId.value.trim())    extras.push(`data-service-id="${embedServiceId.value.trim()}"`)
-  if (embedPrefillName.value.trim())  extras.push(`data-prefill-name="${embedPrefillName.value.trim()}"`)
-  if (embedPrefillPhone.value.trim()) extras.push(`data-prefill-phone="${embedPrefillPhone.value.trim()}"`)
   const extrasStr = extras.length ? ' ' + extras.join(' ') : ''
 
   if (embedMode.value === 'inline') {
@@ -103,17 +99,6 @@ onMounted(async () => {
         placeholder="Весь каталог (без deep link)"
         searchable
       />
-    </div>
-
-    <div class="grid grid-cols-2 gap-3 mb-4">
-      <div>
-        <label class="label">Имя клиента <span class="text-gray-400 font-normal">(prefill)</span></label>
-        <input v-model="embedPrefillName" type="text" class="input text-sm" placeholder="Иван" />
-      </div>
-      <div>
-        <label class="label">Телефон <span class="text-gray-400 font-normal">(prefill)</span></label>
-        <input v-model="embedPrefillPhone" type="text" class="input text-sm" placeholder="+7..." />
-      </div>
     </div>
 
     <div class="relative">
