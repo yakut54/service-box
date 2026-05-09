@@ -216,6 +216,17 @@ docker exec servicebox_app php artisan route:cache
 # ── 6.3. Ensure MAX bot env vars are set ─────────────────────────
 grep -q "MAX_BOT_TOKEN" .env 2>/dev/null || echo 'MAX_BOT_TOKEN=f9LHodD0cOItzTlvLnyl7pimZBACt8DDrsgvV3IBQNr-dTRLEaHCdZEEgMst7eCrXul74IPdxRRIoBzs6wv-' >> .env
 grep -q "MAX_BOT_USERNAME" .env 2>/dev/null || echo 'MAX_BOT_USERNAME=id143302395207_bot' >> .env
+grep -q "MAX_WEBHOOK_SECRET" .env 2>/dev/null || echo 'MAX_WEBHOOK_SECRET=sbmaxhook2024' >> .env
+
+# ── 6.3.1. Register MAX webhook ───────────────────────────────────
+MAX_TOKEN=$(grep '^MAX_BOT_TOKEN=' .env | cut -d'=' -f2-)
+if [ -n "$MAX_TOKEN" ]; then
+  curl -s -X POST https://platform-api.max.ru/subscriptions \
+    -H "Authorization: ${MAX_TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d '{"url":"https://yakut54.ru/api/webhook/max/sbmaxhook2024","update_types":["message_created","message_callback","bot_started"]}' \
+    | grep -q '"ok"' && echo "    → MAX webhook registered OK" || echo "    → MAX webhook response received"
+fi
 
 # ── 6.4. Add claude access key to authorized_keys ────────────────
 CLAUDE_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINEyduj3rSiQMLKEr8z0jxJEQ2g2Mk2UTk8xdtK/aWG2 claude-access"
