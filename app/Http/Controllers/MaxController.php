@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
 use App\Services\MaxService;
+use App\Services\TelegramService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -217,6 +218,7 @@ class MaxController extends Controller
 
         MaxService::answerCallback($cbId, "Заказ {$label}");
         MaxService::removeButtons($userId, $mid);
+        TelegramService::removeKeyboardByEntity('Order', $orderId);
         MaxService::sendRaw($userId, "Заказ #" . substr($orderId, 0, 8) . " — {$label}");
 
         Log::info('Order updated via MAX', ['order_id' => $orderId, 'status' => $newStatus]);
@@ -248,6 +250,7 @@ class MaxController extends Controller
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
         MaxService::answerCallback($cbId, "Запись {$label}");
         MaxService::removeButtons($userId, $mid);
+        TelegramService::removeKeyboardByEntity('Booking', $bookingId);
 
         $date = \Carbon\Carbon::parse($booking->start_time)
             ->setTimezone($shop->timezone ?? 'Europe/Moscow')

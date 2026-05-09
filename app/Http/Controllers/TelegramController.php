@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
+use App\Services\MaxService;
 use App\Services\TelegramService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
@@ -284,6 +285,7 @@ class TelegramController extends Controller
 
         $this->answerCallback($callbackId, "Заказ {$label}");
         $this->removeKeyboard($chatId, $messageId);
+        MaxService::removeButtonsByEntity('order', $orderId);
 
         $shortId = substr($orderId, 0, 8);
         $this->sendReply($chatId, "Заказ #{$shortId} — {$label}");
@@ -326,6 +328,7 @@ class TelegramController extends Controller
 
         $this->answerCallback($callbackId, "Запись {$label}");
         $this->removeKeyboard($chatId, $messageId);
+        MaxService::removeButtonsByEntity('booking', $bookingId);
 
         $date = \Carbon\Carbon::parse($booking->start_time)->setTimezone($shop->timezone ?? 'Europe/Moscow')->format('d.m H:i');
         $this->sendReply($chatId, "Запись {$date} ({$booking->customer_name}) — {$label}");

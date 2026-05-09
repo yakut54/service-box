@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\SendTelegramMessage as SendTelegramMessageJob;
 use App\Models\Shop;
 use App\Models\TelegramMessage;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class TelegramService
@@ -436,5 +437,29 @@ class TelegramService
             'shop_id' => $shop->id,
             'chat_id' => $chatId,
         ]);
+    }
+
+    public static function removeKeyboardByEntity(string $entityType, string $entityId): void
+    {
+        $msg = TelegramMessage::where('entity_type', $entityType)
+            ->where('entity_id', $entityId)
+            ->whereNotNull('telegram_message_id')
+            ->latest()
+            ->first();
+
+        if (!$msg || !$msg->telegram_message_id || !$msg->telegram_chat_id) {
+            return;
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        try {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
+                'chat_id'      => $msg->telegram_chat_id,
+                'message_id'   => $msg->telegram_message_id,
+                'reply_markup' => ['inline_keyboard' => []],
+            ]);
+        } catch (\Throwable) {}
     }
 }

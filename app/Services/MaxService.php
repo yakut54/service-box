@@ -21,16 +21,16 @@ class MaxService
 
     // ── Core send ─────────────────────────────────────────────────────────
 
-    public static function sendMessage(Shop $shop, string $text, ?array $buttons = null): void
+    public static function sendMessage(Shop $shop, string $text, ?array $buttons = null): ?string
     {
         if (!$shop->max_bot_connected || !$shop->max_chat_id) {
-            return;
+            return null;
         }
 
         $token = self::token();
         if (!$token) {
             Log::error('MAX bot token not configured');
-            return;
+            return null;
         }
 
         $body = ['text' => $text, 'format' => 'html'];
@@ -42,10 +42,18 @@ class MaxService
             ]];
         }
 
-        Http::timeout(5)
+        $response = Http::timeout(5)
             ->withHeaders(['Authorization' => $token])
-            ->post(self::api() . '/messages?user_id=' . $shop->max_chat_id, $body)
-            ->throw();
+            ->post(self::api() . '/messages?user_id=' . $shop->max_chat_id, $body);
+
+        $mid = $response->json('message.body.mid')
+            ?? $response->json('body.mid')
+            ?? $response->json('mid')
+            ?? null;
+
+        Log::info('MAX sendMessage response', ['mid' => $mid, 'status' => $response->status()]);
+
+        return $mid;
     }
 
     public static function sendRaw(int $chatId, string $text, ?array $buttons = null): void
@@ -120,7 +128,10 @@ class MaxService
         ]];
 
         try {
-            self::sendMessage($shop, $text, $buttons);
+            $mid = self::sendMessage($shop, $text, $buttons);
+            if ($mid) {
+                Cache::put("max_mid:order:{$order->id}", ['user_id' => $shop->max_chat_id, 'mid' => $mid], now()->addDays(7));
+            }
         } catch (\Throwable $e) {
             Log::warning('MAX notify order failed', ['error' => $e->getMessage()]);
         }
@@ -155,10 +166,21 @@ class MaxService
         ]];
 
         try {
-            self::sendMessage($shop, $text, $buttons);
+            $mid = self::sendMessage($shop, $text, $buttons);
+            if ($mid) {
+                Cache::put("max_mid:booking:{$booking->id}", ['user_id' => $shop->max_chat_id, 'mid' => $mid], now()->addDays(7));
+            }
         } catch (\Throwable $e) {
             Log::warning('MAX notify booking failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    public static function removeButtonsByEntity(string $type, string $entityId): void
+    {
+        $cached = Cache::get("max_mid:{$type}:{$entityId}");
+        if (!$cached) return;
+
+        self::removeButtons((int) $cached['user_id'], $cached['mid']);
     }
 
     // ── Connection flow ───────────────────────────────────────────────────
