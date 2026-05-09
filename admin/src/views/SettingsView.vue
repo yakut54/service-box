@@ -979,7 +979,7 @@ onMounted(() => {
     v-model="confirmDeleteLogo"
     title="Удалить логотип?"
     confirmLabel="Удалить"
-    @confirm="removeLogo(); confirmDeleteLogo = false"
+    @confirm="removeLogo(); confirmDeleteLogo = false; saveWidgetConfig()"
   >
     Логотип будет удалён с сервера без возможности восстановления.
   </UiConfirmDialog>
