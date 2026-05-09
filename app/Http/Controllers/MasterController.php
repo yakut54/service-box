@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Master;
+use App\Services\MasterCascadeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -133,7 +134,21 @@ class MasterController extends Controller
             }
         }
 
+        $wasActive = $master->is_active;
         $master->update($data);
+
+        $shop = $request->attributes->get('shop');
+        if ($shop && isset($data['is_active'])) {
+            $schema = $shop->schema_name;
+
+            if ($wasActive && !$master->is_active) {
+                $hidden = MasterCascadeService::handleDeactivation($master->id, $schema, $shop);
+                MasterCascadeService::notifyDeactivation($shop, $hidden);
+            } elseif (!$wasActive && $master->is_active) {
+                $restored = MasterCascadeService::handleReactivation($master->id, $schema, $shop);
+                MasterCascadeService::notifyReactivation($shop, $restored);
+            }
+        }
 
         return response()->json(['data' => $master]);
     }

@@ -178,8 +178,16 @@ class Shop extends Model
                 return;
             }
 
-            $toDeactivate = $activeIds->slice($max);
+            $toDeactivate = $activeIds->slice($max)->values();
             \App\Models\Master::whereIn('id', $toDeactivate)->update(['is_active' => false]);
+
+            $schema     = $this->schema_name;
+            $allHidden  = [];
+            foreach ($toDeactivate as $masterId) {
+                $hidden = \App\Services\MasterCascadeService::handleDeactivation($masterId, $schema, $this);
+                $allHidden = array_merge($allHidden, $hidden);
+            }
+            \App\Services\MasterCascadeService::notifyDeactivation($this, array_unique($allHidden));
         });
     }
 
