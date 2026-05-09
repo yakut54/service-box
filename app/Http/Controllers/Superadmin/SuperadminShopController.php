@@ -66,9 +66,12 @@ class SuperadminShopController extends Controller
             'subscription_ends_at' => ['nullable', 'date'],
         ]);
 
+        $expiresAt = $data['subscription_ends_at']
+            ?? ($shop->hasActiveSubscription() ? $shop->subscription_expires_at : now()->addYear());
+
         $shop->update([
             'subscription_plan'       => $data['plan'],
-            'subscription_expires_at' => $data['subscription_ends_at'] ?? $shop->subscription_expires_at,
+            'subscription_expires_at' => $expiresAt,
         ]);
 
         $shop->refresh();
