@@ -31,6 +31,7 @@ class MaxController extends Controller
         return response()->json([
             'code'               => $code,
             'expires_in_minutes' => 10,
+            'bot_username'       => config('services.max.bot_username'),
         ]);
     }
 
@@ -84,10 +85,17 @@ class MaxController extends Controller
         $userId = $update['user']['user_id'] ?? null;
         if (!$userId) return;
 
+        $code = isset($update['payload']) ? trim($update['payload']) : null;
+
+        if ($code) {
+            $this->tryConnect($userId, strtoupper($code));
+            return;
+        }
+
         MaxService::sendRaw(
             $userId,
             "👋 Привет! Я бот ServiceBox.\n\n" .
-            "Чтобы подключить уведомления, зайдите в <b>Настройки → MAX</b> в вашей админке и отправьте сюда сгенерированный код."
+            "Чтобы подключить уведомления, зайдите в <b>Настройки → MAX</b> в вашей админке и нажмите «Подключить через MAX»."
         );
     }
 

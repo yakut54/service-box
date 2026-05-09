@@ -82,6 +82,8 @@ export interface Shop {
   api_key?: string
   telegram_chat_id: string | null
   telegram_bot_connected: boolean
+  max_chat_id: string | null
+  max_bot_connected: boolean
   payment_provider: string | null
   yookassa_shop_id: string | null
   robokassa_login: string | null

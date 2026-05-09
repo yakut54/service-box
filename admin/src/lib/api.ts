@@ -478,7 +478,7 @@ class ApiClient {
   }
 
   async generateMaxCode() {
-    return this.request<{ code: string; expires_in_minutes: number }>(
+    return this.request<{ code: string; expires_in_minutes: number; bot_username: string | null }>(
       '/admin/max/generate-code',
       { method: 'POST' }
     )

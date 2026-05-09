@@ -20,6 +20,7 @@ return [
 
     'max' => [
         'bot_token'      => env('MAX_BOT_TOKEN'),
+        'bot_username'   => env('MAX_BOT_USERNAME'),
         'webhook_secret' => env('MAX_WEBHOOK_SECRET'),
         'api_url'        => 'https://platform-api.max.ru',
     ],
