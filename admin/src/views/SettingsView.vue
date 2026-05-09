@@ -337,25 +337,72 @@ onMounted(() => {
   }
 })
 
+function compressImage(file: File, maxBytes: number): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      // Уменьшаем размеры сохраняя пропорции пока файл не влезет
+      let scale = 1
+      const tryCompress = (q: number): File | null => {
+        canvas.width  = Math.round(width  * scale)
+        canvas.height = Math.round(height * scale)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        const dataUrl = canvas.toDataURL('image/jpeg', q)
+        const bytes = Math.round((dataUrl.length - 'data:image/jpeg;base64,'.length) * 0.75)
+        if (bytes <= maxBytes) {
+          return new File([dataURLtoBlob(dataUrl)], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
+        }
+        return null
+      }
+      // Сначала пробуем уменьшить качество, потом размер
+      for (const q of [0.8, 0.6, 0.4]) {
+        const result = tryCompress(q)
+        if (result) { resolve(result); return }
+      }
+      scale = 0.7
+      for (const q of [0.8, 0.6, 0.4]) {
+        const result = tryCompress(q)
+        if (result) { resolve(result); return }
+      }
+      reject(new Error('Не удалось сжать изображение до 1 МБ'))
+    }
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Ошибка чтения файла')) }
+    img.src = objectUrl
+  })
+}
+
+function dataURLtoBlob(dataUrl: string): Blob {
+  const [header, data] = dataUrl.split(',')
+  const mime = header.match(/:(.*?);/)![1]
+  const binary = atob(data)
+  const arr = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i)
+  return new Blob([arr], { type: mime })
+}
+
 async function uploadLogo(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
+  const raw = (e.target as HTMLInputElement).files?.[0]
+  if (!raw) return
 
   const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-  const MAX_MB  = 1
+  const MAX_BYTES = 1 * 1024 * 1024
   logoError.value = ''
-  if (!ALLOWED.includes(file.type)) { logoError.value = 'Только JPG, PNG или WEBP'; return }
-  if (file.size > MAX_MB * 1024 * 1024) { logoError.value = `Файл слишком большой — макс. ${MAX_MB} МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ`; return }
+  if (!ALLOWED.includes(raw.type)) { logoError.value = 'Только JPG, PNG или WEBP'; return }
 
   uploadingLogo.value = true
   const oldUrl = widgetLogoUrl.value
   try {
+    const file = raw.size > MAX_BYTES ? await compressImage(raw, MAX_BYTES) : raw
     const res = await api.uploadImage(file)
     widgetLogoUrl.value = res.url
     if (oldUrl) await api.deleteImage(oldUrl).catch(() => {})
     await saveWidgetConfig()
-  } catch {
-    logoError.value = 'Ошибка загрузки логотипа'
+  } catch (err) {
+    logoError.value = err instanceof Error ? err.message : 'Ошибка загрузки логотипа'
   } finally {
     uploadingLogo.value = false
   }
