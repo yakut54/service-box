@@ -25,6 +25,23 @@ const formRef  = ref<HTMLFormElement | null>(null)
 // 1 = Contacts, 2 = Shipping address (physical only), 3 = Confirm
 const checkoutStep = ref(1)
 
+const progressKey = () => `sb_co_progress:${shopStore.shopId}`
+
+function saveProgress() {
+  try {
+    localStorage.setItem(progressKey(), JSON.stringify({
+      step: checkoutStep.value,
+      form: form.value,
+      address: address.value,
+      notes: notes.value,
+    }))
+  } catch {}
+}
+
+function clearProgress() {
+  try { localStorage.removeItem(progressKey()) } catch {}
+}
+
 const consentOffer   = ref(false)
 const consentPrivacy = ref(false)
 
@@ -60,9 +77,23 @@ const progressSteps = computed(() => {
 })
 
 onMounted(() => {
+  try {
+    const raw = localStorage.getItem(progressKey())
+    if (raw) {
+      const saved = JSON.parse(raw)
+      if (saved.form)              Object.assign(form.value, saved.form)
+      if (saved.address)           Object.assign(address.value, saved.address)
+      if (saved.notes !== undefined) notes.value = saved.notes
+      if (saved.step)              checkoutStep.value = saved.step
+    }
+  } catch {}
+
+  // Prefill from URL params overrides saved progress
   if (shopStore.prefillName)  form.value.name  = shopStore.prefillName
   if (shopStore.prefillPhone) form.value.phone = shopStore.prefillPhone
   if (shopStore.prefillEmail) form.value.email = shopStore.prefillEmail
+
+  watch([checkoutStep, form, address, notes], saveProgress, { deep: true })
 })
 
 function onPhoneInput(e: Event) {
@@ -237,6 +268,7 @@ async function handleSubmit() {
   try {
     const result = await shopStore.getApi().createOrder(payload)
     cartStore.clear()
+    clearProgress()
     emit('success', result.data)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Ошибка оформления заказа'
