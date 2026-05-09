@@ -33,7 +33,7 @@ class MaxService
             return;
         }
 
-        $body = ['text' => $text, 'format' => 'html'];
+        $body = ['text' => $text];
 
         if ($buttons) {
             $body['attachments'] = [[
@@ -44,7 +44,7 @@ class MaxService
 
         Http::timeout(5)
             ->withHeaders(['Authorization' => $token])
-            ->post(self::api() . '/messages?chat_id=' . $shop->max_chat_id, $body)
+            ->post(self::api() . '/messages?user_id=' . $shop->max_chat_id, $body)
             ->throw();
     }
 
@@ -53,7 +53,7 @@ class MaxService
         $token = self::token();
         if (!$token) return;
 
-        $body = ['text' => $text, 'format' => 'html'];
+        $body = ['text' => $text];
 
         if ($buttons) {
             $body['attachments'] = [[
@@ -64,7 +64,7 @@ class MaxService
 
         Http::timeout(5)
             ->withHeaders(['Authorization' => $token])
-            ->post(self::api() . '/messages?chat_id=' . $chatId, $body);
+            ->post(self::api() . '/messages?user_id=' . $chatId, $body);
     }
 
     public static function answerCallback(string $callbackId, string $text): void
