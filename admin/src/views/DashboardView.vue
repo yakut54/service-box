@@ -16,6 +16,7 @@ const productsStore = useProductsStore()
 const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
 const todayStats = ref<Partial<OrderStats>>({})
+const weekStats  = ref<Partial<OrderStats>>({})
 const loadingStats = ref(false)
 const chartData = ref<Array<{ date: string; orders: number; revenue: number }>>([])
 const loadingChart = ref(false)
@@ -24,9 +25,20 @@ const loadingBookings = ref(false)
 
 async function loadStats() {
   loadingStats.value = true
-  try { todayStats.value = await api.getOrderStats({ period: 'today' }) }
-  catch { /* ignore */ }
+  try {
+    const [today, week] = await Promise.all([
+      api.getOrderStats({ period: 'today' }),
+      api.getOrderStats({ period: 'week' }),
+    ])
+    todayStats.value = today
+    weekStats.value  = week
+  } catch { /* ignore */ }
   loadingStats.value = false
+}
+
+function pct(current: number, prev: number): number | null {
+  if (!prev) return null
+  return Math.round(((current - prev) / prev) * 100)
 }
 
 async function loadChart() {
@@ -48,13 +60,6 @@ async function loadBookings() {
 
 const pendingOrders = computed(() => ordersStore.pendingOrders)
 
-const upcomingBookings = computed(() => {
-  const now = new Date()
-  return todayBookings.value
-    .filter(b => new Date(b.start_time) >= now && !['cancelled', 'no_show'].includes(b.status))
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-    .slice(0, 4)
-})
 const recentOrders = computed(() => ordersStore.orders.slice(0, 5))
 
 function formatPriceFull(rubles: number) {
@@ -126,39 +131,41 @@ onMounted(() => Promise.all([
 
     <!-- Upcoming bookings + Chart -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Left: Upcoming bookings -->
-      <div class="card flex flex-col">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Ближайшие записи</h2>
-          <RouterLink to="/bookings" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">Все →</RouterLink>
+      <!-- Left: Week vs prev week -->
+      <div class="card flex flex-col gap-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">Эта неделя</h2>
+          <RouterLink to="/analytics" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">Аналитика →</RouterLink>
         </div>
-        <div v-if="loadingBookings" class="space-y-3">
-          <div v-for="i in 3" :key="i" class="h-14 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        <div v-if="loadingStats" class="space-y-4">
+          <div v-for="i in 2" :key="i" class="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
         </div>
-        <template v-else-if="upcomingBookings.length">
-          <div class="space-y-1 flex-1">
-            <RouterLink
-              v-for="b in upcomingBookings" :key="b.id"
-              :to="`/bookings/${b.id}`"
-              class="flex items-center gap-3 py-2.5 -mx-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-            >
-              <div class="w-12 text-center flex-shrink-0">
-                <div class="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{{ formatTime(b.start_time) }}</div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ b.customer_name }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ b.service?.name || '—' }}<template v-if="b.master"> · {{ b.master.name }}</template></div>
-              </div>
-              <span :class="`badge-${b.status} flex-shrink-0`">{{ bookingStatusLabel[b.status] || b.status }}</span>
-            </RouterLink>
+        <template v-else>
+          <!-- Revenue -->
+          <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-800">
+            <div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Выручка</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ formatPrice(weekStats.total_revenue ?? 0) }}</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">прошлая: {{ formatPrice(weekStats.prev_revenue ?? 0) }}</div>
+            </div>
+            <div v-if="pct(weekStats.total_revenue ?? 0, weekStats.prev_revenue ?? 0) !== null"
+              :class="['text-sm font-semibold px-2.5 py-1 rounded-full', (weekStats.total_revenue ?? 0) >= (weekStats.prev_revenue ?? 0) ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400']">
+              {{ (weekStats.total_revenue ?? 0) >= (weekStats.prev_revenue ?? 0) ? '+' : '' }}{{ pct(weekStats.total_revenue ?? 0, weekStats.prev_revenue ?? 0) }}%
+            </div>
+          </div>
+          <!-- Orders -->
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Заказов</div>
+              <div class="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ weekStats.total_orders ?? 0 }}</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">прошлая: {{ weekStats.prev_orders ?? 0 }}</div>
+            </div>
+            <div v-if="pct(weekStats.total_orders ?? 0, weekStats.prev_orders ?? 0) !== null"
+              :class="['text-sm font-semibold px-2.5 py-1 rounded-full', (weekStats.total_orders ?? 0) >= (weekStats.prev_orders ?? 0) ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400']">
+              {{ (weekStats.total_orders ?? 0) >= (weekStats.prev_orders ?? 0) ? '+' : '' }}{{ pct(weekStats.total_orders ?? 0, weekStats.prev_orders ?? 0) }}%
+            </div>
           </div>
         </template>
-        <div v-else class="flex-1 flex flex-col items-center justify-center py-8 text-center">
-          <svg class="w-10 h-10 text-gray-200 dark:text-gray-700 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p class="text-sm text-gray-400 dark:text-gray-500">Ближайших записей нет</p>
-        </div>
       </div>
       <!-- Right: Chart -->
       <div class="card flex flex-col min-h-[280px]">
