@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid, isPostalCodeValid } from '@/lib/utils'
@@ -162,8 +162,13 @@ function validateStep2(): boolean {
   return Object.keys(e).length === 0
 }
 
+watch(consentOffer,   (val) => { if (val) clearError('consentOffer') })
+watch(consentPrivacy, (val) => { if (val) clearError('consentPrivacy') })
+
 function validateConsent(): boolean {
   const e: Record<string, string> = { ...errors.value }
+  delete e.consentOffer
+  delete e.consentPrivacy
   const legal = shopStore.shop?.legal
   if (legal?.has_docs) {
     if (!consentOffer.value)   e.consentOffer   = 'Необходимо принять условия оферты'
