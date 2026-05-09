@@ -11,6 +11,9 @@ const awaiting      = ref(false)
 const error         = ref('')
 const disconnecting = ref(false)
 const showConfirm   = ref(false)
+const maxCode       = ref('')
+const botUrl        = ref('')
+const codeCopied    = ref(false)
 
 const hasFeature = computed(() =>
   ['start', 'business', 'pro'].includes(authStore.shop?.subscription_plan ?? '')
@@ -21,11 +24,11 @@ async function connect() {
   error.value = ''
   try {
     const resp = await api.generateMaxCode()
-    const botUsername = resp.bot_username
-    const url = botUsername
-      ? `https://max.ru/${botUsername}?start=${resp.code}`
-      : `https://max.ru`
-    window.open(url, '_blank')
+    maxCode.value = resp.code
+    botUrl.value  = resp.bot_username ? `https://max.ru/${resp.bot_username}` : 'https://max.ru'
+    await navigator.clipboard.writeText(resp.code)
+    codeCopied.value = true
+    window.open(botUrl.value, '_blank')
     awaiting.value = true
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Ошибка подключения'
@@ -42,6 +45,11 @@ async function checkConnection() {
     }
     if (data.shop?.max_bot_connected) awaiting.value = false
   } catch { /* ignore */ }
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(maxCode.value)
+  codeCopied.value = true
 }
 
 async function disconnect() {
@@ -96,18 +104,27 @@ async function disconnect() {
 
     <!-- Awaiting confirmation in bot -->
     <div v-else-if="awaiting" class="space-y-3">
-      <div class="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <svg class="w-5 h-5 text-blue-500 shrink-0 mt-0.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
+      <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
+        <div class="text-sm font-medium text-blue-800 dark:text-blue-300">Бот открыт в новой вкладке</div>
         <div>
-          <div class="font-medium text-blue-800 dark:text-blue-300 text-sm">MAX открыт — нажмите «Начать» в боте</div>
-          <div class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">После нажатия вернитесь сюда и проверьте подключение</div>
+          <div class="text-xs text-blue-600 dark:text-blue-400 mb-1">Отправьте этот код боту:</div>
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-xl font-bold tracking-widest text-blue-900 dark:text-blue-100">{{ maxCode }}</span>
+            <button @click="copyCode"
+              class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 transition-colors">
+              {{ codeCopied ? '✓ Скопировано' : 'Копировать' }}
+            </button>
+          </div>
         </div>
+        <ol class="text-xs text-blue-600 dark:text-blue-400 space-y-1 list-decimal list-inside">
+          <li>В боте нажмите «Начать» / «Start»</li>
+          <li>Отправьте код <b class="text-blue-800 dark:text-blue-200">{{ maxCode }}</b></li>
+          <li>Вернитесь сюда и нажмите «Проверить»</li>
+        </ol>
       </div>
       <div class="flex gap-2">
         <button @click="checkConnection" class="btn-primary text-sm">Проверить подключение</button>
-        <button @click="connect" :disabled="connecting" class="btn-secondary text-sm">Открыть бота снова</button>
+        <a :href="botUrl" target="_blank" class="btn-secondary text-sm">Открыть бота снова</a>
       </div>
       <div v-if="error" class="text-red-600 dark:text-red-400 text-sm">{{ error }}</div>
     </div>
