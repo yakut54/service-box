@@ -388,10 +388,9 @@ async function uploadLogo(e: Event) {
   const raw = (e.target as HTMLInputElement).files?.[0]
   if (!raw) return
 
-  const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
   const MAX_BYTES = 1 * 1024 * 1024
   logoError.value = ''
-  if (!ALLOWED.includes(raw.type)) { logoError.value = 'Только JPG, PNG или WEBP'; return }
+  if (!raw.type.startsWith('image/')) { logoError.value = 'Выберите изображение'; return }
 
   uploadingLogo.value = true
   const oldUrl = widgetLogoUrl.value

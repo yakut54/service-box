@@ -12,10 +12,9 @@ class ImageController extends Controller
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,jpg,png,webp|max:1024',
+            'image' => 'required|image|max:1024',
         ], [
             'image.image'    => 'Файл должен быть изображением',
-            'image.mimes'    => 'Только JPG, PNG или WEBP',
             'image.max'      => 'Максимальный размер файла — 1 МБ',
         ]);
 
