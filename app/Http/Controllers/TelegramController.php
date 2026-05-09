@@ -225,7 +225,7 @@ class TelegramController extends Controller
         }
 
         if ($entityType === 'client') {
-            $this->handleClientAction($callbackId, $action, $entityId, $chatId);
+            $this->handleClientAction($callbackId, $action, $entityId, $chatId, $messageId);
             return;
         }
 
@@ -424,7 +424,7 @@ class TelegramController extends Controller
         $this->answerCallback($callbackId, 'Запись не найдена');
     }
 
-    private function handleClientAction(string $callbackId, string $action, string $bookingId, int $chatId): void
+    private function handleClientAction(string $callbackId, string $action, string $bookingId, int $chatId, ?int $messageId = null): void
     {
         if ($action !== 'cancel') {
             $this->answerCallback($callbackId, 'Неизвестное действие');
@@ -461,6 +461,7 @@ class TelegramController extends Controller
             \DB::statement("UPDATE {$s}.bookings SET status = 'cancelled' WHERE id = ?", [$bookingId]);
 
             $this->answerCallback($callbackId, 'Запись отменена');
+            $this->removeKeyboard($chatId, $messageId);
             $this->sendReply($chatId, "❌ Ваша запись отменена.");
 
             $shop = Shop::where('schema_name', $row->schema_name)->first();

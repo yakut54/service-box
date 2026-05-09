@@ -333,6 +333,12 @@ class MaxController extends Controller
             \DB::statement("UPDATE {$s}.bookings SET status = 'cancelled' WHERE id = ?", [$bookingId]);
 
             MaxService::answerCallback($cbId, 'Запись отменена');
+
+            $cached = \Illuminate\Support\Facades\Cache::get("max_cust_cancel_mid:{$bookingId}");
+            if ($cached) {
+                MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
+            }
+
             MaxService::sendRaw($userId, "❌ Ваша запись отменена.");
 
             $shop = Shop::where('schema_name', $row->schema_name)->first();

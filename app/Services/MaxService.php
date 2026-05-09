@@ -56,10 +56,10 @@ class MaxService
         return $mid;
     }
 
-    public static function sendRaw(int $chatId, string $text, ?array $buttons = null): void
+    public static function sendRaw(int $chatId, string $text, ?array $buttons = null): ?string
     {
         $token = self::token();
-        if (!$token) return;
+        if (!$token) return null;
 
         $body = ['text' => $text, 'format' => 'html'];
 
@@ -70,9 +70,14 @@ class MaxService
             ]];
         }
 
-        Http::timeout(5)
+        $response = Http::timeout(5)
             ->withHeaders(['Authorization' => $token])
             ->post(self::api() . '/messages?user_id=' . $chatId, $body);
+
+        return $response->json('message.body.mid')
+            ?? $response->json('body.mid')
+            ?? $response->json('mid')
+            ?? null;
     }
 
     public static function answerCallback(string $callbackId, string $text): void
@@ -287,7 +292,10 @@ class MaxService
         }
 
         try {
-            self::sendRaw($userId, $text, $buttons);
+            $mid = self::sendRaw($userId, $text, $buttons);
+            if ($mid && $status === 'confirmed') {
+                Cache::put("max_cust_cancel_mid:{$bookingId}", ['user_id' => $userId, 'mid' => $mid], now()->addDays(7));
+            }
         } catch (\Throwable) {}
     }
 
