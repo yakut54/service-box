@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Shop;
+use App\Services\MaxService;
 use App\Services\TelegramService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -15,10 +16,10 @@ class SendBookingReminders extends Command
 
     public function handle(): int
     {
-        $shops = Shop::where('telegram_bot_connected', true)
-            ->whereNotNull('telegram_chat_id')
-            ->get()
-            ->filter(fn($shop) => $shop->hasFeature('telegram'));
+        $shops = Shop::where(function ($q) {
+            $q->where('telegram_bot_connected', true)
+              ->orWhere('max_bot_connected', true);
+        })->get();
 
         foreach ($shops as $shop) {
             $this->processShop($shop);
@@ -51,11 +52,14 @@ class SendBookingReminders extends Command
 
             foreach ($bookings as $booking) {
                 try {
-                    TelegramService::notifyBookingReminder($shop, $booking, $type);
+                    if ($shop->telegram_bot_connected) {
+                        TelegramService::notifyBookingReminder($shop, $booking, $type);
+                    }
+                    if ($shop->max_bot_connected) {
+                        MaxService::notifyBookingReminder($booking->id, $booking, $type, $shop->timezone ?? 'Europe/Moscow');
+                    }
 
-                    DB::statement("
-                        UPDATE {$s}.bookings SET {$flag} = TRUE WHERE id = ?
-                    ", [$booking->id]);
+                    DB::statement("UPDATE {$s}.bookings SET {$flag} = TRUE WHERE id = ?", [$booking->id]);
 
                     Log::info("Booking reminder [{$type}] sent", [
                         'shop'    => $shop->id,

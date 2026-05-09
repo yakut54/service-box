@@ -217,6 +217,26 @@ class MaxService
         return Cache::get("max_csub:{$bookingId}");
     }
 
+    public static function notifyBookingReminder(string $bookingId, object $booking, string $type, string $timezone): void
+    {
+        $userId = self::getCustomerUserId($bookingId);
+        if (!$userId) return;
+
+        $label   = $type === '24h' ? 'Завтра' : 'Через 2 часа';
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
+        $service = $booking->service_name ?? '—';
+        $master  = $booking->master_name  ?? null;
+
+        $text  = "⏰ <b>Напоминание о записи</b>\n\n";
+        $text .= "🕐 <b>{$label}, {$date} в {$time}</b>\n";
+        $text .= "📋 {$service}\n";
+        if ($master) $text .= "👤 {$master}\n";
+
+        self::sendRaw($userId, $text);
+    }
+
     public static function notifyCustomerStatus(string $bookingId, string $status, $booking, string $timezone): void
     {
         $userId = self::getCustomerUserId($bookingId);
