@@ -96,6 +96,13 @@ class ApiClient {
   // UPLOAD
   // ==========================================
 
+  async deleteImage(url: string): Promise<void> {
+    await this.request('/admin/upload/image', {
+      method: 'DELETE',
+      body: JSON.stringify({ url }),
+    })
+  }
+
   async uploadImage(file: File): Promise<{ url: string }> {
     const formData = new FormData()
     formData.append('image', file)

@@ -26,4 +26,21 @@ class ImageController extends Controller
 
         return response()->json(['url' => $url]);
     }
+
+    public function delete(Request $request): JsonResponse
+    {
+        $request->validate(['url' => 'required|string']);
+
+        $url      = $request->input('url');
+        $basePath = Storage::disk('public')->url('');
+        $path     = ltrim(str_replace($basePath, '', $url), '/');
+
+        if (!str_starts_with($path, 'products/')) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        Storage::disk('public')->delete($path);
+
+        return response()->json(['ok' => true]);
+    }
 }

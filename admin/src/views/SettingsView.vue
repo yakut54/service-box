@@ -356,8 +356,12 @@ async function uploadLogo(e: Event) {
   }
 }
 
-function removeLogo() {
+async function removeLogo() {
+  const url = widgetLogoUrl.value
   widgetLogoUrl.value = null
+  if (url) {
+    await api.deleteImage(url).catch(() => {})
+  }
 }
 
 async function saveWidgetConfig() {
