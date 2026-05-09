@@ -367,7 +367,7 @@ function selectSidebarCategory(catId: string) {
 
         <!-- Main content -->
         <main class="sb-main" ref="mainEl">
-          <div class="sb-main-inner sb-grid-container">
+          <div v-if="mainView !== 'checkout'" class="sb-main-inner sb-grid-container">
 
             <!-- Loading -->
             <div v-if="mainView === 'loading'" class="sb-grid sb-grid-2 sb-grid-3" style="margin-top: 16px;">
