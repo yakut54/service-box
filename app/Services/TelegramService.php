@@ -217,6 +217,9 @@ class TelegramService
                 $text .= "👤 {$master}\n";
             }
             $text .= "\n<b>{$shop->name}</b>";
+            $keyboard = ['inline_keyboard' => [[
+                ['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"],
+            ]]];
         } else {
             $text  = "❌ <b>Ваша запись отменена</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";

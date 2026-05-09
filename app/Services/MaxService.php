@@ -279,8 +279,15 @@ class MaxService
 
         $text = "{$label}\n\n📋 {$service}\n🕐 {$date} в {$time}";
 
+        $buttons = null;
+        if ($status === 'confirmed') {
+            $buttons = [[
+                ['type' => 'callback', 'text' => '❌ Отменить запись', 'payload' => "client:cancel:{$bookingId}"],
+            ]];
+        }
+
         try {
-            self::sendRaw($userId, $text);
+            self::sendRaw($userId, $text, $buttons);
         } catch (\Throwable) {}
     }
 

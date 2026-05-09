@@ -224,6 +224,11 @@ class TelegramController extends Controller
             return;
         }
 
+        if ($entityType === 'client') {
+            $this->handleClientAction($callbackId, $action, $entityId, $chatId);
+            return;
+        }
+
         // Find shop by chat_id (owner-side callbacks)
         $shop = Shop::where('telegram_chat_id', $chatId)
             ->where('telegram_bot_connected', true)
@@ -413,6 +418,62 @@ class TelegramController extends Controller
             $stars = str_repeat('⭐', $score);
             $this->answerCallback($callbackId, "Спасибо за оценку! {$stars}");
             $this->sendReply($chatId, "Спасибо за вашу оценку {$stars}\nОтзыв отправлен на модерацию.");
+            return;
+        }
+
+        $this->answerCallback($callbackId, 'Запись не найдена');
+    }
+
+    private function handleClientAction(string $callbackId, string $action, string $bookingId, int $chatId): void
+    {
+        if ($action !== 'cancel') {
+            $this->answerCallback($callbackId, 'Неизвестное действие');
+            return;
+        }
+
+        $schemas = \DB::select("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'shop_%'");
+
+        foreach ($schemas as $row) {
+            $s = $row->schema_name;
+
+            $booking = \DB::selectOne("
+                SELECT b.id, b.status, b.customer_name, b.customer_phone, b.start_time
+                FROM {$s}.bookings b WHERE b.id = ?
+            ", [$bookingId]);
+
+            if (!$booking) continue;
+
+            // Verify the request comes from the booking's customer
+            $customer = \DB::selectOne(
+                "SELECT telegram_chat_id FROM {$s}.customers WHERE phone = ?",
+                [$booking->customer_phone]
+            );
+            if (!$customer || (int) $customer->telegram_chat_id !== $chatId) {
+                $this->answerCallback($callbackId, 'Нет доступа');
+                return;
+            }
+
+            if (!in_array($booking->status, ['pending', 'confirmed'])) {
+                $this->answerCallback($callbackId, 'Запись уже нельзя отменить', true);
+                return;
+            }
+
+            \DB::statement("UPDATE {$s}.bookings SET status = 'cancelled' WHERE id = ?", [$bookingId]);
+
+            $this->answerCallback($callbackId, 'Запись отменена');
+            $this->sendReply($chatId, "❌ Ваша запись отменена.");
+
+            $shop = Shop::where('schema_name', $row->schema_name)->first();
+            if ($shop) {
+                $date = \Carbon\Carbon::parse($booking->start_time)
+                    ->setTimezone($shop->timezone ?? 'Europe/Moscow')
+                    ->format('d.m H:i');
+                $msg = "❌ Клиент отменил запись {$date} ({$booking->customer_name})";
+                TelegramService::sendMessage(shop: $shop, text: $msg);
+                MaxService::sendMessage($shop, $msg);
+            }
+
+            Log::info('Booking cancelled by customer via Telegram', ['booking_id' => $bookingId]);
             return;
         }
 

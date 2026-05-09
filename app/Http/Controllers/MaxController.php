@@ -190,9 +190,14 @@ class MaxController extends Controller
 
         [$entityType, $action, $entityId] = $parts;
 
-        // Rating callback comes from customer, not shop owner — handle before shop lookup
+        // Customer-side callbacks — handle before shop owner lookup
         if ($entityType === 'rate') {
             $this->handleRatingCallback($callbackId, $action, $entityId, $userId);
+            return;
+        }
+
+        if ($entityType === 'client') {
+            $this->handleClientAction($callbackId, $action, $entityId, $userId);
             return;
         }
 
@@ -294,6 +299,57 @@ class MaxController extends Controller
         TelegramService::sendMessage(shop: $shop, text: "Запись {$date} ({$booking->customer_name}) — {$label}");
 
         Log::info('Booking updated via MAX', ['booking_id' => $bookingId, 'status' => $newStatus]);
+    }
+
+    private function handleClientAction(string $cbId, string $action, string $bookingId, int $userId): void
+    {
+        if ($action !== 'cancel') {
+            MaxService::answerCallback($cbId, 'Неизвестное действие');
+            return;
+        }
+
+        if (MaxService::getCustomerUserId($bookingId) !== $userId) {
+            MaxService::answerCallback($cbId, 'Нет доступа');
+            return;
+        }
+
+        $schemas = \DB::select("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'shop_%'");
+
+        foreach ($schemas as $row) {
+            $s = $row->schema_name;
+
+            $booking = \DB::selectOne("
+                SELECT b.id, b.status, b.customer_name, b.start_time
+                FROM {$s}.bookings b WHERE b.id = ?
+            ", [$bookingId]);
+
+            if (!$booking) continue;
+
+            if (!in_array($booking->status, ['pending', 'confirmed'])) {
+                MaxService::answerCallback($cbId, 'Запись уже нельзя отменить');
+                return;
+            }
+
+            \DB::statement("UPDATE {$s}.bookings SET status = 'cancelled' WHERE id = ?", [$bookingId]);
+
+            MaxService::answerCallback($cbId, 'Запись отменена');
+            MaxService::sendRaw($userId, "❌ Ваша запись отменена.");
+
+            $shop = Shop::where('schema_name', $row->schema_name)->first();
+            if ($shop) {
+                $date = \Carbon\Carbon::parse($booking->start_time)
+                    ->setTimezone($shop->timezone ?? 'Europe/Moscow')
+                    ->format('d.m H:i');
+                $msg = "❌ Клиент отменил запись {$date} ({$booking->customer_name})";
+                MaxService::sendMessage($shop, $msg);
+                TelegramService::sendMessage(shop: $shop, text: $msg);
+            }
+
+            Log::info('Booking cancelled by customer via MAX', ['booking_id' => $bookingId]);
+            return;
+        }
+
+        MaxService::answerCallback($cbId, 'Запись не найдена');
     }
 
     private function handleRatingCallback(string $cbId, string $bookingId, string $scoreStr, int $userId): void
