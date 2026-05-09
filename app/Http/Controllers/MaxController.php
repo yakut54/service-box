@@ -285,6 +285,7 @@ class MaxController extends Controller
         $booking->update(['status' => $newStatus]);
 
         MaxService::notifyCustomerStatus($bookingId, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow');
+        try { TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus); } catch (\Throwable) {}
 
         $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
         MaxService::answerCallback($cbId, "Запись {$label}");
