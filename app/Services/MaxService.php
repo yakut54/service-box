@@ -33,7 +33,7 @@ class MaxService
             return;
         }
 
-        $body = ['text' => $text];
+        $body = ['text' => $text, 'format' => 'html'];
 
         if ($buttons) {
             $body['attachments'] = [[
@@ -53,7 +53,7 @@ class MaxService
         $token = self::token();
         if (!$token) return;
 
-        $body = ['text' => $text];
+        $body = ['text' => $text, 'format' => 'html'];
 
         if ($buttons) {
             $body['attachments'] = [[
