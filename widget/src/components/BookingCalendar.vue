@@ -66,8 +66,7 @@ function clearProgress() {
 
 watch(form, saveProgress, { deep: true })
 
-const consentOffer   = ref(false)
-const consentPrivacy = ref(false)
+const consentBlock = ref<InstanceType<typeof ConsentBlock> | null>(null)
 
 const { formErrors, formTouched, touch: touchField, clearError, isFieldValid: checkValid } = useFormValidation()
 
@@ -354,14 +353,10 @@ function validate(): boolean {
   if (!form.value.phone.trim()) e.phone = 'Укажите телефон'
   else if (!isPhoneValid(form.value.phone)) e.phone = 'Введите полный номер: +7 (XXX) XXX-XX-XX'
   if (form.value.email.trim() && !isEmailValid(form.value.email)) e.email = 'Некорректный email'
-  const legal = shopStore.shop?.legal
-  if (legal?.has_docs) {
-    if (!consentOffer.value)   e.consentOffer   = 'Необходимо принять условия оферты'
-    if (!consentPrivacy.value) e.consentPrivacy = 'Необходимо дать согласие на обработку данных'
-  }
 
   formErrors.value = e
-  return Object.keys(e).length === 0
+  if (Object.keys(e).length > 0) return false
+  return consentBlock.value?.validate() ?? true
 }
 
 async function handleSubmit() {
@@ -381,8 +376,8 @@ async function handleSubmit() {
         email: form.value.email.trim() || null,
       },
       notes: form.value.notes.trim() || null,
-      consent_offer_accepted:   consentOffer.value,
-      consent_privacy_accepted: consentPrivacy.value,
+      consent_offer_accepted:   consentBlock.value?.consentOffer.value ?? false,
+      consent_privacy_accepted: consentBlock.value?.consentPrivacy.value ?? false,
     }
     if (selectedMasterId.value) {
       payload.master_id = selectedMasterId.value
@@ -640,12 +635,7 @@ async function handleSubmit() {
             <textarea v-model="form.notes" class="sb-input" rows="2" placeholder="Пожелания..." />
           </SbField>
 
-          <ConsentBlock
-            v-model:offer="consentOffer"
-            v-model:privacy="consentPrivacy"
-            :error-offer="formErrors.consentOffer"
-            :error-privacy="formErrors.consentPrivacy"
-          />
+          <ConsentBlock ref="consentBlock" />
 
           <SbButton block class="sb-mt-4" :disabled="submitting" @click="handleSubmit">
             {{ submitting ? 'Записываем...' : 'Записаться' }}

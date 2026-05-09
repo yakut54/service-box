@@ -42,8 +42,7 @@ function clearProgress() {
   try { localStorage.removeItem(progressKey()) } catch {}
 }
 
-const consentOffer   = ref(false)
-const consentPrivacy = ref(false)
+const consentBlock = ref<InstanceType<typeof ConsentBlock> | null>(null)
 
 const form = ref({
   name:  '',
@@ -193,21 +192,6 @@ function validateStep2(): boolean {
   return Object.keys(e).length === 0
 }
 
-watch(consentOffer,   (val) => { if (val) clearError('consentOffer') })
-watch(consentPrivacy, (val) => { if (val) clearError('consentPrivacy') })
-
-function validateConsent(): boolean {
-  const e: Record<string, string> = { ...errors.value }
-  delete e.consentOffer
-  delete e.consentPrivacy
-  const legal = shopStore.shop?.legal
-  if (legal?.has_docs) {
-    if (!consentOffer.value)   e.consentOffer   = 'Необходимо принять условия оферты'
-    if (!consentPrivacy.value) e.consentPrivacy = 'Необходимо дать согласие на обработку данных'
-  }
-  errors.value = e
-  return !e.consentOffer && !e.consentPrivacy
-}
 
 async function goNext() {
   if (checkoutStep.value === 1) {
@@ -237,7 +221,7 @@ function handleFormSubmit() {
 
 async function handleSubmit() {
   if (cartStore.isEmpty) return
-  if (!validateConsent()) return
+  if (!consentBlock.value?.validate()) return
 
   loading.value = true
   error.value   = ''
@@ -251,8 +235,8 @@ async function handleSubmit() {
     },
     notes:                    notes.value.trim() || null,
     discount_code:            cartStore.discount?.code ?? null,
-    consent_offer_accepted:   consentOffer.value,
-    consent_privacy_accepted: consentPrivacy.value,
+    consent_offer_accepted:   consentBlock.value?.consentOffer.value ?? false,
+    consent_privacy_accepted: consentBlock.value?.consentPrivacy.value ?? false,
   }
 
   if (hasPhysical.value) {
@@ -414,12 +398,7 @@ async function handleSubmit() {
         </div>
 
         <!-- Consent + desktop submit -->
-        <ConsentBlock
-          v-model:offer="consentOffer"
-          v-model:privacy="consentPrivacy"
-          :error-offer="errors.consentOffer"
-          :error-privacy="errors.consentPrivacy"
-        />
+        <ConsentBlock ref="consentBlock" />
 
         <SbButton type="submit" block class="sb-mt-4 sb-co-submit-desktop" :disabled="loading">
           {{ loading ? 'Оформление...' : 'Подтвердить заказ' }}
