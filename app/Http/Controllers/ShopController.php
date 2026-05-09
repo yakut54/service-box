@@ -124,22 +124,20 @@ class ShopController extends Controller
             'legal_config.contact_phone'                    => 'nullable|string|max:30',
         ]);
 
-        // custom_css / white_label — только для Pro
+        // widget_config — только для Business и выше
         $wc = $validated['widget_config'] ?? [];
+        if (!empty($wc) && !$shop->hasFeature('widget_customization')) {
+            return response()->json([
+                'error'   => 'plan_gate',
+                'message' => 'Кастомизация виджета доступна на тарифе Business и выше.',
+            ], 403);
+        }
+
+        // custom_css / white_label — только для Pro
         if ((isset($wc['custom_css']) || isset($wc['white_label'])) && !$shop->hasFeature('custom_css')) {
             return response()->json([
                 'error'   => 'plan_gate',
                 'message' => 'Custom CSS и white label доступны на тарифе Pro.',
-            ], 403);
-        }
-
-        // Остальная кастомизация виджета (цвет, отступы, показатели) — Business и выше
-        $basicFields = ['logo_url', 'custom_css', 'white_label'];
-        $hasProOnlyChanges = !empty(array_diff(array_keys($wc), $basicFields));
-        if ($hasProOnlyChanges && !$shop->hasFeature('widget_customization')) {
-            return response()->json([
-                'error'   => 'plan_gate',
-                'message' => 'Кастомизация виджета доступна на тарифе Business и выше.',
             ], 403);
         }
 
