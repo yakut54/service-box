@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Superadmin;
 use App\Http\Controllers\Controller;
 use App\Models\Shop;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class SuperadminShopController extends Controller
@@ -85,6 +86,44 @@ class SuperadminShopController extends Controller
                 'plan'                 => $shop->subscription_plan,
                 'subscription_ends_at' => $shop->subscription_expires_at,
             ],
+        ]);
+    }
+
+    // GET /api/superadmin/shops/{id}/cascade-debug
+    public function cascadeDebug(string $id)
+    {
+        $shop = Shop::findOrFail($id);
+        $s    = $shop->schema_name;
+
+        $autoHiddenExists = DB::select("
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = ? AND table_name = 'products' AND column_name = 'auto_hidden'
+        ", [$s]);
+
+        $masters = DB::select("SELECT id, name, is_active FROM \"{$s}\".masters ORDER BY name");
+
+        $masterServices = DB::select("
+            SELECT ms.master_id, ms.product_id, p.name as product_name, p.is_active, p.auto_hidden
+            FROM \"{$s}\".master_services ms
+            JOIN \"{$s}\".products p ON p.id = ms.product_id
+            ORDER BY ms.master_id
+        ");
+
+        $productsNoMaster = DB::select("
+            SELECT p.id, p.name, p.is_active
+            FROM \"{$s}\".products p
+            WHERE NOT EXISTS (
+                SELECT 1 FROM \"{$s}\".master_services ms WHERE ms.product_id = p.id
+            )
+            AND p.is_active = TRUE
+        ");
+
+        return response()->json([
+            'schema'              => $s,
+            'auto_hidden_column'  => !empty($autoHiddenExists),
+            'masters'             => $masters,
+            'master_services'     => $masterServices,
+            'products_no_master'  => $productsNoMaster,
         ]);
     }
 }

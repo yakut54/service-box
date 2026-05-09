@@ -216,6 +216,7 @@ Route::prefix('superadmin')->middleware(['auth:sanctum', 'superadmin'])->group(f
     Route::get('/shops',              [SuperadminShopController::class, 'index']);
     Route::get('/shops/{id}',         [SuperadminShopController::class, 'show']);
     Route::patch('/shops/{id}/plan',  [SuperadminShopController::class, 'updatePlan']);
+    Route::get('/shops/{id}/cascade-debug', [SuperadminShopController::class, 'cascadeDebug']);
 
     // Revenue
     Route::get('/revenue',            [SuperadminRevenueController::class, 'index']);
