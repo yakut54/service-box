@@ -124,11 +124,40 @@ class MaxService
 
         $total = number_format($order->total_price, 0, '.', ' ');
 
+        $deliveryLabels = [
+            'pickup'  => 'Самовывоз',
+            'courier' => 'Курьер',
+            'postal'  => 'Почта / СДЭК',
+        ];
+
         $text  = "🛒 <b>Новый заказ!</b>\n\n";
         $text .= "🔖 №" . substr($order->id, 0, 8) . "\n";
         $text .= "💰 <b>{$total} ₽</b>\n\n";
         $text .= "Клиент: {$order->customer_name}\n";
         $text .= "Телефон: {$order->customer_phone}";
+
+        $method = $order->delivery_method ?? null;
+        if ($method) {
+            $label = $deliveryLabels[$method] ?? $method;
+            $icon  = $method === 'pickup' ? '🏪' : '📦';
+            $deliveryLine = "\n{$icon} {$label}";
+            if ($order->delivery_price > 0) {
+                $deliveryLine .= ' — ' . number_format($order->delivery_price, 0, '.', ' ') . ' ₽';
+            }
+            $text .= $deliveryLine;
+        }
+
+        $addr = $order->shipping_address;
+        if ($addr && in_array($method, ['courier', 'postal'])) {
+            $street = implode(', ', array_filter([$addr['city'] ?? null, $addr['street'] ?? null]));
+            $house  = implode(', ', array_filter([
+                !empty($addr['building'])  ? 'д. '  . $addr['building']  : null,
+                !empty($addr['apartment']) ? 'кв. ' . $addr['apartment'] : null,
+            ]));
+            if ($street) $text .= "\n{$street}";
+            if ($house)  $text .= "\n{$house}";
+            if (!empty($addr['postal_code'])) $text .= "\n" . $addr['postal_code'];
+        }
 
         if (!empty($order->notes)) {
             $text .= "\n\n💬 {$order->notes}";

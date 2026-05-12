@@ -218,6 +218,8 @@ export interface Order {
   customer_email: string | null
   customer_phone: string
   shipping_address: ShippingAddress | null
+  delivery_method: string | null
+  delivery_price: number
   notes: string | null
   paid_at: string | null
   items?: OrderItem[]

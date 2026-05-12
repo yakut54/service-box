@@ -157,7 +157,7 @@ async function updateStatus(status: string) {
           </div>
 
           <!-- Shipping -->
-          <div v-if="order.shipping_address" class="card">
+          <div v-if="order.delivery_method || order.shipping_address" class="card">
             <h3 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
@@ -165,7 +165,16 @@ async function updateStatus(status: string) {
               </svg>
               Доставка
             </h3>
-            <p class="text-gray-700 dark:text-gray-300 leading-relaxed">
+            <div v-if="order.delivery_method" class="flex items-center justify-between mb-2">
+              <span class="text-gray-700 dark:text-gray-300 font-medium">
+                {{ { pickup: 'Самовывоз', courier: 'Курьер', postal: 'Почта / СДЭК' }[order.delivery_method] || order.delivery_method }}
+              </span>
+              <span v-if="order.delivery_price > 0" class="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">
+                {{ formatPrice(order.delivery_price) }}
+              </span>
+              <span v-else class="text-sm text-emerald-600 dark:text-emerald-400">Бесплатно</span>
+            </div>
+            <p v-if="order.shipping_address" class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
               <span v-if="order.shipping_address.city">{{ order.shipping_address.city }}, </span>
               <span v-if="order.shipping_address.street">{{ order.shipping_address.street }}</span>
               <span v-if="order.shipping_address.building">, {{ order.shipping_address.building }}</span>

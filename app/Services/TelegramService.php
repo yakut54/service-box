@@ -68,22 +68,37 @@ class TelegramService
         $text .= "Клиент: {$order->customer_name}\n";
         $text .= "Телефон: {$order->customer_phone}\n";
 
+        $deliveryLabels = [
+            'pickup'  => 'Самовывоз',
+            'courier' => 'Курьер',
+            'postal'  => 'Почта / СДЭК',
+        ];
+        $method = $order->delivery_method ?? null;
+        if ($method) {
+            $label = $deliveryLabels[$method] ?? $method;
+            $icon  = $method === 'pickup' ? '🏪' : '📦';
+            $deliveryLine = "{$icon} {$label}";
+            if ($order->delivery_price > 0) {
+                $deliveryLine .= ' — ' . number_format($order->delivery_price, 0, '.', ' ') . ' ₽';
+            }
+            $text .= "\n{$deliveryLine}\n";
+        }
+
         $addr = $order->shipping_address;
-        if ($addr && $order->items()->where('product_type', 'physical')->exists()) {
+        if ($addr && in_array($method, ['courier', 'postal'])) {
             $street = implode(', ', array_filter([$addr['city'] ?? null, $addr['street'] ?? null]));
             $house  = implode(', ', array_filter([
                 !empty($addr['building'])  ? 'д. '  . $addr['building']  : null,
                 !empty($addr['apartment']) ? 'кв. ' . $addr['apartment'] : null,
             ]));
-            $text .= "\n📦 Доставка:\n{$street}\n{$house}";
+            if ($street) $text .= "{$street}\n";
+            if ($house)  $text .= "{$house}\n";
             if (!empty($addr['postal_code'])) {
-                $text .= "\n" . $addr['postal_code'];
+                $text .= $addr['postal_code'] . "\n";
             }
-            if (!empty($order->notes)) {
-                $text .= "\n\n💬 {$order->notes}";
-            }
-            $text .= "\n";
-        } elseif (!empty($order->notes)) {
+        }
+
+        if (!empty($order->notes)) {
             $text .= "\n💬 {$order->notes}\n";
         }
 

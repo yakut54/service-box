@@ -449,10 +449,19 @@ class OrderController extends Controller
             $out = fopen('php://output', 'w');
             // UTF-8 BOM — чтобы Excel открывал без кракозябр
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Дата', 'Номер', 'Клиент', 'Телефон', 'Email', 'Состав', 'Сумма (₽)', 'Статус', 'Примечание'], ';');
+            fputcsv($out, ['Дата', 'Номер', 'Клиент', 'Телефон', 'Email', 'Состав', 'Сумма (₽)', 'Доставка', 'Стоимость доставки (₽)', 'Статус', 'Примечание'], ';');
+
+            $deliveryLabels = [
+                'pickup'  => 'Самовывоз',
+                'courier' => 'Курьер',
+                'postal'  => 'Почта / СДЭК',
+            ];
 
             foreach ($orders as $order) {
                 $items = $order->items->map(fn($i) => "{$i->product_name} ×{$i->quantity}")->implode(', ');
+                $deliveryMethod = $order->delivery_method
+                    ? ($deliveryLabels[$order->delivery_method] ?? $order->delivery_method)
+                    : '';
                 fputcsv($out, [
                     $order->created_at->format('d.m.Y H:i'),
                     strtoupper(substr($order->id, 0, 8)),
@@ -461,6 +470,8 @@ class OrderController extends Controller
                     $order->customer_email,
                     $items,
                     $order->total_price,
+                    $deliveryMethod,
+                    $order->delivery_price ?? 0,
                     $statusLabels[$order->status] ?? $order->status,
                     $order->notes ?? '',
                 ], ';');
