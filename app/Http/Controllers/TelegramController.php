@@ -24,7 +24,7 @@ class TelegramController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        if (!$shop->hasFeature('telegram')) {
+        if (!in_array($shop->subscription_plan, ['start', 'business', 'pro'])) {
             return response()->json([
                 'error'   => 'plan_gate',
                 'message' => 'Telegram-уведомления доступны на тарифах Start и выше.',
