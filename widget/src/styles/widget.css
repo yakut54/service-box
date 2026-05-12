@@ -2858,6 +2858,43 @@
   color: var(--sb-text);
 }
 
+.sb-notify-section {
+  margin-top: 16px;
+}
+
+.sb-notify-label {
+  font-size: 12px;
+  color: var(--sb-text-muted);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.sb-notify-row {
+  display: flex;
+  gap: 8px;
+}
+
+.sb-btn-notify {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--sb-radius);
+  border: 1.5px solid;
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.sb-btn-notify:hover {
+  opacity: 0.75;
+}
+
 .sb-max-code-block {
   background: var(--sb-bg-muted);
   border: 1px solid var(--sb-border);
