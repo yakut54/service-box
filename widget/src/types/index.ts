@@ -25,12 +25,24 @@ export interface WidgetLegal {
   contact_phone: string | null
 }
 
+export type DeliveryMethodKey = 'pickup' | 'courier' | 'postal'
+
+export interface DeliveryMethod {
+  enabled: boolean
+  price: number
+  address?: string | null
+  free_from?: number | null
+}
+
+export type DeliverySettings = Partial<Record<DeliveryMethodKey, DeliveryMethod>>
+
 export interface WidgetShop {
   id: string
   name: string
   widget_config: WidgetConfig | null
   timezone: string | null
   legal: WidgetLegal | null
+  delivery_settings: DeliverySettings | null
 }
 
 // ==========================================

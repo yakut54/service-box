@@ -39,12 +39,16 @@ class ShopController extends Controller
 
         $cfg = $shop->legal_config ?? [];
 
+        $rawDelivery    = $shop->delivery_settings ?? [];
+        $enabledMethods = array_filter($rawDelivery, fn($m) => !empty($m['enabled']));
+
         return response()->json([
-            'id'            => $shop->id,
-            'name'          => $shop->name,
-            'widget_config' => $shop->widget_config,
-            'timezone'      => $shop->timezone,
-            'legal'         => [
+            'id'                => $shop->id,
+            'name'              => $shop->name,
+            'widget_config'     => $shop->widget_config,
+            'timezone'          => $shop->timezone,
+            'delivery_settings' => $enabledMethods ?: null,
+            'legal'             => [
                 'has_docs'          => $shop->hasLegalDocs(),
                 'offer_url'         => route('legal.document', [$shop->api_key, 'offer']),
                 'privacy_url'       => route('legal.document', [$shop->api_key, 'privacy']),

@@ -19,6 +19,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
 use App\Http\Controllers\MaxController;
+use App\Http\Controllers\DeliverySettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -177,6 +178,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::get('/reviews', [ReviewController::class, 'index']);
     Route::patch('/reviews/{id}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
+
+    // Delivery settings
+    Route::get('/delivery-settings',  [DeliverySettingsController::class, 'show']);
+    Route::put('/delivery-settings',  [DeliverySettingsController::class, 'update']);
 
 });
 

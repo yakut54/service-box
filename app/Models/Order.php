@@ -25,6 +25,8 @@ class Order extends Model
         'customer_email',
         'customer_phone',
         'shipping_address',
+        'delivery_method',
+        'delivery_price',
         'notes',
         'paid_at',
         'consent_offer_accepted',
@@ -37,6 +39,7 @@ class Order extends Model
     protected $casts = [
         'total_price'              => 'integer',
         'discount_amount'          => 'integer',
+        'delivery_price'           => 'integer',
         'shipping_address'         => 'array',
         'consent_offer_accepted'   => 'boolean',
         'consent_privacy_accepted' => 'boolean',

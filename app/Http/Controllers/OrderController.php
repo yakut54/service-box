@@ -99,6 +99,8 @@ class OrderController extends Controller
                 'customer_email'          => $request->input('customer.email'),
                 'customer_phone'          => Customer::normalizePhone($request->input('customer.phone')),
                 'shipping_address'        => $request->shipping_address,
+                'delivery_method'         => $request->delivery_method,
+                'delivery_price'          => (int) ($request->delivery_price ?? 0),
                 'notes'                   => $request->notes,
                 'consent_offer_accepted'  => (bool) $request->input('consent_offer_accepted', false),
                 'consent_privacy_accepted'=> (bool) $request->input('consent_privacy_accepted', false),
@@ -192,6 +194,12 @@ class OrderController extends Controller
                 'total_price'     => max(0, $order->total_price - $discountAmount),
             ]);
             $this->discountService->recordUse($discount, $order);
+        }
+
+        // Add delivery cost after discount (discount applies to goods only)
+        if ($order->delivery_price > 0) {
+            $order->update(['total_price' => $order->total_price + $order->delivery_price]);
+            $order->refresh();
         }
 
         $customer->updateStats();

@@ -29,6 +29,9 @@ class StoreOrderRequest extends FormRequest
             'shipping_address.apartment' => 'nullable|string|max:20',
             'shipping_address.postal_code' => 'nullable|string|max:10',
 
+            'delivery_method'          => 'nullable|in:pickup,courier,postal',
+            'delivery_price'           => 'nullable|integer|min:0',
+
             'notes'                    => 'nullable|string|max:1000',
             'discount_code'            => 'nullable|string|max:50',
             'consent_offer_accepted'   => 'nullable|boolean',
