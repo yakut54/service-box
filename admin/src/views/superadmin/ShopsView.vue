@@ -139,54 +139,88 @@ onMounted(load)
       {{ error }}
     </div>
 
-    <!-- Table -->
-    <div class="card overflow-hidden">
-      <div v-if="loading" class="flex items-center justify-center py-16">
-        <div class="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+    <!-- Loader -->
+    <div v-if="loading" class="flex items-center justify-center py-16">
+      <div class="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <template v-else>
+      <!-- Desktop: table -->
+      <div class="card overflow-hidden hidden md:block">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Магазин</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Владелец</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Тариф</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Подписка до</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Создан</th>
+              <th class="py-3 px-4"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            <tr v-if="shops.length === 0">
+              <td colspan="6" class="py-12 text-center text-gray-400">Магазины не найдены</td>
+            </tr>
+            <tr v-for="shop in shops" :key="shop.id" class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+              <td class="py-3 px-4">
+                <div class="font-medium text-gray-900 dark:text-white">{{ shop.name }}</div>
+                <div v-if="shop.domain" class="text-xs text-gray-400">{{ shop.domain }}</div>
+              </td>
+              <td class="py-3 px-4 text-gray-600 dark:text-gray-400">
+                <div>{{ shop.user?.name || '—' }}</div>
+                <div class="text-xs text-gray-400">{{ shop.user?.email }}</div>
+              </td>
+              <td class="py-3 px-4">
+                <span v-if="shop.plan" :class="['px-2 py-0.5 rounded text-xs font-medium', planBadge[shop.plan] || 'bg-gray-100 text-gray-600']">
+                  {{ shop.plan }}
+                </span>
+                <span v-else class="text-gray-400 text-xs">—</span>
+              </td>
+              <td class="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">{{ formatDate(shop.subscription_ends_at) }}</td>
+              <td class="py-3 px-4 text-gray-400 text-xs">{{ formatDate(shop.created_at) }}</td>
+              <td class="py-3 px-4">
+                <button @click="openEdit(shop)" class="btn-ghost text-xs py-1 px-2">Изменить тариф</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <table v-else class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-200 dark:border-gray-700">
-            <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Магазин</th>
-            <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Владелец</th>
-            <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Тариф</th>
-            <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Подписка до</th>
-            <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Создан</th>
-            <th class="py-3 px-4"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-          <tr v-if="shops.length === 0">
-            <td colspan="6" class="py-12 text-center text-gray-400">Магазины не найдены</td>
-          </tr>
-          <tr v-for="shop in shops" :key="shop.id" class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-            <td class="py-3 px-4">
-              <div class="font-medium text-gray-900 dark:text-white">{{ shop.name }}</div>
+      <!-- Mobile: cards -->
+      <div class="flex flex-col gap-3 md:hidden">
+        <p v-if="shops.length === 0" class="text-center text-gray-400 py-12">Магазины не найдены</p>
+        <div
+          v-for="shop in shops"
+          :key="shop.id"
+          class="card p-4 flex flex-col gap-3"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="font-semibold text-gray-900 dark:text-white">{{ shop.name }}</div>
               <div v-if="shop.domain" class="text-xs text-gray-400">{{ shop.domain }}</div>
-            </td>
-            <td class="py-3 px-4 text-gray-600 dark:text-gray-400">
-              <div>{{ shop.user?.name || '—' }}</div>
-              <div class="text-xs text-gray-400">{{ shop.user?.email }}</div>
-            </td>
-            <td class="py-3 px-4">
-              <span
-                v-if="shop.plan"
-                :class="['px-2 py-0.5 rounded text-xs font-medium', planBadge[shop.plan] || 'bg-gray-100 text-gray-600']"
-              >
-                {{ shop.plan }}
-              </span>
-              <span v-else class="text-gray-400 text-xs">—</span>
-            </td>
-            <td class="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">{{ formatDate(shop.subscription_ends_at) }}</td>
-            <td class="py-3 px-4 text-gray-400 text-xs">{{ formatDate(shop.created_at) }}</td>
-            <td class="py-3 px-4">
-              <button @click="openEdit(shop)" class="btn-ghost text-xs py-1 px-2">Изменить тариф</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+            <span v-if="shop.plan" :class="['shrink-0 px-2 py-0.5 rounded text-xs font-medium', planBadge[shop.plan] || 'bg-gray-100 text-gray-600']">
+              {{ shop.plan }}
+            </span>
+          </div>
+
+          <div class="text-sm text-gray-600 dark:text-gray-400">
+            <div>{{ shop.user?.name || '—' }}</div>
+            <div class="text-xs text-gray-400">{{ shop.user?.email }}</div>
+          </div>
+
+          <div class="flex gap-4 text-xs text-gray-400">
+            <span>Подписка до: {{ formatDate(shop.subscription_ends_at) }}</span>
+            <span>Создан: {{ formatDate(shop.created_at) }}</span>
+          </div>
+
+          <button @click="openEdit(shop)" class="btn-ghost text-sm py-1.5 w-full">
+            Изменить тариф
+          </button>
+        </div>
+      </div>
+    </template>
 
     <!-- Pagination -->
     <div v-if="totalPages > 1" class="flex items-center justify-center gap-2">
