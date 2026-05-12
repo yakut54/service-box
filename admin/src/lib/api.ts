@@ -489,6 +489,21 @@ class ApiClient {
   }
 
   // ==========================================
+  // DELIVERY SETTINGS
+  // ==========================================
+
+  async getDeliverySettings() {
+    return this.request<{ data: Record<string, { enabled: boolean; price: number; address?: string; free_from?: number | null }> }>('/admin/delivery-settings')
+  }
+
+  async updateDeliverySettings(data: Record<string, unknown>) {
+    return this.request<{ data: Record<string, unknown> }>('/admin/delivery-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  // ==========================================
   // CATEGORIES
   // ==========================================
 

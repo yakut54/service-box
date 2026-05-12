@@ -8,6 +8,7 @@ import SettingsWorkHours        from '@/components/settings/SettingsWorkHours.vu
 import SettingsYookassa         from '@/components/settings/SettingsYookassa.vue'
 import SettingsWidgetAppearance from '@/components/settings/SettingsWidgetAppearance.vue'
 import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalytics.vue'
+import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue'
 </script>
 
 <template>
@@ -28,6 +29,7 @@ import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalyt
 
       <div class="flex flex-col gap-6">
         <SettingsWorkHours />
+        <SettingsDelivery />
         <SettingsYookassa />
         <SettingsWidgetAppearance />
         <SettingsWidgetAnalytics />
