@@ -4,7 +4,7 @@ import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid, isPostalCodeValid } from '@/lib/utils'
 import { handlePhoneInput } from '@/lib/phoneInput'
-import type { WidgetOrder } from '@/types'
+import type { WidgetOrder, DeliveryMethodKey } from '@/types'
 import ConsentBlock from '@/components/ConsentBlock.vue'
 import SbField from '@/components/SbField.vue'
 import SbButton from '@/components/SbButton.vue'
@@ -22,7 +22,7 @@ const loading  = ref(false)
 const error    = ref('')
 const formRef  = ref<HTMLFormElement | null>(null)
 
-// 1 = Contacts, 2 = Shipping address (physical only), 3 = Confirm
+// 1 = Contacts, 2 = Delivery / Address, 3 = Confirm
 const checkoutStep = ref(1)
 
 const progressKey = () => `sb_co_progress:${shopStore.shopId}`
@@ -34,6 +34,7 @@ function saveProgress() {
       form: form.value,
       address: address.value,
       notes: notes.value,
+      deliveryMethod: deliveryMethod.value,
     }))
   } catch {}
 }
@@ -58,22 +59,47 @@ const address = ref({
   postal_code: '',
 })
 
-const notes = ref('')
+const notes          = ref('')
+const deliveryMethod = ref<DeliveryMethodKey | ''>('')
 
-const { formErrors: errors, formTouched: touched, touch: touchField, clearError, isFieldValid: checkValid } = useFormValidation()
+// ── Delivery ────────────────────────────────────────────────────────────────
+
+const deliveryOptions = computed(() => shopStore.shop?.delivery_settings ?? null)
+const hasDeliveryOptions = computed(() => !!deliveryOptions.value && Object.keys(deliveryOptions.value).length > 0)
+
+const deliveryCost = computed(() => {
+  if (!deliveryMethod.value || !deliveryOptions.value) return 0
+  const m = deliveryOptions.value[deliveryMethod.value as DeliveryMethodKey]
+  if (!m) return 0
+  const price    = m.price ?? 0
+  const freeFrom = m.free_from ?? null
+  if (price === 0) return 0
+  if (freeFrom !== null && cartStore.totalAfterDiscount >= freeFrom) return 0
+  return price
+})
+
+const needsAddress = computed(() =>
+  deliveryMethod.value === 'courier' || deliveryMethod.value === 'postal'
+)
+
+const grandTotal = computed(() => cartStore.totalAfterDiscount + deliveryCost.value)
+
+// ── Computed ─────────────────────────────────────────────────────────────────
 
 const hasPhysical = computed(() => cartStore.items.some(i => i.type === 'physical'))
 
 const progressSteps = computed(() => {
   const steps = [
-    { key: 'cart',     label: 'Корзина',   done: true,                   active: false },
-    { key: 'contacts', label: 'Контакты',  done: checkoutStep.value > 1, active: checkoutStep.value === 1 },
+    { key: 'cart',     label: 'Корзина',  done: true,                   active: false },
+    { key: 'contacts', label: 'Контакты', done: checkoutStep.value > 1, active: checkoutStep.value === 1 },
   ]
   if (hasPhysical.value)
     steps.push({ key: 'delivery', label: 'Доставка', done: checkoutStep.value > 2, active: checkoutStep.value === 2 })
   steps.push({ key: 'confirm', label: 'Заказ', done: false, active: checkoutStep.value === 3 })
   return steps
 })
+
+// ── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(() => {
   try {
@@ -84,16 +110,20 @@ onMounted(() => {
       if (saved.address)           Object.assign(address.value, saved.address)
       if (saved.notes !== undefined) notes.value = saved.notes
       if (saved.step)              checkoutStep.value = saved.step
+      if (saved.deliveryMethod)    deliveryMethod.value = saved.deliveryMethod
     }
   } catch {}
 
-  // Prefill from URL params overrides saved progress
   if (shopStore.prefillName)  form.value.name  = shopStore.prefillName
   if (shopStore.prefillPhone) form.value.phone = shopStore.prefillPhone
   if (shopStore.prefillEmail) form.value.email = shopStore.prefillEmail
 
-  watch([checkoutStep, form, address, notes], saveProgress, { deep: true })
+  watch([checkoutStep, form, address, notes, deliveryMethod], saveProgress, { deep: true })
 })
+
+// ── Validation ───────────────────────────────────────────────────────────────
+
+const { formErrors: errors, formTouched: touched, touch: touchField, clearError, isFieldValid: checkValid } = useFormValidation()
 
 function onPhoneInput(e: Event) {
   handlePhoneInput(e, (v) => {
@@ -124,15 +154,15 @@ function validateField(field: string) {
         errors.value.email = 'Неверный формат email'
       break
     case 'address.city':
-      if (touched.value['address.city'] && hasPhysical.value && !address.value.city.trim())
+      if (touched.value['address.city'] && needsAddress.value && !address.value.city.trim())
         errors.value['address.city'] = 'Укажите город'
       break
     case 'address.street':
-      if (touched.value['address.street'] && hasPhysical.value && !address.value.street.trim())
+      if (touched.value['address.street'] && needsAddress.value && !address.value.street.trim())
         errors.value['address.street'] = 'Укажите улицу'
       break
     case 'address.building':
-      if (touched.value['address.building'] && hasPhysical.value && !address.value.building.trim())
+      if (touched.value['address.building'] && needsAddress.value && !address.value.building.trim())
         errors.value['address.building'] = 'Укажите дом'
       break
     case 'address.postal_code':
@@ -178,20 +208,39 @@ function validateStep1(): boolean {
 }
 
 function validateStep2(): boolean {
-  touched.value = {
-    ...touched.value,
-    'address.city': true, 'address.street': true, 'address.building': true,
-  }
   const e: Record<string, string> = {}
-  if (!address.value.city.trim())                          e['address.city']        = 'Укажите город'
-  if (!address.value.street.trim())                        e['address.street']      = 'Укажите улицу'
-  if (!address.value.building.trim())                      e['address.building']    = 'Укажите дом'
-  if (address.value.postal_code.trim() && !isPostalCodeValid(address.value.postal_code))
-    e['address.postal_code'] = 'Индекс — 6 цифр'
+
+  // When delivery options exist, method selection is required
+  if (hasDeliveryOptions.value) {
+    if (!deliveryMethod.value) {
+      e['delivery.method'] = 'Выберите способ доставки'
+      errors.value = { ...errors.value, ...e }
+      return false
+    }
+    // Address required only for courier/postal
+    if (needsAddress.value) {
+      touched.value = { ...touched.value, 'address.city': true, 'address.street': true, 'address.building': true }
+      if (!address.value.city.trim())     e['address.city']     = 'Укажите город'
+      if (!address.value.street.trim())   e['address.street']   = 'Укажите улицу'
+      if (!address.value.building.trim()) e['address.building'] = 'Укажите дом'
+      if (address.value.postal_code.trim() && !isPostalCodeValid(address.value.postal_code))
+        e['address.postal_code'] = 'Индекс — 6 цифр'
+    }
+  } else {
+    // No delivery configured — require address as before
+    touched.value = { ...touched.value, 'address.city': true, 'address.street': true, 'address.building': true }
+    if (!address.value.city.trim())     e['address.city']     = 'Укажите город'
+    if (!address.value.street.trim())   e['address.street']   = 'Укажите улицу'
+    if (!address.value.building.trim()) e['address.building'] = 'Укажите дом'
+    if (address.value.postal_code.trim() && !isPostalCodeValid(address.value.postal_code))
+      e['address.postal_code'] = 'Индекс — 6 цифр'
+  }
+
   errors.value = { ...errors.value, ...e }
   return Object.keys(e).length === 0
 }
 
+// ── Navigation ───────────────────────────────────────────────────────────────
 
 async function goNext() {
   if (checkoutStep.value === 1) {
@@ -213,11 +262,12 @@ async function goBack() {
   formRef.value?.closest('.sb-co')?.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// Called by form @submit — routes to goNext() or handleSubmit() based on current step
 function handleFormSubmit() {
   if (checkoutStep.value < 3) goNext()
   else handleSubmit()
 }
+
+// ── Submit ───────────────────────────────────────────────────────────────────
 
 async function handleSubmit() {
   if (cartStore.isEmpty) return
@@ -240,12 +290,19 @@ async function handleSubmit() {
   }
 
   if (hasPhysical.value) {
-    payload.shipping_address = {
-      city:        address.value.city.trim(),
-      street:      address.value.street.trim(),
-      building:    address.value.building.trim(),
-      apartment:   address.value.apartment.trim() || null,
-      postal_code: address.value.postal_code.trim(),
+    if (deliveryMethod.value) {
+      payload.delivery_method = deliveryMethod.value
+      payload.delivery_price  = deliveryCost.value
+    }
+
+    if (needsAddress.value || (!hasDeliveryOptions.value)) {
+      payload.shipping_address = {
+        city:        address.value.city.trim(),
+        street:      address.value.street.trim(),
+        building:    address.value.building.trim(),
+        apartment:   address.value.apartment.trim() || null,
+        postal_code: address.value.postal_code.trim(),
+      }
     }
   }
 
@@ -261,6 +318,25 @@ async function handleSubmit() {
   } finally {
     loading.value = false
   }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const methodLabels: Record<string, string> = {
+  pickup:  'Самовывоз',
+  courier: 'Курьер',
+  postal:  'Почта / СДЭК',
+}
+
+function deliveryMethodPrice(key: string): string {
+  const m = deliveryOptions.value?.[key as DeliveryMethodKey]
+  if (!m) return ''
+  const price    = m.price ?? 0
+  const freeFrom = m.free_from ?? null
+  if (price === 0) return 'Бесплатно'
+  if (freeFrom !== null && cartStore.totalAfterDiscount >= freeFrom) return 'Бесплатно'
+  if (freeFrom !== null) return `${formatPrice(price)} · бесплатно от ${formatPrice(freeFrom)}`
+  return formatPrice(price)
 }
 </script>
 
@@ -278,7 +354,7 @@ async function handleSubmit() {
       <h2 class="sb-title" style="margin-bottom: 0;">Оформление заказа</h2>
     </div>
 
-    <!-- Step progress (dynamic) -->
+    <!-- Step progress -->
     <div class="sb-co-progress sb-mb-4">
       <template v-for="(step, i) in progressSteps" :key="step.key">
         <div :class="['sb-co-step', step.done && 'sb-co-step-done', step.active && 'sb-co-step-active']">
@@ -294,12 +370,12 @@ async function handleSubmit() {
       </template>
     </div>
 
-    <!-- API error banner -->
+    <!-- API error -->
     <div v-if="error" class="sb-alert-error sb-mb-4" role="alert">{{ error }}</div>
 
     <form ref="formRef" @submit.prevent="handleFormSubmit" novalidate>
 
-      <!-- ── Step 1: Contact info ─────────────────────────────── -->
+      <!-- ── Step 1: Contacts ──────────────────────────────────────── -->
       <div v-if="checkoutStep === 1" class="sb-checkout-section">
         <h3 class="sb-checkout-section-title">Контактные данные</h3>
 
@@ -318,36 +394,90 @@ async function handleSubmit() {
         <SbButton type="submit" block class="sb-mt-4 sb-co-submit-desktop">Далее →</SbButton>
       </div>
 
-      <!-- ── Step 2: Shipping address (physical items only) ──── -->
+      <!-- ── Step 2: Delivery ──────────────────────────────────────── -->
       <div v-if="checkoutStep === 2" class="sb-checkout-section">
-        <h3 class="sb-checkout-section-title">Адрес доставки</h3>
 
-        <SbField label="Город *" label-for="co-city" :error="errors['address.city']" error-id="co-city-error" :valid="isFieldValid('address.city')">
-          <input id="co-city" v-model="address.city" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.city'] }" placeholder="Москва" autocomplete="address-level2" maxlength="100" aria-required="true" :aria-invalid="!!errors['address.city']" :aria-describedby="errors['address.city'] ? 'co-city-error' : undefined" @blur="touch('address.city')" @input="validateField('address.city')" />
-        </SbField>
+        <!-- With delivery options configured -->
+        <template v-if="hasDeliveryOptions">
+          <h3 class="sb-checkout-section-title">Способ доставки</h3>
 
-        <SbField label="Улица *" label-for="co-street" :error="errors['address.street']" error-id="co-street-error" :valid="isFieldValid('address.street')">
-          <input id="co-street" v-model="address.street" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.street'] }" placeholder="ул. Ленина" autocomplete="off" maxlength="200" aria-required="true" :aria-invalid="!!errors['address.street']" :aria-describedby="errors['address.street'] ? 'co-street-error' : undefined" @blur="touch('address.street')" @input="validateField('address.street')" />
-        </SbField>
+          <div class="sb-delivery-methods">
+            <label
+              v-for="(method, key) in deliveryOptions"
+              :key="key"
+              class="sb-delivery-option"
+              :class="{ 'sb-delivery-option--active': deliveryMethod === key }"
+            >
+              <input
+                type="radio"
+                :value="key"
+                v-model="deliveryMethod"
+                style="display:none"
+              />
+              <span class="sb-delivery-option-radio">
+                <span v-if="deliveryMethod === key" class="sb-delivery-option-dot" />
+              </span>
+              <span class="sb-delivery-option-body">
+                <span class="sb-delivery-option-name">{{ methodLabels[key] ?? key }}</span>
+                <span v-if="key === 'pickup' && method.address" class="sb-delivery-option-desc">{{ method.address }}</span>
+              </span>
+              <span class="sb-delivery-option-price">{{ deliveryMethodPrice(key) }}</span>
+            </label>
+          </div>
 
-        <div class="sb-field-row">
-          <SbField label="Дом *" label-for="co-building" :error="errors['address.building']" error-id="co-building-error" :valid="isFieldValid('address.building')">
-            <input id="co-building" v-model="address.building" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.building'] }" placeholder="12" autocomplete="off" maxlength="20" aria-required="true" :aria-invalid="!!errors['address.building']" :aria-describedby="errors['address.building'] ? 'co-building-error' : undefined" @blur="touch('address.building')" @input="validateField('address.building')" />
+          <p v-if="errors['delivery.method']" class="sb-field-error sb-mt-2" role="alert">
+            {{ errors['delivery.method'] }}
+          </p>
+
+          <!-- Address form: only for courier / postal -->
+          <template v-if="needsAddress">
+            <h3 class="sb-checkout-section-title" style="margin-top: 20px;">Адрес доставки</h3>
+            <SbField label="Город *" label-for="co-city" :error="errors['address.city']" error-id="co-city-error" :valid="isFieldValid('address.city')">
+              <input id="co-city" v-model="address.city" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.city'] }" placeholder="Москва" autocomplete="address-level2" maxlength="100" aria-required="true" :aria-invalid="!!errors['address.city']" :aria-describedby="errors['address.city'] ? 'co-city-error' : undefined" @blur="touch('address.city')" @input="validateField('address.city')" />
+            </SbField>
+            <SbField label="Улица *" label-for="co-street" :error="errors['address.street']" error-id="co-street-error" :valid="isFieldValid('address.street')">
+              <input id="co-street" v-model="address.street" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.street'] }" placeholder="ул. Ленина" autocomplete="off" maxlength="200" aria-required="true" :aria-invalid="!!errors['address.street']" :aria-describedby="errors['address.street'] ? 'co-street-error' : undefined" @blur="touch('address.street')" @input="validateField('address.street')" />
+            </SbField>
+            <div class="sb-field-row">
+              <SbField label="Дом *" label-for="co-building" :error="errors['address.building']" error-id="co-building-error" :valid="isFieldValid('address.building')">
+                <input id="co-building" v-model="address.building" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.building'] }" placeholder="12" autocomplete="off" maxlength="20" aria-required="true" :aria-invalid="!!errors['address.building']" :aria-describedby="errors['address.building'] ? 'co-building-error' : undefined" @blur="touch('address.building')" @input="validateField('address.building')" />
+              </SbField>
+              <SbField label="Квартира" label-for="co-apartment">
+                <input id="co-apartment" v-model="address.apartment" type="text" class="sb-input" placeholder="34" autocomplete="off" inputmode="numeric" maxlength="10" />
+              </SbField>
+              <SbField label="Индекс" label-for="co-postal" :error="errors['address.postal_code']" error-id="co-postal-error" :valid="isFieldValid('address.postal_code')">
+                <input id="co-postal" v-model="address.postal_code" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.postal_code'] }" placeholder="101000" autocomplete="postal-code" inputmode="numeric" maxlength="6" :aria-invalid="!!errors['address.postal_code']" :aria-describedby="errors['address.postal_code'] ? 'co-postal-error' : undefined" @blur="touch('address.postal_code')" @input="validateField('address.postal_code')" />
+              </SbField>
+            </div>
+          </template>
+        </template>
+
+        <!-- No delivery configured — classic address form -->
+        <template v-else>
+          <h3 class="sb-checkout-section-title">Адрес доставки</h3>
+          <SbField label="Город *" label-for="co-city" :error="errors['address.city']" error-id="co-city-error" :valid="isFieldValid('address.city')">
+            <input id="co-city" v-model="address.city" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.city'] }" placeholder="Москва" autocomplete="address-level2" maxlength="100" aria-required="true" :aria-invalid="!!errors['address.city']" :aria-describedby="errors['address.city'] ? 'co-city-error' : undefined" @blur="touch('address.city')" @input="validateField('address.city')" />
           </SbField>
-
-          <SbField label="Квартира" label-for="co-apartment">
-            <input id="co-apartment" v-model="address.apartment" type="text" class="sb-input" placeholder="34" autocomplete="off" inputmode="numeric" maxlength="10" />
+          <SbField label="Улица *" label-for="co-street" :error="errors['address.street']" error-id="co-street-error" :valid="isFieldValid('address.street')">
+            <input id="co-street" v-model="address.street" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.street'] }" placeholder="ул. Ленина" autocomplete="off" maxlength="200" aria-required="true" :aria-invalid="!!errors['address.street']" :aria-describedby="errors['address.street'] ? 'co-street-error' : undefined" @blur="touch('address.street')" @input="validateField('address.street')" />
           </SbField>
-
-          <SbField label="Индекс" label-for="co-postal" :error="errors['address.postal_code']" error-id="co-postal-error" :valid="isFieldValid('address.postal_code')">
-            <input id="co-postal" v-model="address.postal_code" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.postal_code'] }" placeholder="101000" autocomplete="postal-code" inputmode="numeric" maxlength="6" :aria-invalid="!!errors['address.postal_code']" :aria-describedby="errors['address.postal_code'] ? 'co-postal-error' : undefined" @blur="touch('address.postal_code')" @input="validateField('address.postal_code')" />
-          </SbField>
-        </div>
+          <div class="sb-field-row">
+            <SbField label="Дом *" label-for="co-building" :error="errors['address.building']" error-id="co-building-error" :valid="isFieldValid('address.building')">
+              <input id="co-building" v-model="address.building" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.building'] }" placeholder="12" autocomplete="off" maxlength="20" aria-required="true" :aria-invalid="!!errors['address.building']" :aria-describedby="errors['address.building'] ? 'co-building-error' : undefined" @blur="touch('address.building')" @input="validateField('address.building')" />
+            </SbField>
+            <SbField label="Квартира" label-for="co-apartment">
+              <input id="co-apartment" v-model="address.apartment" type="text" class="sb-input" placeholder="34" autocomplete="off" inputmode="numeric" maxlength="10" />
+            </SbField>
+            <SbField label="Индекс" label-for="co-postal" :error="errors['address.postal_code']" error-id="co-postal-error" :valid="isFieldValid('address.postal_code')">
+              <input id="co-postal" v-model="address.postal_code" type="text" class="sb-input" :class="{ 'sb-input-error': errors['address.postal_code'] }" placeholder="101000" autocomplete="postal-code" inputmode="numeric" maxlength="6" :aria-invalid="!!errors['address.postal_code']" :aria-describedby="errors['address.postal_code'] ? 'co-postal-error' : undefined" @blur="touch('address.postal_code')" @input="validateField('address.postal_code')" />
+            </SbField>
+          </div>
+        </template>
 
         <SbButton type="submit" block class="sb-mt-4 sb-co-submit-desktop">Далее →</SbButton>
       </div>
 
-      <!-- ── Step 3: Confirm ─────────────────────────────────── -->
+      <!-- ── Step 3: Confirm ──────────────────────────────────────── -->
       <div v-if="checkoutStep === 3">
 
         <!-- Order summary -->
@@ -371,19 +501,35 @@ async function handleSubmit() {
             <span>Скидка</span>
             <span class="sb-cart-discount-amount">−{{ formatPrice(cartStore.discount.amount) }}</span>
           </div>
+          <div v-if="deliveryCost > 0" class="sb-cart-subtotal">
+            <span>{{ methodLabels[deliveryMethod] ?? 'Доставка' }}</span>
+            <span>{{ formatPrice(deliveryCost) }}</span>
+          </div>
+          <div v-if="deliveryMethod && deliveryCost === 0 && hasDeliveryOptions" class="sb-cart-subtotal">
+            <span>{{ methodLabels[deliveryMethod] ?? 'Доставка' }}</span>
+            <span style="color: var(--sb-success);">Бесплатно</span>
+          </div>
           <div class="sb-summary-total">
-            <span>{{ cartStore.discount ? 'К оплате:' : 'Итого:' }}</span>
-            <span class="sb-price-lg">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
+            <span>{{ (cartStore.discount || deliveryCost > 0) ? 'К оплате:' : 'Итого:' }}</span>
+            <span class="sb-price-lg">{{ formatPrice(grandTotal) }}</span>
           </div>
         </div>
 
-        <!-- Shipping address review with edit link (physical only) -->
+        <!-- Delivery review -->
         <div v-if="hasPhysical" class="sb-checkout-section">
           <div class="sb-flex" style="align-items: flex-start; justify-content: space-between; gap: 8px;">
             <div>
-              <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; opacity: .6;">Адрес доставки</div>
-              <div style="font-size: 13px;">
-                {{ address.city }}, {{ address.street }}, д. {{ address.building }}<template v-if="address.apartment">, кв. {{ address.apartment }}</template>, {{ address.postal_code }}
+              <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; opacity: .6;">
+                {{ deliveryMethod ? 'Доставка' : 'Адрес доставки' }}
+              </div>
+              <div v-if="deliveryMethod" style="font-size: 13px; font-weight: 600;">
+                {{ methodLabels[deliveryMethod] ?? deliveryMethod }}
+              </div>
+              <div v-if="needsAddress || (!hasDeliveryOptions)" style="font-size: 13px; margin-top: 2px;">
+                {{ address.city }}, {{ address.street }}, д. {{ address.building }}<template v-if="address.apartment">, кв. {{ address.apartment }}</template><template v-if="address.postal_code">, {{ address.postal_code }}</template>
+              </div>
+              <div v-if="deliveryMethod === 'pickup' && deliveryOptions?.[deliveryMethod]?.address" style="font-size: 13px; color: var(--sb-text-muted);">
+                {{ deliveryOptions[deliveryMethod].address }}
               </div>
             </div>
             <SbButton variant="ghost" type="button" style="flex-shrink: 0; padding: 4px 8px; font-size: 12px;" @click="goBack">Изменить</SbButton>
@@ -397,7 +543,6 @@ async function handleSubmit() {
           </SbField>
         </div>
 
-        <!-- Consent + desktop submit -->
         <ConsentBlock ref="consentBlock" />
 
         <SbButton type="submit" block class="sb-mt-4 sb-co-submit-desktop" :disabled="loading">
@@ -411,8 +556,8 @@ async function handleSubmit() {
     <!-- Mobile sticky footer -->
     <div class="sb-co-footer">
       <div class="sb-co-footer-price">
-        <span class="sb-co-footer-label">{{ cartStore.discount ? 'К оплате' : 'Итого' }}</span>
-        <span class="sb-co-footer-amount">{{ formatPrice(cartStore.discount ? cartStore.totalAfterDiscount : cartStore.total) }}</span>
+        <span class="sb-co-footer-label">{{ (cartStore.discount || deliveryCost > 0) ? 'К оплате' : 'Итого' }}</span>
+        <span class="sb-co-footer-amount">{{ formatPrice(grandTotal) }}</span>
       </div>
       <SbButton v-if="checkoutStep < 3" @click="goNext">Далее →</SbButton>
       <SbButton v-else :disabled="loading" @click="handleSubmit">

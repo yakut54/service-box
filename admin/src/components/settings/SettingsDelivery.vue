@@ -41,9 +41,9 @@ onMounted(async () => {
       if (m) {
         methods.value[key] = {
           enabled:   !!m.enabled,
-          price:     String(Math.round((m.price ?? 0) / 100)),
+          price:     String(m.price ?? 0),
           address:   m.address ?? '',
-          free_from: m.free_from != null ? String(Math.round(m.free_from / 100)) : '',
+          free_from: m.free_from != null ? String(m.free_from) : '',
         }
       }
     }
@@ -64,10 +64,10 @@ async function save() {
       const m = methods.value[key]
       payload[key] = {
         enabled:   m.enabled,
-        price:     Math.round((parseFloat(m.price) || 0) * 100),
+        price:     Math.round(parseFloat(m.price) || 0),
         address:   key === 'pickup' ? (m.address.trim() || null) : undefined,
         free_from: key !== 'pickup' && m.free_from
-          ? Math.round((parseFloat(m.free_from) || 0) * 100)
+          ? Math.round(parseFloat(m.free_from) || 0)
           : null,
       }
     }
