@@ -28,6 +28,7 @@ async function connect() {
     botUrl.value  = resp.bot_username ? `https://max.ru/${resp.bot_username}` : 'https://max.ru'
     await navigator.clipboard.writeText(resp.code)
     codeCopied.value = true
+    setTimeout(() => { codeCopied.value = false }, 3000)
     window.open(botUrl.value, '_blank')
     awaiting.value = true
   } catch (e: unknown) {
@@ -50,6 +51,7 @@ async function checkConnection() {
 function copyCode() {
   navigator.clipboard.writeText(maxCode.value)
   codeCopied.value = true
+  setTimeout(() => { codeCopied.value = false }, 3000)
 }
 
 async function disconnect() {
