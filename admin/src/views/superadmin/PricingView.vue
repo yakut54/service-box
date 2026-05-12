@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import type { SuperadminPricing } from '@/types'
+import PageHeader from '@/components/PageHeader.vue'
 
 interface PlanEdit {
   price_rubles: string
@@ -111,17 +112,11 @@ onMounted(load)
 
 <template>
   <div class="flex flex-col gap-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Тарифные планы</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Изменения применяются сразу — без деплоя.
-        </p>
-      </div>
-      <button @click="save" :disabled="saving || loading" class="btn-primary px-6">
+    <PageHeader title="Тарифные планы" subtitle="Изменения применяются сразу — без деплоя.">
+      <button @click="save" :disabled="saving || loading" class="btn-primary px-6 whitespace-nowrap">
         {{ saving ? 'Сохранение...' : 'Сохранить всё' }}
       </button>
-    </div>
+    </PageHeader>
 
     <div v-if="error" class="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
       {{ error }}
