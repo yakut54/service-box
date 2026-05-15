@@ -256,6 +256,19 @@ class TelegramService
             return;
         }
 
+        // Remove cancel button from confirmation message before sending new status
+        if (in_array($status, ['completed', 'cancelled'])) {
+            $cached = \Illuminate\Support\Facades\Cache::get("tg_cust_confirm_mid:{$booking->id}");
+            if ($cached) {
+                \Illuminate\Support\Facades\Http::timeout(5)
+                    ->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
+                        'chat_id'      => $cached['chat_id'],
+                        'message_id'   => $cached['message_id'],
+                        'reply_markup' => json_encode(['inline_keyboard' => []]),
+                    ]);
+            }
+        }
+
         $payload = [
             'chat_id'    => $chatId,
             'text'       => $text,
@@ -266,8 +279,20 @@ class TelegramService
             $payload['reply_markup'] = json_encode($keyboard);
         }
 
-        \Illuminate\Support\Facades\Http::timeout(5)
+        $response = \Illuminate\Support\Facades\Http::timeout(5)
             ->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+
+        // Store message_id of confirmation so we can remove its button later
+        if ($status === 'confirmed') {
+            $messageId = $response->json('result.message_id');
+            if ($messageId) {
+                \Illuminate\Support\Facades\Cache::put(
+                    "tg_cust_confirm_mid:{$booking->id}",
+                    ['chat_id' => $chatId, 'message_id' => $messageId],
+                    now()->addDays(7)
+                );
+            }
+        }
     }
 
     /**
