@@ -330,7 +330,10 @@ class MaxService
             ['type' => 'callback', 'text' => '❌ Отменить запись', 'payload' => "client:cancel:{$bookingId}"],
         ]];
 
-        self::sendRaw($userId, $text, $buttons);
+        $mid = self::sendRaw($userId, $text, $buttons);
+        if ($mid) {
+            Cache::put("max_reminder_cancel_mid:{$bookingId}", ['user_id' => $userId, 'mid' => $mid], now()->addDays(2));
+        }
     }
 
     public static function notifyCustomerStatus(string $bookingId, string $status, $booking, string $timezone): void

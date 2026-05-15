@@ -335,9 +335,11 @@ class MaxController extends Controller
 
             MaxService::answerCallback($cbId, 'Запись отменена');
 
-            $cached = \Illuminate\Support\Facades\Cache::get("max_cust_cancel_mid:{$bookingId}");
-            if ($cached) {
-                MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
+            foreach (['max_cust_cancel_mid', 'max_reminder_cancel_mid'] as $cacheKey) {
+                $cached = \Illuminate\Support\Facades\Cache::get("{$cacheKey}:{$bookingId}");
+                if ($cached) {
+                    MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
+                }
             }
 
             MaxService::sendRaw($userId, "❌ Ваша запись отменена.");
