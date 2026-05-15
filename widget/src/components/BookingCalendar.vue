@@ -363,6 +363,12 @@ async function handleSubmit() {
   if (!selectedSlot.value) return
   if (!validate()) return
 
+  if (new Date(selectedSlot.value.datetime) <= new Date()) {
+    error.value = 'Выбранное время уже прошло. Пожалуйста, выберите другой слот.'
+    selectedSlot.value = null
+    return
+  }
+
   submitting.value = true
   error.value = ''
 
