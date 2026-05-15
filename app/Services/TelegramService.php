@@ -235,7 +235,7 @@ class TelegramService
             $keyboard = ['inline_keyboard' => [[
                 ['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"],
             ]]];
-        } else {
+        } elseif ($status === 'cancelled') {
             $text  = "❌ <b>Ваша запись отменена</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";
             $text .= "📋 {$service}\n\n";
@@ -247,6 +247,8 @@ class TelegramService
                 $bookUrl = url("/book/{$shop->api_key}");
             }
             $keyboard = ['inline_keyboard' => [[['text' => '📅 Записаться снова', 'url' => $bookUrl]]]];
+        } else {
+            return;
         }
 
         $payload = [
