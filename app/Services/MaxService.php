@@ -243,12 +243,47 @@ class MaxService
 
     public static function subscribeCustomer(string $bookingId, int $userId): void
     {
-        Cache::put("max_csub:{$bookingId}", $userId, now()->addDays(30));
+        $found = self::findCustomerByBooking($bookingId);
+        if (!$found) return;
+
+        DB::statement(
+            "UPDATE \"{$found['schema']}\".customers SET max_user_id = ? WHERE id = ?",
+            [$userId, $found['customer_id']]
+        );
     }
 
     public static function getCustomerUserId(string $bookingId): ?int
     {
-        return Cache::get("max_csub:{$bookingId}");
+        $found = self::findCustomerByBooking($bookingId);
+        return $found ? ($found['max_user_id'] ?? null) : null;
+    }
+
+    private static function findCustomerByBooking(string $bookingId): ?array
+    {
+        $schemas = DB::select("
+            SELECT schema_name FROM information_schema.schemata
+            WHERE schema_name LIKE 'shop_%'
+        ");
+
+        foreach ($schemas as $row) {
+            $s = $row->schema_name;
+            $result = DB::selectOne("
+                SELECT c.id, c.max_user_id
+                FROM \"{$s}\".bookings b
+                JOIN \"{$s}\".customers c ON c.id = b.customer_id
+                WHERE b.id = ?
+            ", [$bookingId]);
+
+            if ($result) {
+                return [
+                    'schema'      => $s,
+                    'customer_id' => $result->id,
+                    'max_user_id' => $result->max_user_id,
+                ];
+            }
+        }
+
+        return null;
     }
 
     public static function notifyRatingRequest(string $bookingId, object $booking): void
