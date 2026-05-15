@@ -220,7 +220,7 @@ class TelegramController extends Controller
 
         // Customer-side rating callback — shop lookup is by booking id, not chat_id
         if ($entityType === 'rate') {
-            $this->handleRatingCallback($callbackId, $action, $entityId, $chatId);
+            $this->handleRatingCallback($callbackId, $action, $entityId, $chatId, $messageId);
             return;
         }
 
@@ -354,7 +354,7 @@ class TelegramController extends Controller
         ]);
     }
 
-    private function handleRatingCallback(string $callbackId, string $bookingId, string $scoreStr, int $chatId): void
+    private function handleRatingCallback(string $callbackId, string $bookingId, string $scoreStr, int $chatId, ?int $messageId = null): void
     {
         $score = (int) $scoreStr;
         if ($score < 1 || $score > 5) {
@@ -362,7 +362,11 @@ class TelegramController extends Controller
             return;
         }
 
-        // Find the booking across all shop schemas
+        if (\Illuminate\Support\Facades\Cache::get("rated:{$bookingId}")) {
+            $this->answerCallback($callbackId, 'Вы уже оценили этот визит');
+            return;
+        }
+
         $schemas = \DB::select("
             SELECT schema_name FROM information_schema.schemata
             WHERE schema_name LIKE 'shop_%'
@@ -372,7 +376,7 @@ class TelegramController extends Controller
             $s = $row->schema_name;
 
             $booking = \DB::selectOne("
-                SELECT b.id, b.service_id, b.customer_id, b.customer_name, b.customer_phone, b.rating_sent
+                SELECT b.id, b.service_id, b.customer_id, b.customer_name, b.customer_phone
                 FROM {$s}.bookings b
                 WHERE b.id = ?
             ", [$bookingId]);
@@ -381,12 +385,6 @@ class TelegramController extends Controller
                 continue;
             }
 
-            if ($booking->rating_sent) {
-                $this->answerCallback($callbackId, 'Вы уже оценили этот визит');
-                return;
-            }
-
-            // Verify the rating comes from the right customer
             $customer = \DB::selectOne(
                 "SELECT telegram_chat_id FROM {$s}.customers WHERE phone = ?",
                 [$booking->customer_phone]
@@ -407,13 +405,14 @@ class TelegramController extends Controller
                     'is_published'  => false,
                     'created_at'    => now(),
                 ]);
-
-                \DB::statement("UPDATE {$s}.bookings SET rating_sent = TRUE WHERE id = ?", [$bookingId]);
             } catch (\Throwable $e) {
                 Log::error('Failed to save rating', ['booking' => $bookingId, 'error' => $e->getMessage()]);
                 $this->answerCallback($callbackId, 'Ошибка сохранения');
                 return;
             }
+
+            \Illuminate\Support\Facades\Cache::put("rated:{$bookingId}", true, now()->addDays(30));
+            $this->removeKeyboard($chatId, $messageId);
 
             $stars = str_repeat('⭐', $score);
             $this->answerCallback($callbackId, "Спасибо за оценку! {$stars}");

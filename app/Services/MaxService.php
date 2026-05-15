@@ -306,7 +306,10 @@ class MaxService
             ['type' => 'callback', 'text' => '5 ⭐', 'payload' => "rate:{$bookingId}:5"],
         ]];
 
-        self::sendRaw($userId, $text, $buttons);
+        $mid = self::sendRaw($userId, $text, $buttons);
+        if ($mid) {
+            Cache::put("max_rating_mid:{$bookingId}", ['user_id' => $userId, 'mid' => $mid], now()->addDays(2));
+        }
     }
 
     public static function notifyBookingReminder(string $bookingId, object $booking, string $type, string $timezone): void

@@ -369,6 +369,11 @@ class MaxController extends Controller
             return;
         }
 
+        if (\Illuminate\Support\Facades\Cache::get("rated:{$bookingId}")) {
+            MaxService::answerCallback($cbId, 'Вы уже оценили этот визит');
+            return;
+        }
+
         $schemas = \DB::select("
             SELECT schema_name FROM information_schema.schemata
             WHERE schema_name LIKE 'shop_%'
@@ -378,18 +383,12 @@ class MaxController extends Controller
             $s = $row->schema_name;
 
             $booking = \DB::selectOne("
-                SELECT id, service_id, customer_id, customer_name, rating_sent
+                SELECT id, service_id, customer_id, customer_name
                 FROM {$s}.bookings WHERE id = ?
             ", [$bookingId]);
 
             if (!$booking) continue;
 
-            if ($booking->rating_sent) {
-                MaxService::answerCallback($cbId, 'Вы уже оценили этот визит');
-                return;
-            }
-
-            // Verify rating comes from subscribed customer
             $subscribedUserId = MaxService::getCustomerUserId($bookingId);
             if ($subscribedUserId !== $userId) {
                 MaxService::answerCallback($cbId, 'Нет доступа');
@@ -406,12 +405,17 @@ class MaxController extends Controller
                     'is_published'  => false,
                     'created_at'    => now(),
                 ]);
-
-                \DB::statement("UPDATE {$s}.bookings SET rating_sent = TRUE WHERE id = ?", [$bookingId]);
             } catch (\Throwable $e) {
                 Log::error('MAX: failed to save rating', ['booking' => $bookingId, 'error' => $e->getMessage()]);
                 MaxService::answerCallback($cbId, 'Ошибка сохранения');
                 return;
+            }
+
+            \Illuminate\Support\Facades\Cache::put("rated:{$bookingId}", true, now()->addDays(30));
+
+            $cached = \Illuminate\Support\Facades\Cache::get("max_rating_mid:{$bookingId}");
+            if ($cached) {
+                MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
             }
 
             $stars = str_repeat('⭐', $score);
