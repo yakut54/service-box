@@ -165,10 +165,10 @@ docker compose -f docker-compose.prod.yml up -d db
 
 if [ "$DOCKER_BUILD" = "true" ]; then
   echo "    → rebuilding PHP image (composer deps changed)"
-  docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web
+  docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web scheduler
 else
   echo "    → restarting containers (no image rebuild)"
-  docker compose -f docker-compose.prod.yml up -d --remove-orphans app web
+  docker compose -f docker-compose.prod.yml up -d --remove-orphans app web scheduler
 fi
 
 # ── 3.5. Update vendor volume if composer deps changed ───────────
