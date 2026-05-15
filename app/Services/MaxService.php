@@ -326,7 +326,11 @@ class MaxService
         $text .= "📋 {$service}\n";
         if ($master) $text .= "👤 {$master}\n";
 
-        self::sendRaw($userId, $text);
+        $buttons = [[
+            ['type' => 'callback', 'text' => '❌ Отменить запись', 'payload' => "client:cancel:{$bookingId}"],
+        ]];
+
+        self::sendRaw($userId, $text, $buttons);
     }
 
     public static function notifyCustomerStatus(string $bookingId, string $status, $booking, string $timezone): void
