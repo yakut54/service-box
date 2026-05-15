@@ -235,6 +235,11 @@ class TelegramService
             $keyboard = ['inline_keyboard' => [[
                 ['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"],
             ]]];
+        } elseif ($status === 'completed') {
+            $text  = "✅ <b>Визит завершён. Спасибо!</b>\n\n";
+            $text .= "🕐 {$date} в {$time}\n";
+            $text .= "📋 {$service}\n\n";
+            $text .= "Ждём вас снова 😊";
         } elseif ($status === 'cancelled') {
             $text  = "❌ <b>Ваша запись отменена</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";
