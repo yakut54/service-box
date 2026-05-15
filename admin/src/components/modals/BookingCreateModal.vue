@@ -41,7 +41,9 @@ const serviceOptions = computed(() => [
 
 const masterModalOptions = computed(() => [
   { value: '', label: 'Любой доступный' },
-  ...bookingsStore.masters.map(m => ({ value: m.id, label: m.name })),
+  ...bookingsStore.masters
+    .filter(m => !modalForm.value.service_id || m.services?.some(s => s.id === modalForm.value.service_id))
+    .map(m => ({ value: m.id, label: m.name })),
 ])
 
 const modalForm = ref({
@@ -113,6 +115,14 @@ watch(() => props.modelValue, (open) => {
   }
   availableSlots.value = []
   slotError.value = null
+})
+
+watch(() => modalForm.value.service_id, (serviceId) => {
+  if (!serviceId || !modalForm.value.master_id) return
+  const master = bookingsStore.masters.find(m => m.id === modalForm.value.master_id)
+  if (!master?.services?.some(s => s.id === serviceId)) {
+    modalForm.value.master_id = ''
+  }
 })
 
 watch([
