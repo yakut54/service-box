@@ -296,7 +296,7 @@ class TelegramService
         $text .= "\n<b>{$shop->name}</b>";
 
         $keyboard = [
-            [['text' => '❌ Отменить запись', 'callback_data' => "client_cancel:{$booking->id}"]],
+            [['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"]],
         ];
 
         \Illuminate\Support\Facades\Http::timeout(5)
@@ -344,7 +344,7 @@ class TelegramService
         $text .= "\n<b>{$shop->name}</b>";
 
         $keyboard = [
-            [['text' => '❌ Отменить запись', 'callback_data' => "client_cancel:{$booking->id}"]],
+            [['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"]],
         ];
 
         \Illuminate\Support\Facades\Http::timeout(5)
