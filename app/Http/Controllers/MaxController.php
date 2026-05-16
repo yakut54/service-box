@@ -387,7 +387,7 @@ class MaxController extends Controller
         $schemas = \DB::select("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'shop_%'");
 
         foreach ($schemas as $row) {
-            $s = $row->schema_name;
+            $s = $this->safeSchema($row->schema_name);
 
             $booking = \DB::selectOne("
                 SELECT b.id, b.status, b.customer_name, b.start_time
@@ -454,7 +454,7 @@ class MaxController extends Controller
         ");
 
         foreach ($schemas as $row) {
-            $s = $row->schema_name;
+            $s = $this->safeSchema($row->schema_name);
 
             $booking = \DB::selectOne("
                 SELECT id, service_id, customer_id, customer_name
@@ -519,5 +519,13 @@ class MaxController extends Controller
 
         Log::warning('[MAX] rating: booking not found in any schema', ['booking' => $bookingId]);
         MaxService::answerCallback($cbId, 'Запись не найдена');
+    }
+
+    private function safeSchema(string $schema): string
+    {
+        if (!preg_match('/^shop_[a-z0-9_]+$/', $schema)) {
+            throw new \RuntimeException('Invalid schema name');
+        }
+        return '"' . $schema . '"';
     }
 }

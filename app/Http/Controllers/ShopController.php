@@ -150,6 +150,17 @@ class ShopController extends Controller
             ], 403);
         }
 
+        // Защита от CSS-инъекции: запрещаем закрывающий тег </style> и javascript:
+        if (isset($wc['custom_css'])) {
+            $css = $wc['custom_css'];
+            if (preg_match('/<\/style\s*>/i', $css) || preg_match('/javascript\s*:/i', $css)) {
+                return response()->json([
+                    'error'   => 'invalid_css',
+                    'message' => 'Недопустимое содержимое в Custom CSS.',
+                ], 422);
+            }
+        }
+
         // Мержим widget_config с существующими данными
         if (isset($validated['widget_config'])) {
             $existing = $shop->widget_config ?? [];

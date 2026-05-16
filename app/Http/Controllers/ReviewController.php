@@ -52,7 +52,8 @@ class ReviewController extends Controller
         // Попытка привязать к существующему клиенту по телефону
         $customerId = null;
         if (!empty($data['customer_phone'])) {
-            $customer = Customer::where('phone', $data['customer_phone'])->first();
+            $phone    = Customer::normalizePhone($data['customer_phone']);
+            $customer = Customer::where('phone', $phone)->first();
             $customerId = $customer?->id;
         }
 

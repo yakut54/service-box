@@ -86,23 +86,23 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
     Route::get('/products/{product}', [ProductController::class, 'show']);
 
     // Orders (widget can create orders)
-    Route::post('/orders', [OrderController::class, 'store']);
+    Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:20,1');
     Route::get('/orders/{order}', [OrderController::class, 'show']);
-    Route::post('/orders/{order}/payment', [PaymentController::class, 'createOrderPayment']);
+    Route::post('/orders/{order}/payment', [PaymentController::class, 'createOrderPayment'])->middleware('throttle:10,1');
 
     // Bookings (widget can create bookings)
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
-    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:20,1');
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
-    Route::post('/bookings/{booking}/payment', [PaymentController::class, 'createBookingPayment']);
+    Route::post('/bookings/{booking}/payment', [PaymentController::class, 'createBookingPayment'])->middleware('throttle:10,1');
 
     // Discount / promo code validation (widget)
-    Route::post('/discount/validate', [DiscountController::class, 'widgetValidate']);
-    Route::post('/discount/auto-apply', [DiscountController::class, 'widgetAutoApply']);
+    Route::post('/discount/validate', [DiscountController::class, 'widgetValidate'])->middleware('throttle:30,1');
+    Route::post('/discount/auto-apply', [DiscountController::class, 'widgetAutoApply'])->middleware('throttle:30,1');
 
     // Reviews (widget)
     Route::get('/reviews/{productId}', [ReviewController::class, 'widgetIndex']);
-    Route::post('/reviews', [ReviewController::class, 'widgetStore']);
+    Route::post('/reviews', [ReviewController::class, 'widgetStore'])->middleware('throttle:5,1');
 
     // Widget analytics (fire-and-forget, public)
     Route::post('/analytics', [WidgetAnalyticsController::class, 'store'])->middleware('throttle:120,1');

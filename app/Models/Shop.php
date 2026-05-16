@@ -60,6 +60,7 @@ class Shop extends Model
     ];
 
     protected $hidden = [
+        'schema_name',
         'yookassa_secret_key',
         'robokassa_password1',
         'robokassa_password2',

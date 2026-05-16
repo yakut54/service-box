@@ -185,7 +185,7 @@ class TelegramController extends Controller
         ");
 
         foreach ($schemas as $row) {
-            $s = $row->schema_name;
+            $s = $this->safeSchema($row->schema_name);
 
             $record = \DB::table("{$s}.telegram_link_tokens")
                 ->where('token', $token)
@@ -422,7 +422,7 @@ class TelegramController extends Controller
         ");
 
         foreach ($schemas as $row) {
-            $s = $row->schema_name;
+            $s = $this->safeSchema($row->schema_name);
 
             $booking = \DB::selectOne("
                 SELECT b.id, b.service_id, b.customer_id, b.customer_name, b.customer_phone
@@ -518,7 +518,7 @@ class TelegramController extends Controller
         $schemas = \DB::select("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'shop_%'");
 
         foreach ($schemas as $row) {
-            $s = $row->schema_name;
+            $s = $this->safeSchema($row->schema_name);
 
             $booking = \DB::selectOne("
                 SELECT b.id, b.status, b.customer_name, b.customer_phone, b.start_time
@@ -624,5 +624,13 @@ class TelegramController extends Controller
             'message_id'   => $messageId,
             'reply_markup' => ['inline_keyboard' => []],
         ]);
+    }
+
+    private function safeSchema(string $schema): string
+    {
+        if (!preg_match('/^shop_[a-z0-9_]+$/', $schema)) {
+            throw new \RuntimeException('Invalid schema name');
+        }
+        return '"' . $schema . '"';
     }
 }
