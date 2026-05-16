@@ -307,16 +307,16 @@ async function saveConfig() {
             <p class="text-xs text-gray-400 mt-1">Переопределяет фон темы</p>
           </div>
 
-          <!-- Page background color -->
+          <!-- Secondary background color -->
           <div>
             <UiCheckbox v-model="pageBgEnabled" class="mb-2">
-              <span class="label mb-0">Фон страницы</span>
+              <span class="label mb-0">Вторичный фон</span>
             </UiCheckbox>
             <div v-if="pageBgEnabled" class="flex items-center gap-2">
-              <input type="color" v-model="pageBgColor" aria-label="Цвет фона страницы" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-              <input type="text" v-model="pageBgColor" aria-label="Hex цвета фона страницы" class="input flex-1 font-mono text-sm" placeholder="#f1f5f9" />
+              <input type="color" v-model="pageBgColor" aria-label="Вторичный цвет фона" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+              <input type="text" v-model="pageBgColor" aria-label="Hex вторичного цвета фона" class="input flex-1 font-mono text-sm" placeholder="#f9fafb" />
             </div>
-            <p class="text-xs text-gray-400 mt-1">Цвет тела страницы вокруг виджета</p>
+            <p class="text-xs text-gray-400 mt-1">Фон панелей и контентной области</p>
           </div>
         </div>
 

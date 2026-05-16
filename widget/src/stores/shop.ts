@@ -102,8 +102,8 @@ export const useShopStore = defineStore('sb-shop', () => {
     if (c.primary_color) el.style.setProperty('--sb-primary', c.primary_color)
     if (c.border_radius != null) el.style.setProperty('--sb-radius', `${c.border_radius}px`)
     if (c.bg_color) el.style.setProperty('--sb-bg', c.bg_color)
+    if (c.page_bg_color) el.style.setProperty('--sb-bg-muted', c.page_bg_color)
     if (c.text_color) el.style.setProperty('--sb-text', c.text_color)
-    if (c.page_bg_color) document.body.style.background = c.page_bg_color
     const fontKey = c.font_family ?? 'inter'
     const f = FONTS[fontKey] ?? FONTS.inter
     if (f.url && !document.querySelector(`link[data-sb-font="${fontKey}"]`)) {
