@@ -12,7 +12,6 @@ export const useShopStore = defineStore('sb-shop', () => {
   const loading = ref(false)
   const error = ref('')
 
-  const theme = ref<'light' | 'dark'>('light')
   const isOpen = ref(false)
 
   const mode = ref<WidgetMode>('popup')
@@ -44,24 +43,6 @@ export const useShopStore = defineStore('sb-shop', () => {
     return api
   }
 
-  function loadTheme() {
-    if (!shopId.value) return
-    const saved = localStorage.getItem(`sb-theme:${shopId.value}`)
-    if (saved === 'light' || saved === 'dark') {
-      theme.value = saved
-    }
-  }
-
-  function toggleTheme(el?: HTMLElement) {
-    theme.value = theme.value === 'light' ? 'dark' : 'light'
-    if (shopId.value) {
-      localStorage.setItem(`sb-theme:${shopId.value}`, theme.value)
-    }
-    if (el) {
-      el.setAttribute('data-theme', theme.value)
-    }
-  }
-
   function close() {
     isOpen.value = false
   }
@@ -75,7 +56,6 @@ export const useShopStore = defineStore('sb-shop', () => {
     error.value = ''
     try {
       shop.value = await getApi().getShop()
-      loadTheme()
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Failed to load shop'
     }
@@ -112,10 +92,9 @@ export const useShopStore = defineStore('sb-shop', () => {
 
   return {
     shopId, apiUrl, shop, loading, error, config,
-    theme, isOpen,
+    isOpen,
     mode, deepLinkServiceId, prefillName, prefillPhone, prefillEmail, bookingInProgress,
     sessionId, initSession,
-    getApi, loadConfig, applyTheme,
-    loadTheme, toggleTheme, close,
+    getApi, loadConfig, applyTheme, close,
   }
 })
