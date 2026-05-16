@@ -4025,12 +4025,9 @@
   min-height: 0;
   overflow-y: auto;
   background: var(--sb-bg-muted);
-  display: flex;
-  flex-direction: column;
 }
 
 .sb-main-inner {
-  flex: 1;
   display: flex;
   flex-direction: column;
 }
