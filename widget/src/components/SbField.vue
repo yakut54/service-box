@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  label: string
+  label?: string
   labelFor?: string
   error?: string
   errorId?: string
@@ -10,7 +10,7 @@ defineProps<{
 
 <template>
   <div class="sb-field">
-    <label class="sb-label" :for="labelFor">{{ label }}</label>
+    <label v-if="label" class="sb-label" :for="labelFor">{{ label }}</label>
     <div class="sb-field-wrap">
       <slot />
       <svg v-if="valid" class="sb-field-check" viewBox="0 0 20 20" fill="currentColor">

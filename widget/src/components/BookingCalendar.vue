@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, unref } from 'vue'
 import { useShopStore } from '@/stores/shop'
 import { useAnalytics } from '@/composables/useAnalytics'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid } from '@/lib/utils'
@@ -382,8 +382,8 @@ async function handleSubmit() {
         email: form.value.email.trim() || null,
       },
       notes: form.value.notes.trim() || null,
-      consent_offer_accepted:   consentBlock.value?.consentOffer.value ?? false,
-      consent_privacy_accepted: consentBlock.value?.consentPrivacy.value ?? false,
+      consent_offer_accepted:   unref(consentBlock.value?.consentOffer) ?? false,
+      consent_privacy_accepted: unref(consentBlock.value?.consentPrivacy) ?? false,
     }
     if (selectedMasterId.value) {
       payload.master_id = selectedMasterId.value

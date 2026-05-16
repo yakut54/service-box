@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch, unref } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useShopStore } from '@/stores/shop'
 import { formatPrice, cleanPhone, isPhoneValid, isEmailValid, isPostalCodeValid } from '@/lib/utils'
@@ -285,8 +285,8 @@ async function handleSubmit() {
     },
     notes:                    notes.value.trim() || null,
     discount_code:            cartStore.discount?.code ?? null,
-    consent_offer_accepted:   consentBlock.value?.consentOffer.value ?? false,
-    consent_privacy_accepted: consentBlock.value?.consentPrivacy.value ?? false,
+    consent_offer_accepted:   unref(consentBlock.value?.consentOffer) ?? false,
+    consent_privacy_accepted: unref(consentBlock.value?.consentPrivacy) ?? false,
   }
 
   if (hasPhysical.value) {
@@ -419,7 +419,7 @@ function deliveryMethodPrice(key: string): string {
               </span>
               <span class="sb-delivery-option-body">
                 <span class="sb-delivery-option-name">{{ methodLabels[key] ?? key }}</span>
-                <span v-if="key === 'pickup' && method.address" class="sb-delivery-option-desc">{{ method.address }}</span>
+                <span v-if="key === 'pickup' && method?.address" class="sb-delivery-option-desc">{{ method?.address }}</span>
               </span>
               <span class="sb-delivery-option-price">{{ deliveryMethodPrice(key) }}</span>
             </label>
@@ -529,7 +529,7 @@ function deliveryMethodPrice(key: string): string {
                 {{ address.city }}, {{ address.street }}, д. {{ address.building }}<template v-if="address.apartment">, кв. {{ address.apartment }}</template><template v-if="address.postal_code">, {{ address.postal_code }}</template>
               </div>
               <div v-if="deliveryMethod === 'pickup' && deliveryOptions?.[deliveryMethod]?.address" style="font-size: 13px; color: var(--sb-text-muted);">
-                {{ deliveryOptions[deliveryMethod].address }}
+                {{ deliveryOptions?.[deliveryMethod]?.address }}
               </div>
             </div>
             <SbButton variant="ghost" type="button" style="flex-shrink: 0; padding: 4px 8px; font-size: 12px;" @click="goBack">Изменить</SbButton>
