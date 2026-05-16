@@ -78,6 +78,14 @@ export const useShopStore = defineStore('sb-shop', () => {
     },
   }
 
+  const FONTS: Record<string, { css: string; url?: string }> = {
+    system:     { css: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif' },
+    inter:      { css: "'Inter', sans-serif",      url: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' },
+    roboto:     { css: "'Roboto', sans-serif",     url: 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap' },
+    montserrat: { css: "'Montserrat', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap' },
+    georgia:    { css: 'Georgia, serif' },
+  }
+
   function applyTheme(el: HTMLElement) {
     const c = config.value
     if (!c || !el) return
@@ -88,6 +96,17 @@ export const useShopStore = defineStore('sb-shop', () => {
     }
     if (c.primary_color) el.style.setProperty('--sb-primary', c.primary_color)
     if (c.border_radius != null) el.style.setProperty('--sb-radius', `${c.border_radius}px`)
+    if (c.bg_color) el.style.setProperty('--sb-bg', c.bg_color)
+    const fontKey = c.font_family ?? 'inter'
+    const f = FONTS[fontKey] ?? FONTS.inter
+    if (f.url && !document.querySelector(`link[data-sb-font="${fontKey}"]`)) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = f.url
+      link.dataset.sbFont = fontKey
+      document.head.appendChild(link)
+    }
+    el.style.setProperty('--sb-font', f.css)
   }
 
   return {

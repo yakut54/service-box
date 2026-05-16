@@ -5,6 +5,8 @@
 export interface WidgetConfig {
   preset?: 'light' | 'dark' | 'minimal' | null
   primary_color?: string
+  bg_color?: string | null
+  font_family?: 'system' | 'inter' | 'roboto' | 'montserrat' | 'georgia' | null
   logo_url?: string | null
   border_radius?: number
   show_price?: boolean

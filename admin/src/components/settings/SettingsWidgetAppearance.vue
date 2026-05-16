@@ -4,6 +4,16 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
+type FontFamily = 'system' | 'inter' | 'roboto' | 'montserrat' | 'georgia'
+
+const FONT_OPTIONS: { id: FontFamily; label: string; css: string }[] = [
+  { id: 'system',     label: 'Системный', css: 'system-ui, sans-serif' },
+  { id: 'inter',      label: 'Inter',     css: "'Inter', sans-serif" },
+  { id: 'roboto',     label: 'Roboto',    css: "'Roboto', sans-serif" },
+  { id: 'montserrat', label: 'Montserrat', css: "'Montserrat', sans-serif" },
+  { id: 'georgia',    label: 'Georgia',   css: 'Georgia, serif' },
+]
+
 const authStore = useAuthStore()
 
 const hasFeature = computed(() =>
@@ -15,6 +25,9 @@ const hasProFeature = computed(() =>
 
 const preset         = ref<'light' | 'dark' | 'minimal'>('light')
 const color          = ref('#6366f1')
+const font           = ref<FontFamily>('inter')
+const bgEnabled      = ref(false)
+const bgColor        = ref('#ffffff')
 const borderRadius   = ref<4 | 8 | 16>(8)
 const showPrice       = ref(true)
 const showDuration    = ref(true)
@@ -31,10 +44,21 @@ const logoError      = ref('')
 const confirmDelete  = ref(false)
 
 onMounted(() => {
+  // Load Google Fonts for preview buttons
+  ;['Inter:wght@400;600', 'Roboto:wght@400;700', 'Montserrat:wght@400;600'].forEach(f => {
+    const url = `https://fonts.googleapis.com/css2?family=${f}&display=swap`
+    if (!document.querySelector(`link[href="${url}"]`)) {
+      const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: url })
+      document.head.appendChild(link)
+    }
+  })
+
   const wc = authStore.shop?.widget_config
   if (wc) {
     if (wc.preset)                 preset.value        = wc.preset as 'light' | 'dark' | 'minimal'
     if (wc.primary_color)          color.value         = wc.primary_color
+    if (wc.font_family)            font.value          = wc.font_family as FontFamily
+    if (wc.bg_color)               { bgEnabled.value = true; bgColor.value = wc.bg_color }
     if (wc.border_radius != null)  borderRadius.value  = wc.border_radius as 4 | 8 | 16
     if (wc.show_price       != null) showPrice.value       = wc.show_price
     if (wc.show_duration    != null) showDuration.value    = wc.show_duration
@@ -127,6 +151,8 @@ async function saveConfig() {
       widget_config: {
         preset:           preset.value,
         primary_color:    color.value,
+        font_family:      font.value,
+        bg_color:         bgEnabled.value ? bgColor.value : null,
         border_radius:    borderRadius.value,
         logo_url:         logoUrl.value,
         show_price:       showPrice.value,
@@ -206,6 +232,45 @@ async function saveConfig() {
           <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: color }" />
         </div>
         <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
+      </div>
+
+      <!-- Font family -->
+      <div>
+        <label class="label mb-2">Шрифт виджета</label>
+        <div class="grid grid-cols-5 gap-2">
+          <button
+            v-for="f in FONT_OPTIONS"
+            :key="f.id"
+            type="button"
+            @click="font = f.id"
+            :class="['rounded-xl border-2 p-2 text-center transition-all cursor-pointer',
+              font === f.id
+                ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
+          >
+            <div
+              class="text-xl font-semibold mb-1 leading-none text-gray-800 dark:text-gray-100"
+              :style="{ fontFamily: f.css }"
+            >Aa</div>
+            <div :class="['text-xs truncate', font === f.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400']">
+              {{ f.label }}
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Background color override -->
+      <div>
+        <label class="flex items-center gap-2 cursor-pointer select-none mb-2">
+          <input type="checkbox" v-model="bgEnabled" class="w-4 h-4 rounded text-indigo-600" />
+          <span class="label mb-0">Свой цвет фона</span>
+        </label>
+        <div v-if="bgEnabled" class="flex items-center gap-3">
+          <input type="color" v-model="bgColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+          <input type="text" v-model="bgColor" class="input w-32 font-mono text-sm" placeholder="#ffffff" />
+          <div class="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors" :style="{ background: bgColor }" />
+        </div>
+        <p class="text-xs text-gray-400 mt-1">Переопределяет цвет фона выбранной темы</p>
       </div>
 
       <!-- Border radius -->
