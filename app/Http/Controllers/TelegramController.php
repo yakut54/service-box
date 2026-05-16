@@ -157,6 +157,20 @@ class TelegramController extends Controller
             return;
         }
 
+        $pendingBookingId = \Illuminate\Support\Facades\Cache::get("awaiting_review:tg:{$chatId}");
+        if ($pendingBookingId) {
+            \Illuminate\Support\Facades\Cache::forget("awaiting_review:tg:{$chatId}");
+            $cached = \Illuminate\Support\Facades\Cache::get("review_id:{$pendingBookingId}");
+            if ($cached) {
+                \DB::table("{$cached['schema']}.reviews")
+                    ->where('id', $cached['id'])
+                    ->update(['text' => $text]);
+                Log::info('[TG] review: text saved', ['booking' => $pendingBookingId]);
+            }
+            $this->sendReply($chatId, '✅ Спасибо! Ваш отзыв сохранён.');
+            return;
+        }
+
         $this->sendReply($chatId, 'Я только отправляю уведомления о записях. Для управления используйте кнопки в сообщениях.');
     }
 
@@ -231,6 +245,11 @@ class TelegramController extends Controller
 
         if ($entityType === 'client') {
             $this->handleClientAction($callbackId, $action, $entityId, $chatId, $messageId);
+            return;
+        }
+
+        if ($entityType === 'review') {
+            $this->handleReviewCallback($callbackId, $action, $entityId, $chatId, $messageId);
             return;
         }
 
@@ -414,9 +433,11 @@ class TelegramController extends Controller
                 return;
             }
 
+            $reviewId = (string) \Illuminate\Support\Str::uuid();
+
             try {
                 \DB::table("{$s}.reviews")->insert([
-                    'id'            => (string) \Illuminate\Support\Str::uuid(),
+                    'id'            => $reviewId,
                     'product_id'    => $booking->service_id,
                     'customer_id'   => $booking->customer_id,
                     'customer_name' => $booking->customer_name,
@@ -431,17 +452,33 @@ class TelegramController extends Controller
             }
 
             \Illuminate\Support\Facades\Cache::put("rated:{$bookingId}", true, now()->addDays(30));
+            \Illuminate\Support\Facades\Cache::put("review_id:{$bookingId}", ['schema' => $s, 'id' => $reviewId], now()->addDays(30));
             $this->removeKeyboard($chatId, $messageId);
 
             $stars = str_repeat('⭐', $score);
             $this->answerCallback($callbackId, "Спасибо за оценку! {$stars}");
-            $this->sendReply($chatId, "Спасибо за вашу оценку {$stars}\nОтзыв отправлен на модерацию.");
+            $this->sendReply($chatId, "Спасибо за вашу оценку {$stars}", [[
+                ['text' => '✍️ Написать отзыв', 'callback_data' => "review:write:{$bookingId}"],
+            ]]);
             Log::info('[TG] rating: saved OK', ['booking' => $bookingId, 'score' => $score]);
             return;
         }
 
         Log::warning('[TG] rating: booking not found in any schema', ['booking' => $bookingId]);
         $this->answerCallback($callbackId, 'Запись не найдена');
+    }
+
+    private function handleReviewCallback(string $callbackId, string $action, string $bookingId, int $chatId, ?int $messageId = null): void
+    {
+        if ($action !== 'write') {
+            $this->answerCallback($callbackId, 'Неизвестное действие');
+            return;
+        }
+
+        \Illuminate\Support\Facades\Cache::put("awaiting_review:tg:{$chatId}", $bookingId, now()->addMinutes(15));
+        $this->answerCallback($callbackId, '');
+        $this->sendReply($chatId, 'Напишите ваш отзыв:');
+        Log::info('[TG] review: awaiting text', ['booking' => $bookingId, 'chat' => $chatId]);
     }
 
     private function handleClientAction(string $callbackId, string $action, string $bookingId, int $chatId, ?int $messageId = null): void
@@ -518,18 +555,20 @@ class TelegramController extends Controller
 
     // ── Telegram Bot API helpers ──────────────────────────────────────
 
-    private function sendReply(int $chatId, string $text): void
+    private function sendReply(int $chatId, string $text, ?array $keyboard = null): void
     {
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) {
             return;
         }
 
-        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-            'chat_id'    => $chatId,
-            'text'       => $text,
-            'parse_mode' => 'HTML',
-        ]);
+        $payload = ['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML'];
+
+        if ($keyboard) {
+            $payload['reply_markup'] = json_encode(['inline_keyboard' => $keyboard]);
+        }
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
     }
 
     private function answerCallback(string $callbackId, string $text, bool $showAlert = false): void

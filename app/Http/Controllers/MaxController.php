@@ -147,6 +147,20 @@ class MaxController extends Controller
             return;
         }
 
+        $pendingBookingId = \Illuminate\Support\Facades\Cache::get("awaiting_review:max:{$userId}");
+        if ($pendingBookingId) {
+            \Illuminate\Support\Facades\Cache::forget("awaiting_review:max:{$userId}");
+            $cached = \Illuminate\Support\Facades\Cache::get("review_id:{$pendingBookingId}");
+            if ($cached) {
+                \DB::table("{$cached['schema']}.reviews")
+                    ->where('id', $cached['id'])
+                    ->update(['text' => $text]);
+                Log::info('[MAX] review: text saved', ['booking' => $pendingBookingId]);
+            }
+            MaxService::sendRaw($userId, '✅ Спасибо! Ваш отзыв сохранён.');
+            return;
+        }
+
         MaxService::sendRaw($userId, 'Я только отправляю уведомления о записях. Для управления используйте кнопки в сообщениях.');
     }
 
@@ -206,6 +220,11 @@ class MaxController extends Controller
 
         if ($entityType === 'client') {
             $this->handleClientAction($callbackId, $action, $entityId, $userId);
+            return;
+        }
+
+        if ($entityType === 'review') {
+            $this->handleReviewCallback($callbackId, $action, $entityId, $userId);
             return;
         }
 
@@ -308,6 +327,19 @@ class MaxController extends Controller
         TelegramService::sendMessage(shop: $shop, text: "Запись {$date} ({$booking->customer_name}) — {$label}");
 
         Log::info('Booking updated via MAX', ['booking_id' => $bookingId, 'status' => $newStatus]);
+    }
+
+    private function handleReviewCallback(string $cbId, string $action, string $bookingId, int $userId): void
+    {
+        if ($action !== 'write') {
+            MaxService::answerCallback($cbId, 'Неизвестное действие');
+            return;
+        }
+
+        \Illuminate\Support\Facades\Cache::put("awaiting_review:max:{$userId}", $bookingId, now()->addMinutes(15));
+        MaxService::answerCallback($cbId, '');
+        MaxService::sendRaw($userId, 'Напишите ваш отзыв:');
+        Log::info('[MAX] review: awaiting text', ['booking' => $bookingId, 'user' => $userId]);
     }
 
     private function handleClientAction(string $cbId, string $action, string $bookingId, int $userId): void
@@ -416,9 +448,11 @@ class MaxController extends Controller
                 return;
             }
 
+            $reviewId = (string) \Illuminate\Support\Str::uuid();
+
             try {
                 \DB::table("{$s}.reviews")->insert([
-                    'id'            => (string) \Illuminate\Support\Str::uuid(),
+                    'id'            => $reviewId,
                     'product_id'    => $booking->service_id,
                     'customer_id'   => $booking->customer_id,
                     'customer_name' => $booking->customer_name,
@@ -433,6 +467,7 @@ class MaxController extends Controller
             }
 
             \Illuminate\Support\Facades\Cache::put("rated:{$bookingId}", true, now()->addDays(30));
+            \Illuminate\Support\Facades\Cache::put("review_id:{$bookingId}", ['schema' => $s, 'id' => $reviewId], now()->addDays(30));
 
             $cached = \Illuminate\Support\Facades\Cache::get("max_rating_mid:{$bookingId}");
             Log::info('[MAX] rating: mid cache', ['found' => (bool) $cached, 'mid' => $cached['mid'] ?? null]);
@@ -442,7 +477,9 @@ class MaxController extends Controller
 
             $stars = str_repeat('⭐', $score);
             MaxService::answerCallback($cbId, "Спасибо за оценку! {$stars}");
-            MaxService::sendRaw($userId, "Спасибо за оценку {$stars}\nОтзыв отправлен на модерацию.");
+            MaxService::sendRaw($userId, "Спасибо за оценку {$stars}", [[
+                ['type' => 'callback', 'text' => '✍️ Написать отзыв', 'payload' => "review:write:{$bookingId}"],
+            ]]);
             Log::info('[MAX] rating: saved OK', ['booking' => $bookingId, 'score' => $score]);
             return;
         }
