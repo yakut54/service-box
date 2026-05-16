@@ -302,13 +302,25 @@ class BookingController extends Controller
         $slots   = [];
         $current = $workStart->copy();
 
-        // Пропускаем прошедшие слоты (сравниваем в timezone магазина).
-        // isToday() вызываем на $now — он гарантированно в нужном tz.
-        // diffInMinutes($workStart, $now) — направленная разница (now - workStart),
-        // но мы уже проверили $now > $workStart, поэтому используем abs-версию $workStart->diffInMinutes($now).
-        $todayStr = $now->toDateString();
-        if ($reqDate === $todayStr && $now->greaterThan($workStart)) {
-            $minutesPassed = (int) $workStart->diffInMinutes($now);
+        // Пропускаем слоты попадающие в буфер минимального времени до записи.
+        // min_booking_notice = 0 → поведение как раньше (только прошедшие слоты).
+        $minNotice     = (int) ($shop?->min_booking_notice ?? 0);
+        $cutoff        = $now->copy()->addMinutes($minNotice);
+        $cutoffDateStr = $cutoff->toDateString();
+
+        if ($reqDate < $cutoffDateStr) {
+            // Весь запрошенный день внутри буфера — слотов нет
+            return response()->json([
+                'date'             => $date->toDateString(),
+                'service_id'       => $service->id,
+                'service_name'     => $service->name,
+                'duration_minutes' => $duration,
+                'slots'            => [],
+            ]);
+        }
+
+        if ($reqDate === $cutoffDateStr && $cutoff->greaterThan($workStart)) {
+            $minutesPassed = (int) $workStart->diffInMinutes($cutoff);
             $slotsSkipped  = (int) ceil($minutesPassed / $slotStep);
             $current->addMinutes($slotsSkipped * $slotStep);
         }
