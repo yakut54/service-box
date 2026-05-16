@@ -205,7 +205,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop'])->group(functio
 // EXTERNAL API v1 (X-API-Key, Pro plan only)
 // ============================================================================
 Route::prefix('v1')->middleware(['api.auth', 'api.ratelimit', 'api.pro'])->group(function () {
-    Route::get('/ping', [\App\Http\Controllers\Api\PingController::class, 'ping']);
+    Route::get('/ping',     [\App\Http\Controllers\Api\PingController::class,  'ping']);
+    Route::get('/bookings', [\App\Http\Controllers\Api\DataController::class, 'bookings']);
+    Route::get('/clients',  [\App\Http\Controllers\Api\DataController::class, 'clients']);
+    Route::get('/services', [\App\Http\Controllers\Api\DataController::class, 'services']);
+    Route::get('/masters',  [\App\Http\Controllers\Api\DataController::class, 'masters']);
 });
 
 // ============================================================================
