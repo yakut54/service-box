@@ -139,6 +139,12 @@ export class WidgetApi {
     })
   }
 
+  async createBookingPayment(bookingId: string) {
+    return this.request<{ payment_url: string }>(`/widget/bookings/${bookingId}/payment`, {
+      method: 'POST',
+    })
+  }
+
   async cancelBooking(bookingId: string, phone: string, token: string) {
     const query = new URLSearchParams({ phone }).toString()
     return this.request<{ message: string; status: string }>(

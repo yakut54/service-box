@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { formatPrice, formatDateTime } from '@/lib/utils'
 import { useShopStore } from '@/stores/shop'
+import { api } from '@/lib/api'
 import type { WidgetBooking, WidgetProduct } from '@/types'
 import SbButton from '@/components/SbButton.vue'
 
@@ -9,6 +11,26 @@ const emit = defineEmits<{ back: [] }>()
 
 const shopStore = useShopStore()
 const tz = () => shopStore.shop?.timezone || 'Europe/Moscow'
+
+const paymentLoading = ref(false)
+const paymentError   = ref('')
+
+const needsPrepayment = computed(() =>
+  !!(shopStore.shop?.prepayment_enabled && props.booking && !props.booking.payment_url)
+)
+
+async function payNow() {
+  if (!props.booking) return
+  paymentLoading.value = true
+  paymentError.value   = ''
+  try {
+    const res = await api.createBookingPayment(props.booking.id)
+    window.location.href = res.payment_url
+  } catch {
+    paymentError.value = 'Не удалось создать платёж. Попробуйте позже.'
+    paymentLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -43,6 +65,21 @@ const tz = () => shopStore.shop?.timezone || 'Europe/Moscow'
         <span>Статус</span>
         <span class="sb-badge sb-badge-warning">Ожидает подтверждения</span>
       </div>
+    </div>
+
+    <!-- Prepayment block -->
+    <div v-if="needsPrepayment" class="sb-prepayment-section">
+      <p class="sb-prepayment-hint">
+        <span v-if="shopStore.shop!.prepayment_amount > 0">
+          Для подтверждения записи оплатите предоплату
+          {{ formatPrice(shopStore.shop!.prepayment_amount) }}
+        </span>
+        <span v-else>Для подтверждения записи оплатите услугу онлайн</span>
+      </p>
+      <p v-if="paymentError" class="sb-prepayment-error">{{ paymentError }}</p>
+      <SbButton block :loading="paymentLoading" @click="payNow">
+        {{ paymentLoading ? 'Переход к оплате...' : 'Оплатить онлайн' }}
+      </SbButton>
     </div>
 
     <div v-if="booking?.telegram_link || booking?.max_link" class="sb-notify-section">

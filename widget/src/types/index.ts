@@ -41,6 +41,8 @@ export interface WidgetShop {
   name: string
   widget_config: WidgetConfig | null
   timezone: string | null
+  prepayment_enabled: boolean
+  prepayment_amount: number
   legal: WidgetLegal | null
   delivery_settings: DeliverySettings | null
 }
@@ -193,6 +195,7 @@ export interface WidgetBooking {
   master?: WidgetBookingMaster | null
   created_at: string
   updated_at: string
+  payment_url?:   string | null
   telegram_link?: string | null
   max_link?:      string | null
   max_code?:      string | null
