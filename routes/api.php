@@ -94,6 +94,7 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
     Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+    Route::post('/bookings/{booking}/payment', [PaymentController::class, 'createBookingPayment']);
 
     // Discount / promo code validation (widget)
     Route::post('/discount/validate', [DiscountController::class, 'widgetValidate']);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
 use App\Models\SubscriptionPayment;
@@ -184,6 +185,75 @@ class PaymentController extends Controller
     }
 
     /**
+     * POST /api/widget/bookings/{booking}/payment
+     *
+     * Создаёт платёж предоплаты за запись.
+     */
+    public function createBookingPayment(Request $request, string $bookingId): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+
+        if (!$shop || !$shop->yookassa_shop_id || !$shop->yookassa_secret_key) {
+            return response()->json(['message' => 'Онлайн-оплата не настроена для этого магазина'], 422);
+        }
+
+        if (!$shop->prepayment_enabled) {
+            return response()->json(['message' => 'Предоплата не включена'], 422);
+        }
+
+        $booking = Booking::with('service')->findOrFail($bookingId);
+
+        if ($booking->paid_at) {
+            return response()->json(['message' => 'Запись уже оплачена'], 422);
+        }
+
+        // Если ссылка уже создана — вернуть её
+        if ($booking->payment_url && $booking->payment_id) {
+            return response()->json(['payment_url' => $booking->payment_url]);
+        }
+
+        // Сумма: фиксированная предоплата или полная стоимость услуги
+        $amount = $shop->prepayment_amount > 0
+            ? $shop->prepayment_amount
+            : ($booking->service?->price ?? 0);
+
+        if ($amount <= 0) {
+            return response()->json(['message' => 'Не удалось определить сумму оплаты'], 422);
+        }
+
+        $returnUrl = rtrim(config('app.frontend_url'), '/') . '/payment/result?booking_id=' . $booking->id;
+
+        try {
+            $yooKassa = new YooKassaService($shop->yookassa_shop_id, $shop->yookassa_secret_key);
+            $payment  = $yooKassa->createPayment(
+                $amount,
+                "Предоплата: {$booking->service?->name}",
+                $returnUrl,
+                [
+                    'booking_id' => $booking->id,
+                    'type'       => 'booking',
+                ]
+            );
+
+            $booking->update([
+                'payment_id'  => $payment['payment_id'],
+                'payment_url' => $payment['payment_url'],
+            ]);
+
+            return response()->json(['payment_url' => $payment['payment_url']]);
+
+        } catch (\Throwable $e) {
+            Log::error('YooKassa createBookingPayment error', [
+                'error'      => $e->getMessage(),
+                'booking_id' => $bookingId,
+                'shop_id'    => $shop->id,
+            ]);
+
+            return response()->json(['message' => 'Не удалось создать платёж. Попробуйте позже.'], 502);
+        }
+    }
+
+    /**
      * POST /api/webhook/yookassa
      *
      * Обрабатывает webhook от ЮКасса.
@@ -202,6 +272,31 @@ class PaymentController extends Controller
 
         $metadata = $payment['metadata'] ?? [];
         $type     = $metadata['type'] ?? 'subscription';
+
+        // ── Предоплата за запись ──────────────────────────────────
+        if ($type === 'booking') {
+            $bookingId = $metadata['booking_id'] ?? null;
+
+            if (!$bookingId) {
+                return response()->json(['error' => 'Missing booking_id in metadata'], 400);
+            }
+
+            $booking = Booking::lockForUpdate()->find($bookingId);
+
+            if (!$booking) {
+                return response()->json(['error' => 'Booking not found'], 404);
+            }
+
+            if ($booking->paid_at) {
+                return response()->json(['status' => 'already_processed']);
+            }
+
+            $booking->markAsPaid($payment['id']);
+
+            Log::info('Booking prepayment received via YooKassa', ['booking_id' => $bookingId, 'payment_id' => $payment['id']]);
+
+            return response()->json(['status' => 'success']);
+        }
 
         // ── Заказ покупателя ──────────────────────────────────────
         if ($type === 'order') {

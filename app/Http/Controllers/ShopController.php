@@ -43,11 +43,13 @@ class ShopController extends Controller
         $enabledMethods = array_filter($rawDelivery, fn($m) => !empty($m['enabled']));
 
         return response()->json([
-            'id'                => $shop->id,
-            'name'              => $shop->name,
-            'widget_config'     => $shop->widget_config,
-            'timezone'          => $shop->timezone,
-            'delivery_settings' => $enabledMethods ?: null,
+            'id'                  => $shop->id,
+            'name'                => $shop->name,
+            'widget_config'       => $shop->widget_config,
+            'timezone'            => $shop->timezone,
+            'prepayment_enabled'  => (bool) $shop->prepayment_enabled,
+            'prepayment_amount'   => (int) $shop->prepayment_amount,
+            'delivery_settings'   => $enabledMethods ?: null,
             'legal'             => [
                 'has_docs'          => $shop->hasLegalDocs(),
                 'offer_url'         => route('legal.document', [$shop->api_key, 'offer']),

@@ -20,6 +20,8 @@ class Booking extends Model
         'end_time',
         'status',
         'payment_id',
+        'payment_url',
+        'paid_at',
         'customer_name',
         'customer_phone',
         'customer_email',
@@ -28,7 +30,8 @@ class Booking extends Model
 
     protected $casts = [
         'start_time' => 'datetime',
-        'end_time' => 'datetime',
+        'end_time'   => 'datetime',
+        'paid_at'    => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -76,5 +79,13 @@ class Booking extends Model
     public function cancel(): void
     {
         $this->update(['status' => 'cancelled']);
+    }
+
+    public function markAsPaid(string $paymentId): void
+    {
+        $this->update([
+            'payment_id' => $paymentId,
+            'paid_at'    => now(),
+        ]);
     }
 }

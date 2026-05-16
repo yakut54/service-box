@@ -38,6 +38,8 @@ class Shop extends Model
         'work_end',
         'slot_duration',
         'min_booking_notice',
+        'prepayment_enabled',
+        'prepayment_amount',
         'timezone',
     ];
 
@@ -50,7 +52,9 @@ class Shop extends Model
         'legal_config'      => 'array',
         'delivery_settings' => 'array',
         'slot_duration'      => 'integer',
-        'min_booking_notice' => 'integer',
+        'min_booking_notice'  => 'integer',
+        'prepayment_enabled'  => 'boolean',
+        'prepayment_amount'   => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
