@@ -1,4 +1,10 @@
 // ==========================================
+// WIDGET VIEWS
+// ==========================================
+
+export type WidgetView = 'loading' | 'error' | 'catalog' | 'product' | 'booking' | 'booking-success' | 'cart' | 'checkout' | 'success' | 'orders' | 'bookings-list'
+
+// ==========================================
 // SHOP / CONFIG
 // ==========================================
 
