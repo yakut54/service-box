@@ -157,6 +157,8 @@ class MaxController extends Controller
                     ->update(['text' => $text]);
                 Log::info('[MAX] review: text saved', ['booking' => $pendingBookingId]);
             }
+            $reviewBtn = \Illuminate\Support\Facades\Cache::get("max_review_btn_mid:{$pendingBookingId}");
+            if ($reviewBtn) MaxService::removeButtons((int) $reviewBtn['user_id'], $reviewBtn['mid']);
             MaxService::sendRaw($userId, '✅ Спасибо! Ваш отзыв отправлен на модерацию.');
             return;
         }
@@ -505,9 +507,12 @@ class MaxController extends Controller
 
             $stars = str_repeat('⭐', $score);
             MaxService::answerCallback($cbId, "Спасибо за оценку! {$stars}");
-            MaxService::sendRaw($userId, "Спасибо за оценку {$stars}", [[
+            $reviewBtnMid = MaxService::sendRaw($userId, "Спасибо за оценку {$stars}", [[
                 ['type' => 'callback', 'text' => '✍️ Написать отзыв', 'payload' => "review:write:{$bookingId}"],
             ]]);
+            if ($reviewBtnMid) {
+                \Illuminate\Support\Facades\Cache::put("max_review_btn_mid:{$bookingId}", ['user_id' => $userId, 'mid' => $reviewBtnMid], now()->addDays(30));
+            }
             Log::info('[MAX] rating: saved OK', ['booking' => $bookingId, 'score' => $score]);
             return;
         }

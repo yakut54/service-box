@@ -407,6 +407,14 @@ class MaxService
             ]];
         }
 
+        // Удаляем кнопку "Отменить запись" из предыдущего сообщения
+        if (in_array($status, ['completed', 'cancelled'])) {
+            foreach (['max_cust_cancel_mid', 'max_reminder_cancel_mid'] as $key) {
+                $cached = Cache::get("{$key}:{$bookingId}");
+                if ($cached) self::removeButtons((int) $cached['user_id'], $cached['mid']);
+            }
+        }
+
         try {
             $mid = self::sendRaw($userId, $text, $buttons);
             if ($mid && $status === 'confirmed') {

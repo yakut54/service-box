@@ -167,6 +167,8 @@ class TelegramController extends Controller
                     ->update(['text' => $text]);
                 Log::info('[TG] review: text saved', ['booking' => $pendingBookingId]);
             }
+            $reviewBtn = \Illuminate\Support\Facades\Cache::get("tg_review_btn_mid:{$pendingBookingId}");
+            if ($reviewBtn) $this->removeKeyboard($reviewBtn['chat_id'], $reviewBtn['message_id']);
             $this->sendReply($chatId, '✅ Спасибо! Ваш отзыв отправлен на модерацию.');
             return;
         }
@@ -476,9 +478,12 @@ class TelegramController extends Controller
 
             $stars = str_repeat('⭐', $score);
             $this->answerCallback($callbackId, "Спасибо за оценку! {$stars}");
-            $this->sendReply($chatId, "Спасибо за вашу оценку {$stars}", [[
+            $reviewBtnMsgId = $this->sendReply($chatId, "Спасибо за вашу оценку {$stars}", [[
                 ['text' => '✍️ Написать отзыв', 'callback_data' => "review:write:{$bookingId}"],
             ]]);
+            if ($reviewBtnMsgId) {
+                \Illuminate\Support\Facades\Cache::put("tg_review_btn_mid:{$bookingId}", ['chat_id' => $chatId, 'message_id' => $reviewBtnMsgId], now()->addDays(30));
+            }
             Log::info('[TG] rating: saved OK', ['booking' => $bookingId, 'score' => $score]);
             return;
         }
@@ -574,12 +579,10 @@ class TelegramController extends Controller
 
     // ── Telegram Bot API helpers ──────────────────────────────────────
 
-    private function sendReply(int $chatId, string $text, ?array $keyboard = null): void
+    private function sendReply(int $chatId, string $text, ?array $keyboard = null): ?int
     {
         $botToken = config('services.telegram.bot_token');
-        if (!$botToken) {
-            return;
-        }
+        if (!$botToken) return null;
 
         $payload = ['chat_id' => $chatId, 'text' => $text, 'parse_mode' => 'HTML'];
 
@@ -587,7 +590,8 @@ class TelegramController extends Controller
             $payload['reply_markup'] = json_encode(['inline_keyboard' => $keyboard]);
         }
 
-        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+        $response = Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+        return $response->json('result.message_id');
     }
 
     private function answerCallback(string $callbackId, string $text, bool $showAlert = false): void
