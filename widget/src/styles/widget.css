@@ -3828,6 +3828,7 @@
 .sb-body {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   width: 100%;
   max-width: var(--sb-container-max);
