@@ -5,6 +5,16 @@ import type { WidgetShop, WidgetConfig } from '@/types'
 
 export type WidgetMode = 'popup' | 'inline' | 'auto'
 
+function isDark(hex: string): boolean {
+  const clean = hex.replace('#', '')
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
+  const r = parseInt(full.slice(0, 2), 16)
+  const g = parseInt(full.slice(2, 4), 16)
+  const b = parseInt(full.slice(4, 6), 16)
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return false
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5
+}
+
 export const useShopStore = defineStore('sb-shop', () => {
   const shopId = ref('')
   const apiUrl = ref('')
@@ -104,6 +114,10 @@ export const useShopStore = defineStore('sb-shop', () => {
     if (c.bg_color) el.style.setProperty('--sb-bg', c.bg_color)
     if (c.page_bg_color) el.style.setProperty('--sb-bg-muted', c.page_bg_color)
     if (c.text_color) el.style.setProperty('--sb-text', c.text_color)
+    const borderBase = c.page_bg_color ?? c.bg_color
+    if (borderBase) {
+      el.style.setProperty('--sb-border', isDark(borderBase) ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')
+    }
     const fontKey = c.font_family ?? 'inter'
     const f = FONTS[fontKey] ?? FONTS.inter
     if (f.url && !document.querySelector(`link[data-sb-font="${fontKey}"]`)) {
