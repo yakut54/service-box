@@ -228,6 +228,12 @@ class BookingController extends Controller
             try { \App\Services\MaxService::removeButtonsByEntity('booking', $booking->id); } catch (\Throwable) {}
             try { \App\Services\TelegramService::notifyOwnerBookingStatus($shop, $booking, $request->status); } catch (\Throwable) {}
             try { \App\Services\MaxService::notifyOwnerBookingStatus($shop, $booking, $request->status); } catch (\Throwable) {}
+
+            if ($request->status === 'completed' && !$booking->rating_sent) {
+                try { \App\Services\TelegramService::notifyRatingRequest($shop, $booking); } catch (\Throwable) {}
+                try { \App\Services\MaxService::notifyRatingRequest($booking->id, $booking); } catch (\Throwable) {}
+                $booking->update(['rating_sent' => true]);
+            }
         }
 
         return response()->json([

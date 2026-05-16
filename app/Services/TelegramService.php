@@ -421,7 +421,7 @@ class TelegramService
             return;
         }
 
-        $service = $booking->service_name ?? '—';
+        $service = $booking->service_name ?? $booking->service?->name ?? '—';
 
         $text  = "⭐ <b>Как прошёл визит?</b>\n\n";
         $text .= "📋 {$service}\n";

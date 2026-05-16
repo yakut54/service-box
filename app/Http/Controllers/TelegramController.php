@@ -367,6 +367,12 @@ class TelegramController extends Controller
         try { \App\Services\MaxService::notifyCustomerStatus($bookingId, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
         try { TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus); } catch (\Throwable) {}
 
+        if ($newStatus === 'completed' && !$booking->rating_sent) {
+            try { TelegramService::notifyRatingRequest($shop, $booking); } catch (\Throwable) {}
+            try { \App\Services\MaxService::notifyRatingRequest($bookingId, $booking); } catch (\Throwable) {}
+            $booking->update(['rating_sent' => true]);
+        }
+
         $label = match($newStatus) {
             'confirmed' => '✅ Подтверждена',
             'cancelled' => '❌ Отменена',
