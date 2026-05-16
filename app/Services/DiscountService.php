@@ -21,6 +21,7 @@ class DiscountService
         $discount = Discount::active()
             ->whereNotNull('code')
             ->whereRaw('LOWER(code) = ?', [strtolower(trim($code))])
+            ->lockForUpdate()
             ->first();
 
         if (!$discount) {

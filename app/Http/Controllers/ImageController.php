@@ -19,7 +19,8 @@ class ImageController extends Controller
         ]);
 
         $file      = $request->file('image');
-        $filename  = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $ext       = $file->guessExtension() ?? 'jpg';
+        $filename  = Str::uuid() . '.' . $ext;
         $path      = $file->storeAs('products', $filename, 'public');
         $url       = Storage::disk('public')->url($path);
 
