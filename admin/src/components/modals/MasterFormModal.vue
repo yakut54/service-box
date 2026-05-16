@@ -283,8 +283,11 @@ async function save() {
             <div class="px-3 py-1.5 bg-gray-50 dark:bg-gray-800/60 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-200 dark:border-gray-700">{{ cat }}</div>
             <label v-for="svc in services" :key="svc.id"
               class="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
-              <input type="checkbox" :checked="selectedServiceIds.includes(svc.id)" @change="toggleService(svc.id)"
-                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer flex-shrink-0" />
+              <span :class="['relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
+                selectedServiceIds.includes(svc.id) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700']">
+                <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+                  selectedServiceIds.includes(svc.id) ? 'translate-x-6' : 'translate-x-1']" />
+              </span>
               <span class="text-sm text-gray-700 dark:text-gray-300">{{ svc.name }}</span>
               <span class="ml-auto text-xs text-gray-400">{{ svc.price.toLocaleString('ru-RU') }} ₽</span>
             </label>
