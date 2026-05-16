@@ -32,17 +32,13 @@
     main {
       width: 100%;
       max-width: 480px;
-      padding: 16px;
+      padding: 24px 16px;
     }
   </style>
 </head>
 <body>
 @if(request()->boolean('preview'))
-  <style>
-    body { padding: 20px; align-items: stretch; }
-    #servicebox-widget { width: 100%; border-radius: 8px; overflow: hidden; min-height: calc(100vh - 40px); }
-  </style>
-  <div id="servicebox-widget"></div>
+  <div id="servicebox-widget" style="width:100%;height:100vh;overflow:hidden;"></div>
   <script src="/widget.js"></script>
   <script>
     ServiceBoxWidget.init({ shopId: '{{ $apiKey }}', mode: 'inline', container: '#servicebox-widget' });
@@ -52,11 +48,12 @@
     <h1>{{ $shopName }}</h1>
   </header>
   <main>
-    <div id="servicebox-widget"></div>
+    <p style="text-align:center;color:#64748b;font-size:14px;margin-top:40px;">Загрузка...</p>
   </main>
   <script src="/widget.js"></script>
   <script>
-    ServiceBoxWidget.init({ shopId: '{{ $apiKey }}', mode: 'inline', container: '#servicebox-widget' });
+    localStorage.setItem('sb-open:{{ $apiKey }}', 'true');
+    ServiceBoxWidget.init({ shopId: '{{ $apiKey }}' });
   </script>
 @endif
 </body>
