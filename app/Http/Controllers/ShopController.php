@@ -105,6 +105,8 @@ class ShopController extends Controller
             'widget_config.font_family'         => 'sometimes|nullable|string|in:system,inter,roboto,montserrat,georgia',
             'widget_config.sidebar_position'    => 'sometimes|nullable|string|in:left,right',
             'widget_config.bg_color'            => 'sometimes|nullable|string|max:20',
+            'widget_config.page_bg_color'       => 'sometimes|nullable|string|max:20',
+            'widget_config.text_color'          => 'sometimes|nullable|string|max:20',
             'widget_config.show_price'          => 'sometimes|boolean',
             'widget_config.show_duration'       => 'sometimes|boolean',
             'widget_config.show_master_name'    => 'sometimes|boolean',

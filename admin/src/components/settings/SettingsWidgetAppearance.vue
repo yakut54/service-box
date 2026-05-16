@@ -30,6 +30,10 @@ const font           = ref<FontFamily>('inter')
 const sidebarPos     = ref<'left' | 'right'>('left')
 const bgEnabled      = ref(false)
 const bgColor        = ref('#ffffff')
+const pageBgEnabled  = ref(false)
+const pageBgColor    = ref('#f1f5f9')
+const textColorEnabled = ref(false)
+const textColor      = ref('#1f2937')
 const borderRadius   = ref<4 | 8 | 16>(8)
 const showPrice       = ref(true)
 const showDuration    = ref(true)
@@ -78,6 +82,8 @@ onMounted(() => {
     if (wc.font_family)            font.value          = wc.font_family as FontFamily
     if (wc.sidebar_position)       sidebarPos.value    = wc.sidebar_position as 'left' | 'right'
     if (wc.bg_color)               { bgEnabled.value = true; bgColor.value = wc.bg_color }
+    if (wc.page_bg_color)         { pageBgEnabled.value = true; pageBgColor.value = wc.page_bg_color }
+    if (wc.text_color)            { textColorEnabled.value = true; textColor.value = wc.text_color }
     if (wc.border_radius != null)  borderRadius.value  = wc.border_radius as 4 | 8 | 16
     if (wc.show_price       != null) showPrice.value       = wc.show_price
     if (wc.show_duration    != null) showDuration.value    = wc.show_duration
@@ -170,6 +176,8 @@ function sendPreviewConfig() {
       font_family:      font.value,
       sidebar_position: sidebarPos.value,
       bg_color:         bgEnabled.value ? bgColor.value : null,
+      page_bg_color:    pageBgEnabled.value ? pageBgColor.value : null,
+      text_color:       textColorEnabled.value ? textColor.value : null,
       border_radius:    borderRadius.value,
     },
   }, '*')
@@ -181,7 +189,7 @@ function onPreviewLoad() {
 }
 
 watch(
-  [preset, color, font, sidebarPos, bgEnabled, bgColor, borderRadius],
+  [preset, color, font, sidebarPos, bgEnabled, bgColor, pageBgEnabled, pageBgColor, textColorEnabled, textColor, borderRadius],
   () => { if (previewLoaded.value) sendPreviewConfig() },
 )
 
@@ -197,6 +205,8 @@ async function saveConfig() {
         font_family:      font.value,
         sidebar_position: sidebarPos.value,
         bg_color:         bgEnabled.value ? bgColor.value : null,
+        page_bg_color:    pageBgEnabled.value ? pageBgColor.value : null,
+        text_color:       textColorEnabled.value ? textColor.value : null,
         border_radius:    borderRadius.value,
         logo_url:         logoUrl.value,
         show_price:       showPrice.value,
@@ -271,30 +281,61 @@ async function saveConfig() {
         </div>
       </div>
 
-      <!-- Color + Background color override -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
-        <!-- Primary color -->
-        <div>
-          <p class="label">Основной цвет</p>
-          <div class="flex items-center gap-3">
-            <input type="color" v-model="color" aria-label="Основной цвет" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-            <input type="text" v-model="color" aria-label="Hex основного цвета" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
-            <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: color }" />
+      <!-- Colors -->
+      <div class="space-y-4">
+        <!-- Row 1: primary | widget bg | page bg -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 items-start">
+          <!-- Primary color -->
+          <div>
+            <p class="label">Основной цвет</p>
+            <div class="flex items-center gap-2">
+              <input type="color" v-model="color" aria-label="Основной цвет" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+              <input type="text" v-model="color" aria-label="Hex основного цвета" class="input flex-1 font-mono text-sm" placeholder="#6366f1" />
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты</p>
           </div>
-          <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
+
+          <!-- Widget background color -->
+          <div>
+            <UiCheckbox v-model="bgEnabled" class="mb-2">
+              <span class="label mb-0">Фон виджета</span>
+            </UiCheckbox>
+            <div v-if="bgEnabled" class="flex items-center gap-2">
+              <input type="color" v-model="bgColor" aria-label="Цвет фона виджета" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+              <input type="text" v-model="bgColor" aria-label="Hex цвета фона виджета" class="input flex-1 font-mono text-sm" placeholder="#ffffff" />
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Переопределяет фон темы</p>
+          </div>
+
+          <!-- Page background color -->
+          <div>
+            <UiCheckbox v-model="pageBgEnabled" class="mb-2">
+              <span class="label mb-0">Фон страницы</span>
+            </UiCheckbox>
+            <div v-if="pageBgEnabled" class="flex items-center gap-2">
+              <input type="color" v-model="pageBgColor" aria-label="Цвет фона страницы" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+              <input type="text" v-model="pageBgColor" aria-label="Hex цвета фона страницы" class="input flex-1 font-mono text-sm" placeholder="#f1f5f9" />
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Цвет тела страницы вокруг виджета</p>
+          </div>
         </div>
 
-        <!-- Background color override -->
+        <!-- Row 2: text color -->
         <div>
-          <UiCheckbox v-model="bgEnabled" class="mb-2">
-            <span class="label mb-0">Свой цвет фона</span>
+          <UiCheckbox v-model="textColorEnabled" class="mb-2">
+            <span class="label mb-0">Свой цвет текста</span>
           </UiCheckbox>
-          <div v-if="bgEnabled" class="flex items-center gap-3">
-            <input type="color" v-model="bgColor" aria-label="Цвет фона" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-            <input type="text" v-model="bgColor" aria-label="Hex цвета фона" class="input w-32 font-mono text-sm" placeholder="#ffffff" />
-            <div class="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors" :style="{ background: bgColor }" />
+          <div v-if="textColorEnabled" class="flex items-center gap-2">
+            <input type="color" v-model="textColor" aria-label="Цвет текста" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+            <input type="text" v-model="textColor" aria-label="Hex цвета текста" class="input w-32 font-mono text-sm" placeholder="#1f2937" />
+            <div
+              class="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center px-3 transition-colors"
+              :style="{ background: bgEnabled ? bgColor : '#ffffff', color: textColor }"
+            >
+              <span class="text-sm font-medium">Пример текста</span>
+            </div>
           </div>
-          <p class="text-xs text-gray-400 mt-1">Переопределяет цвет фона выбранной темы</p>
+          <p class="text-xs text-gray-400 mt-1">Переопределяет цвет текста выбранной темы</p>
         </div>
       </div>
 
