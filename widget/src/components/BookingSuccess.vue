@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { formatPrice, formatDateTime } from '@/lib/utils'
 import { useShopStore } from '@/stores/shop'
-import { api } from '@/lib/api'
 import type { WidgetBooking, WidgetProduct } from '@/types'
 import SbButton from '@/components/SbButton.vue'
 
@@ -24,7 +23,7 @@ async function payNow() {
   paymentLoading.value = true
   paymentError.value   = ''
   try {
-    const res = await api.createBookingPayment(props.booking.id)
+    const res = await shopStore.getApi().createBookingPayment(props.booking.id)
     window.location.href = res.payment_url
   } catch {
     paymentError.value = 'Не удалось создать платёж. Попробуйте позже.'
