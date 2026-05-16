@@ -167,7 +167,7 @@ class TelegramController extends Controller
                     ->update(['text' => $text]);
                 Log::info('[TG] review: text saved', ['booking' => $pendingBookingId]);
             }
-            $this->sendReply($chatId, '✅ Спасибо! Ваш отзыв сохранён.');
+            $this->sendReply($chatId, '✅ Спасибо! Ваш отзыв отправлен на модерацию.');
             return;
         }
 

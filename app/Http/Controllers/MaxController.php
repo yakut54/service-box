@@ -157,7 +157,7 @@ class MaxController extends Controller
                     ->update(['text' => $text]);
                 Log::info('[MAX] review: text saved', ['booking' => $pendingBookingId]);
             }
-            MaxService::sendRaw($userId, '✅ Спасибо! Ваш отзыв сохранён.');
+            MaxService::sendRaw($userId, '✅ Спасибо! Ваш отзыв отправлен на модерацию.');
             return;
         }
 
