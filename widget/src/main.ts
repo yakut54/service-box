@@ -101,6 +101,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
 
   // ── Inline mode: no FAB, always open ─────────────────────
   if (shopStore.mode === 'inline') {
+    mountEl.style.height = '100%'
     shopStore.isOpen = true
     shopStore.loadConfig()
     app.mount(mountEl)
