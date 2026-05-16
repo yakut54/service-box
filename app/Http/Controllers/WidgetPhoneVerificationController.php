@@ -113,7 +113,7 @@ class WidgetPhoneVerificationController extends Controller
         $data['attempts']++;
         Cache::put($cacheKey, $data, 300);
 
-        if ($data['code'] !== $request->code) {
+        if (!hash_equals((string) $data['code'], (string) $request->code)) {
             $remaining = 5 - $data['attempts'];
             return response()->json([
                 'error' => "Неверный код. Осталось попыток: {$remaining}",

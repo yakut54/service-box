@@ -26,6 +26,11 @@ class Booking extends Model
         'customer_phone',
         'customer_email',
         'notes',
+        'consent_offer_accepted',
+        'consent_privacy_accepted',
+        'consent_accepted_at',
+        'consent_ip',
+        'consent_ua',
     ];
 
     protected $casts = [

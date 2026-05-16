@@ -214,6 +214,7 @@ class AuthController extends Controller
         }
 
         $user->update(['password' => Hash::make($request->password)]);
+        $user->tokens()->delete();
 
         return response()->json(['message' => 'Пароль успешно изменён']);
     }
@@ -228,9 +229,7 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'Аккаунт с таким email не найден',
-            ], 404);
+            return response()->json(['message' => 'Письмо со ссылкой для сброса пароля отправлено']);
         }
 
         $token    = Password::createToken($user);
@@ -258,6 +257,7 @@ class AuthController extends Controller
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
                 $user->forceFill(['password' => Hash::make($password)])->save();
+                $user->tokens()->delete();
             }
         );
 

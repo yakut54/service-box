@@ -365,8 +365,7 @@ class BookingController extends Controller
      */
     public function widgetBookingsByPhone(Request $request): JsonResponse
     {
-        // Phone comes from verified token (injected by VerifyPhoneToken middleware)
-        $phone = $this->normalizePhone($request->verified_phone ?? $request->phone);
+        $phone = $this->normalizePhone($request->verified_phone ?? '');
 
         $bookings = Booking::with(['service', 'master'])
             ->where('customer_phone', $phone)
@@ -404,7 +403,7 @@ class BookingController extends Controller
      */
     public function widgetCancel(Request $request, string $booking): JsonResponse
     {
-        $phone = $this->normalizePhone($request->verified_phone ?? $request->phone);
+        $phone = $this->normalizePhone($request->verified_phone ?? '');
 
         $booking = Booking::findOrFail($booking);
 
