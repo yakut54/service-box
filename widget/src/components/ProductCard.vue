@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { formatPrice, plural } from '@/lib/utils'
 import { useCartStore } from '@/stores/cart'
+import { useShopStore } from '@/stores/shop'
 import type { WidgetProduct } from '@/types'
 
 const props = defineProps<{ product: WidgetProduct }>()
@@ -11,7 +12,9 @@ const emit = defineEmits<{
   book: [product: WidgetProduct]
 }>()
 
-const cartStore = useCartStore()
+const cartStore  = useCartStore()
+const shopStore  = useShopStore()
+const cfg        = computed(() => shopStore.config)
 
 const inCartItem = computed(() => cartStore.items.find(i => i.id === props.product.id))
 const inCartQty  = computed(() => inCartItem.value?.quantity ?? 0)
@@ -20,7 +23,7 @@ const maxStock   = computed(() => props.product.physical?.stock_quantity ?? Infi
 
 const badge = computed(() => {
   const p = props.product
-  if (p.type === 'service' && p.service) {
+  if (p.type === 'service' && p.service && cfg.value.show_duration !== false) {
     return { cls: 'sb-pc-badge sb-pc-badge-info', text: `${p.service.duration_minutes} мин` }
   }
   if (p.type === 'physical' && p.physical) {
@@ -142,7 +145,7 @@ function decrement() {
 
     <!-- ══ BODY ══ -->
     <div class="sb-pc-body">
-      <div class="sb-pc-prices">
+      <div v-if="cfg.show_price !== false" class="sb-pc-prices">
         <span class="sb-pc-price">{{ formatPrice(product.price) }}</span>
         <span v-if="hasDiscount" class="sb-pc-old-price">{{ formatPrice(product.compare_price!) }}</span>
       </div>

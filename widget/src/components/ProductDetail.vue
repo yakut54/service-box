@@ -15,6 +15,7 @@ const emit = defineEmits<{
 
 const cartStore = useCartStore()
 const shopStore = useShopStore()
+const cfg       = computed(() => shopStore.config)
 
 const isService  = computed(() => props.product.type === 'service')
 const isPhysical = computed(() => props.product.type === 'physical')
@@ -194,17 +195,17 @@ const displayCount   = computed(() => props.product.review_count ?? reviewStats.
         </div>
 
         <!-- Price -->
-        <div class="sb-pd-price-row">
+        <div v-if="cfg.show_price !== false" class="sb-pd-price-row">
           <span class="sb-pd-price">{{ formatPrice(product.price) }}</span>
           <span v-if="hasDiscount" class="sb-pd-old-price">{{ formatPrice(product.compare_price!) }}</span>
         </div>
 
         <!-- Description -->
-        <p v-if="product.description" class="sb-pd-description">{{ product.description }}</p>
+        <p v-if="product.description && cfg.show_description !== false" class="sb-pd-description">{{ product.description }}</p>
 
         <!-- Meta -->
         <div v-if="isService && product.service" class="sb-pd-meta">
-          <div class="sb-pd-meta-row">
+          <div v-if="cfg.show_duration !== false" class="sb-pd-meta-row">
             <span class="sb-pd-meta-label">Длительность</span>
             <span>{{ product.service.duration_minutes }} мин</span>
           </div>

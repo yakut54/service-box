@@ -52,7 +52,7 @@ async function payNow() {
         <span>Дата и время</span>
         <span class="sb-success-value">{{ formatDateTime(booking.start_time, tz()) }}</span>
       </div>
-      <div v-if="booking.master" class="sb-success-row">
+      <div v-if="booking.master && shopStore.shop?.widget_config?.show_master_name !== false" class="sb-success-row">
         <span>Мастер</span>
         <span class="sb-success-value">{{ booking.master.name }}</span>
       </div>
