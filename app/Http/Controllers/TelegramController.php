@@ -154,7 +154,10 @@ class TelegramController extends Controller
                 $chatId,
                 "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
             );
+            return;
         }
+
+        $this->sendReply($chatId, 'Я только отправляю уведомления о записях. Для управления используйте кнопки в сообщениях.');
     }
 
     private function handleCustomerLink(string $token, int $chatId): void

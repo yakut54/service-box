@@ -144,7 +144,10 @@ class MaxController extends Controller
 
             // Fall back to shop owner connect code
             $this->tryConnect($userId, $code);
+            return;
         }
+
+        MaxService::sendRaw($userId, 'Я только отправляю уведомления о записях. Для управления используйте кнопки в сообщениях.');
     }
 
     private function trySubscribeCustomer(int $userId, string $bookingId): void
