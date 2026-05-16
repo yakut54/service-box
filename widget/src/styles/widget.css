@@ -4041,6 +4041,17 @@
 }
 
 /* ============================================================
+   Sidebar position: right
+   ============================================================ */
+[data-sidebar-pos="right"] .sb-body {
+  flex-direction: row-reverse;
+}
+[data-sidebar-pos="right"] .sb-sidebar {
+  border-right: none;
+  border-left: 1px solid var(--sb-border);
+}
+
+/* ============================================================
    Tablet and below (< 768px) — sidebar becomes slide-in
    ============================================================ */
 @media (max-width: 767px) {
@@ -4062,6 +4073,16 @@
   .sb-sidebar--open {
     transform: translateX(0);
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  [data-sidebar-pos="right"] .sb-sidebar {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+  }
+  [data-sidebar-pos="right"] .sb-sidebar--open {
+    transform: translateX(0);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
   }
 
   .sb-sidebar-scrim {

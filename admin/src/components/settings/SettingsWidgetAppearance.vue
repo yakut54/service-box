@@ -26,6 +26,7 @@ const hasProFeature = computed(() =>
 const preset         = ref<'light' | 'dark' | 'minimal'>('light')
 const color          = ref('#6366f1')
 const font           = ref<FontFamily>('inter')
+const sidebarPos     = ref<'left' | 'right'>('left')
 const bgEnabled      = ref(false)
 const bgColor        = ref('#ffffff')
 const borderRadius   = ref<4 | 8 | 16>(8)
@@ -58,6 +59,7 @@ onMounted(() => {
     if (wc.preset)                 preset.value        = wc.preset as 'light' | 'dark' | 'minimal'
     if (wc.primary_color)          color.value         = wc.primary_color
     if (wc.font_family)            font.value          = wc.font_family as FontFamily
+    if (wc.sidebar_position)       sidebarPos.value    = wc.sidebar_position as 'left' | 'right'
     if (wc.bg_color)               { bgEnabled.value = true; bgColor.value = wc.bg_color }
     if (wc.border_radius != null)  borderRadius.value  = wc.border_radius as 4 | 8 | 16
     if (wc.show_price       != null) showPrice.value       = wc.show_price
@@ -152,6 +154,7 @@ async function saveConfig() {
         preset:           preset.value,
         primary_color:    color.value,
         font_family:      font.value,
+        sidebar_position: sidebarPos.value,
         bg_color:         bgEnabled.value ? bgColor.value : null,
         border_radius:    borderRadius.value,
         logo_url:         logoUrl.value,
@@ -286,6 +289,23 @@ async function saveConfig() {
             {{ opt.label }}
           </button>
         </div>
+      </div>
+
+      <!-- Sidebar position -->
+      <div>
+        <label class="label">Навигация в виджете</label>
+        <div class="flex gap-2">
+          <button
+            v-for="opt in ([{ v: 'left', label: '← Слева' }, { v: 'right', label: 'Справа →' }] as const)"
+            :key="opt.v"
+            type="button"
+            @click="sidebarPos = opt.v"
+            :class="['btn-secondary text-sm flex-1 transition-all', sidebarPos === opt.v ? 'ring-2 ring-indigo-500' : '']"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">С какой стороны виджета отображается боковое меню</p>
       </div>
 
       <!-- Logo -->

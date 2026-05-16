@@ -91,6 +91,7 @@ watch(currentView, async (view) => {
 watchEffect(() => {
   if (!widgetEl.value) return
   widgetEl.value.setAttribute('data-theme', shopStore.config.preset === 'dark' ? 'dark' : 'light')
+  widgetEl.value.setAttribute('data-sidebar-pos', shopStore.config.sidebar_position ?? 'left')
   if (shopStore.shop) shopStore.applyTheme(widgetEl.value)
 })
 

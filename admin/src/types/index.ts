@@ -54,6 +54,7 @@ export interface WidgetConfig {
   primary_color?: string
   bg_color?: string | null
   font_family?: 'system' | 'inter' | 'roboto' | 'montserrat' | 'georgia' | null
+  sidebar_position?: 'left' | 'right' | null
   logo_url?: string | null
   border_radius?: number
   show_price?: boolean
