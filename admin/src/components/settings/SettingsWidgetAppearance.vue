@@ -298,28 +298,58 @@ async function saveConfig() {
         </div>
       </div>
 
-      <!-- Font family -->
-      <div>
-        <p class="label mb-2">Шрифт виджета</p>
-        <div class="grid grid-cols-5 gap-2">
-          <button
-            v-for="f in FONT_OPTIONS"
-            :key="f.id"
-            type="button"
-            @click="font = f.id"
-            :class="['rounded-xl border-2 p-2 text-center transition-all cursor-pointer',
-              font === f.id
-                ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950'
-                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
-          >
-            <div
-              class="text-xl font-semibold mb-1 leading-none text-gray-800 dark:text-gray-100"
-              :style="{ fontFamily: f.css }"
-            >Aa</div>
-            <div :class="['text-xs truncate', font === f.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400']">
-              {{ f.label }}
+      <!-- Font family + Pro section -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+        <!-- Left: Font family -->
+        <div>
+          <p class="label mb-2">Шрифт виджета</p>
+          <div class="grid grid-cols-5 gap-2">
+            <button
+              v-for="f in FONT_OPTIONS"
+              :key="f.id"
+              type="button"
+              @click="font = f.id"
+              :class="['rounded-xl border-2 p-2 text-center transition-all cursor-pointer',
+                font === f.id
+                  ? 'border-indigo-500 dark:border-indigo-400 bg-indigo-50 dark:bg-indigo-950'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
+            >
+              <div
+                class="text-xl font-semibold mb-1 leading-none text-gray-800 dark:text-gray-100"
+                :style="{ fontFamily: f.css }"
+              >Aa</div>
+              <div :class="['text-xs truncate', font === f.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400']">
+                {{ f.label }}
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Pro section -->
+        <div v-if="hasProFeature" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Убрать «Powered by ServiceBox»</div>
+              <div class="text-xs text-gray-400 mt-0.5">Виджет полностью под вашим брендом</div>
             </div>
-          </button>
+            <button
+              type="button"
+              @click="whiteLabel = !whiteLabel"
+              :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                whiteLabel ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']"
+            >
+              <span :class="['inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                whiteLabel ? 'translate-x-6' : 'translate-x-1']" />
+            </button>
+          </div>
+          <div>
+            <p class="label">Свой CSS <span class="text-gray-400 font-normal">(переопределяет стили виджета)</span></p>
+            <textarea v-model="customCss" class="input font-mono text-xs" rows="6" placeholder=".sb-catalog-card { border-radius: 12px; }" />
+            <p class="text-xs text-gray-400 mt-1">CSS применяется внутри Shadow DOM виджета</p>
+          </div>
+        </div>
+        <div v-else class="flex items-center">
+          <p class="text-xs text-gray-400">White label и Custom CSS доступны на тарифе <span class="font-medium">Pro</span></p>
         </div>
       </div>
 
@@ -398,33 +428,6 @@ async function saveConfig() {
           </div>
         </div>
 
-      </div>
-
-      <!-- Pro: White label + Custom CSS -->
-      <div v-if="hasProFeature" class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Убрать «Powered by ServiceBox»</div>
-            <div class="text-xs text-gray-400 mt-0.5">Виджет полностью под вашим брендом</div>
-          </div>
-          <button
-            type="button"
-            @click="whiteLabel = !whiteLabel"
-            :class="['relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-              whiteLabel ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']"
-          >
-            <span :class="['inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
-              whiteLabel ? 'translate-x-6' : 'translate-x-1']" />
-          </button>
-        </div>
-        <div>
-          <p class="label">Свой CSS <span class="text-gray-400 font-normal">(переопределяет стили виджета)</span></p>
-          <textarea v-model="customCss" class="input font-mono text-xs" rows="6" placeholder=".sb-catalog-card { border-radius: 12px; }" />
-          <p class="text-xs text-gray-400 mt-1">CSS применяется внутри Shadow DOM виджета</p>
-        </div>
-      </div>
-      <div v-else class="pt-4 border-t border-gray-200 dark:border-gray-700">
-        <p class="text-xs text-gray-400">White label и Custom CSS доступны на тарифе <span class="font-medium">Pro</span></p>
       </div>
 
       <!-- Mobile: preview toggle -->
