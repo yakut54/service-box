@@ -94,7 +94,11 @@ export interface Shop {
   work_start: string | null
   work_end: string | null
   slot_duration: number | null
+  min_booking_notice: number | null
   timezone: string | null
+  prepayment_enabled: boolean
+  prepayment_amount: number
+  delivery_settings: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }

@@ -171,9 +171,13 @@ class AuthController extends Controller
                 'timezone' => $shop->timezone,
                 'telegram_bot_connected' => $shop->telegram_bot_connected,
                 'max_bot_connected' => $shop->max_bot_connected,
-                'max_chat_id' => $shop->max_chat_id,
-                'yookassa_shop_id' => $shop->yookassa_shop_id,
-                'legal_config' => $shop->legal_config,
+                'max_chat_id'         => $shop->max_chat_id,
+                'yookassa_shop_id'    => $shop->yookassa_shop_id,
+                'legal_config'        => $shop->legal_config,
+                'min_booking_notice'  => $shop->min_booking_notice,
+                'prepayment_enabled'  => (bool) $shop->prepayment_enabled,
+                'prepayment_amount'   => (int) $shop->prepayment_amount,
+                'delivery_settings'   => $shop->delivery_settings,
             ],
         ]);
     }
