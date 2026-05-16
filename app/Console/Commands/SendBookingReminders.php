@@ -94,9 +94,9 @@ class SendBookingReminders extends Command
             LEFT JOIN {$s}.products s ON s.id = b.service_id
             WHERE b.status = 'completed'
               AND b.rating_sent = FALSE
-              AND b.end_time BETWEEN
-                    NOW() - INTERVAL '15 minutes'
-                AND NOW() - INTERVAL '5 minutes'
+              AND b.updated_at BETWEEN
+                    NOW() - INTERVAL '7 minutes'
+                AND NOW() - INTERVAL '3 minutes'
         ");
 
         Log::info('[Reminders] [rating] found ' . count($ratingBookings) . ' booking(s)', ['shop' => $shop->id]);
