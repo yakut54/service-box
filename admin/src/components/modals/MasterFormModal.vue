@@ -35,11 +35,6 @@ const servicesByCategory = computed(() => {
   return map
 })
 
-function toggleService(id: string) {
-  const idx = selectedServiceIds.value.indexOf(id)
-  if (idx === -1) selectedServiceIds.value.push(id)
-  else selectedServiceIds.value.splice(idx, 1)
-}
 
 async function loadAllServices() {
   if (allServices.value.length) return

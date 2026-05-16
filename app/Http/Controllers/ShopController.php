@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Shop;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ShopController extends Controller
 {
@@ -183,5 +184,24 @@ class ShopController extends Controller
         $shop->update($validated);
 
         return response()->json($shop);
+    }
+
+    /**
+     * Regenerate API key (Pro plan only)
+     *
+     * POST /api/admin/api-key/regenerate
+     */
+    public function regenerateApiKey(Request $request): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+
+        if (!$shop->hasFeature('api_access')) {
+            return response()->json(['message' => 'API access is available on the Pro plan.'], 403);
+        }
+
+        $shop->api_key = Str::uuid()->toString();
+        $shop->save();
+
+        return response()->json(['api_key' => $shop->api_key]);
     }
 }

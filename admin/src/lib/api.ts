@@ -220,6 +220,10 @@ class ApiClient {
     })
   }
 
+  async regenerateApiKey() {
+    return this.request<{ api_key: string }>('/admin/api-key/regenerate', { method: 'POST' })
+  }
+
   // ==========================================
   // PRODUCTS
   // ==========================================

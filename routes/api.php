@@ -128,6 +128,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     // Shop
     Route::get('/shop', [ShopController::class, 'show']);
     Route::put('/shop', [ShopController::class, 'update']);
+    Route::post('/api-key/regenerate', [ShopController::class, 'regenerateApiKey']);
 
     // Widget analytics funnel (Pro)
     Route::get('/widget/analytics', [WidgetAnalyticsController::class, 'funnel']);

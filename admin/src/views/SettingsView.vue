@@ -11,6 +11,7 @@ import SettingsYookassa         from '@/components/settings/SettingsYookassa.vue
 import SettingsWidgetAppearance from '@/components/settings/SettingsWidgetAppearance.vue'
 import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalytics.vue'
 import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue'
+import SettingsApiAccess        from '@/components/settings/SettingsApiAccess.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -21,6 +22,7 @@ const tabs = [
   { id: 'notifications', label: 'Уведомления' },
   { id: 'payments',      label: 'Платежи' },
   { id: 'delivery',      label: 'Доставка' },
+  { id: 'integration',   label: 'Интеграция' },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']
@@ -88,6 +90,11 @@ function setTab(id: TabId) {
     <!-- Доставка -->
     <div v-show="activeTab === 'delivery'" class="max-w-xl">
       <SettingsDelivery />
+    </div>
+
+    <!-- Интеграция -->
+    <div v-show="activeTab === 'integration'" class="max-w-xl">
+      <SettingsApiAccess />
     </div>
   </div>
 </template>
