@@ -31,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify.phone'   => \App\Http\Middleware\VerifyPhoneToken::class,
             'superadmin'     => \App\Http\Middleware\RequireSuperadmin::class,
             'widget.subscription' => \App\Http\Middleware\CheckWidgetSubscription::class,
+            'api.auth'       => \App\Http\Middleware\ApiKeyAuth::class,
+            'api.ratelimit'  => \App\Http\Middleware\ApiRateLimit::class,
+            'api.pro'        => \App\Http\Middleware\ApiProPlan::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
