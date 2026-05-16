@@ -4021,6 +4021,7 @@
    ============================================================ */
 .sb-main {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   background: var(--sb-bg-muted);
   display: flex;
