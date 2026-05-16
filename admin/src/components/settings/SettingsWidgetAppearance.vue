@@ -270,15 +270,32 @@ async function saveConfig() {
         </div>
       </div>
 
-      <!-- Color -->
-      <div>
-        <label class="label">Основной цвет</label>
-        <div class="flex items-center gap-3">
-          <input type="color" v-model="color" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-          <input type="text" v-model="color" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
-          <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: color }" />
+      <!-- Color + Background color override -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+        <!-- Primary color -->
+        <div>
+          <label class="label">Основной цвет</label>
+          <div class="flex items-center gap-3">
+            <input type="color" v-model="color" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+            <input type="text" v-model="color" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
+            <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: color }" />
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
         </div>
-        <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
+
+        <!-- Background color override -->
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer select-none mb-2">
+            <input type="checkbox" v-model="bgEnabled" class="w-4 h-4 rounded text-indigo-600" />
+            <span class="label mb-0">Свой цвет фона</span>
+          </label>
+          <div v-if="bgEnabled" class="flex items-center gap-3">
+            <input type="color" v-model="bgColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+            <input type="text" v-model="bgColor" class="input w-32 font-mono text-sm" placeholder="#ffffff" />
+            <div class="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors" :style="{ background: bgColor }" />
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Переопределяет цвет фона выбранной темы</p>
+        </div>
       </div>
 
       <!-- Font family -->
@@ -304,20 +321,6 @@ async function saveConfig() {
             </div>
           </button>
         </div>
-      </div>
-
-      <!-- Background color override -->
-      <div>
-        <label class="flex items-center gap-2 cursor-pointer select-none mb-2">
-          <input type="checkbox" v-model="bgEnabled" class="w-4 h-4 rounded text-indigo-600" />
-          <span class="label mb-0">Свой цвет фона</span>
-        </label>
-        <div v-if="bgEnabled" class="flex items-center gap-3">
-          <input type="color" v-model="bgColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-          <input type="text" v-model="bgColor" class="input w-32 font-mono text-sm" placeholder="#ffffff" />
-          <div class="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors" :style="{ background: bgColor }" />
-        </div>
-        <p class="text-xs text-gray-400 mt-1">Переопределяет цвет фона выбранной темы</p>
       </div>
 
       <!-- Logo + visibility / Border radius + Sidebar position -->
