@@ -21,15 +21,15 @@ import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div class="flex flex-col gap-6">
         <SettingsShopInfo />
-        <SettingsEmbedCode />
+        <SettingsWorkHours />
+        <SettingsDelivery />
         <SettingsPassword />
-        <SettingsTelegram />
-        <SettingsMax />
+        <SettingsEmbedCode />
       </div>
 
       <div class="flex flex-col gap-6">
-        <SettingsWorkHours />
-        <SettingsDelivery />
+        <SettingsTelegram />
+        <SettingsMax />
         <SettingsYookassa />
         <SettingsWidgetAppearance />
         <SettingsWidgetAnalytics />
