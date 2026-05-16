@@ -337,15 +337,23 @@ class TelegramController extends Controller
             return;
         }
 
-        if (in_array($booking->status, ['confirmed', 'cancelled', 'completed', 'no_show'])) {
+        $validFrom = match($action) {
+            'confirm', 'cancel'  => ['pending'],
+            'complete', 'noshow' => ['confirmed'],
+            default              => [],
+        };
+
+        if (!in_array($booking->status, $validFrom)) {
             $this->answerCallback($callbackId, 'Статус уже изменён', true);
             return;
         }
 
         $newStatus = match ($action) {
-            'confirm' => 'confirmed',
-            'cancel'  => 'cancelled',
-            default   => null,
+            'confirm'  => 'confirmed',
+            'cancel'   => 'cancelled',
+            'complete' => 'completed',
+            'noshow'   => 'no_show',
+            default    => null,
         };
 
         if (!$newStatus) {
@@ -357,20 +365,25 @@ class TelegramController extends Controller
         $booking->update(['status' => $newStatus]);
 
         try { \App\Services\MaxService::notifyCustomerStatus($bookingId, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
+        try { TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus); } catch (\Throwable) {}
 
-        $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
+        $label = match($newStatus) {
+            'confirmed' => '✅ Подтверждена',
+            'cancelled' => '❌ Отменена',
+            'completed' => '✅ Завершена',
+            'no_show'   => '👻 Неявка',
+            default     => $newStatus,
+        };
 
         $this->answerCallback($callbackId, "Запись {$label}");
         $this->removeKeyboard($chatId, $messageId);
         MaxService::removeButtonsByEntity('booking', $bookingId);
+        $cached = \Illuminate\Support\Facades\Cache::get("max_mid:completion:{$bookingId}");
+        if ($cached) MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
 
         $date = \Carbon\Carbon::parse($booking->start_time)->setTimezone($shop->timezone ?? 'Europe/Moscow')->format('d.m H:i');
         $this->sendReply($chatId, "Запись {$date} ({$booking->customer_name}) — {$label}");
         MaxService::sendMessage($shop, "Запись {$date} ({$booking->customer_name}) — {$label}");
-
-        try {
-            TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus);
-        } catch (\Throwable) {}
 
         Log::info('Booking status updated via Telegram', [
             'booking_id' => $bookingId,

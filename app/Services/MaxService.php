@@ -217,12 +217,34 @@ class MaxService
         }
     }
 
+    public static function notifyOwnerCompletionRequest(Shop $shop, object $booking): void
+    {
+        $tz      = $shop->timezone ?? 'Europe/Moscow';
+        $start   = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz)->format('H:i');
+        $end     = \Carbon\Carbon::parse($booking->end_time)->setTimezone($tz)->format('H:i');
+        $service = $booking->service_name ?? '—';
+        $name    = $booking->customer_name;
+
+        $text = "📋 {$service} — {$start}–{$end} ({$name})\nКак прошло?";
+
+        $buttons = [[
+            ['type' => 'callback', 'text' => '✅ Завершить', 'payload' => "booking:complete:{$booking->id}"],
+            ['type' => 'callback', 'text' => '👻 Неявка',   'payload' => "booking:noshow:{$booking->id}"],
+        ]];
+
+        $mid = self::sendMessage($shop, $text, $buttons);
+        if ($mid) {
+            Cache::put("max_mid:completion:{$booking->id}", ['user_id' => $shop->max_chat_id, 'mid' => $mid], now()->addDays(3));
+        }
+    }
+
     public static function notifyOwnerBookingStatus(Shop $shop, $booking, string $status): void
     {
         $label = match($status) {
             'confirmed' => '✅ Подтверждена',
             'cancelled' => '❌ Отменена',
             'completed' => '✅ Завершена',
+            'no_show'   => '👻 Неявка',
             default     => null,
         };
         if (!$label) return;

@@ -297,10 +297,23 @@ class MaxController extends Controller
             return;
         }
 
+        $validFrom = match($action) {
+            'confirm', 'cancel'  => ['pending'],
+            'complete', 'noshow' => ['confirmed'],
+            default              => [],
+        };
+
+        if (!in_array($booking->status, $validFrom)) {
+            MaxService::answerCallback($cbId, 'Статус уже изменён');
+            return;
+        }
+
         $newStatus = match ($action) {
-            'confirm' => 'confirmed',
-            'cancel'  => 'cancelled',
-            default   => null,
+            'confirm'  => 'confirmed',
+            'cancel'   => 'cancelled',
+            'complete' => 'completed',
+            'noshow'   => 'no_show',
+            default    => null,
         };
 
         if (!$newStatus) {
@@ -314,10 +327,19 @@ class MaxController extends Controller
         MaxService::notifyCustomerStatus($bookingId, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow');
         try { TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus); } catch (\Throwable) {}
 
-        $label = $newStatus === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
+        $label = match($newStatus) {
+            'confirmed' => '✅ Подтверждена',
+            'cancelled' => '❌ Отменена',
+            'completed' => '✅ Завершена',
+            'no_show'   => '👻 Неявка',
+            default     => $newStatus,
+        };
+
         MaxService::answerCallback($cbId, "Запись {$label}");
         MaxService::removeButtonsByEntity('booking', $bookingId);
         TelegramService::removeKeyboardByEntity('Booking', $bookingId);
+        $cached = \Illuminate\Support\Facades\Cache::get("max_mid:completion:{$bookingId}");
+        if ($cached) MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
 
         $date = \Carbon\Carbon::parse($booking->start_time)
             ->setTimezone($shop->timezone ?? 'Europe/Moscow')

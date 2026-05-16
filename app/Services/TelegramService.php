@@ -504,12 +504,36 @@ class TelegramService
         ]);
     }
 
+    public static function notifyOwnerCompletionRequest(Shop $shop, object $booking): void
+    {
+        $tz      = $shop->timezone ?? 'Europe/Moscow';
+        $start   = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz)->format('H:i');
+        $end     = \Carbon\Carbon::parse($booking->end_time)->setTimezone($tz)->format('H:i');
+        $service = $booking->service_name ?? '—';
+        $name    = $booking->customer_name;
+
+        $text = "📋 {$service} — {$start}–{$end} ({$name})\nКак прошло?";
+
+        self::sendMessage(
+            shop: $shop,
+            text: $text,
+            inlineKeyboard: [[
+                ['text' => '✅ Завершить', 'callback_data' => "booking:complete:{$booking->id}"],
+                ['text' => '👻 Неявка',   'callback_data' => "booking:noshow:{$booking->id}"],
+            ]],
+            type: 'system_notification',
+            entityType: 'Booking',
+            entityId: $booking->id
+        );
+    }
+
     public static function notifyOwnerBookingStatus(Shop $shop, $booking, string $status): void
     {
         $label = match($status) {
             'confirmed' => '✅ Подтверждена',
             'cancelled' => '❌ Отменена',
             'completed' => '✅ Завершена',
+            'no_show'   => '👻 Неявка',
             default     => null,
         };
         if (!$label) return;

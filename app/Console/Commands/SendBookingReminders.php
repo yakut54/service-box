@@ -85,6 +85,41 @@ class SendBookingReminders extends Command
             }
         }
 
+        // Completion request: confirmed bookings whose end_time has passed
+        $completionBookings = DB::select("
+            SELECT
+                b.id, b.start_time, b.end_time, b.customer_name,
+                s.name AS service_name
+            FROM {$s}.bookings b
+            LEFT JOIN {$s}.products s ON s.id = b.service_id
+            WHERE b.status = 'confirmed'
+              AND b.owner_completion_sent = FALSE
+              AND b.end_time < NOW()
+        ");
+
+        Log::info('[Reminders] [completion] found ' . count($completionBookings) . ' booking(s)', ['shop' => $shop->id]);
+
+        foreach ($completionBookings as $booking) {
+            try {
+                if ($shop->telegram_bot_connected) {
+                    TelegramService::notifyOwnerCompletionRequest($shop, $booking);
+                }
+                if ($shop->max_bot_connected) {
+                    MaxService::notifyOwnerCompletionRequest($shop, $booking);
+                }
+
+                DB::statement("UPDATE {$s}.bookings SET owner_completion_sent = TRUE WHERE id = ?", [$booking->id]);
+
+                Log::info('[Reminders] [completion] sent OK', ['shop' => $shop->id, 'booking' => $booking->id]);
+            } catch (\Throwable $e) {
+                Log::error('[Reminders] [completion] FAILED', [
+                    'shop'    => $shop->id,
+                    'booking' => $booking->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
+
         // Rating request after booking end_time
         $ratingBookings = DB::select("
             SELECT
