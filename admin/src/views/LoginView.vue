@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import PasswordInput from '@/components/PasswordInput.vue'
 import AppInput from '@/components/AppInput.vue'
+import UiCheckbox from '@/shared/ui/UiCheckbox.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -65,10 +66,9 @@ async function handleSubmit() {
           <PasswordInput label="Пароль" v-model="password" placeholder="Введите пароль" autocomplete="current-password" />
 
           <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input v-model="remember" type="checkbox" class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer" />
+            <UiCheckbox v-model="remember">
               <span class="text-sm text-gray-600 dark:text-gray-400">Запомнить меня</span>
-            </label>
+            </UiCheckbox>
             <RouterLink to="/forgot-password" class="text-sm text-primary-600 hover:text-primary-700">Забыли пароль?</RouterLink>
           </div>
 

@@ -6,6 +6,7 @@ import CustomSelect from '@/components/CustomSelect.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
 import AppInput from '@/components/AppInput.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
+import UiCheckbox from '@/shared/ui/UiCheckbox.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -130,19 +131,14 @@ async function handleSubmit() {
             <p v-if="confirmStatus === 'success'" class="mt-1 text-sm text-green-600">Пароли совпадают</p>
           </div>
 
-          <label class="flex items-start gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              v-model="termsAccepted"
-              class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 flex-shrink-0"
-            />
+          <UiCheckbox v-model="termsAccepted" align="start">
             <span class="text-sm text-gray-600 dark:text-gray-400 leading-snug">
               Я ознакомился и принимаю условия
               <a href="/offer" target="_blank" rel="noopener" class="text-primary-600 hover:text-primary-700 font-medium">публичной оферты</a>
               и
               <a href="/privacy" target="_blank" rel="noopener" class="text-primary-600 hover:text-primary-700 font-medium">политики конфиденциальности</a>
             </span>
-          </label>
+          </UiCheckbox>
 
           <button type="submit" class="btn-primary w-full" :disabled="loading">
             {{ loading ? 'Создание...' : 'Создать магазин' }}

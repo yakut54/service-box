@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
+import UiCheckbox from '@/shared/ui/UiCheckbox.vue'
 
 type FontFamily = 'system' | 'inter' | 'roboto' | 'montserrat' | 'georgia'
 
@@ -285,10 +286,9 @@ async function saveConfig() {
 
         <!-- Background color override -->
         <div>
-          <label class="flex items-center gap-2 cursor-pointer select-none mb-2">
-            <input type="checkbox" v-model="bgEnabled" class="w-4 h-4 rounded text-indigo-600" />
+          <UiCheckbox v-model="bgEnabled" class="mb-2">
             <span class="label mb-0">Свой цвет фона</span>
-          </label>
+          </UiCheckbox>
           <div v-if="bgEnabled" class="flex items-center gap-3">
             <input type="color" v-model="bgColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
             <input type="text" v-model="bgColor" class="input w-32 font-mono text-sm" placeholder="#ffffff" />
@@ -347,22 +347,18 @@ async function saveConfig() {
           <div>
             <label class="label mb-2">Показывать в карточке услуги</label>
             <div class="space-y-2">
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input type="checkbox" v-model="showPrice" class="w-4 h-4 rounded text-indigo-600" />
+              <UiCheckbox v-model="showPrice">
                 <span class="text-sm text-gray-700 dark:text-gray-300">Цену</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input type="checkbox" v-model="showDuration" class="w-4 h-4 rounded text-indigo-600" />
+              </UiCheckbox>
+              <UiCheckbox v-model="showDuration">
                 <span class="text-sm text-gray-700 dark:text-gray-300">Длительность</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input type="checkbox" v-model="showMasterName" class="w-4 h-4 rounded text-indigo-600" />
+              </UiCheckbox>
+              <UiCheckbox v-model="showMasterName">
                 <span class="text-sm text-gray-700 dark:text-gray-300">Имя мастера</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input type="checkbox" v-model="showDescription" class="w-4 h-4 rounded text-indigo-600" />
+              </UiCheckbox>
+              <UiCheckbox v-model="showDescription">
                 <span class="text-sm text-gray-700 dark:text-gray-300">Описание</span>
-              </label>
+              </UiCheckbox>
             </div>
           </div>
         </div>
