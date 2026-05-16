@@ -3,6 +3,7 @@
 // ==========================================
 
 export interface WidgetConfig {
+  preset?: 'light' | 'dark' | 'minimal' | null
   primary_color?: string
   logo_url?: string | null
   border_radius?: number

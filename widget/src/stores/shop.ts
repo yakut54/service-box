@@ -82,12 +82,32 @@ export const useShopStore = defineStore('sb-shop', () => {
     loading.value = false
   }
 
+  const PRESETS: Record<string, Record<string, string>> = {
+    light: {
+      '--sb-bg': '#ffffff', '--sb-bg-muted': '#f9fafb',
+      '--sb-border': '#e5e7eb', '--sb-text': '#1f2937', '--sb-text-muted': '#6b7280',
+    },
+    dark: {
+      '--sb-bg': '#0f172a', '--sb-bg-muted': '#1e293b',
+      '--sb-border': '#334155', '--sb-text': '#f1f5f9', '--sb-text-muted': '#94a3b8',
+      '--sb-primary-light': '#1e1b4b',
+    },
+    minimal: {
+      '--sb-bg': '#ffffff', '--sb-bg-muted': '#fafafa',
+      '--sb-border': '#f3f4f6', '--sb-text': '#111827', '--sb-text-muted': '#9ca3af',
+    },
+  }
+
   function applyTheme(el: HTMLElement) {
     const c = config.value
     if (!c || !el) return
+    const preset = (c.preset ?? 'light') as string
+    const vars = PRESETS[preset] ?? PRESETS.light
+    for (const [key, val] of Object.entries(vars)) {
+      el.style.setProperty(key, val)
+    }
     if (c.primary_color) el.style.setProperty('--sb-primary', c.primary_color)
     if (c.border_radius != null) el.style.setProperty('--sb-radius', `${c.border_radius}px`)
-    el.setAttribute('data-theme', theme.value)
   }
 
   return {

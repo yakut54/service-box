@@ -90,7 +90,8 @@ watch(currentView, async (view) => {
 // Apply theme vars and data-theme attribute whenever shop config or theme changes
 watchEffect(() => {
   if (!widgetEl.value) return
-  widgetEl.value.setAttribute('data-theme', shopStore.theme)
+  const forceDark = shopStore.config.preset === 'dark'
+  widgetEl.value.setAttribute('data-theme', forceDark ? 'dark' : shopStore.theme)
   if (shopStore.shop) shopStore.applyTheme(widgetEl.value)
 })
 

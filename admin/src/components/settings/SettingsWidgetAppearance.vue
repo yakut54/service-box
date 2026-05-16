@@ -13,6 +13,7 @@ const hasProFeature = computed(() =>
   authStore.shop?.subscription_plan === 'pro'
 )
 
+const preset         = ref<'light' | 'dark' | 'minimal'>('light')
 const color          = ref('#6366f1')
 const borderRadius   = ref<4 | 8 | 16>(8)
 const showPrice       = ref(true)
@@ -32,6 +33,7 @@ const confirmDelete  = ref(false)
 onMounted(() => {
   const wc = authStore.shop?.widget_config
   if (wc) {
+    if (wc.preset)                 preset.value        = wc.preset as 'light' | 'dark' | 'minimal'
     if (wc.primary_color)          color.value         = wc.primary_color
     if (wc.border_radius != null)  borderRadius.value  = wc.border_radius as 4 | 8 | 16
     if (wc.show_price       != null) showPrice.value       = wc.show_price
@@ -123,6 +125,7 @@ async function saveConfig() {
   try {
     const updated = await api.updateShop({
       widget_config: {
+        preset:           preset.value,
         primary_color:    color.value,
         border_radius:    borderRadius.value,
         logo_url:         logoUrl.value,
@@ -161,6 +164,39 @@ async function saveConfig() {
     </div>
 
     <div v-else class="space-y-5">
+
+      <!-- Preset themes -->
+      <div>
+        <label class="label mb-2">Тема виджета</label>
+        <div class="grid grid-cols-3 gap-3">
+          <button
+            v-for="t in [
+              { id: 'light',   label: 'Светлая',    bg: 'bg-white border border-gray-200',       bar1: 'bg-gray-200',    bar2: 'bg-gray-100'  },
+              { id: 'dark',    label: 'Тёмная',     bg: 'bg-slate-900',                           bar1: 'bg-slate-600',   bar2: 'bg-slate-700' },
+              { id: 'minimal', label: 'Минимализм', bg: 'bg-white border border-gray-100',        bar1: 'bg-gray-100',    bar2: 'bg-gray-50'   },
+            ]"
+            :key="t.id"
+            type="button"
+            @click="preset = t.id as 'light' | 'dark' | 'minimal'"
+            :class="['rounded-xl border-2 p-3 text-left transition-all cursor-pointer w-full',
+              preset === t.id
+                ? 'border-indigo-500 dark:border-indigo-400'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
+          >
+            <div :class="['rounded-lg p-2 mb-2 h-16 flex flex-col justify-between', t.bg]">
+              <div class="space-y-1">
+                <div :class="['h-1.5 rounded w-3/4', t.bar1]" />
+                <div :class="['h-1.5 rounded w-1/2', t.bar2]" />
+              </div>
+              <div class="h-4 rounded-md" :style="{ background: color }" />
+            </div>
+            <div :class="['text-xs font-medium', preset === t.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400']">
+              {{ t.label }}
+            </div>
+          </button>
+        </div>
+      </div>
+
       <!-- Color -->
       <div>
         <label class="label">Основной цвет</label>
