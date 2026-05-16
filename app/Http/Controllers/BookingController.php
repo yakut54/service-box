@@ -224,6 +224,8 @@ class BookingController extends Controller
             $tz = $shop->timezone ?? 'Europe/Moscow';
             try { \App\Services\MaxService::notifyCustomerStatus($booking->id, $request->status, $booking, $tz); } catch (\Throwable) {}
             try { \App\Services\TelegramService::notifyBookingStatusToCustomer($shop, $booking, $request->status); } catch (\Throwable) {}
+            try { \App\Services\TelegramService::removeKeyboardByEntity('Booking', $booking->id); } catch (\Throwable) {}
+            try { \App\Services\MaxService::removeButtonsByEntity('booking', $booking->id); } catch (\Throwable) {}
         }
 
         return response()->json([
