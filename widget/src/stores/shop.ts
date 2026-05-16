@@ -34,7 +34,12 @@ export const useShopStore = defineStore('sb-shop', () => {
 
   let api: WidgetApi | null = null
 
-  const config = computed<WidgetConfig>(() => shop.value?.widget_config ?? {})
+  const previewConfig = ref<Partial<WidgetConfig> | null>(null)
+
+  const config = computed<WidgetConfig>(() => ({
+    ...(shop.value?.widget_config ?? {}),
+    ...(previewConfig.value ?? {}),
+  }))
 
   function getApi(): WidgetApi {
     if (!api) {
@@ -110,7 +115,7 @@ export const useShopStore = defineStore('sb-shop', () => {
   }
 
   return {
-    shopId, apiUrl, shop, loading, error, config,
+    shopId, apiUrl, shop, loading, error, config, previewConfig,
     isOpen,
     mode, deepLinkServiceId, prefillName, prefillPhone, prefillEmail, bookingInProgress,
     sessionId, initSession,

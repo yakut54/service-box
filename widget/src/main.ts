@@ -92,6 +92,13 @@ function init(options: WidgetOptions | string): WidgetInstance {
     }, { immediate: true })
   }
 
+  // ── Preview postMessage listener (admin iframe) ──────────
+  const previewHandler = (e: MessageEvent) => {
+    if (e.data?.type !== 'sb-preview-config') return
+    shopStore.previewConfig = e.data.config
+  }
+  window.addEventListener('message', previewHandler)
+
   // ── Inline mode: no FAB, always open ─────────────────────
   if (shopStore.mode === 'inline') {
     shopStore.isOpen = true
@@ -102,6 +109,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
       app,
       container,
       destroy: () => {
+        window.removeEventListener('message', previewHandler)
         app.unmount()
         if (!opts.container) container.remove()
       },
@@ -202,6 +210,7 @@ function init(options: WidgetOptions | string): WidgetInstance {
     destroy: () => {
       stopWatch()
       window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('message', previewHandler)
       app.unmount()
       fab.remove()
       fabStyleEl?.remove()

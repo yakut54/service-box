@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
@@ -43,6 +43,22 @@ const error          = ref('')
 const uploadingLogo  = ref(false)
 const logoError      = ref('')
 const confirmDelete  = ref(false)
+
+const previewIframeEl = ref<HTMLIFrameElement | null>(null)
+const previewLoaded   = ref(false)
+const previewVisible  = ref(false)
+
+const _API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/api\/?$/, '') ?? ''
+const previewUrl = computed(() => {
+  const key = authStore.shop?.api_key
+  if (!key) return null
+  return `${_API_BASE || window.location.origin}/book/${key}?preview=1`
+})
+const fullPreviewUrl = computed(() => {
+  const key = authStore.shop?.api_key
+  if (!key) return null
+  return `${_API_BASE || window.location.origin}/book/${key}`
+})
 
 onMounted(() => {
   // Load Google Fonts for preview buttons
@@ -144,6 +160,30 @@ async function removeLogo() {
   if (url) await api.deleteImage(url).catch(() => {})
 }
 
+function sendPreviewConfig() {
+  previewIframeEl.value?.contentWindow?.postMessage({
+    type: 'sb-preview-config',
+    config: {
+      preset:           preset.value,
+      primary_color:    color.value,
+      font_family:      font.value,
+      sidebar_position: sidebarPos.value,
+      bg_color:         bgEnabled.value ? bgColor.value : null,
+      border_radius:    borderRadius.value,
+    },
+  }, '*')
+}
+
+function onPreviewLoad() {
+  previewLoaded.value = true
+  sendPreviewConfig()
+}
+
+watch(
+  [preset, color, font, sidebarPos, bgEnabled, bgColor, borderRadius],
+  () => { if (previewLoaded.value) sendPreviewConfig() },
+)
+
 async function saveConfig() {
   saving.value  = true
   error.value   = ''
@@ -179,8 +219,12 @@ async function saveConfig() {
 
 <template>
   <div class="card">
-    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Внешний вид виджета</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Цвет, логотип и отображение элементов</p>
+    <div class="flex flex-col xl:flex-row xl:items-start gap-8">
+
+    <!-- Settings column -->
+    <div class="flex-1 min-w-0">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Внешний вид виджета</h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Цвет, логотип и отображение элементов</p>
 
     <div v-if="!hasFeature" class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
       <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,12 +417,53 @@ async function saveConfig() {
         <p class="text-xs text-gray-400">White label и Custom CSS доступны на тарифе <span class="font-medium">Pro</span></p>
       </div>
 
+      <!-- Mobile: preview toggle -->
+      <button
+        v-if="previewUrl"
+        type="button"
+        @click="previewVisible = !previewVisible"
+        class="btn-secondary w-full xl:hidden text-sm"
+      >{{ previewVisible ? 'Скрыть предпросмотр' : 'Предпросмотр' }}</button>
+
       <div v-if="success" class="text-sm text-green-600 dark:text-green-400">Сохранено!</div>
       <div v-if="error"   class="text-sm text-red-600">{{ error }}</div>
       <button @click="saveConfig" :disabled="saving" class="btn-primary">
         {{ saving ? 'Сохранение...' : 'Сохранить внешний вид' }}
       </button>
     </div>
+    </div><!-- /settings column -->
+
+    <!-- Preview column -->
+    <div
+      v-if="hasFeature && previewUrl"
+      class="xl:w-[360px] w-full shrink-0 xl:sticky xl:top-4 xl:self-start"
+      :class="previewVisible ? 'block' : 'hidden xl:block'"
+    >
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Предпросмотр</span>
+        <a
+          :href="fullPreviewUrl ?? '#'"
+          target="_blank"
+          rel="noopener"
+          class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+        >
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          Смотреть как клиент
+        </a>
+      </div>
+      <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700" style="height:600px;">
+        <iframe
+          ref="previewIframeEl"
+          :src="previewUrl"
+          class="w-full h-full border-0"
+          @load="onPreviewLoad"
+        />
+      </div>
+    </div>
+
+    </div><!-- /flex wrapper -->
   </div>
 
   <UiConfirmDialog

@@ -31,9 +31,12 @@ import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue
         <SettingsTelegram />
         <SettingsMax />
         <SettingsYookassa />
-        <SettingsWidgetAppearance />
         <SettingsWidgetAnalytics />
       </div>
+    </div>
+
+    <div class="mt-6">
+      <SettingsWidgetAppearance />
     </div>
   </div>
 </template>

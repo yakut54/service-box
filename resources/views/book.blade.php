@@ -37,6 +37,13 @@
   </style>
 </head>
 <body>
+@if(request()->boolean('preview'))
+  <div id="servicebox-widget" style="width:100%;height:100vh;overflow:hidden;"></div>
+  <script src="/widget.js"></script>
+  <script>
+    ServiceBoxWidget.init({ shopId: '{{ $apiKey }}', mode: 'inline', container: '#servicebox-widget' });
+  </script>
+@else
   <header>
     <h1>{{ $shopName }}</h1>
   </header>
@@ -48,5 +55,6 @@
     localStorage.setItem('sb-open:{{ $apiKey }}', 'true');
     ServiceBoxWidget.init({ shopId: '{{ $apiKey }}' });
   </script>
+@endif
 </body>
 </html>
