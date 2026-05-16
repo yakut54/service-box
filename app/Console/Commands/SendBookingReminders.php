@@ -32,6 +32,13 @@ class SendBookingReminders extends Command
     {
         $s = $shop->schema_name;
 
+        Log::info('[Reminders] processing shop', [
+            'shop'      => $shop->id,
+            'schema'    => $s,
+            'tg'        => $shop->telegram_bot_connected,
+            'max'       => $shop->max_bot_connected,
+        ]);
+
         foreach (['24h' => [23, 45, 24, 15], '2h' => [1, 45, 2, 15]] as $type => [$hFrom, $mFrom, $hTo, $mTo]) {
             $flag = $type === '24h' ? 'reminder_24h_sent' : 'reminder_2h_sent';
 
@@ -50,7 +57,13 @@ class SendBookingReminders extends Command
                     AND NOW() + INTERVAL '{$hTo} hours {$mTo} minutes'
             ");
 
+            Log::info("[Reminders] [{$type}] found " . count($bookings) . " booking(s)", ['shop' => $shop->id]);
+
             foreach ($bookings as $booking) {
+                Log::info("[Reminders] [{$type}] sending to {$booking->customer_name} ({$booking->customer_phone})", [
+                    'booking'    => $booking->id,
+                    'start_time' => $booking->start_time,
+                ]);
                 try {
                     if ($shop->telegram_bot_connected) {
                         TelegramService::notifyBookingReminder($shop, $booking, $type);
@@ -61,12 +74,9 @@ class SendBookingReminders extends Command
 
                     DB::statement("UPDATE {$s}.bookings SET {$flag} = TRUE WHERE id = ?", [$booking->id]);
 
-                    Log::info("Booking reminder [{$type}] sent", [
-                        'shop'    => $shop->id,
-                        'booking' => $booking->id,
-                    ]);
+                    Log::info("[Reminders] [{$type}] sent OK", ['shop' => $shop->id, 'booking' => $booking->id]);
                 } catch (\Throwable $e) {
-                    Log::error("Booking reminder [{$type}] failed", [
+                    Log::error("[Reminders] [{$type}] FAILED", [
                         'shop'    => $shop->id,
                         'booking' => $booking->id,
                         'error'   => $e->getMessage(),
@@ -75,7 +85,7 @@ class SendBookingReminders extends Command
             }
         }
 
-        // Rating request 2h after booking end_time
+        // Rating request after booking end_time
         $ratingBookings = DB::select("
             SELECT
                 b.id, b.end_time, b.customer_phone, b.customer_name,
@@ -89,7 +99,13 @@ class SendBookingReminders extends Command
                 AND NOW() - INTERVAL '5 minutes'
         ");
 
+        Log::info('[Reminders] [rating] found ' . count($ratingBookings) . ' booking(s)', ['shop' => $shop->id]);
+
         foreach ($ratingBookings as $booking) {
+            Log::info("[Reminders] [rating] sending to {$booking->customer_name} ({$booking->customer_phone})", [
+                'booking'  => $booking->id,
+                'end_time' => $booking->end_time,
+            ]);
             try {
                 if ($shop->telegram_bot_connected) {
                     TelegramService::notifyRatingRequest($shop, $booking);
@@ -100,9 +116,9 @@ class SendBookingReminders extends Command
 
                 DB::statement("UPDATE {$s}.bookings SET rating_sent = TRUE WHERE id = ?", [$booking->id]);
 
-                Log::info('Rating request sent', ['shop' => $shop->id, 'booking' => $booking->id]);
+                Log::info('[Reminders] [rating] sent OK', ['shop' => $shop->id, 'booking' => $booking->id]);
             } catch (\Throwable $e) {
-                Log::error('Rating request failed', [
+                Log::error('[Reminders] [rating] FAILED', [
                     'shop'    => $shop->id,
                     'booking' => $booking->id,
                     'error'   => $e->getMessage(),

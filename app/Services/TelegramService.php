@@ -206,7 +206,15 @@ class TelegramService
             ->where('phone', $booking->customer_phone)
             ->value('telegram_chat_id');
 
+        Log::info('[TG] notifyBookingStatusToCustomer', [
+            'booking' => $booking->id,
+            'status'  => $status,
+            'phone'   => $booking->customer_phone,
+            'chat_id' => $chatId,
+        ]);
+
         if (!$chatId) {
+            Log::warning('[TG] notifyBookingStatusToCustomer: no telegram_chat_id, skipping', ['phone' => $booking->customer_phone]);
             return;
         }
 
@@ -397,7 +405,14 @@ class TelegramService
             ->where('phone', $booking->customer_phone)
             ->value('telegram_chat_id');
 
+        Log::info('[TG] notifyRatingRequest', [
+            'booking' => $booking->id,
+            'phone'   => $booking->customer_phone,
+            'chat_id' => $chatId,
+        ]);
+
         if (!$chatId) {
+            Log::warning('[TG] notifyRatingRequest: no telegram_chat_id, skipping', ['phone' => $booking->customer_phone]);
             return;
         }
 

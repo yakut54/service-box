@@ -180,15 +180,20 @@ class MaxController extends Controller
         $payload    = $update['callback']['payload'] ?? '';
         $userId     = $update['callback']['user']['user_id'] ?? null;
 
+        Log::info('[MAX] callback received', ['payload' => $payload, 'user_id' => $userId]);
+
         if (!$callbackId || !$userId) return;
 
         $parts = explode(':', $payload, 3);
         if (count($parts) !== 3) {
+            Log::warning('[MAX] callback: bad payload format', ['payload' => $payload]);
             MaxService::answerCallback($callbackId, 'Неизвестная команда');
             return;
         }
 
         [$entityType, $action, $entityId] = $parts;
+
+        Log::info('[MAX] callback parsed', ['entity' => $entityType, 'action' => $action, 'id' => $entityId]);
 
         // Customer-side callbacks — handle before shop owner lookup
         if ($entityType === 'rate') {
@@ -364,12 +369,16 @@ class MaxController extends Controller
     private function handleRatingCallback(string $cbId, string $bookingId, string $scoreStr, int $userId): void
     {
         $score = (int) $scoreStr;
+        Log::info('[MAX] rating callback', ['booking' => $bookingId, 'score' => $score, 'user_id' => $userId]);
+
         if ($score < 1 || $score > 5) {
+            Log::warning('[MAX] rating: invalid score', ['score' => $score]);
             MaxService::answerCallback($cbId, 'Неверная оценка');
             return;
         }
 
         if (\Illuminate\Support\Facades\Cache::get("rated:{$bookingId}")) {
+            Log::info('[MAX] rating: already rated (cache hit)', ['booking' => $bookingId]);
             MaxService::answerCallback($cbId, 'Вы уже оценили этот визит');
             return;
         }
@@ -389,8 +398,17 @@ class MaxController extends Controller
 
             if (!$booking) continue;
 
+            Log::info('[MAX] rating: booking found', ['schema' => $s, 'booking' => $bookingId]);
+
             $subscribedUserId = MaxService::getCustomerUserId($bookingId);
+            Log::info('[MAX] rating: customer lookup', [
+                'subscribed_user_id' => $subscribedUserId,
+                'callback_user_id'   => $userId,
+                'match'              => $subscribedUserId === $userId,
+            ]);
+
             if ($subscribedUserId !== $userId) {
+                Log::warning('[MAX] rating: access denied');
                 MaxService::answerCallback($cbId, 'Нет доступа');
                 return;
             }
@@ -406,7 +424,7 @@ class MaxController extends Controller
                     'created_at'    => now(),
                 ]);
             } catch (\Throwable $e) {
-                Log::error('MAX: failed to save rating', ['booking' => $bookingId, 'error' => $e->getMessage()]);
+                Log::error('[MAX] rating: DB insert FAILED', ['booking' => $bookingId, 'error' => $e->getMessage()]);
                 MaxService::answerCallback($cbId, 'Ошибка сохранения');
                 return;
             }
@@ -414,6 +432,7 @@ class MaxController extends Controller
             \Illuminate\Support\Facades\Cache::put("rated:{$bookingId}", true, now()->addDays(30));
 
             $cached = \Illuminate\Support\Facades\Cache::get("max_rating_mid:{$bookingId}");
+            Log::info('[MAX] rating: mid cache', ['found' => (bool) $cached, 'mid' => $cached['mid'] ?? null]);
             if ($cached) {
                 MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
             }
@@ -421,9 +440,11 @@ class MaxController extends Controller
             $stars = str_repeat('⭐', $score);
             MaxService::answerCallback($cbId, "Спасибо за оценку! {$stars}");
             MaxService::sendRaw($userId, "Спасибо за оценку {$stars}\nОтзыв отправлен на модерацию.");
+            Log::info('[MAX] rating: saved OK', ['booking' => $bookingId, 'score' => $score]);
             return;
         }
 
+        Log::warning('[MAX] rating: booking not found in any schema', ['booking' => $bookingId]);
         MaxService::answerCallback($cbId, 'Запись не найдена');
     }
 }

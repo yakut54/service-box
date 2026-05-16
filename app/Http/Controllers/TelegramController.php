@@ -218,6 +218,8 @@ class TelegramController extends Controller
 
         [$entityType, $action, $entityId] = $parts;
 
+        Log::info('[TG] callback', ['entity' => $entityType, 'action' => $action, 'id' => $entityId, 'chat' => $chatId]);
+
         // Customer-side rating callback — shop lookup is by booking id, not chat_id
         if ($entityType === 'rate') {
             $this->handleRatingCallback($callbackId, $action, $entityId, $chatId, $messageId);
@@ -357,12 +359,16 @@ class TelegramController extends Controller
     private function handleRatingCallback(string $callbackId, string $bookingId, string $scoreStr, int $chatId, ?int $messageId = null): void
     {
         $score = (int) $scoreStr;
+        Log::info('[TG] rating callback', ['booking' => $bookingId, 'score' => $score, 'chat' => $chatId]);
+
         if ($score < 1 || $score > 5) {
+            Log::warning('[TG] rating: invalid score', ['score' => $score]);
             $this->answerCallback($callbackId, 'Неверная оценка');
             return;
         }
 
         if (\Illuminate\Support\Facades\Cache::get("rated:{$bookingId}")) {
+            Log::info('[TG] rating: already rated (cache hit)', ['booking' => $bookingId]);
             $this->answerCallback($callbackId, 'Вы уже оценили этот визит');
             return;
         }
@@ -385,12 +391,22 @@ class TelegramController extends Controller
                 continue;
             }
 
+            Log::info('[TG] rating: booking found', ['schema' => $s, 'booking' => $bookingId, 'customer' => $booking->customer_phone]);
+
             $customer = \DB::selectOne(
                 "SELECT telegram_chat_id FROM {$s}.customers WHERE phone = ?",
                 [$booking->customer_phone]
             );
 
+            Log::info('[TG] rating: customer lookup', [
+                'found'              => (bool) $customer,
+                'customer_chat_id'   => $customer ? $customer->telegram_chat_id : null,
+                'callback_chat_id'   => $chatId,
+                'match'              => $customer && (int) $customer->telegram_chat_id === $chatId,
+            ]);
+
             if (!$customer || (int) $customer->telegram_chat_id !== $chatId) {
+                Log::warning('[TG] rating: access denied');
                 $this->answerCallback($callbackId, 'Нет доступа');
                 return;
             }
@@ -406,7 +422,7 @@ class TelegramController extends Controller
                     'created_at'    => now(),
                 ]);
             } catch (\Throwable $e) {
-                Log::error('Failed to save rating', ['booking' => $bookingId, 'error' => $e->getMessage()]);
+                Log::error('[TG] rating: DB insert FAILED', ['booking' => $bookingId, 'error' => $e->getMessage()]);
                 $this->answerCallback($callbackId, 'Ошибка сохранения');
                 return;
             }
@@ -417,15 +433,20 @@ class TelegramController extends Controller
             $stars = str_repeat('⭐', $score);
             $this->answerCallback($callbackId, "Спасибо за оценку! {$stars}");
             $this->sendReply($chatId, "Спасибо за вашу оценку {$stars}\nОтзыв отправлен на модерацию.");
+            Log::info('[TG] rating: saved OK', ['booking' => $bookingId, 'score' => $score]);
             return;
         }
 
+        Log::warning('[TG] rating: booking not found in any schema', ['booking' => $bookingId]);
         $this->answerCallback($callbackId, 'Запись не найдена');
     }
 
     private function handleClientAction(string $callbackId, string $action, string $bookingId, int $chatId, ?int $messageId = null): void
     {
+        Log::info('[TG] client action', ['action' => $action, 'booking' => $bookingId, 'chat' => $chatId]);
+
         if ($action !== 'cancel') {
+            Log::warning('[TG] client action: unknown action', ['action' => $action]);
             $this->answerCallback($callbackId, 'Неизвестное действие');
             return;
         }
@@ -442,22 +463,33 @@ class TelegramController extends Controller
 
             if (!$booking) continue;
 
-            // Verify the request comes from the booking's customer
+            Log::info('[TG] client cancel: booking found', ['schema' => $s, 'status' => $booking->status]);
+
             $customer = \DB::selectOne(
                 "SELECT telegram_chat_id FROM {$s}.customers WHERE phone = ?",
                 [$booking->customer_phone]
             );
+
+            Log::info('[TG] client cancel: customer lookup', [
+                'found'            => (bool) $customer,
+                'customer_chat_id' => $customer ? $customer->telegram_chat_id : null,
+                'callback_chat_id' => $chatId,
+            ]);
+
             if (!$customer || (int) $customer->telegram_chat_id !== $chatId) {
+                Log::warning('[TG] client cancel: access denied');
                 $this->answerCallback($callbackId, 'Нет доступа');
                 return;
             }
 
             if (!in_array($booking->status, ['pending', 'confirmed'])) {
+                Log::info('[TG] client cancel: already non-cancellable', ['status' => $booking->status]);
                 $this->answerCallback($callbackId, 'Запись уже нельзя отменить', true);
                 return;
             }
 
             \DB::statement("UPDATE {$s}.bookings SET status = 'cancelled' WHERE id = ?", [$bookingId]);
+            Log::info('[TG] client cancel: booking cancelled', ['booking' => $bookingId]);
 
             $this->answerCallback($callbackId, 'Запись отменена');
             $this->removeKeyboard($chatId, $messageId);
@@ -473,10 +505,11 @@ class TelegramController extends Controller
                 MaxService::sendMessage($shop, $msg);
             }
 
-            Log::info('Booking cancelled by customer via Telegram', ['booking_id' => $bookingId]);
+            Log::info('[TG] client cancel: done', ['booking' => $bookingId]);
             return;
         }
 
+        Log::warning('[TG] client cancel: booking not found in any schema', ['booking' => $bookingId]);
         $this->answerCallback($callbackId, 'Запись не найдена');
     }
 
