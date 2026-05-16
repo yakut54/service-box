@@ -5,14 +5,18 @@ import type { WidgetShop, WidgetConfig } from '@/types'
 
 export type WidgetMode = 'popup' | 'inline' | 'auto'
 
-function isDark(hex: string): boolean {
+function hexToRgb(hex: string): [number, number, number] | null {
   const clean = hex.replace('#', '')
   const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
   const r = parseInt(full.slice(0, 2), 16)
   const g = parseInt(full.slice(2, 4), 16)
   const b = parseInt(full.slice(4, 6), 16)
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return false
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5
+  return isNaN(r) || isNaN(g) || isNaN(b) ? null : [r, g, b]
+}
+
+function isDark(hex: string): boolean {
+  const rgb = hexToRgb(hex)
+  return rgb ? (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 < 0.5 : false
 }
 
 export const useShopStore = defineStore('sb-shop', () => {
@@ -109,11 +113,22 @@ export const useShopStore = defineStore('sb-shop', () => {
     for (const [key, val] of Object.entries(vars)) {
       el.style.setProperty(key, val)
     }
-    if (c.primary_color) el.style.setProperty('--sb-primary', c.primary_color)
+    if (c.primary_color) {
+      el.style.setProperty('--sb-primary', c.primary_color)
+      const rgb = hexToRgb(c.primary_color)
+      if (rgb) {
+        el.style.setProperty('--sb-primary-hover', `rgb(${rgb.map(v => Math.max(0, Math.round(v * 0.82))).join(',')})`)
+        el.style.setProperty('--sb-primary-light', `rgba(${rgb.join(',')},0.15)`)
+      }
+    }
     if (c.border_radius != null) el.style.setProperty('--sb-radius', `${c.border_radius}px`)
     if (c.bg_color) el.style.setProperty('--sb-bg', c.bg_color)
     if (c.page_bg_color) el.style.setProperty('--sb-bg-muted', c.page_bg_color)
-    if (c.text_color) el.style.setProperty('--sb-text', c.text_color)
+    if (c.text_color) {
+      el.style.setProperty('--sb-text', c.text_color)
+      const rgb = hexToRgb(c.text_color)
+      if (rgb) el.style.setProperty('--sb-text-muted', `rgba(${rgb.join(',')},0.5)`)
+    }
     const borderBase = c.page_bg_color ?? c.bg_color
     if (borderBase) {
       el.style.setProperty('--sb-border', isDark(borderBase) ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')
