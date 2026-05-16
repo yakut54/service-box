@@ -39,8 +39,8 @@
 <body>
 @if(request()->boolean('preview'))
   <style>
-    body { padding: 8px; align-items: stretch; }
-    #servicebox-widget { width: 100%; border-radius: 8px; overflow: hidden; min-height: calc(100vh - 16px); }
+    body { padding: 20px; align-items: stretch; }
+    #servicebox-widget { width: 100%; border-radius: 8px; overflow: hidden; min-height: calc(100vh - 40px); }
   </style>
   <div id="servicebox-widget"></div>
   <script src="/widget.js"></script>
