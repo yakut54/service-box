@@ -277,8 +277,8 @@ async function saveConfig() {
         <div>
           <label class="label">Основной цвет</label>
           <div class="flex items-center gap-3">
-            <input type="color" v-model="color" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-            <input type="text" v-model="color" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
+            <input type="color" v-model="color" aria-label="Основной цвет" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+            <input type="text" v-model="color" aria-label="Hex основного цвета" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
             <div class="flex-1 h-10 rounded-lg transition-colors" :style="{ background: color }" />
           </div>
           <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты в виджете</p>
@@ -290,8 +290,8 @@ async function saveConfig() {
             <span class="label mb-0">Свой цвет фона</span>
           </UiCheckbox>
           <div v-if="bgEnabled" class="flex items-center gap-3">
-            <input type="color" v-model="bgColor" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
-            <input type="text" v-model="bgColor" class="input w-32 font-mono text-sm" placeholder="#ffffff" />
+            <input type="color" v-model="bgColor" aria-label="Цвет фона" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
+            <input type="text" v-model="bgColor" aria-label="Hex цвета фона" class="input w-32 font-mono text-sm" placeholder="#ffffff" />
             <div class="flex-1 h-10 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors" :style="{ background: bgColor }" />
           </div>
           <p class="text-xs text-gray-400 mt-1">Переопределяет цвет фона выбранной темы</p>
