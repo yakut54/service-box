@@ -226,6 +226,8 @@ class BookingController extends Controller
             try { \App\Services\TelegramService::notifyBookingStatusToCustomer($shop, $booking, $request->status); } catch (\Throwable) {}
             try { \App\Services\TelegramService::removeKeyboardByEntity('Booking', $booking->id); } catch (\Throwable) {}
             try { \App\Services\MaxService::removeButtonsByEntity('booking', $booking->id); } catch (\Throwable) {}
+            try { \App\Services\TelegramService::notifyOwnerBookingStatus($shop, $booking, $request->status); } catch (\Throwable) {}
+            try { \App\Services\MaxService::notifyOwnerBookingStatus($shop, $booking, $request->status); } catch (\Throwable) {}
         }
 
         return response()->json([

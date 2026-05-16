@@ -504,6 +504,31 @@ class TelegramService
         ]);
     }
 
+    public static function notifyOwnerBookingStatus(Shop $shop, $booking, string $status): void
+    {
+        $label = match($status) {
+            'confirmed' => '✅ Подтверждена',
+            'cancelled' => '❌ Отменена',
+            'completed' => '✅ Завершена',
+            default     => null,
+        };
+        if (!$label) return;
+
+        $tz   = $shop->timezone ?? 'Europe/Moscow';
+        $dt   = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz);
+        $date = $dt->format('d.m');
+        $time = $dt->format('H:i');
+        $name = $booking->customer_name ?? $booking->customer_phone;
+
+        self::sendMessage(
+            shop: $shop,
+            text: "Запись {$date} {$time} ({$name}) — {$label}",
+            type: 'booking_status',
+            entityType: 'Booking',
+            entityId: $booking->id
+        );
+    }
+
     public static function removeKeyboardByEntity(string $entityType, string $entityId): void
     {
         $msg = TelegramMessage::where('entity_type', $entityType)

@@ -217,6 +217,25 @@ class MaxService
         }
     }
 
+    public static function notifyOwnerBookingStatus(Shop $shop, $booking, string $status): void
+    {
+        $label = match($status) {
+            'confirmed' => '✅ Подтверждена',
+            'cancelled' => '❌ Отменена',
+            'completed' => '✅ Завершена',
+            default     => null,
+        };
+        if (!$label) return;
+
+        $tz   = $shop->timezone ?? 'Europe/Moscow';
+        $dt   = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz);
+        $date = $dt->format('d.m');
+        $time = $dt->format('H:i');
+        $name = $booking->customer_name ?? $booking->customer_phone;
+
+        self::sendMessage($shop, "Запись {$date} {$time} ({$name}) — {$label}");
+    }
+
     public static function removeButtonsByEntity(string $type, string $entityId): void
     {
         $cached = Cache::get("max_mid:{$type}:{$entityId}");
