@@ -171,7 +171,7 @@ class TelegramController extends Controller
             return;
         }
 
-        $this->sendReply($chatId, 'Я только отправляю уведомления о записях. Для управления используйте кнопки в сообщениях.');
+        $this->sendReply($chatId, "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись — используйте кнопки в сообщениях бота.");
     }
 
     private function handleCustomerLink(string $token, int $chatId): void

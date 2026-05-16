@@ -161,7 +161,7 @@ class MaxController extends Controller
             return;
         }
 
-        MaxService::sendRaw($userId, 'Я только отправляю уведомления о записях. Для управления используйте кнопки в сообщениях.');
+        MaxService::sendRaw($userId, "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись — используйте кнопки в сообщениях бота.");
     }
 
     private function trySubscribeCustomer(int $userId, string $bookingId): void
