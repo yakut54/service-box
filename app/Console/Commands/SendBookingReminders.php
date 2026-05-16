@@ -85,8 +85,8 @@ class SendBookingReminders extends Command
             WHERE b.status = 'completed'
               AND b.rating_sent = FALSE
               AND b.end_time BETWEEN
-                    NOW() - INTERVAL '2 hours 15 minutes'
-                AND NOW() - INTERVAL '1 hours 45 minutes'
+                    NOW() - INTERVAL '15 minutes'
+                AND NOW() - INTERVAL '5 minutes'
         ");
 
         foreach ($ratingBookings as $booking) {
