@@ -323,10 +323,10 @@ async function saveConfig() {
       <!-- Logo + visibility / Border radius + Sidebar position -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
 
-        <!-- Left: Logo + Show/hide elements -->
-        <div class="space-y-5">
+        <!-- Left: Logo + Show/hide elements side by side -->
+        <div class="flex gap-5 items-start">
           <!-- Logo -->
-          <div>
+          <div class="shrink-0">
             <label class="label">Логотип магазина</label>
             <div v-if="logoUrl" class="flex items-center gap-3 mb-2">
               <img :src="logoUrl" class="h-12 w-12 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white p-1" />
