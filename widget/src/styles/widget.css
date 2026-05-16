@@ -639,7 +639,7 @@
   font-size: 14px;
   font-family: inherit;
   border: 1.5px solid var(--sb-border);
-  border-radius: 100px;
+  border-radius: var(--sb-radius);
   background: var(--sb-bg-muted);
   color: var(--sb-text);
   min-height: 44px;
@@ -703,7 +703,7 @@
   min-width: 100%;
   background: var(--sb-bg);
   border: 1px solid var(--sb-border);
-  border-radius: 12px;
+  border-radius: var(--sb-radius);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   z-index: 1000;
   overflow: hidden;
