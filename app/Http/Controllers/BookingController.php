@@ -175,8 +175,10 @@ class BookingController extends Controller
         $maxLink = null;
         $maxCode = null;
         if ($shop?->max_bot_connected && config('services.max.bot_username')) {
-            $maxCode = \App\Services\MaxService::generateCustomerCode($booking->id);
-            $maxLink = 'https://max.ru/' . config('services.max.bot_username') . '?start=' . $maxCode;
+            try {
+                $maxCode = \App\Services\MaxService::generateCustomerCode($booking->id);
+                $maxLink = 'https://max.ru/' . config('services.max.bot_username') . '?start=' . $maxCode;
+            } catch (\Throwable) {}
         }
 
         $bookingData = $booking->toArray();
