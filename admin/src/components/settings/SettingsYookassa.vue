@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
@@ -62,11 +62,11 @@ async function save() {
 
     <div class="space-y-4">
       <div>
-        <label class="label">Shop ID <span class="text-gray-400 font-normal">(из личного кабинета ЮКасса)</span></label>
+        <p class="label">Shop ID <span class="text-gray-400 font-normal">(из личного кабинета ЮКасса)</span></p>
         <input v-model="shopId" type="text" class="input font-mono" placeholder="123456" />
       </div>
       <div>
-        <label class="label">Секретный ключ <span class="text-gray-400 font-normal">(оставьте пустым чтобы не менять)</span></label>
+        <p class="label">Секретный ключ <span class="text-gray-400 font-normal">(оставьте пустым чтобы не менять)</span></p>
         <PasswordInput v-model="secretKey" placeholder="live_xxxxxxxxxxxxxxxxxxxx" />
       </div>
 
@@ -95,7 +95,7 @@ async function save() {
         </div>
 
         <div v-if="prepaymentEnabled" class="mt-3">
-          <label class="label">Сумма предоплаты, ₽ <span class="text-gray-400 font-normal">(0 = полная стоимость услуги)</span></label>
+          <p class="label">Сумма предоплаты, ₽ <span class="text-gray-400 font-normal">(0 = полная стоимость услуги)</span></p>
           <input
             v-model.number="prepaymentAmount"
             type="number"

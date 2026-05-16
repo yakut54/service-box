@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
 import { api } from '@/lib/api'
 import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
@@ -200,19 +200,19 @@ async function save() {
       <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">{{ error }}</div>
 
       <div>
-        <label class="label">Имя <span class="text-red-500">*</span></label>
+        <p class="label">Имя <span class="text-red-500">*</span></p>
         <input v-model="form.name" @input="validateName(form.name)" @blur="validateName(form.name)" type="text"
           :class="['input', formErrors.name ? 'input-error' : '']" placeholder="Иван Иванов" />
         <p v-if="formErrors.name" class="mt-1 text-xs text-red-500">{{ formErrors.name }}</p>
       </div>
 
       <div>
-        <label class="label">Специализация</label>
+        <p class="label">Специализация</p>
         <input v-model="form.specialization" type="text" class="input" placeholder="Парикмахер, массажист..." autocomplete="off" />
       </div>
 
       <div>
-        <label class="label">Телефон</label>
+        <p class="label">Телефон</p>
         <input :value="form.phone"
           @input="handlePhoneInput($event, (v) => { form.phone = v; validatePhone(v) })"
           @blur="validatePhone(form.phone)" type="tel"
@@ -222,7 +222,7 @@ async function save() {
       </div>
 
       <div>
-        <label class="label">Email</label>
+        <p class="label">Email</p>
         <input v-model="form.email" @input="validateEmail(form.email)" @blur="validateEmail(form.email)" type="email"
           :class="['input', formErrors.email ? 'input-error' : form.email && !formErrors.email ? 'input-success' : '']"
           placeholder="master@example.com" />
@@ -231,7 +231,7 @@ async function save() {
 
       <!-- Avatar -->
       <div>
-        <label class="label">Фото</label>
+        <p class="label">Фото</p>
         <div v-if="form.avatar_url" class="flex items-start gap-3 mb-2">
           <div class="relative flex-shrink-0">
             <img :src="form.avatar_url" class="h-20 w-20 object-cover rounded-full border border-gray-200 dark:border-gray-700" alt="Аватар" />
@@ -261,14 +261,14 @@ async function save() {
       </div>
 
       <div>
-        <label class="label">Порядок сортировки</label>
+        <p class="label">Порядок сортировки</p>
         <input v-model.number="form.sort_order" type="number" min="0" class="input" placeholder="0" />
       </div>
 
       <!-- Services -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <label class="label mb-0">Услуги мастера</label>
+          <p class="label mb-0">Услуги мастера</p>
           <span class="text-xs text-gray-400 dark:text-gray-500">
             {{ selectedServiceIds.length ? `${selectedServiceIds.length} выбрано` : 'все (не ограничено)' }}
           </span>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
@@ -185,7 +185,7 @@ onMounted(async () => {
       </div>
 
       <div class="space-y-2">
-        <label class="label text-sm">Введите <strong>{{ customer?.name || 'Без имени' }}</strong> для подтверждения</label>
+        <p class="label text-sm">Введите <strong>{{ customer?.name || 'Без имени' }}</strong> для подтверждения</p>
         <input
           v-model="deleteConfirmName"
           type="text"

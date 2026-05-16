@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
@@ -242,7 +242,7 @@ async function doExport() {
       </div>
 
       <div class="space-y-2">
-        <label class="label text-sm">Введите <strong>{{ deleteTarget.name || 'Без имени' }}</strong> для подтверждения</label>
+        <p class="label text-sm">Введите <strong>{{ deleteTarget.name || 'Без имени' }}</strong> для подтверждения</p>
         <input
           v-model="deleteConfirmName"
           type="text"

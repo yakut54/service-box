@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
@@ -169,7 +169,7 @@ function copyUrl(type: string, key: string) {
           </p>
 
           <div>
-            <label class="label">Реквизиты (ИП/ООО, ИНН, ОГРН, адрес)</label>
+            <p class="label">Реквизиты (ИП/ООО, ИНН, ОГРН, адрес)</p>
             <textarea
               v-model="requisites"
               class="input"
@@ -180,11 +180,11 @@ function copyUrl(type: string, key: string) {
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="label">Email для связи</label>
+              <p class="label">Email для связи</p>
               <input v-model="contactEmail" type="email" class="input" placeholder="info@myshop.ru" />
             </div>
             <div>
-              <label class="label">Телефон для связи</label>
+              <p class="label">Телефон для связи</p>
               <input v-model="contactPhone" type="tel" class="input" placeholder="+7 (900) 000-00-00" />
             </div>
           </div>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { useCategoriesStore } from '@/stores/categories'
@@ -431,23 +431,23 @@ async function doDelete() {
         </div>
 
         <div>
-          <label class="label">Название <span class="text-red-500">*</span></label>
+          <p class="label">Название <span class="text-red-500">*</span></p>
           <input v-model="form.name" type="text" class="input" placeholder="Например: Косметика" />
         </div>
 
         <div>
-          <label class="label">Родительская категория</label>
+          <p class="label">Родительская категория</p>
           <CustomSelect v-model="form.parent_id" :options="parentSelectOptions" placeholder="Верхний уровень (без родителя)" searchable />
           <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Поддерживается только 1 уровень вложенности</p>
         </div>
 
         <div>
-          <label class="label">Описание</label>
+          <p class="label">Описание</p>
           <textarea v-model="form.description" class="input min-h-[80px]" placeholder="Краткое описание категории" />
         </div>
 
         <div>
-          <label class="label">Изображение</label>
+          <p class="label">Изображение</p>
           <div v-if="form.image_url && !imageError" class="flex items-start gap-3">
             <div class="relative flex-shrink-0">
               <img :src="form.image_url" @error="imageError = true" class="h-20 w-20 object-cover rounded-xl border border-gray-200 dark:border-gray-700" alt="Превью" />
@@ -547,7 +547,7 @@ async function doDelete() {
             <CustomSelect v-model="deleteMoveTarget" :options="moveTargetOptions" placeholder="Выберите категорию..." searchable />
           </div>
           <div>
-            <label class="label text-sm">Введите <strong>{{ deleteTarget.name }}</strong> для подтверждения</label>
+            <p class="label text-sm">Введите <strong>{{ deleteTarget.name }}</strong> для подтверждения</p>
             <input v-model="deleteConfirmName" type="text" class="input" :placeholder="deleteTarget.name" />
           </div>
           <p v-if="deleteError" class="text-xs text-red-500">{{ deleteError }}</p>

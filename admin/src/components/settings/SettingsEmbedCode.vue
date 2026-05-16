@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
@@ -92,7 +92,7 @@ onMounted(async () => {
     <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">{{ embedModes.find(m => m.value === embedMode)?.desc }}</p>
 
     <div class="mb-3">
-      <label class="label">Открыть сразу на услуге <span class="text-gray-400 font-normal">(опционально)</span></label>
+      <p class="label">Открыть сразу на услуге <span class="text-gray-400 font-normal">(опционально)</span></p>
       <CustomSelect
         v-model="embedServiceId"
         :options="embedProductOptions"

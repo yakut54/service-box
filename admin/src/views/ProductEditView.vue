@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/lib/api'
@@ -229,7 +229,7 @@ async function handleSubmit() {
         <div class="space-y-4">
           <!-- Тип товара -->
           <div>
-            <label class="label">Тип товара</label>
+            <p class="label">Тип товара</p>
             <div class="grid grid-cols-3 gap-3">
               <button
                 v-for="(cfg, key) in typeConfig"
@@ -281,13 +281,13 @@ async function handleSubmit() {
 
           <!-- Категория -->
           <div>
-            <label class="label">Категория</label>
+            <p class="label">Категория</p>
             <CategorySelect v-model="form.category_id" nullable />
           </div>
 
           <!-- Изображение -->
           <div>
-            <label class="label">Изображение</label>
+            <p class="label">Изображение</p>
 
             <!-- Превью (когда уже есть картинка) -->
             <div v-if="form.image_url && !imageError" class="flex items-start gap-3">
@@ -388,36 +388,36 @@ async function handleSubmit() {
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Артикул (SKU)</label>
+              <p class="label">Артикул (SKU)</p>
               <input v-model="physicalDetails.sku" type="text" class="input" :placeholder="ep('NOTE-GOALS-001')" />
             </div>
             <div>
-              <label class="label">Кол-во на складе</label>
+              <p class="label">Кол-во на складе</p>
               <input v-model.number="physicalDetails.stock_quantity" type="number" min="0" class="input" placeholder="0" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Вес (грамм)</label>
+              <p class="label">Вес (грамм)</p>
               <input v-model.number="physicalDetails.weight_grams" type="number" min="0" class="input" :placeholder="ep('350')" />
             </div>
             <div>
-              <label class="label">Размер (Д×Ш×В)</label>
+              <p class="label">Размер (Д×Ш×В)</p>
               <input v-model="physicalDetails.dimensions" type="text" class="input" :placeholder="ep('20×14×2 см')" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Цвет</label>
+              <p class="label">Цвет</p>
               <input v-model="physicalDetails.color" type="text" class="input" :placeholder="ep('Тёмно-синий')" />
             </div>
             <div>
-              <label class="label">Материал</label>
+              <p class="label">Материал</p>
               <input v-model="physicalDetails.material" type="text" class="input" :placeholder="ep('Экокожа')" />
             </div>
           </div>
           <div>
-            <label class="label">Бренд</label>
+            <p class="label">Бренд</p>
             <input v-model="physicalDetails.brand" type="text" class="input" :placeholder="ep('MyBrand')" />
           </div>
         </div>
@@ -429,7 +429,7 @@ async function handleSubmit() {
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Способ доставки и доступ</p>
         <div class="space-y-4">
           <div>
-            <label class="label">Тип доставки</label>
+            <p class="label">Тип доставки</p>
             <div class="grid grid-cols-3 gap-2">
               <button type="button" @click="digitalDetails.delivery_type = 'download'"
                 :class="['p-2 sm:p-3 rounded-lg border-2 text-center transition-colors text-xs sm:text-sm', digitalDetails.delivery_type === 'download' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']">
@@ -449,22 +449,22 @@ async function handleSubmit() {
             </div>
           </div>
           <div>
-            <label class="label">{{ digitalDetails.delivery_type === 'code' ? 'Код / Инструкция' : 'URL для скачивания / доступа' }}</label>
+            <p class="label">{{ digitalDetails.delivery_type === 'code' ? 'Код / Инструкция' : 'URL для скачивания / доступа' }}</p>
             <input v-model="digitalDetails.download_url" type="text" class="input"
               :placeholder="digitalDetails.delivery_type === 'code' ? 'Код будет отправлен на email' : 'https://storage.example.com/file.zip'" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Срок<span class="hidden sm:inline"> доступа</span> (дней)</label>
+              <p class="label">Срок<span class="hidden sm:inline"> доступа</span> (дней)</p>
               <input v-model.number="digitalDetails.access_days" type="number" min="1" class="input" placeholder="Бессрочно" />
             </div>
             <div>
-              <label class="label">Размер файла (МБ)</label>
+              <p class="label">Размер файла (МБ)</p>
               <input v-model.number="digitalDetails.file_size_mb" type="number" min="0" step="0.1" class="input" :placeholder="ep('256')" />
             </div>
           </div>
           <div>
-            <label class="label">Формат файла</label>
+            <p class="label">Формат файла</p>
             <input v-model="digitalDetails.file_format" type="text" class="input" :placeholder="ep('PDF, MP4, ZIP...')" />
           </div>
         </div>
@@ -477,18 +477,18 @@ async function handleSubmit() {
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Длительность (мин) *</label>
+              <p class="label">Длительность (мин) *</p>
               <input v-model.number="serviceDetails.duration_minutes" type="number" min="5" step="5" class="input" placeholder="60" />
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Шаг: 5 минут</p>
             </div>
             <div>
-              <label class="label">Перерыв (мин)</label>
+              <p class="label">Перерыв (мин)</p>
               <input v-model.number="serviceDetails.break_minutes" type="number" min="0" step="5" class="input" placeholder="0" />
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Время на подготовку</p>
             </div>
           </div>
           <div>
-            <label class="label">Макс. одновременных записей</label>
+            <p class="label">Макс. одновременных записей</p>
             <input v-model.number="serviceDetails.max_concurrent" type="number" min="1" class="input" placeholder="1" />
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Сколько клиентов одновременно могут быть записаны</p>
           </div>

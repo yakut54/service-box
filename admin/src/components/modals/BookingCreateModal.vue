@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
@@ -187,7 +187,7 @@ async function submit() {
       <div v-if="modalError" class="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">{{ modalError }}</div>
 
       <div>
-        <label class="label">Услуга <span class="text-red-500">*</span></label>
+        <p class="label">Услуга <span class="text-red-500">*</span></p>
         <CustomSelect v-model="modalForm.service_id" :options="serviceOptions" searchable />
         <p v-if="services.length === 0" class="mt-1 text-xs text-red-500">
           Нет активных услуг. <RouterLink to="/products" class="underline">Добавьте услугу</RouterLink>
@@ -195,17 +195,17 @@ async function submit() {
       </div>
 
       <div>
-        <label class="label">Дата <span class="text-red-500">*</span></label>
+        <p class="label">Дата <span class="text-red-500">*</span></p>
         <DatePicker v-model="modalForm.date" :min="shopToday()" placeholder="Выберите дату" />
       </div>
 
       <div>
-        <label class="label">Мастер</label>
+        <p class="label">Мастер</p>
         <CustomSelect v-model="modalForm.master_id" :options="masterModalOptions" searchable />
       </div>
 
       <div>
-        <label class="label">Время <span class="text-red-500">*</span></label>
+        <p class="label">Время <span class="text-red-500">*</span></p>
         <div v-if="!modalForm.service_id" class="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/60 text-sm text-gray-400 dark:text-gray-500">
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           Сначала выберите услугу
@@ -240,7 +240,7 @@ async function submit() {
         <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Клиент</div>
         <div class="space-y-3">
           <div>
-            <label class="label">Имя <span class="text-red-500">*</span></label>
+            <p class="label">Имя <span class="text-red-500">*</span></p>
             <input v-model="modalForm.customer_name"
               @input="validateName(modalForm.customer_name)"
               @blur="validateName(modalForm.customer_name)"
@@ -248,7 +248,7 @@ async function submit() {
             <p v-if="bookingErrors.customer_name" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_name }}</p>
           </div>
           <div>
-            <label class="label">Телефон <span class="text-red-500">*</span></label>
+            <p class="label">Телефон <span class="text-red-500">*</span></p>
             <input :value="modalForm.customer_phone"
               @input="handlePhoneInput($event, (v) => { modalForm.customer_phone = v; validatePhone(v) })"
               @blur="validatePhone(modalForm.customer_phone)" type="tel"
@@ -257,7 +257,7 @@ async function submit() {
             <p v-if="bookingErrors.customer_phone" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_phone }}</p>
           </div>
           <div>
-            <label class="label">Email</label>
+            <p class="label">Email</p>
             <input v-model="modalForm.customer_email"
               @input="validateEmail(modalForm.customer_email)"
               @blur="validateEmail(modalForm.customer_email)"
@@ -267,7 +267,7 @@ async function submit() {
             <p v-if="bookingErrors.customer_email" class="mt-1 text-xs text-red-500">{{ bookingErrors.customer_email }}</p>
           </div>
           <div>
-            <label class="label">Примечание</label>
+            <p class="label">Примечание</p>
             <textarea v-model="modalForm.notes" class="input" rows="2" placeholder="Дополнительная информация..."></textarea>
           </div>
         </div>

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -114,7 +114,7 @@ async function handleSubmit() {
           <AppInput label="Название магазина" v-model="shopName" placeholder="Мой магазин" :error="shopNameError" @blur="shopNameTouched = true" />
 
           <div>
-            <label class="label">Часовой пояс</label>
+            <p class="label">Часовой пояс</p>
             <CustomSelect v-model="timezone" :options="timezoneOptions" searchable class="w-full" />
           </div>
 

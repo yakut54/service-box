@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
@@ -88,28 +88,28 @@ async function save() {
 
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
-        <label class="label">Начало рабочего дня</label>
+        <p class="label">Начало рабочего дня</p>
         <TimeInput v-model="workStart" />
       </div>
       <div>
-        <label class="label">Конец рабочего дня</label>
+        <p class="label">Конец рабочего дня</p>
         <TimeInput v-model="workEnd" />
       </div>
     </div>
 
     <div class="mb-4">
-      <label class="label">Шаг слота (интервал записи)</label>
+      <p class="label">Шаг слота (интервал записи)</p>
       <CustomSelect v-model="slotDuration" :options="slotOptions" placeholder="Выберите интервал" />
     </div>
 
     <div class="mb-4">
-      <label class="label">Минимальное время до записи онлайн</label>
+      <p class="label">Минимальное время до записи онлайн</p>
       <CustomSelect v-model="minBookingNotice" :options="noticeOptions" placeholder="Выберите ограничение" />
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Слоты ближе этого времени не будут показаны в виджете</p>
     </div>
 
     <div class="mb-4">
-      <label class="label">Часовой пояс</label>
+      <p class="label">Часовой пояс</p>
       <CustomSelect v-model="timezone" :options="timezoneOptions" placeholder="Выберите часовой пояс" searchable />
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Используется для корректного отображения слотов записи</p>
     </div>

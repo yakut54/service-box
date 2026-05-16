@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
@@ -132,12 +132,12 @@ async function save() {
       <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">{{ error }}</div>
 
       <div>
-        <label class="label">Название <span class="text-red-500">*</span></label>
+        <p class="label">Название <span class="text-red-500">*</span></p>
         <input v-model="form.name" type="text" class="input" placeholder="Летняя акция, Скидка на первый заказ..." />
       </div>
 
       <div>
-        <label class="label">Тип скидки <span class="text-red-500">*</span></label>
+        <p class="label">Тип скидки <span class="text-red-500">*</span></p>
         <div class="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           <button type="button" :class="['flex-1 py-2 text-sm font-medium transition-colors', form.type === 'percent' ? 'bg-primary-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700']" @click="form.type = 'percent'">Процент (%)</button>
           <button type="button" :class="['flex-1 py-2 text-sm font-medium transition-colors', form.type === 'fixed' ? 'bg-primary-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700']" @click="form.type = 'fixed'">Фиксированная (₽)</button>
@@ -145,7 +145,7 @@ async function save() {
       </div>
 
       <div>
-        <label class="label">Размер скидки <span class="text-red-500">*</span></label>
+        <p class="label">Размер скидки <span class="text-red-500">*</span></p>
         <div class="relative">
           <input v-model.number="form.value" type="number" :min="1" :max="form.type === 'percent' ? 100 : undefined" class="input pr-12" :placeholder="form.type === 'percent' ? '10' : '500'" />
           <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">{{ form.type === 'percent' ? '%' : '₽' }}</span>
@@ -154,18 +154,18 @@ async function save() {
       </div>
 
       <div>
-        <label class="label">Промокод</label>
+        <p class="label">Промокод</p>
         <input v-model="form.code" type="text" class="input font-mono uppercase" placeholder="SUMMER20 (оставьте пустым — авто-применение)" maxlength="50" />
         <p class="text-xs text-gray-400 mt-1">{{ form.code.trim() ? 'Клиент вводит код вручную при оформлении заказа' : 'Скидка применится автоматически при выполнении условий' }}</p>
       </div>
 
       <div>
-        <label class="label">Применять к</label>
+        <p class="label">Применять к</p>
         <CustomSelect v-model="form.scope" :options="scopeOptions" />
       </div>
 
       <div v-if="form.scope === 'product'">
-        <label class="label">Товар</label>
+        <p class="label">Товар</p>
         <CustomSelect v-model="form.scope_value" :options="productOptions" placeholder="Выберите товар..." searchable>
           <template #footer="{ close }">
             <RouterLink to="/products/new" target="_blank" @click="close()"
@@ -178,46 +178,46 @@ async function save() {
         <p v-if="productOptions.length === 0" class="text-xs text-gray-400 mt-1">Нет доступных товаров</p>
       </div>
       <div v-else-if="form.scope === 'category'">
-        <label class="label">Категория</label>
+        <p class="label">Категория</p>
         <CategorySelect v-model="form.scope_value" />
       </div>
 
       <div>
-        <label class="label">Минимальная сумма заказа, ₽</label>
+        <p class="label">Минимальная сумма заказа, ₽</p>
         <input v-model.number="form.min_order_amount" type="number" min="0" class="input" placeholder="0 (без ограничений)" />
       </div>
 
       <div>
-        <label class="label">Максимальная скидка, ₽</label>
+        <p class="label">Максимальная скидка, ₽</p>
         <input v-model="form.max_discount_amount" type="number" min="1" class="input" placeholder="Оставьте пустым — без ограничения" />
         <p class="text-xs text-gray-400 mt-1">Защита маржи: скидка не превысит это значение в ₽</p>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="label">Лимит использований</label>
+          <p class="label">Лимит использований</p>
           <input v-model="form.usage_limit" type="number" min="1" class="input" placeholder="∞" />
         </div>
         <div>
-          <label class="label">Лимит на 1 клиента</label>
+          <p class="label">Лимит на 1 клиента</p>
           <input v-model.number="form.per_user_limit" type="number" min="0" class="input" placeholder="1" />
           <p class="text-xs text-gray-400 mt-1">0 = без ограничений</p>
         </div>
       </div>
 
       <div>
-        <label class="label">Приоритет</label>
+        <p class="label">Приоритет</p>
         <input v-model.number="form.priority" type="number" min="0" class="input" placeholder="0" />
         <p class="text-xs text-gray-400 mt-1">Чем выше — тем важнее. При равной корзине побеждает скидка с бо́льшим приоритетом.</p>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="label">Дата начала</label>
+          <p class="label">Дата начала</p>
           <DatePicker v-model="form.starts_at" placeholder="Не задана" />
         </div>
         <div>
-          <label class="label">Дата окончания</label>
+          <p class="label">Дата окончания</p>
           <DatePicker v-model="form.ends_at" :min="form.starts_at || undefined" placeholder="Не задана" />
         </div>
       </div>

@@ -3,29 +3,22 @@ set -e
 
 REPO_DIR="/var/www/servicebox"
 BRANCH="new-branch"
-LOCK_FILE="/tmp/servicebox-deploy.lock"
-LAST_HASH_FILE="$REPO_DIR/.last_deploy_hash"
 
 cd "$REPO_DIR"
-
-# ── Lock: only one deploy at a time (wait up to 10 min) ──────────────
-# Prevents race condition when multiple GitHub Actions runs fire in parallel.
-# flock re-invokes the script while holding the lock; SERVICEBOX_LOCKED
-# prevents infinite recursion.
-if [ -z "$SERVICEBOX_LOCKED" ]; then
-  export SERVICEBOX_LOCKED=1
-  exec flock -w 600 "$LOCK_FILE" bash "$REPO_DIR/deploy.sh"
-fi
 
 # ── Bootstrap: pull latest code, re-exec so the UPDATED script runs ──
 if [ -z "$SERVICEBOX_DEPLOY_V" ]; then
   echo "=== ServiceBox Deploy (bootstrap) ==="
   echo "→ Pulling latest code from $BRANCH..."
 
+  # Save old hash BEFORE pull (for diff comparison)
+  OLD_HASH=$(git rev-parse HEAD 2>/dev/null || echo "")
+
   git fetch origin
   git reset --hard origin/$BRANCH
 
   echo "→ Re-executing updated deploy.sh..."
+  export OLD_HASH="$OLD_HASH"
   export SERVICEBOX_DEPLOY_V=2
   exec bash "$REPO_DIR/deploy.sh"
 fi
@@ -33,8 +26,6 @@ fi
 # ═══ Everything below runs from the UPDATED script ════════════════════
 
 NEW_HASH=$(git rev-parse HEAD)
-# Read last *successfully deployed* hash from file — immune to concurrent pulls
-OLD_HASH=$(cat "$LAST_HASH_FILE" 2>/dev/null || echo "")
 
 echo "=== ServiceBox Deploy ==="
 echo "→ Dir:    $REPO_DIR"
@@ -272,9 +263,3 @@ echo "    Disk free: $(df -h / | awk 'NR==2{print $4}')"
 echo "    Admin:  https://yakut54.ru"
 echo "    API:    https://yakut54.ru/api/health"
 echo "    Widget: https://yakut54.ru/widget.js"
-
-# ── Save deployed hash ────────────────────────────────────────────
-# Written last — only after a fully successful deploy. Next run reads
-# this file instead of git HEAD, so concurrent pulls can't corrupt the diff.
-echo "$NEW_HASH" > "$LAST_HASH_FILE"
-echo "    Last hash: ${NEW_HASH:0:8} → saved to .last_deploy_hash"

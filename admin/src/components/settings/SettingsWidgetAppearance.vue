@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
@@ -241,7 +241,7 @@ async function saveConfig() {
 
       <!-- Preset themes -->
       <div>
-        <label class="label mb-2">Тема виджета</label>
+        <p class="label mb-2">Тема виджета</p>
         <div class="grid grid-cols-3 gap-3">
           <button
             v-for="t in [
@@ -275,7 +275,7 @@ async function saveConfig() {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
         <!-- Primary color -->
         <div>
-          <label class="label">Основной цвет</label>
+          <p class="label">Основной цвет</p>
           <div class="flex items-center gap-3">
             <input type="color" v-model="color" aria-label="Основной цвет" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
             <input type="text" v-model="color" aria-label="Hex основного цвета" class="input w-32 font-mono text-sm" placeholder="#6366f1" />
@@ -300,7 +300,7 @@ async function saveConfig() {
 
       <!-- Font family -->
       <div>
-        <label class="label mb-2">Шрифт виджета</label>
+        <p class="label mb-2">Шрифт виджета</p>
         <div class="grid grid-cols-5 gap-2">
           <button
             v-for="f in FONT_OPTIONS"
@@ -330,7 +330,7 @@ async function saveConfig() {
         <div class="flex gap-5 items-start">
           <!-- Logo -->
           <div class="shrink-0">
-            <label class="label">Логотип магазина</label>
+            <p class="label">Логотип магазина</p>
             <div v-if="logoUrl" class="flex items-center gap-3 mb-2">
               <img :src="logoUrl" class="h-12 w-12 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white p-1" />
               <button @click="confirmDelete = true" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
@@ -345,7 +345,7 @@ async function saveConfig() {
 
           <!-- Show/hide elements -->
           <div>
-            <label class="label mb-2">Показывать в карточке услуги</label>
+            <p class="label mb-2">Показывать в карточке услуги</p>
             <div class="space-y-2">
               <UiCheckbox v-model="showPrice">
                 <span class="text-sm text-gray-700 dark:text-gray-300">Цену</span>
@@ -367,7 +367,7 @@ async function saveConfig() {
         <div class="space-y-5">
           <!-- Border radius -->
           <div>
-            <label class="label">Скругление кнопок</label>
+            <p class="label">Скругление кнопок</p>
             <div class="flex gap-2">
               <button
                 v-for="opt in ([{ v: 4, label: 'Острые' }, { v: 8, label: 'Средние' }, { v: 16, label: 'Круглые' }] as const)"
@@ -382,7 +382,7 @@ async function saveConfig() {
 
           <!-- Sidebar position -->
           <div>
-            <label class="label">Навигация в виджете</label>
+            <p class="label">Навигация в виджете</p>
             <div class="flex gap-2">
               <button
                 v-for="opt in ([{ v: 'left', label: '← Слева' }, { v: 'right', label: 'Справа →' }] as const)"
@@ -418,7 +418,7 @@ async function saveConfig() {
           </button>
         </div>
         <div>
-          <label class="label">Свой CSS <span class="text-gray-400 font-normal">(переопределяет стили виджета)</span></label>
+          <p class="label">Свой CSS <span class="text-gray-400 font-normal">(переопределяет стили виджета)</span></p>
           <textarea v-model="customCss" class="input font-mono text-xs" rows="6" placeholder=".sb-catalog-card { border-radius: 12px; }" />
           <p class="text-xs text-gray-400 mt-1">CSS применяется внутри Shadow DOM виджета</p>
         </div>
