@@ -523,7 +523,7 @@ class TelegramService
         self::sendMessage(
             shop: $shop,
             text: "Запись {$date} {$time} ({$name}) — {$label}",
-            type: 'booking_status',
+            type: 'system_notification',
             entityType: 'Booking',
             entityId: $booking->id
         );
