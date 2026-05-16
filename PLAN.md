@@ -40,7 +40,7 @@ servicebox/
 | Masters | CRUD, привязка услуг, расписание |
 | Discounts | Промокоды, автоприменение, история использования |
 | Reviews | Отзывы с рейтингом через виджет |
-| Payments | YooKassa, подписки, история платежей |
+| Payments | YooKassa, подписки, история платежей, предоплата бронирований |
 | Legal | Документы (оферта, конфиденциальность) на домене магазина |
 | Superadmin | Список магазинов, тарифы, выручка платформы |
 | Widget | Каталог, корзина, checkout, мои заказы, мои записи |
@@ -108,6 +108,26 @@ servicebox/
 | 4.1 | White label — убрать "Powered by ServiceBox" | ✅ |
 | 4.2 | Custom CSS — поле для произвольных стилей | ✅ |
 | 4.3 | Widget analytics — воронка по шагам | ✅ |
+
+---
+
+## Безопасность — аудит пройден ✅
+
+| Уязвимость | Где | Статус |
+|---|---|---|
+| SQL injection через schema_name в SET search_path | TenantService | ✅ исправлено |
+| HTML injection в Telegram / MAX сообщениях (customer_name, notes) | TelegramService, MaxService | ✅ исправлено |
+| Race condition при применении автоскидок | DiscountService::findAutoApply | ✅ исправлено |
+| Race condition при бронировании слота | BookingController | ✅ был защищён |
+| Replay-атака на вебхук YooKassa | PaymentController | ✅ был защищён |
+| Timing attack при проверке OTP | WidgetPhoneVerificationController | ✅ исправлено |
+| CSS injection в custom_css | ShopController | ✅ исправлено |
+| Перебор email через forgot-password | AuthController | ✅ исправлено |
+| Небезопасное расширение файла при загрузке фото | ImageController | ✅ исправлено |
+| Отсутствие rate limit на виджет-мутации | routes/api.php | ✅ исправлено |
+| schema_name в публичном ответе API | Shop::$hidden | ✅ исправлено |
+| SQL injection через schema_name в MAX/Telegram контроллерах | MaxController, TelegramController | ✅ safeSchema() |
+| SSRF через logo_url | — | ✅ угрозы нет (сервер URL не фетчит) |
 
 ---
 
