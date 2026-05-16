@@ -134,12 +134,12 @@ class MaxService
         $text  = "🛒 <b>Новый заказ!</b>\n\n";
         $text .= "🔖 №" . substr($order->id, 0, 8) . "\n";
         $text .= "💰 <b>{$total} ₽</b>\n\n";
-        $text .= "Клиент: {$order->customer_name}\n";
-        $text .= "Телефон: {$order->customer_phone}";
+        $text .= "Клиент: " . self::esc($order->customer_name) . "\n";
+        $text .= "Телефон: " . self::esc($order->customer_phone);
 
         $method = $order->delivery_method ?? null;
         if ($method) {
-            $label = $deliveryLabels[$method] ?? $method;
+            $label = $deliveryLabels[$method] ?? self::esc($method);
             $icon  = $method === 'pickup' ? '🏪' : '📦';
             $deliveryLine = "\n{$icon} {$label}";
             if ($order->delivery_price > 0) {
@@ -155,13 +155,13 @@ class MaxService
                 !empty($addr['building'])  ? 'д. '  . $addr['building']  : null,
                 !empty($addr['apartment']) ? 'кв. ' . $addr['apartment'] : null,
             ]));
-            if ($street) $text .= "\n{$street}";
-            if ($house)  $text .= "\n{$house}";
-            if (!empty($addr['postal_code'])) $text .= "\n" . $addr['postal_code'];
+            if ($street) $text .= "\n" . self::esc($street);
+            if ($house)  $text .= "\n" . self::esc($house);
+            if (!empty($addr['postal_code'])) $text .= "\n" . self::esc($addr['postal_code']);
         }
 
         if (!empty($order->notes)) {
-            $text .= "\n\n💬 {$order->notes}";
+            $text .= "\n\n💬 " . self::esc($order->notes);
         }
 
         $buttons = [[
@@ -195,12 +195,12 @@ class MaxService
 
         $text  = "📅 <b>Новая запись!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
-        $text .= "📋 {$service}\n";
-        if ($master) $text .= "👤 {$master}\n";
+        $text .= "📋 " . self::esc($service) . "\n";
+        if ($master) $text .= "👤 " . self::esc($master) . "\n";
         $text .= $price;
-        $text .= "\nКлиент: {$booking->customer_name}\n";
-        $text .= "Телефон: {$booking->customer_phone}";
-        if (!empty($booking->notes)) $text .= "\n\n💬 {$booking->notes}";
+        $text .= "\nКлиент: " . self::esc($booking->customer_name) . "\n";
+        $text .= "Телефон: " . self::esc($booking->customer_phone);
+        if (!empty($booking->notes)) $text .= "\n\n💬 " . self::esc($booking->notes);
 
         $buttons = [[
             ['type' => 'callback', 'text' => '✅ Подтвердить', 'payload' => "booking:confirm:{$booking->id}"],
@@ -225,7 +225,7 @@ class MaxService
         $service = $booking->service_name ?? '—';
         $name    = $booking->customer_name;
 
-        $text = "📋 {$service} — {$start}–{$end} ({$name})\nКак прошло?";
+        $text = "📋 " . self::esc($service) . " — {$start}–{$end} (" . self::esc($name) . ")\nКак прошло?";
 
         $buttons = [[
             ['type' => 'callback', 'text' => '✅ Завершить', 'payload' => "booking:complete:{$booking->id}"],
@@ -255,7 +255,7 @@ class MaxService
         $time = $dt->format('H:i');
         $name = $booking->customer_name ?? $booking->customer_phone;
 
-        self::sendMessage($shop, "Запись {$date} {$time} ({$name}) — {$label}");
+        self::sendMessage($shop, "Запись {$date} {$time} (" . self::esc($name) . ") — {$label}");
     }
 
     public static function removeButtonsByEntity(string $type, string $entityId): void
@@ -336,7 +336,7 @@ class MaxService
         $service = $booking->service_name ?? $booking->service?->name ?? '—';
 
         $text  = "⭐ <b>Как прошёл визит?</b>\n\n";
-        $text .= "📋 {$service}\n";
+        $text .= "📋 " . self::esc($service) . "\n";
         $text .= "\nОцените, пожалуйста, услугу:";
 
         $buttons = [[
@@ -367,8 +367,8 @@ class MaxService
 
         $text  = "⏰ <b>Напоминание о записи</b>\n\n";
         $text .= "🕐 <b>{$label}, {$date} в {$time}</b>\n";
-        $text .= "📋 {$service}\n";
-        if ($master) $text .= "👤 {$master}\n";
+        $text .= "📋 " . self::esc($service) . "\n";
+        if ($master) $text .= "👤 " . self::esc($master) . "\n";
 
         $buttons = [[
             ['type' => 'callback', 'text' => '❌ Отменить запись', 'payload' => "client:cancel:{$bookingId}"],
@@ -398,7 +398,7 @@ class MaxService
         $time    = $dt->format('H:i');
         $service = $booking->service?->name ?? '';
 
-        $text = "{$label}\n\n📋 {$service}\n🕐 {$date} в {$time}";
+        $text = "{$label}\n\n📋 " . self::esc($service) . "\n🕐 {$date} в {$time}";
 
         $buttons = null;
         if ($status === 'confirmed') {
@@ -421,6 +421,11 @@ class MaxService
                 Cache::put("max_cust_cancel_mid:{$bookingId}", ['user_id' => $userId, 'mid' => $mid], now()->addDays(7));
             }
         } catch (\Throwable) {}
+    }
+
+    private static function esc(string $s): string
+    {
+        return htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     // ── Connection flow ───────────────────────────────────────────────────

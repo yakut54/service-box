@@ -49,6 +49,7 @@ class DiscountService
             ->whereNull('code')
             ->where('min_order_amount', '<=', $cartAmount)
             ->orderByDesc('priority')
+            ->lockForUpdate()
             ->get();
 
         $best         = null;

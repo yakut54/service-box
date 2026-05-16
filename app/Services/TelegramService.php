@@ -65,8 +65,8 @@ class TelegramService
         $text .= "🔖 №" . substr($order->id, 0, 8) . "\n";
         $text .= "💰 <b>{$total} ₽</b>\n";
         $text .= "\n";
-        $text .= "Клиент: {$order->customer_name}\n";
-        $text .= "Телефон: {$order->customer_phone}\n";
+        $text .= "Клиент: " . self::esc($order->customer_name) . "\n";
+        $text .= "Телефон: " . self::esc($order->customer_phone) . "\n";
 
         $deliveryLabels = [
             'pickup'  => 'Самовывоз',
@@ -75,7 +75,7 @@ class TelegramService
         ];
         $method = $order->delivery_method ?? null;
         if ($method) {
-            $label = $deliveryLabels[$method] ?? $method;
+            $label = $deliveryLabels[$method] ?? self::esc($method);
             $icon  = $method === 'pickup' ? '🏪' : '📦';
             $deliveryLine = "{$icon} {$label}";
             if ($order->delivery_price > 0) {
@@ -91,15 +91,15 @@ class TelegramService
                 !empty($addr['building'])  ? 'д. '  . $addr['building']  : null,
                 !empty($addr['apartment']) ? 'кв. ' . $addr['apartment'] : null,
             ]));
-            if ($street) $text .= "{$street}\n";
-            if ($house)  $text .= "{$house}\n";
+            if ($street) $text .= self::esc($street) . "\n";
+            if ($house)  $text .= self::esc($house) . "\n";
             if (!empty($addr['postal_code'])) {
-                $text .= $addr['postal_code'] . "\n";
+                $text .= self::esc($addr['postal_code']) . "\n";
             }
         }
 
         if (!empty($order->notes)) {
-            $text .= "\n💬 {$order->notes}\n";
+            $text .= "\n💬 " . self::esc($order->notes) . "\n";
         }
 
         $inlineKeyboard = [
@@ -137,16 +137,16 @@ class TelegramService
 
         $text  = "📅 <b>Новая запись!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
-        $text .= "📋 {$service}\n";
+        $text .= "📋 " . self::esc($service) . "\n";
         if ($master) {
-            $text .= "👤 {$master}\n";
+            $text .= "👤 " . self::esc($master) . "\n";
         }
         $text .= $price;
         $text .= "\n";
-        $text .= "Клиент: {$booking->customer_name}\n";
-        $text .= "Телефон: {$booking->customer_phone}\n";
+        $text .= "Клиент: " . self::esc($booking->customer_name) . "\n";
+        $text .= "Телефон: " . self::esc($booking->customer_phone) . "\n";
         if (!empty($booking->notes)) {
-            $text .= "\n💬 {$booking->notes}\n";
+            $text .= "\n💬 " . self::esc($booking->notes) . "\n";
         }
 
         $inlineKeyboard = [
@@ -235,23 +235,23 @@ class TelegramService
         if ($status === 'confirmed') {
             $text  = "✅ <b>Ваша запись подтверждена!</b>\n\n";
             $text .= "🕐 <b>{$date} в {$time}</b>\n";
-            $text .= "📋 {$service}\n";
+            $text .= "📋 " . self::esc($service) . "\n";
             if ($master) {
-                $text .= "👤 {$master}\n";
+                $text .= "👤 " . self::esc($master) . "\n";
             }
-            $text .= "\n<b>{$shop->name}</b>";
+            $text .= "\n<b>" . self::esc($shop->name) . "</b>";
             $keyboard = ['inline_keyboard' => [[
                 ['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"],
             ]]];
         } elseif ($status === 'completed') {
             $text  = "✅ <b>Визит завершён. Спасибо!</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";
-            $text .= "📋 {$service}\n\n";
+            $text .= "📋 " . self::esc($service) . "\n\n";
             $text .= "Ждём вас снова 😊";
         } elseif ($status === 'cancelled') {
             $text  = "❌ <b>Ваша запись отменена</b>\n\n";
             $text .= "🕐 {$date} в {$time}\n";
-            $text .= "📋 {$service}\n\n";
+            $text .= "📋 " . self::esc($service) . "\n\n";
             $text .= "Хотите записаться на другое время?";
 
             if ($shop->domain) {
@@ -329,11 +329,11 @@ class TelegramService
 
         $text  = "✅ <b>Запись подтверждена!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
-        $text .= "📋 {$service}\n";
+        $text .= "📋 " . self::esc($service) . "\n";
         if ($master) {
-            $text .= "👤 {$master}\n";
+            $text .= "👤 " . self::esc($master) . "\n";
         }
-        $text .= "\n<b>{$shop->name}</b>";
+        $text .= "\n<b>" . self::esc($shop->name) . "</b>";
 
         $keyboard = [
             [['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"]],
@@ -377,11 +377,11 @@ class TelegramService
 
         $text  = "⏰ <b>Напоминание о записи</b>\n\n";
         $text .= "🕐 <b>{$label}, {$date} в {$time}</b>\n";
-        $text .= "📋 {$service}\n";
+        $text .= "📋 " . self::esc($service) . "\n";
         if ($master) {
-            $text .= "👤 {$master}\n";
+            $text .= "👤 " . self::esc($master) . "\n";
         }
-        $text .= "\n<b>{$shop->name}</b>";
+        $text .= "\n<b>" . self::esc($shop->name) . "</b>";
 
         $keyboard = [
             [['text' => '❌ Отменить запись', 'callback_data' => "client:cancel:{$booking->id}"]],
@@ -424,7 +424,7 @@ class TelegramService
         $service = $booking->service_name ?? $booking->service?->name ?? '—';
 
         $text  = "⭐ <b>Как прошёл визит?</b>\n\n";
-        $text .= "📋 {$service}\n";
+        $text .= "📋 " . self::esc($service) . "\n";
         $text .= "\nОцените, пожалуйста, услугу:";
 
         $keyboard = [[
@@ -512,7 +512,7 @@ class TelegramService
         $service = $booking->service_name ?? '—';
         $name    = $booking->customer_name;
 
-        $text = "📋 {$service} — {$start}–{$end} ({$name})\nКак прошло?";
+        $text = "📋 " . self::esc($service) . " — {$start}–{$end} (" . self::esc($name) . ")\nКак прошло?";
 
         self::sendMessage(
             shop: $shop,
@@ -546,11 +546,16 @@ class TelegramService
 
         self::sendMessage(
             shop: $shop,
-            text: "Запись {$date} {$time} ({$name}) — {$label}",
+            text: "Запись {$date} {$time} (" . self::esc($name) . ") — {$label}",
             type: 'system_notification',
             entityType: 'Booking',
             entityId: $booking->id
         );
+    }
+
+    private static function esc(string $s): string
+    {
+        return htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
     public static function removeKeyboardByEntity(string $entityType, string $entityId): void

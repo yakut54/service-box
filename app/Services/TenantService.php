@@ -28,7 +28,7 @@ class TenantService
     {
         self::$currentShopId = $shop->id;
         self::$currentSchema = $shop->schema_name;
-        DB::statement('SET search_path TO ' . $shop->schema_name . ', public');
+        DB::statement('SET search_path TO "' . $shop->schema_name . '", public');
     }
 
     public static function resetContext(): void
@@ -65,7 +65,7 @@ class TenantService
             if ($previousShopId && $previousSchema) {
                 self::$currentShopId = $previousShopId;
                 self::$currentSchema = $previousSchema;
-                DB::statement('SET search_path TO ' . $previousSchema . ', public');
+                DB::statement('SET search_path TO "' . $previousSchema . '", public');
             } else {
                 self::resetContext();
             }
