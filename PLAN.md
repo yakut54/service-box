@@ -176,6 +176,34 @@ servicebox/
 
 ---
 
+## External API v1 ✅
+
+> Внешний REST API для Pro-шоперов. Доступ по X-API-Key из настроек → вкладка "Интеграция".
+
+### Middleware-цепочка для `/api/v1/*`
+`force.json` → `api.auth` (ApiKeyAuth) → `api.ratelimit` (60 req/min) → `api.pro` (hasFeature api_access)
+
+| Endpoint | Метод | Что делает |
+|---|---|---|
+| `/api/v1/ping` | GET | Проверка ключа, возвращает имя магазина и тариф |
+| `/api/v1/bookings` | GET | Список записей (фильтры: status, master_id, date_from, date_to) |
+| `/api/v1/bookings` | POST | Создать запись (throttle:20,1) |
+| `/api/v1/bookings/{id}` | DELETE | Отменить запись |
+| `/api/v1/clients` | GET | Список клиентов (поиск по имени/телефону/email) |
+| `/api/v1/services` | GET | Список услуг (только активные) |
+| `/api/v1/masters` | GET | Список мастеров (фильтр: active) |
+
+### Безопасность
+- X-API-Key валидируется через TenantService::setContextByApiKey()
+- Rate limit: 60 req/min per API key (X-RateLimit-Limit / X-RateLimit-Remaining в заголовках)
+- ForceJson middleware: принудительный Accept: application/json — предотвращает 302-редирект при ошибках валидации
+- Доступно только на тарифе Pro (feature gate: `api_access`)
+
+### Admin UI
+- Настройки → вкладка "Интеграция" → показ/скрытие ключа, копирование, перегенерация с подтверждением
+
+---
+
 ## Деплой
 
 1. Пуш в ветку `new-branch`
