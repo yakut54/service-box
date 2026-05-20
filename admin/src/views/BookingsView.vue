@@ -73,9 +73,7 @@ onUnmounted(() => window.removeEventListener('resize', _onResize))
 
 function navigate(delta: number) {
   const d = getAnchorDate()
-  // Desktop calendar → week step; everything else → day step
-  const step = (viewMode.value === 'calendar' && !isMobile.value) ? 7 : 1
-  d.setDate(d.getDate() + delta * step)
+  d.setDate(d.getDate() + delta)
   anchorDateStr.value = toYMD(d)
   applyFilters()
 }
@@ -92,7 +90,7 @@ const navLabel = computed(() => {
   if (isMobile.value) {
     return getAnchorDate().toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
   }
-  return formatMonthHeader()
+  return getAnchorDate().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 })
 
 watch(viewMode, (v) => {
@@ -115,17 +113,6 @@ const masterOptions = computed(() => [
 ])
 
 // ── Calendar state ──────────────────────────────────────────
-const weekDays = computed(() => {
-  const anchor = getAnchorDate()
-  const monday = new Date(anchor)
-  monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7))
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    return d
-  })
-})
-
 const CAL_START_H = 8
 const CAL_END_H   = 23
 const HOUR_H      = 56
@@ -137,22 +124,20 @@ function isToday(date: Date) {
   return date.getFullYear() === t.getFullYear() && date.getMonth() === t.getMonth() && date.getDate() === t.getDate()
 }
 
-function isWeekend(date: Date) { return date.getDay() === 0 || date.getDay() === 6 }
-function formatWeekDay(date: Date) { return date.toLocaleDateString('ru-RU', { weekday: 'short' }) }
-function formatDayNum(date: Date) { return date.getDate() }
-
-const RU_SHORT_MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
-
-function formatMonthHeader() {
-  const first = weekDays.value[0]
-  const last  = weekDays.value[6]
-  const fmt = (d: Date) => `${d.getDate()} ${RU_SHORT_MONTHS[d.getMonth()]}`
-  return `${fmt(first)} – ${fmt(last)} ${last.getFullYear()}`
-}
+const calMasters = computed(() => bookingsStore.masters)
 
 function bookingsForDay(date: Date) {
   const y = date.getFullYear(), m = date.getMonth(), d = date.getDate()
   return bookingsStore.bookings.filter(b => {
+    const p = shopParts(b.start_time)
+    return p.year === y && p.month === m && p.day === d
+  })
+}
+
+function bookingsForMasterOnDay(masterId: string | number, date: Date) {
+  const y = date.getFullYear(), m = date.getMonth(), d = date.getDate()
+  return bookingsStore.bookings.filter(b => {
+    if (!b.master || String(b.master.id) !== String(masterId)) return false
     const p = shopParts(b.start_time)
     return p.year === y && p.month === m && p.day === d
   })
@@ -202,7 +187,7 @@ function openCalPicker() {
 }
 
 const nowTop = computed(() => {
-  if (!weekDays.value.some(d => isToday(d))) return null
+  if (!isToday(getAnchorDate())) return null
   const p = shopParts(new Date().toISOString())
   const min    = p.hour * 60 + p.minute
   const topMin = min - CAL_START_H * 60
@@ -268,11 +253,8 @@ function buildParams() {
   if (filterMaster.value) params.master_id = filterMaster.value
   if (filterSearch.value) {
     params.search = filterSearch.value
-  } else if (viewMode.value === 'list') {
-    params.date = anchorDateStr.value
   } else {
-    params.date_from = toYMD(weekDays.value[0])
-    params.date_to   = toYMD(weekDays.value[6])
+    params.date = anchorDateStr.value
   }
   return params
 }
@@ -323,11 +305,11 @@ onMounted(async () => {
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <!-- ← Today → -->
           <div class="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
-            <button @click="navigate(-1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700" :title="viewMode === 'list' ? 'Предыдущий день' : 'Предыдущая неделя'">
+            <button @click="navigate(-1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700" title="Предыдущий день">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </button>
             <button @click="goToday" :class="['px-3 py-1.5 text-sm font-medium transition-colors', isAnchorToday ? 'bg-primary-600 text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300']">Сегодня</button>
-            <button @click="navigate(1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700" :title="viewMode === 'list' ? 'Следующий день' : 'Следующая неделя'">
+            <button @click="navigate(1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700" title="Следующий день">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
           </div>
@@ -503,63 +485,95 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Desktop calendar -->
-      <div class="card p-0 overflow-x-hidden hidden sm:flex flex-col flex-1 min-h-0">
+      <!-- Desktop calendar: master columns -->
+      <div class="card p-0 overflow-x-auto hidden sm:flex flex-col flex-1 min-h-0">
         <!-- Calendar header -->
-        <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
+        <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4 shrink-0">
           <span class="font-semibold text-gray-700 dark:text-gray-300 capitalize text-sm">{{ navLabel }}</span>
+          <button class="btn-primary btn-sm shrink-0" @click="openModal()">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Новая запись
+          </button>
         </div>
 
-        <!-- Day header row -->
-        <div class="grid grid-cols-[56px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60">
-          <div></div>
-          <div v-for="day in weekDays" :key="day.toISOString()" :class="['text-center py-2.5 border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50 dark:bg-primary-900/20' : '']">
-            <div :class="['text-[11px] font-semibold uppercase tracking-wide', isToday(day) ? 'text-primary-500' : isWeekend(day) ? 'text-rose-400' : 'text-gray-400 dark:text-gray-500']">
-              {{ formatWeekDay(day) }}
-            </div>
-            <div class="mt-0.5">
-              <span :class="isToday(day) ? 'bg-primary-600 text-white rounded-full w-7 h-7 inline-flex items-center justify-center text-sm font-bold shadow-sm' : ['text-sm font-semibold', isWeekend(day) ? 'text-rose-500 dark:text-rose-400' : 'text-gray-800 dark:text-gray-200']">
-                {{ formatDayNum(day) }}
-              </span>
-            </div>
-          </div>
+        <!-- No masters placeholder -->
+        <div v-if="calMasters.length === 0" class="py-16 flex flex-col items-center gap-3 flex-1">
+          <svg class="w-10 h-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span class="text-sm text-gray-400 dark:text-gray-500">Добавьте мастеров, чтобы использовать календарь</span>
+          <RouterLink to="/masters?create=1" class="btn-primary btn-sm">Добавить мастера</RouterLink>
         </div>
 
-        <!-- Scrollable time grid -->
-        <div class="overflow-y-auto overflow-x-hidden flex-1">
-          <div class="grid grid-cols-[56px_repeat(7,1fr)]" :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`">
-            <!-- Time labels -->
-            <div class="relative bg-gray-50 dark:bg-gray-900/60 border-r border-gray-100 dark:border-gray-800">
-              <div v-for="h in calendarHours" :key="h" class="absolute w-full flex items-start justify-end pr-2.5" :style="`top: ${(h - CAL_START_H) * HOUR_H}px; height: ${HOUR_H}px`">
-                <span class="text-[11px] text-gray-400 dark:text-gray-600 leading-none mt-1">{{ String(h).padStart(2, '0') }}:00</span>
+        <template v-else>
+          <!-- Master header row -->
+          <div
+            class="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/60 shrink-0"
+            :style="`display: grid; grid-template-columns: 56px repeat(${calMasters.length}, minmax(120px, 1fr))`"
+          >
+            <div></div>
+            <div
+              v-for="master in calMasters" :key="master.id"
+              class="text-center py-3 border-l border-gray-100 dark:border-gray-800 px-2"
+            >
+              <RouterLink :to="`/masters/${master.id}`" class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate hover:text-primary-600 dark:hover:text-primary-400 block">{{ master.name }}</RouterLink>
+              <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                {{ bookingsForMasterOnDay(master.id, getAnchorDate()).length }}
+                {{ plural(bookingsForMasterOnDay(master.id, getAnchorDate()).length, 'запись', 'записи', 'записей') }}
               </div>
             </div>
-            <!-- Day columns -->
-            <div v-for="day in weekDays" :key="day.toISOString()" :class="['relative border-l border-gray-100 dark:border-gray-800', isToday(day) ? 'bg-primary-50/40 dark:bg-primary-900/10' : 'bg-white dark:bg-gray-900']" :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`">
-              <div v-for="h in calendarHours" :key="h" class="absolute w-full border-t border-gray-100 dark:border-gray-800" :style="`top: ${(h - CAL_START_H) * HOUR_H}px`" />
-              <div v-for="h in calendarHours" :key="`hh-${h}`" class="absolute w-full border-t border-dashed border-gray-50 dark:border-gray-800/50" :style="`top: ${(h - CAL_START_H) * HOUR_H + HOUR_H / 2}px`" />
-              <template v-if="isToday(day) && nowTop">
-                <div class="absolute w-full z-10 pointer-events-none flex items-center" :style="`top: ${nowTop!}`">
-                  <div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm -ml-1.5 flex-shrink-0"/>
-                  <div class="flex-1 h-px bg-red-400"/>
+          </div>
+
+          <!-- Scrollable time grid -->
+          <div class="overflow-y-auto overflow-x-hidden flex-1">
+            <div
+              :style="`display: grid; grid-template-columns: 56px repeat(${calMasters.length}, minmax(120px, 1fr)); height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`"
+            >
+              <!-- Time labels -->
+              <div class="relative bg-gray-50 dark:bg-gray-900/60 border-r border-gray-100 dark:border-gray-800">
+                <div v-for="h in calendarHours" :key="h" class="absolute w-full flex items-start justify-end pr-2.5" :style="`top: ${(h - CAL_START_H) * HOUR_H}px; height: ${HOUR_H}px`">
+                  <span class="text-[11px] text-gray-400 dark:text-gray-600 leading-none mt-1">{{ String(h).padStart(2, '0') }}:00</span>
                 </div>
-              </template>
-              <div v-for="b in bookingsForDay(day)" :key="b.id" class="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer overflow-hidden transition-all duration-100 hover:opacity-90 hover:shadow-md" :class="calBookingBg(effectiveStatus(b))" :style="bookingStyle(b)" @click="router.push(`/bookings/${b.id}`)">
-                <div class="text-[11px] font-bold text-white leading-tight truncate">{{ formatTime(b.start_time) }} · {{ b.service?.name || 'Запись' }}</div>
-                <div class="text-[10px] text-white/80 truncate mt-0.5">{{ b.customer_name }}</div>
+              </div>
+              <!-- Master columns -->
+              <div
+                v-for="master in calMasters" :key="master.id"
+                class="relative border-l border-gray-100 dark:border-gray-800"
+                :class="isToday(getAnchorDate()) ? 'bg-primary-50/40 dark:bg-primary-900/10' : 'bg-white dark:bg-gray-900'"
+                :style="`height: ${(CAL_END_H - CAL_START_H + 1) * HOUR_H}px`"
+              >
+                <!-- Hour lines -->
+                <div v-for="h in calendarHours" :key="h" class="absolute w-full border-t border-gray-100 dark:border-gray-800" :style="`top: ${(h - CAL_START_H) * HOUR_H}px`" />
+                <div v-for="h in calendarHours" :key="`hh-${h}`" class="absolute w-full border-t border-dashed border-gray-50 dark:border-gray-800/50" :style="`top: ${(h - CAL_START_H) * HOUR_H + HOUR_H / 2}px`" />
+                <!-- Now line -->
+                <template v-if="nowTop">
+                  <div class="absolute w-full z-10 pointer-events-none flex items-center" :style="`top: ${nowTop}`">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm -ml-1.5 flex-shrink-0"/>
+                    <div class="flex-1 h-px bg-red-400"/>
+                  </div>
+                </template>
+                <!-- Bookings -->
+                <div
+                  v-for="b in bookingsForMasterOnDay(master.id, getAnchorDate())" :key="b.id"
+                  class="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer overflow-hidden transition-all duration-100 hover:opacity-90 hover:shadow-md"
+                  :class="calBookingBg(effectiveStatus(b))"
+                  :style="bookingStyle(b)"
+                  @click="router.push(`/bookings/${b.id}`)"
+                >
+                  <div class="text-[11px] font-bold text-white leading-tight truncate">{{ formatTime(b.start_time) }} · {{ b.service?.name || 'Запись' }}</div>
+                  <div class="text-[10px] text-white/80 truncate mt-0.5">{{ b.customer_name }}</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Legend -->
-        <div class="flex items-center gap-4 px-5 py-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40">
-          <span class="text-xs text-gray-400 dark:text-gray-500">Статусы:</span>
-          <div v-for="(label, key) in { pending: 'Ожидает', confirmed: 'Подтверждена', completed: 'Завершена', cancelled: 'Отменена' }" :key="key" class="flex items-center gap-1.5">
-            <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" :class="calBookingBg(key)"/>
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{ label }}</span>
+          <!-- Legend -->
+          <div class="flex items-center gap-4 px-5 py-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 shrink-0">
+            <span class="text-xs text-gray-400 dark:text-gray-500">Статусы:</span>
+            <div v-for="(label, key) in { pending: 'Ожидает', confirmed: 'Подтверждена', completed: 'Завершена', cancelled: 'Отменена' }" :key="key" class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-sm flex-shrink-0" :class="calBookingBg(key)"/>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ label }}</span>
+            </div>
           </div>
-        </div>
+        </template>
       </div>
     </div>
 
