@@ -43,14 +43,21 @@ class BookingController extends Controller
             $query->where('master_id', $request->master_id);
         }
 
-        if ($request->filled('date')) {
+        if ($request->filled('search')) {
+            $term = '%' . $request->search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('customer_name', 'ilike', $term)
+                  ->orWhere('customer_phone', 'ilike', $term);
+            });
+        } elseif ($request->filled('date')) {
             $query->onDate($request->date);
         } elseif ($request->filled('date_from') || $request->filled('date_to')) {
             if ($request->filled('date_from')) $query->whereDate('start_time', '>=', $request->date_from);
             if ($request->filled('date_to'))   $query->whereDate('start_time', '<=', $request->date_to);
         }
 
-        $bookings = $query->orderBy('start_time')->get();
+        $direction = $request->filled('search') ? 'desc' : 'asc';
+        $bookings = $query->orderBy('start_time', $direction)->get();
 
         return response()->json([
             'data' => $bookings,

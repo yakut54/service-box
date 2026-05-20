@@ -45,6 +45,13 @@ function shopParts(dateStr: string) {
 // ── Filters ─────────────────────────────────────────────────
 const filterStatus = ref('')
 const filterMaster = ref('')
+const filterSearch = ref('')
+let   searchDebounce: ReturnType<typeof setTimeout> | null = null
+
+function onSearchInput() {
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => applyFilters(), 400)
+}
 const viewMode = ref<'list' | 'calendar'>((localStorage.getItem('bookings_viewMode') as 'list' | 'calendar') || 'list')
 
 // ── Unified date anchor ──────────────────────────────────────
@@ -259,7 +266,9 @@ function buildParams() {
   const params: Record<string, string> = {}
   if (filterStatus.value) params.status = filterStatus.value
   if (filterMaster.value) params.master_id = filterMaster.value
-  if (viewMode.value === 'list') {
+  if (filterSearch.value) {
+    params.search = filterSearch.value
+  } else if (viewMode.value === 'list') {
     params.date = anchorDateStr.value
   } else {
     params.date_from = toYMD(weekDays.value[0])
@@ -354,8 +363,22 @@ onMounted(async () => {
             </button>
           </template>
         </CustomSelect>
+        <!-- Search -->
+        <div class="relative w-full sm:w-56">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+          </svg>
+          <input
+            v-model="filterSearch"
+            type="text"
+            placeholder="Клиент или телефон"
+            class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+            @input="onSearchInput"
+          />
+        </div>
+
         <!-- Reset -->
-        <button v-if="filterStatus || filterMaster" @click="filterStatus = ''; filterMaster = ''; applyFilters()" class="btn-ghost btn-sm text-gray-400 whitespace-nowrap shrink-0">Сбросить</button>
+        <button v-if="filterStatus || filterMaster || filterSearch" @click="filterStatus = ''; filterMaster = ''; filterSearch = ''; applyFilters()" class="btn-ghost btn-sm text-gray-400 whitespace-nowrap shrink-0">Сбросить</button>
 
       </div>
     </div>
