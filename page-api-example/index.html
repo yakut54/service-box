@@ -175,8 +175,35 @@
     }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover td { background: #f8f9ff; }
-    td.td-actions { overflow: visible; white-space: nowrap; }
-    .actions-cell { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+    td.td-dot { width: 48px; text-align: center; overflow: visible; }
+
+    /* ── Dot (⋯) menu ──────────────────────────────── */
+    .dot-wrap { position: relative; display: inline-block; }
+    .dot-btn {
+      width: 30px; height: 30px;
+      background: none; border: 1px solid transparent; border-radius: 6px;
+      cursor: pointer; color: var(--muted);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px; letter-spacing: 2px; line-height: 1;
+    }
+    .dot-btn:hover { background: var(--bg); border-color: var(--border); color: var(--text); }
+    .dot-menu {
+      position: absolute; right: 0; top: calc(100% + 4px);
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); box-shadow: 0 4px 16px rgba(0,0,0,.12);
+      z-index: 200; min-width: 170px; padding: 4px 0; display: none;
+    }
+    .dot-menu.open { display: block; }
+    .dot-item {
+      padding: 9px 14px; font-size: 13px; cursor: pointer;
+      display: block; width: 100%; text-align: left;
+      background: none; border: none; color: var(--text);
+      white-space: nowrap; font-family: inherit;
+    }
+    .dot-item:hover { background: var(--bg); }
+    .dot-item.danger { color: var(--danger); }
+    .dot-item.danger:hover { background: #fee2e2; }
+    .dot-item:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
 
     /* ── Бейджи ────────────────────────────── */
     .badge {
@@ -731,32 +758,41 @@ function renderBookings(rows) {
     <div class="t-wrap"><table>
       <colgroup>
         <col style="width:75px"><col style="width:120px"><col style="width:130px">
-        <col><col style="width:130px"><col style="width:135px"><col style="width:240px">
+        <col><col style="width:130px"><col style="width:135px"><col style="width:100px"><col style="width:48px">
       </colgroup>
       <thead><tr>
         <th>#</th><th>Клиент</th><th>Телефон</th>
-        <th>Услуга</th><th>Мастер</th><th>Дата / Время</th><th>Статус</th>
+        <th>Услуга</th><th>Мастер</th><th>Дата / Время</th><th>Статус</th><th></th>
       </tr></thead>
       <tbody>
-        ${rows.map(b => `<tr>
-          <td class="mono dim">${shortId(b.id)}</td>
-          <td><strong>${x(b.customer_name)}</strong></td>
-          <td class="mono">${x(b.customer_phone || '—')}</td>
-          <td>${x(b.service?.name || '—')}</td>
-          <td>${x(b.master?.name  || '—')}</td>
-          <td>${fmtDate(b.start_time)}</td>
-          <td class="td-actions"><div class="actions-cell">
-            ${statusBadge(b.status)}
-            ${b.status === 'pending'   ? `<button class="btn btn-confirm btn-sm" onclick="updateBookingStatus('${b.id}','confirmed',this)">Подтвердить</button>` : ''}
-            ${b.status === 'confirmed' ? `<button class="btn btn-complete btn-sm" onclick="updateBookingStatus('${b.id}','completed',this)">Завершить</button>` : ''}
-            ${canCancel(b.status)      ? `<button class="btn btn-cancel btn-sm"   onclick="cancelBooking('${b.id}',this)">Отменить</button>` : ''}
-          </div></td>
-        </tr>`).join('')}
+        ${rows.map(b => {
+          const isPending   = b.status === 'pending';
+          const isConfirmed = b.status === 'confirmed';
+          const hasMenu     = isPending || isConfirmed || canCancel(b.status);
+          return `<tr>
+            <td class="mono dim">${shortId(b.id)}</td>
+            <td><strong>${x(b.customer_name)}</strong></td>
+            <td class="mono">${x(b.customer_phone || '—')}</td>
+            <td>${x(b.service?.name || '—')}</td>
+            <td>${x(b.master?.name  || '—')}</td>
+            <td>${fmtDate(b.start_time)}</td>
+            <td>${statusBadge(b.status)}</td>
+            <td class="td-dot">${hasMenu ? `<div class="dot-wrap">
+              <button class="dot-btn" onclick="toggleMenu('${b.id}')">···</button>
+              <div class="dot-menu" id="menu-${b.id}">
+                ${isPending   ? `<button class="dot-item" onclick="updateBookingStatus('${b.id}','confirmed',this)">Подтвердить</button>` : ''}
+                ${isConfirmed ? `<button class="dot-item" onclick="updateBookingStatus('${b.id}','completed',this)">Завершить</button>` : ''}
+                ${canCancel(b.status) ? `<button class="dot-item danger" onclick="cancelBooking('${b.id}',this)">Отменить запись</button>` : ''}
+              </div>
+            </div>` : '<span class="dim">—</span>'}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table></div>`;
 }
 
 async function cancelBooking(id, btn) {
+  closeAllMenus();
   if (!confirm(`Отменить запись ${shortId(id)}?`)) return;
   btn.disabled = true; btn.textContent = '...';
   try {
@@ -769,6 +805,7 @@ async function cancelBooking(id, btn) {
 }
 
 async function updateBookingStatus(id, status, btn) {
+  closeAllMenus();
   if (!confirm('Изменить статус записи?')) return;
   btn.disabled = true; btn.textContent = '...';
   try {
@@ -805,51 +842,52 @@ async function loadOrders() {
 
 function renderOrders(rows) {
   if (!rows.length) { setEmpty('Заказов не найдено'); return; }
+  const STATUS_LABELS = { pending:'Ожидает', paid:'Оплачен', processing:'В обработке', completed:'Завершён', cancelled:'Отменён' };
+  const ALL_ORDER_STATUSES = ['pending','paid','processing','completed','cancelled'];
   document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
       <colgroup>
         <col style="width:75px"><col style="width:130px"><col style="width:130px">
-        <col style="width:80px"><col><col style="width:210px">
+        <col style="width:80px"><col><col style="width:100px"><col style="width:48px">
       </colgroup>
       <thead><tr>
         <th>#</th><th>Клиент</th><th>Телефон</th>
-        <th>Сумма</th><th>Дата</th><th>Статус</th>
+        <th>Сумма</th><th>Дата</th><th>Статус</th><th></th>
       </tr></thead>
       <tbody>
-        ${rows.map(o => `<tr>
-          <td class="mono dim">${shortId(o.id)}</td>
-          <td><strong>${x(o.customer_name || '—')}</strong></td>
-          <td class="mono">${x(o.customer_phone || '—')}</td>
-          <td style="white-space:nowrap;">${o.total_price != null ? fmtMoney(o.total_price) : '—'}</td>
-          <td>${fmtDate(o.created_at)}</td>
-          <td class="td-actions"><div class="actions-cell">
-            ${orderStatusBadge(o.status)}
-            ${o.status !== 'completed' && o.status !== 'cancelled'
-              ? `<select class="btn btn-sm" style="padding:4px 8px;font-size:11px;width:auto;" onchange="updateOrderStatus('${o.id}',this)">
-                  <option value="">Статус...</option>
-                  <option value="pending">Ожидает</option>
-                  <option value="paid">Оплачен</option>
-                  <option value="processing">В обработке</option>
-                  <option value="completed">Завершён</option>
-                  <option value="cancelled">Отменён</option>
-                </select>` : ''}
-          </div></td>
-        </tr>`).join('')}
+        ${rows.map(o => {
+          const terminal = o.status === 'completed' || o.status === 'cancelled';
+          return `<tr>
+            <td class="mono dim">${shortId(o.id)}</td>
+            <td><strong>${x(o.customer_name || '—')}</strong></td>
+            <td class="mono">${x(o.customer_phone || '—')}</td>
+            <td style="white-space:nowrap;">${o.total_price != null ? fmtMoney(o.total_price) : '—'}</td>
+            <td>${fmtDate(o.created_at)}</td>
+            <td>${orderStatusBadge(o.status)}</td>
+            <td class="td-dot">${!terminal ? `<div class="dot-wrap">
+              <button class="dot-btn" onclick="toggleMenu('${o.id}')">···</button>
+              <div class="dot-menu" id="menu-${o.id}">
+                ${ALL_ORDER_STATUSES.filter(s => s !== o.status).map(s =>
+                  `<button class="dot-item${s === 'cancelled' ? ' danger' : ''}" onclick="updateOrderStatus('${o.id}','${s}',this)">${STATUS_LABELS[s]}</button>`
+                ).join('')}
+              </div>
+            </div>` : '<span class="dim">—</span>'}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table></div>`;
 }
 
-async function updateOrderStatus(id, sel) {
-  const status = sel.value;
-  if (!status) return;
-  if (!confirm(`Изменить статус заказа на «${status}»?`)) { sel.value = ''; return; }
-  sel.disabled = true;
+async function updateOrderStatus(id, status, btn) {
+  closeAllMenus();
+  if (!confirm(`Изменить статус заказа на «${status}»?`)) return;
+  btn.disabled = true;
   try {
     await api('PATCH', '/orders/' + id + '/status', { status });
     reload(curPage);
   } catch (e) {
     alert('Ошибка: ' + e.message);
-    sel.disabled = false; sel.value = '';
+    btn.disabled = false;
   }
 }
 
@@ -983,7 +1021,7 @@ function renderMasters(rows) {
   document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
       <colgroup>
-        <col style="width:75px"><col><col style="width:120px"><col><col style="width:180px">
+        <col style="width:75px"><col><col style="width:100px"><col><col style="width:48px">
       </colgroup>
       <thead><tr>
         <th>#</th><th>Имя</th><th>Статус</th><th>Услуги</th><th></th>
@@ -994,9 +1032,12 @@ function renderMasters(rows) {
           <td><strong>${x(m.name)}</strong></td>
           <td><span class="badge ${m.is_active ? 's-active' : 's-inactive'}">${m.is_active ? 'Активен' : 'Неактивен'}</span></td>
           <td class="dim">${(m.services || []).map(s => x(s.name)).join(', ') || '—'}</td>
-          <td class="td-actions"><div class="actions-cell">
-            <button class="btn btn-edit btn-sm" onclick='openModalMasterEdit(${JSON.stringify(m)})'>Редактировать</button>
-            <button class="btn btn-delete btn-sm" onclick="deleteMaster('${m.id}',this)">Удалить</button>
+          <td class="td-dot"><div class="dot-wrap">
+            <button class="dot-btn" onclick="toggleMenu('${m.id}')">···</button>
+            <div class="dot-menu" id="menu-${m.id}">
+              <button class="dot-item" onclick='openModalMasterEdit(${JSON.stringify(m)})'>Редактировать</button>
+              <button class="dot-item danger" onclick="deleteMaster('${m.id}',this)">Удалить</button>
+            </div>
           </div></td>
         </tr>`).join('')}
       </tbody>
@@ -1004,6 +1045,7 @@ function renderMasters(rows) {
 }
 
 async function deleteMaster(id, btn) {
+  closeAllMenus();
   if (!confirm('Удалить мастера?')) return;
   btn.disabled = true; btn.textContent = '...';
   try {
@@ -1079,6 +1121,7 @@ async function openModal(mode) {
 }
 
 function openModalMasterEdit(master) {
+  closeAllMenus();
   modalMode  = 'master-edit';
   modalExtra = master;
   document.getElementById('modal-title').textContent = 'Редактировать мастера';
@@ -1529,11 +1572,23 @@ function canCancel(s) { return s === 'pending' || s === 'confirmed'; }
 function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 
+function toggleMenu(id) {
+  const menu   = document.getElementById('menu-' + id);
+  const isOpen = menu.classList.contains('open');
+  closeAllMenus();
+  if (!isOpen) menu.classList.add('open');
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.dot-menu.open').forEach(m => m.classList.remove('open'));
+}
+
 function showErr(msg) { const e=document.getElementById('conn-err'); e.textContent=msg; e.classList.remove('hidden'); }
 function hideErr()    { document.getElementById('conn-err').classList.add('hidden'); }
 
 document.getElementById('inp-key').addEventListener('keydown', e => { if (e.key==='Enter') doConnect(); });
-document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeAllMenus(); } });
+document.addEventListener('click',   e => { if (!e.target.closest('.dot-wrap')) closeAllMenus(); });
 
 </script>
 </body>
