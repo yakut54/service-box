@@ -433,6 +433,8 @@ async function connectWithKey(key, silent) {
   btn.textContent = 'Проверяю...';
   hideErr();
 
+  apiKey = key; // выставляем до запроса, чтобы заголовок X-API-Key отправился
+
   try {
     // ---------------------------------------------------------
     // GET /api/v1/ping
@@ -449,7 +451,6 @@ async function connectWithKey(key, silent) {
     // ---------------------------------------------------------
     const data = await api('GET', '/ping');
 
-    apiKey = key;
     localStorage.setItem(LS_KEY, key);
 
     document.getElementById('shop-name').textContent = data.shop;
@@ -462,11 +463,9 @@ async function connectWithKey(key, silent) {
     loadData();
 
   } catch (e) {
+    apiKey = ''; // ключ не прошёл — сбрасываем
     if (!silent) showErr('Ошибка: ' + e.message);
-    else {
-      localStorage.removeItem(LS_KEY);
-      apiKey = '';
-    }
+    else localStorage.removeItem(LS_KEY);
   } finally {
     btn.disabled = false;
     btn.textContent = 'Подключиться';
