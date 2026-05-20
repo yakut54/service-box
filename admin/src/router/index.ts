@@ -114,6 +114,12 @@ const router = createRouter({
           component: () => import('@/views/ReviewsView.vue'),
         },
         {
+          path: 'staff',
+          name: 'staff',
+          component: () => import('@/views/StaffView.vue'),
+          meta: { requiresOwner: true },
+        },
+        {
           path: 'subscription',
           name: 'subscription',
           component: () => import('@/views/SubscriptionView.vue'),
@@ -151,6 +157,12 @@ const router = createRouter({
           meta: { requiresSuperadmin: true },
         },
       ],
+    },
+    {
+      path: '/invite/:token',
+      name: 'invite-accept',
+      component: () => import('@/views/InviteAcceptView.vue'),
+      meta: { requiresAuth: false },
     },
     {
       path: '/:pathMatch(.*)*',

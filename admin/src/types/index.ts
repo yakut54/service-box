@@ -435,6 +435,26 @@ export interface SubscriptionInfo {
 }
 
 // ==========================================
+// STAFF
+// ==========================================
+
+export interface StaffMember {
+  id: string
+  role: 'admin'
+  invite_email: string | null
+  accepted_at: string | null
+  invite_expires_at: string | null
+  is_pending: boolean
+  is_expired: boolean
+  user: {
+    id: string
+    name: string
+    email: string
+    created_at: string
+  } | null
+}
+
+// ==========================================
 // TELEGRAM
 // ==========================================
 

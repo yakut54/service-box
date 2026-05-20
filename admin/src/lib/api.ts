@@ -8,6 +8,7 @@ import type {
   Master,
   Discount,
   Review,
+  StaffMember,
   SubscriptionStatus,
   SubscriptionPayment,
   TelegramStatus,
@@ -562,6 +563,38 @@ class ApiClient {
   async deleteReview(id: string) {
     return this.request<{ message: string }>(`/admin/reviews/${id}`, {
       method: 'DELETE',
+    })
+  }
+
+  // ==========================================
+  // STAFF
+  // ==========================================
+
+  async getStaff() {
+    return this.request<{ data: StaffMember[] }>('/admin/staff')
+  }
+
+  async inviteStaff(email: string) {
+    return this.request<{ message: string }>('/admin/staff', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  }
+
+  async revokeStaff(id: string) {
+    return this.request<{ message: string }>(`/admin/staff/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async validateInvite(token: string) {
+    return this.request<{ shop_name: string; email: string; requires_registration: boolean }>(`/invite/${token}`)
+  }
+
+  async acceptInvite(data: { token: string; name?: string; password?: string; password_confirmation?: string }) {
+    return this.request<{ user: User; shop: Shop; token: string }>('/invite/accept', {
+      method: 'POST',
+      body: JSON.stringify(data),
     })
   }
 

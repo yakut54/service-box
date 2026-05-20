@@ -114,6 +114,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function loginWithToken(authToken: string, userData: User, shopData: Shop) {
+    token.value = authToken
+    user.value = userData
+    shop.value = shopData
+    api.setToken(authToken)
+  }
+
   async function updateShop(updates: Record<string, unknown>) {
     try {
       const updated = await api.updateShop(updates)
@@ -149,6 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
+    loginWithToken,
     updateShop,
   }
 })
