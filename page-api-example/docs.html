@@ -14,7 +14,7 @@
       --text:     #0f172a;
       --muted:    #64748b;
       --border:   #e2e8f0;
-      --nav-w:    260px;
+      --nav-w:    270px;
       --r: 8px;
     }
 
@@ -194,6 +194,11 @@
       padding: 12px 16px; font-size: 14px; margin-bottom: 16px;
     }
 
+    /* ── Скроллбар навигации ────────────────── */
+    .nav::-webkit-scrollbar { width: 4px; }
+    .nav::-webkit-scrollbar-track { background: transparent; }
+    .nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
     /* ── Адаптив ────────────────────────────── */
     @media (max-width: 800px) {
       .nav { display: none; }
@@ -239,15 +244,35 @@
       <a href="#post-booking"><span class="nav-method m-post">POST</span>bookings</a>
       <a href="#patch-booking"><span class="nav-method m-patch">PATCH</span>bookings/{id}/status</a>
       <a href="#delete-booking"><span class="nav-method m-delete">DELETE</span>bookings/{id}</a>
+      <a href="#get-slots"><span class="nav-method m-get">GET</span>available-slots</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Заказы</div>
+      <a href="#get-orders"><span class="nav-method m-get">GET</span>orders</a>
+      <a href="#get-order"><span class="nav-method m-get">GET</span>orders/{id}</a>
+      <a href="#post-order"><span class="nav-method m-post">POST</span>orders</a>
+      <a href="#patch-order"><span class="nav-method m-patch">PATCH</span>orders/{id}/status</a>
     </div>
     <div class="nav-section">
       <div class="nav-label">Клиенты</div>
       <a href="#get-clients"><span class="nav-method m-get">GET</span>clients</a>
+      <a href="#get-client"><span class="nav-method m-get">GET</span>clients/{id}</a>
+      <a href="#post-client"><span class="nav-method m-post">POST</span>clients</a>
     </div>
     <div class="nav-section">
-      <div class="nav-label">Услуги и мастера</div>
+      <div class="nav-label">Товары и услуги</div>
+      <a href="#get-products"><span class="nav-method m-get">GET</span>products</a>
+      <a href="#get-product"><span class="nav-method m-get">GET</span>products/{id}</a>
       <a href="#get-services"><span class="nav-method m-get">GET</span>services</a>
+      <a href="#get-categories"><span class="nav-method m-get">GET</span>categories</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Мастера</div>
       <a href="#get-masters"><span class="nav-method m-get">GET</span>masters</a>
+      <a href="#get-master"><span class="nav-method m-get">GET</span>masters/{id}</a>
+      <a href="#post-master"><span class="nav-method m-post">POST</span>masters</a>
+      <a href="#patch-master"><span class="nav-method m-patch">PATCH</span>masters/{id}</a>
+      <a href="#delete-master"><span class="nav-method m-delete">DELETE</span>masters/{id}</a>
     </div>
   </nav>
 
@@ -263,9 +288,7 @@
         ServiceBox API позволяет управлять данными вашего магазина из любого внешнего приложения —
         CRM-системы, Telegram-бота, сайта на Tilda, Google Sheets через n8n/Make, или собственного кода.
       </p>
-      <p>
-        Базовый URL всех запросов:
-      </p>
+      <p>Базовый URL всех запросов:</p>
       <pre><span class="hl-url">https://yakut54.ru/api/v1</span></pre>
       <p>API возвращает JSON. Все запросы и ответы используют кодировку UTF-8.</p>
       <div class="info-box">
@@ -309,12 +332,13 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
       <p>Каждый ответ содержит заголовки:</p>
       <pre><span class="hl-key">X-RateLimit-Limit</span>: 60
 <span class="hl-key">X-RateLimit-Remaining</span>: 58</pre>
-      <p>Ответ при превышении лимита:</p>
+      <p>При превышении лимита дополнительно возвращается заголовок <code>Retry-After</code> (секунд до сброса) и тело:</p>
       <pre>{
   <span class="hl-key">"error"</span>: <span class="hl-str">"Too Many Requests"</span>,
   <span class="hl-key">"message"</span>: <span class="hl-str">"Rate limit exceeded. Maximum 60 requests per minute."</span>,
   <span class="hl-key">"retry_after"</span>: <span class="hl-num">42</span>  <span class="hl-comment">// секунд до сброса</span>
 }</pre>
+      <p>Мутирующие эндпоинты (POST) дополнительно ограничены <strong>20 запросами в минуту</strong>.</p>
     </section>
 
     <!-- ════════════════════════════════════════
@@ -339,10 +363,11 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
       <div class="status-list">
         <div class="status-row"><span class="status-num s200">200</span><span>Успешно</span></div>
         <div class="status-row"><span class="status-num s201">201</span><span>Ресурс создан</span></div>
+        <div class="status-row"><span class="status-num s204">204</span><span>Успешно, тело пустое</span></div>
         <div class="status-row"><span class="status-num s401">401</span><span>Неверный или отсутствующий API-ключ</span></div>
-        <div class="status-row"><span class="status-num s403">403</span><span>Недостаточно прав (тариф, подписка)</span></div>
+        <div class="status-row"><span class="status-num s403">403</span><span>Недостаточно прав (тариф, подписка, лимиты плана)</span></div>
         <div class="status-row"><span class="status-num s404">404</span><span>Запись не найдена</span></div>
-        <div class="status-row"><span class="status-num s409">409</span><span>Конфликт (слот занят, мастер недоступен)</span></div>
+        <div class="status-row"><span class="status-num s409">409</span><span>Конфликт (слот занят, дубль телефона)</span></div>
         <div class="status-row"><span class="status-num s422">422</span><span>Ошибки валидации или недопустимое действие</span></div>
         <div class="status-row"><span class="status-num s429">429</span><span>Превышен лимит запросов</span></div>
         <div class="status-row"><span class="status-num s500">500</span><span>Ошибка сервера</span></div>
@@ -355,7 +380,7 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
     <section class="section" id="ping">
       <h2 class="section-title">Диагностика</h2>
 
-      <div class="endpoint" id="ping">
+      <div class="endpoint" id="ping-ep">
         <div class="endpoint-head">
           <span class="method-badge m-get">GET</span>
           <span class="endpoint-path">/ping</span>
@@ -533,6 +558,162 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
           <div class="status-row"><span class="status-num s404">404</span><span>Запись не найдена</span></div>
         </div>
       </div>
+
+      <!-- GET /available-slots -->
+      <div class="endpoint" id="get-slots">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/available-slots</span>
+          <span class="endpoint-desc">Доступные слоты для записи</span>
+        </div>
+        <p>Возвращает свободные временные слоты для выбранной услуги и даты. Используйте перед созданием записи.</p>
+        <h4>Query-параметры</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">service_id</td><td class="param-type">uuid</td><td><span class="req-badge">req</span></td><td>UUID услуги</td></tr>
+            <tr><td class="param-name">date</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Дата (YYYY-MM-DD)</td></tr>
+            <tr><td class="param-name">master_id</td><td class="param-type">uuid</td><td><span class="opt-badge">opt</span></td><td>UUID конкретного мастера (иначе — все доступные)</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"time"</span>: <span class="hl-str">"10:00"</span>,
+      <span class="hl-key">"datetime"</span>: <span class="hl-str">"2025-06-01T10:00:00+03:00"</span>,
+      <span class="hl-key">"master_id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"master_name"</span>: <span class="hl-str">"Анна"</span>
+    }
+  ]
+}</pre>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         ЗАКАЗЫ
+    ════════════════════════════════════════ -->
+    <section class="section" id="orders-section">
+      <h2 class="section-title">Заказы (Orders)</h2>
+
+      <!-- GET /orders -->
+      <div class="endpoint" id="get-orders">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/orders</span>
+          <span class="endpoint-desc">Список заказов с фильтрами</span>
+        </div>
+        <h4>Query-параметры</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Номер страницы</td></tr>
+            <tr><td class="param-name">per_page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>По умолчанию: 50, макс: 100</td></tr>
+            <tr><td class="param-name">status</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td><code>pending</code> / <code>paid</code> / <code>processing</code> / <code>completed</code> / <code>cancelled</code></td></tr>
+            <tr><td class="param-name">date_from</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Дата создания от (YYYY-MM-DD)</td></tr>
+            <tr><td class="param-name">date_to</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Дата создания до (YYYY-MM-DD)</td></tr>
+            <tr><td class="param-name">customer_id</td><td class="param-type">uuid</td><td><span class="opt-badge">opt</span></td><td>UUID клиента</td></tr>
+            <tr><td class="param-name">search</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Поиск по имени, телефону или email</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"status"</span>: <span class="hl-str">"pending"</span>,
+      <span class="hl-key">"customer_name"</span>: <span class="hl-str">"Иван Иванов"</span>,
+      <span class="hl-key">"customer_phone"</span>: <span class="hl-str">"+79001234567"</span>,
+      <span class="hl-key">"customer_email"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"total_price"</span>: <span class="hl-num">3000</span>,
+      <span class="hl-key">"discount_amount"</span>: <span class="hl-num">0</span>,
+      <span class="hl-key">"delivery_price"</span>: <span class="hl-num">0</span>,
+      <span class="hl-key">"notes"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"created_at"</span>: <span class="hl-str">"2025-06-01T09:00:00.000000Z"</span>,
+      <span class="hl-key">"items"</span>: [
+        { <span class="hl-key">"product_id"</span>: <span class="hl-str">"uuid"</span>, <span class="hl-key">"product_name"</span>: <span class="hl-str">"Товар"</span>, <span class="hl-key">"quantity"</span>: <span class="hl-num">2</span>, <span class="hl-key">"price"</span>: <span class="hl-num">1500</span> }
+      ]
+    }
+  ],
+  <span class="hl-key">"meta"</span>: { <span class="hl-comment">/* ... */</span> }
+}</pre>
+      </div>
+
+      <!-- GET /orders/{id} -->
+      <div class="endpoint" id="get-order">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/orders/{id}</span>
+          <span class="endpoint-desc">Один заказ по ID</span>
+        </div>
+        <h4>Ответ 200</h4>
+        <pre>{ <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект заказа, аналогично списку */</span> } }</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s404">404</span><span>Заказ не найден</span></div>
+        </div>
+      </div>
+
+      <!-- POST /orders -->
+      <div class="endpoint" id="post-order">
+        <div class="endpoint-head">
+          <span class="method-badge m-post">POST</span>
+          <span class="endpoint-path">/orders</span>
+          <span class="endpoint-desc">Создать заказ</span>
+        </div>
+        <div class="info-box">Лимит: 20 запросов в минуту. При создании автоматически применяется лучшая скидка (промокод vs автоскидка), уменьшается остаток физических товаров, отправляются уведомления владельцу в Telegram/MAX.</div>
+        <h4>Тело запроса (JSON)</h4>
+        <table class="params">
+          <thead><tr><th>Поле</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">customer.name</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Имя клиента</td></tr>
+            <tr><td class="param-name">customer.phone</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Телефон клиента</td></tr>
+            <tr><td class="param-name">customer.email</td><td class="param-type">email</td><td><span class="opt-badge">opt</span></td><td>Email клиента</td></tr>
+            <tr><td class="param-name">items</td><td class="param-type">array</td><td><span class="req-badge">req</span></td><td>Массив позиций заказа (минимум 1)</td></tr>
+            <tr><td class="param-name">items[].product_id</td><td class="param-type">uuid</td><td><span class="req-badge">req</span></td><td>UUID товара</td></tr>
+            <tr><td class="param-name">items[].quantity</td><td class="param-type">integer</td><td><span class="req-badge">req</span></td><td>Количество (минимум 1)</td></tr>
+            <tr><td class="param-name">discount_code</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Промокод</td></tr>
+            <tr><td class="param-name">delivery_method</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Способ доставки</td></tr>
+            <tr><td class="param-name">shipping_address</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Адрес доставки</td></tr>
+            <tr><td class="param-name">notes</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Комментарий (макс. 1000 символов)</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 201</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Order created successfully"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект заказа */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s403">403</span><span>Достигнут лимит заказов в месяц для вашего тарифа</span></div>
+          <div class="status-row"><span class="status-num s409">409</span><span>Физический товар закончился на складе</span></div>
+          <div class="status-row"><span class="status-num s422">422</span><span>Ошибки валидации или неверный промокод</span></div>
+        </div>
+      </div>
+
+      <!-- PATCH /orders/{id}/status -->
+      <div class="endpoint" id="patch-order">
+        <div class="endpoint-head">
+          <span class="method-badge m-patch">PATCH</span>
+          <span class="endpoint-path">/orders/{id}/status</span>
+          <span class="endpoint-desc">Изменить статус заказа</span>
+        </div>
+        <div class="info-box">При отмене заказа (<code>cancelled</code>) остатки физических товаров автоматически восстанавливаются.</div>
+        <h4>Тело запроса (JSON)</h4>
+        <table class="params">
+          <thead><tr><th>Поле</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">status</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td><code>pending</code> / <code>paid</code> / <code>processing</code> / <code>completed</code> / <code>cancelled</code></td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Order status updated to paid"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* обновлённый объект заказа */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s404">404</span><span>Заказ не найден</span></div>
+          <div class="status-row"><span class="status-num s422">422</span><span>Недопустимый статус</span></div>
+        </div>
+      </div>
     </section>
 
     <!-- ════════════════════════════════════════
@@ -541,6 +722,7 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
     <section class="section" id="clients-section">
       <h2 class="section-title">Клиенты (Clients)</h2>
 
+      <!-- GET /clients -->
       <div class="endpoint" id="get-clients">
         <div class="endpoint-head">
           <span class="method-badge m-get">GET</span>
@@ -573,22 +755,114 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
   <span class="hl-key">"meta"</span>: { <span class="hl-key">"total"</span>: <span class="hl-num">128</span>, <span class="hl-key">"page"</span>: <span class="hl-num">1</span>, <span class="hl-key">"per_page"</span>: <span class="hl-num">15</span>, <span class="hl-key">"last_page"</span>: <span class="hl-num">9</span> }
 }</pre>
       </div>
+
+      <!-- GET /clients/{id} -->
+      <div class="endpoint" id="get-client">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/clients/{id}</span>
+          <span class="endpoint-desc">Один клиент по ID</span>
+        </div>
+        <h4>Ответ 200</h4>
+        <pre>{ <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект клиента, аналогично списку */</span> } }</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s404">404</span><span>Клиент не найден</span></div>
+        </div>
+      </div>
+
+      <!-- POST /clients -->
+      <div class="endpoint" id="post-client">
+        <div class="endpoint-head">
+          <span class="method-badge m-post">POST</span>
+          <span class="endpoint-path">/clients</span>
+          <span class="endpoint-desc">Создать клиента</span>
+        </div>
+        <div class="info-box">Лимит: 20 запросов в минуту. Телефон нормализуется автоматически. Если клиент с таким телефоном уже существует — возвращается 409.</div>
+        <h4>Тело запроса (JSON)</h4>
+        <table class="params">
+          <thead><tr><th>Поле</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">name</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Имя клиента (макс. 255 символов)</td></tr>
+            <tr><td class="param-name">phone</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Телефон (макс. 20 символов)</td></tr>
+            <tr><td class="param-name">email</td><td class="param-type">email</td><td><span class="opt-badge">opt</span></td><td>Email клиента</td></tr>
+            <tr><td class="param-name">notes</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Примечание (макс. 1000 символов)</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 201</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Client created"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект клиента */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s409">409</span><span>Клиент с таким телефоном уже существует</span></div>
+          <div class="status-row"><span class="status-num s422">422</span><span>Ошибки валидации</span></div>
+        </div>
+      </div>
     </section>
 
     <!-- ════════════════════════════════════════
-         УСЛУГИ И МАСТЕРА
+         ТОВАРЫ И УСЛУГИ
     ════════════════════════════════════════ -->
-    <section class="section" id="services-section">
-      <h2 class="section-title">Услуги и мастера</h2>
+    <section class="section" id="products-section">
+      <h2 class="section-title">Товары и услуги</h2>
+
+      <!-- GET /products -->
+      <div class="endpoint" id="get-products">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/products</span>
+          <span class="endpoint-desc">Все товары (любой тип)</span>
+        </div>
+        <p>Возвращает товары всех типов: <code>physical</code>, <code>digital</code>, <code>service</code>. Используйте параметр <code>type</code> для фильтрации.</p>
+        <h4>Query-параметры</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Номер страницы</td></tr>
+            <tr><td class="param-name">per_page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>По умолчанию: 50, макс: 100</td></tr>
+            <tr><td class="param-name">type</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td><code>physical</code> / <code>digital</code> / <code>service</code></td></tr>
+            <tr><td class="param-name">active</td><td class="param-type">boolean</td><td><span class="opt-badge">opt</span></td><td><code>true</code> — только активные, <code>false</code> — только неактивные</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"name"</span>: <span class="hl-str">"Товар"</span>,
+      <span class="hl-key">"type"</span>: <span class="hl-str">"physical"</span>,
+      <span class="hl-key">"price"</span>: <span class="hl-num">1500</span>,
+      <span class="hl-key">"is_active"</span>: <span class="hl-bool">true</span>,
+      <span class="hl-key">"description"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"service"</span>: <span class="hl-null">null</span>  <span class="hl-comment">// заполнено только для type=service</span>
+    }
+  ],
+  <span class="hl-key">"meta"</span>: { <span class="hl-comment">/* ... */</span> }
+}</pre>
+      </div>
+
+      <!-- GET /products/{id} -->
+      <div class="endpoint" id="get-product">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/products/{id}</span>
+          <span class="endpoint-desc">Один товар по ID</span>
+        </div>
+        <h4>Ответ 200</h4>
+        <pre>{ <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект товара, аналогично списку */</span> } }</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s404">404</span><span>Товар не найден</span></div>
+        </div>
+      </div>
 
       <!-- GET /services -->
       <div class="endpoint" id="get-services">
         <div class="endpoint-head">
           <span class="method-badge m-get">GET</span>
           <span class="endpoint-path">/services</span>
-          <span class="endpoint-desc">Список активных услуг</span>
+          <span class="endpoint-desc">Только активные услуги</span>
         </div>
-        <p>Возвращает только активные услуги типа «услуга». Отсортированы по порядку, затем по названию.</p>
+        <p>Сокращённый алиас: возвращает только активные товары типа <code>service</code>, отсортированные по порядку и названию. Удобен для формирования формы записи.</p>
         <h4>Query-параметры</h4>
         <table class="params">
           <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
@@ -615,6 +889,36 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
 }</pre>
       </div>
 
+      <!-- GET /categories -->
+      <div class="endpoint" id="get-categories">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/categories</span>
+          <span class="endpoint-desc">Дерево категорий</span>
+        </div>
+        <p>Возвращает все корневые категории с вложенными подкатегориями и количеством товаров. Пагинации нет — возвращается полное дерево.</p>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"name"</span>: <span class="hl-str">"Услуги"</span>,
+      <span class="hl-key">"products_count"</span>: <span class="hl-num">5</span>,
+      <span class="hl-key">"children"</span>: [
+        { <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>, <span class="hl-key">"name"</span>: <span class="hl-str">"Стрижки"</span>, <span class="hl-key">"products_count"</span>: <span class="hl-num">3</span>, <span class="hl-key">"children"</span>: [] }
+      ]
+    }
+  ]
+}</pre>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         МАСТЕРА
+    ════════════════════════════════════════ -->
+    <section class="section" id="masters-section">
+      <h2 class="section-title">Мастера (Masters)</h2>
+
       <!-- GET /masters -->
       <div class="endpoint" id="get-masters">
         <div class="endpoint-head">
@@ -628,7 +932,7 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
           <tbody>
             <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Номер страницы</td></tr>
             <tr><td class="param-name">per_page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>По умолчанию: 50, макс: 100</td></tr>
-            <tr><td class="param-name">active</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td><code>1</code> — только активные мастера</td></tr>
+            <tr><td class="param-name">active</td><td class="param-type">boolean</td><td><span class="opt-badge">opt</span></td><td><code>true</code> / <code>1</code> — только активные мастера</td></tr>
           </tbody>
         </table>
         <h4>Ответ 200</h4>
@@ -637,6 +941,9 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
     {
       <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
       <span class="hl-key">"name"</span>: <span class="hl-str">"Анна"</span>,
+      <span class="hl-key">"phone"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"email"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"specialization"</span>: <span class="hl-str">"Парикмахер"</span>,
       <span class="hl-key">"is_active"</span>: <span class="hl-bool">true</span>,
       <span class="hl-key">"services"</span>: [
         { <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>, <span class="hl-key">"name"</span>: <span class="hl-str">"Стрижка"</span> }
@@ -646,13 +953,110 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
   <span class="hl-key">"meta"</span>: { <span class="hl-comment">/* ... */</span> }
 }</pre>
       </div>
+
+      <!-- GET /masters/{id} -->
+      <div class="endpoint" id="get-master">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/masters/{id}</span>
+          <span class="endpoint-desc">Один мастер по ID</span>
+        </div>
+        <h4>Ответ 200</h4>
+        <pre>{ <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект мастера с services, аналогично списку */</span> } }</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s404">404</span><span>Мастер не найден</span></div>
+        </div>
+      </div>
+
+      <!-- POST /masters -->
+      <div class="endpoint" id="post-master">
+        <div class="endpoint-head">
+          <span class="method-badge m-post">POST</span>
+          <span class="endpoint-path">/masters</span>
+          <span class="endpoint-desc">Создать мастера</span>
+        </div>
+        <div class="info-box">Лимит: 20 запросов в минуту. Проверяется лимит мастеров для вашего тарифного плана.</div>
+        <h4>Тело запроса (JSON)</h4>
+        <table class="params">
+          <thead><tr><th>Поле</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">name</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Имя мастера (макс. 255 символов)</td></tr>
+            <tr><td class="param-name">phone</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Телефон (макс. 20 символов)</td></tr>
+            <tr><td class="param-name">email</td><td class="param-type">email</td><td><span class="opt-badge">opt</span></td><td>Email</td></tr>
+            <tr><td class="param-name">specialization</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Специализация (макс. 255 символов)</td></tr>
+            <tr><td class="param-name">avatar_url</td><td class="param-type">url</td><td><span class="opt-badge">opt</span></td><td>URL аватара</td></tr>
+            <tr><td class="param-name">is_active</td><td class="param-type">boolean</td><td><span class="opt-badge">opt</span></td><td>Активен ли мастер (по умолчанию: true)</td></tr>
+            <tr><td class="param-name">sort_order</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Порядок сортировки</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 201</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Master created"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект мастера */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s403">403</span><span>Достигнут лимит мастеров для вашего тарифа</span></div>
+          <div class="status-row"><span class="status-num s422">422</span><span>Ошибки валидации</span></div>
+        </div>
+      </div>
+
+      <!-- PATCH /masters/{id} -->
+      <div class="endpoint" id="patch-master">
+        <div class="endpoint-head">
+          <span class="method-badge m-patch">PATCH</span>
+          <span class="endpoint-path">/masters/{id}</span>
+          <span class="endpoint-desc">Обновить мастера</span>
+        </div>
+        <div class="info-box">
+          При деактивации мастера (<code>is_active: false</code>) все его будущие записи автоматически переназначаются или отменяются с уведомлением клиентов.
+          При реактивации — восстанавливаются скрытые слоты.
+        </div>
+        <p>Передавайте только те поля, которые нужно изменить (partial update).</p>
+        <h4>Тело запроса (JSON)</h4>
+        <table class="params">
+          <thead><tr><th>Поле</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">name</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Новое имя</td></tr>
+            <tr><td class="param-name">phone</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Телефон</td></tr>
+            <tr><td class="param-name">email</td><td class="param-type">email</td><td><span class="opt-badge">opt</span></td><td>Email</td></tr>
+            <tr><td class="param-name">specialization</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Специализация</td></tr>
+            <tr><td class="param-name">is_active</td><td class="param-type">boolean</td><td><span class="opt-badge">opt</span></td><td>Активность</td></tr>
+            <tr><td class="param-name">sort_order</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Порядок сортировки</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Master updated"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* обновлённый объект мастера */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s403">403</span><span>Достигнут лимит активных мастеров при попытке активировать</span></div>
+          <div class="status-row"><span class="status-num s404">404</span><span>Мастер не найден</span></div>
+        </div>
+      </div>
+
+      <!-- DELETE /masters/{id} -->
+      <div class="endpoint" id="delete-master">
+        <div class="endpoint-head">
+          <span class="method-badge m-delete">DELETE</span>
+          <span class="endpoint-path">/masters/{id}</span>
+          <span class="endpoint-desc">Удалить мастера</span>
+        </div>
+        <div class="warn-box">Удаление необратимо. Исторические записи мастера сохраняются, но связь с мастером удаляется.</div>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Master deleted"</span>
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s404">404</span><span>Мастер не найден</span></div>
+        </div>
+      </div>
     </section>
 
   </main>
 </div>
 
 <script>
-  // Подсветка активного пункта навигации при скролле
   const sections = document.querySelectorAll('[id]');
   const navLinks  = document.querySelectorAll('.nav a');
 

@@ -188,16 +188,37 @@ servicebox/
 | `/api/v1/ping` | GET | Проверка ключа, возвращает имя магазина и тариф |
 | `/api/v1/bookings` | GET | Список записей (фильтры: status, master_id, date_from, date_to) |
 | `/api/v1/bookings` | POST | Создать запись (throttle:20,1) |
+| `/api/v1/bookings/{id}` | GET | Детальная запись |
+| `/api/v1/bookings/{id}` | PATCH | Изменить статус (throttle:20,1) |
 | `/api/v1/bookings/{id}` | DELETE | Отменить запись |
+| `/api/v1/available-slots` | GET | Доступные слоты (service_id, date, master_id) |
+| `/api/v1/orders` | GET | Список заказов (фильтры: status, customer_id, date_from, date_to, search) |
+| `/api/v1/orders` | POST | Создать заказ с items (throttle:20,1) |
+| `/api/v1/orders/{id}` | GET | Детальный заказ |
+| `/api/v1/orders/{id}` | PATCH | Изменить статус заказа (throttle:20,1) |
 | `/api/v1/clients` | GET | Список клиентов (поиск по имени/телефону/email) |
-| `/api/v1/services` | GET | Список услуг (только активные) |
+| `/api/v1/clients` | POST | Создать клиента (throttle:20,1, 409 на дубль телефона) |
+| `/api/v1/clients/{id}` | GET | Детальный клиент |
+| `/api/v1/products` | GET | Список товаров (фильтры: type, active) |
+| `/api/v1/products/{id}` | GET | Детальный товар |
+| `/api/v1/services` | GET | Список услуг (алиас products?type=service) |
+| `/api/v1/categories` | GET | Дерево категорий с children |
 | `/api/v1/masters` | GET | Список мастеров (фильтр: active) |
+| `/api/v1/masters` | POST | Создать мастера (throttle:20,1) |
+| `/api/v1/masters/{id}` | GET | Детальный мастер |
+| `/api/v1/masters/{id}` | PATCH | Обновить мастера (throttle:20,1, каскад при деактивации) |
+| `/api/v1/masters/{id}` | DELETE | Удалить мастера (каскад: записи отменяются/переназначаются) |
 
 ### Безопасность
 - X-API-Key валидируется через TenantService::setContextByApiKey()
-- Rate limit: 60 req/min per API key (X-RateLimit-Limit / X-RateLimit-Remaining в заголовках)
+- Rate limit: 60 req/min global + 20 req/min для POST-мутаций per API key
+- Заголовки: X-RateLimit-Limit, X-RateLimit-Remaining; 429 → Retry-After
 - ForceJson middleware: принудительный Accept: application/json — предотвращает 302-редирект при ошибках валидации
 - Доступно только на тарифе Pro (feature gate: `api_access`)
+
+### Demo & Docs ✅
+- `page-api-example/index.html` — интерактивная демо-страница: все вкладки (записи, заказы, клиенты, услуги, товары, мастера), CRUD, фильтры, пагинация, универсальный модал, retry_after при 429
+- `page-api-example/docs.html` — полная документация всех эндпоинтов с примерами запросов/ответов
 
 ### Admin UI
 - Настройки → вкладка "Интеграция" → показ/скрытие ключа, копирование, перегенерация с подтверждением

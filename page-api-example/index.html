@@ -108,7 +108,7 @@
     }
 
     /* ── Вкладки ───────────────────────────── */
-    .tabs { display: flex; gap: 2px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+    .tabs { display: flex; gap: 2px; border-bottom: 2px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; }
     .tab {
       padding: 9px 20px; background: none; border: none;
       cursor: pointer; font-size: 14px; color: var(--muted);
@@ -153,33 +153,46 @@
     .btn-ghost:hover { background: var(--bg); }
     .btn-create { background: #d1fae5; color: #065f46; }
     .btn-create:hover { background: #a7f3d0; }
+    .btn-edit { background: #f0f9ff; color: #0369a1; }
+    .btn-edit:hover { background: #e0f2fe; }
+    .btn-edit:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-delete { background: #fee2e2; color: var(--danger); }
+    .btn-delete:hover { background: #fecaca; }
+    .btn-delete:disabled { opacity: .4; cursor: not-allowed; }
 
     /* ── Таблица ───────────────────────────── */
     .t-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     thead th {
       padding: 9px 12px; text-align: left;
       background: #f8fafc; border-bottom: 1px solid var(--border);
       font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
-      color: var(--muted); white-space: nowrap; font-weight: 600;
+      color: var(--muted); white-space: nowrap; font-weight: 600; overflow: hidden;
     }
-    tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover td { background: #f8f9ff; }
+    td.td-actions { overflow: visible; white-space: nowrap; }
+    .actions-cell { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
 
     /* ── Бейджи ────────────────────────────── */
     .badge {
       display: inline-block; padding: 2px 9px; border-radius: 20px;
       font-size: 11px; font-weight: 600; white-space: nowrap;
     }
-    .s-pending   { background: #f1f5f9; color: #475569; }
-    .s-confirmed { background: #dbeafe; color: #1d4ed8; }
-    .s-completed { background: #d1fae5; color: #065f46; }
-    .s-cancelled { background: #fee2e2; color: #991b1b; }
-    .s-active    { background: #d1fae5; color: #065f46; }
-    .s-inactive  { background: #f1f5f9; color: #475569; }
-    .s-yes       { background: #dbeafe; color: #1d4ed8; }
-    .s-no        { background: #f1f5f9; color: #475569; }
+    .s-pending    { background: #f1f5f9; color: #475569; }
+    .s-confirmed  { background: #dbeafe; color: #1d4ed8; }
+    .s-completed  { background: #d1fae5; color: #065f46; }
+    .s-cancelled  { background: #fee2e2; color: #991b1b; }
+    .s-paid       { background: #d1fae5; color: #065f46; }
+    .s-processing { background: #fef3c7; color: #92400e; }
+    .s-active     { background: #d1fae5; color: #065f46; }
+    .s-inactive   { background: #f1f5f9; color: #475569; }
+    .s-yes        { background: #dbeafe; color: #1d4ed8; }
+    .s-no         { background: #f1f5f9; color: #475569; }
 
     /* ── Состояния ─────────────────────────── */
     .state { text-align: center; padding: 52px 20px; color: var(--muted); }
@@ -204,6 +217,12 @@
     .status-code.ok  { color: var(--success); }
     .status-code.err { color: var(--danger); }
     .status-code.warn { color: #d97706; }
+    .retry-after {
+      background: #fef3c7; color: #92400e;
+      border-radius: 20px; padding: 2px 10px; font-size: 12px;
+      font-weight: 600; display: none;
+    }
+    .retry-after.visible { display: inline; }
 
     /* ── Пагинация ─────────────────────────── */
     .pager { display: flex; gap: 4px; align-items: center; justify-content: center; flex-wrap: wrap; padding-top: 16px; }
@@ -226,7 +245,6 @@
 
     .code-wrap { position: relative; }
 
-    /* кнопка копирования — внутри тёмного блока, абсолютная */
     .copy-icon-btn {
       position: absolute; top: 8px; right: 16px;
       background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
@@ -315,7 +333,6 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    /* тёмные блоки кода */
     .json-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
     .json-box::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
     .curl-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
@@ -420,8 +437,10 @@
 
     <div class="tabs">
       <button class="tab active" data-t="bookings" onclick="switchTab('bookings')">Записи</button>
+      <button class="tab"        data-t="orders"   onclick="switchTab('orders')">Заказы</button>
       <button class="tab"        data-t="clients"  onclick="switchTab('clients')">Клиенты</button>
       <button class="tab"        data-t="services" onclick="switchTab('services')">Услуги</button>
+      <button class="tab"        data-t="products" onclick="switchTab('products')">Товары</button>
       <button class="tab"        data-t="masters"  onclick="switchTab('masters')">Мастера</button>
     </div>
 
@@ -442,7 +461,27 @@
         <label>По:</label>
         <input type="date" id="f-to"   onchange="reload()" />
         <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
-        <button class="btn btn-create btn-sm"  onclick="openCreateModal()">+ Создать запись</button>
+        <button class="btn btn-create btn-sm"  onclick="openModal('booking')">+ Создать запись</button>
+      </div>
+
+      <!-- Фильтры: Заказы -->
+      <div id="f-orders" class="filters hidden">
+        <label>Статус:</label>
+        <select id="f-order-status" onchange="reload()">
+          <option value="">Все</option>
+          <option value="pending">Ожидает</option>
+          <option value="paid">Оплачен</option>
+          <option value="processing">В обработке</option>
+          <option value="completed">Завершён</option>
+          <option value="cancelled">Отменён</option>
+        </select>
+        <label>С:</label>
+        <input type="date" id="f-order-from" onchange="reload()" />
+        <label>По:</label>
+        <input type="date" id="f-order-to"   onchange="reload()" />
+        <label>Поиск:</label>
+        <input type="text" id="f-order-search" placeholder="Имя или телефон" oninput="lazyLoad()" style="width:180px;" />
+        <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
       </div>
 
       <!-- Фильтры: Клиенты -->
@@ -451,10 +490,29 @@
         <input type="text" id="f-search" placeholder="Имя, телефон или email"
                oninput="lazyLoad()" style="width:230px;" />
         <button class="btn btn-primary btn-sm" onclick="reload()">Найти</button>
+        <button class="btn btn-create btn-sm" onclick="openModal('client')">+ Добавить клиента</button>
       </div>
 
       <!-- Фильтры: Услуги -->
       <div id="f-services" class="filters hidden">
+        <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
+      </div>
+
+      <!-- Фильтры: Товары -->
+      <div id="f-products" class="filters hidden">
+        <label>Тип:</label>
+        <select id="f-product-type" onchange="reload()">
+          <option value="">Все</option>
+          <option value="physical">Физический</option>
+          <option value="digital">Цифровой</option>
+          <option value="service">Услуга</option>
+        </select>
+        <label>Статус:</label>
+        <select id="f-product-active" onchange="reload()">
+          <option value="">Все</option>
+          <option value="true">Активные</option>
+          <option value="false">Неактивные</option>
+        </select>
         <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
       </div>
 
@@ -466,6 +524,7 @@
           <option value="1">Только активные</option>
         </select>
         <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
+        <button class="btn btn-create btn-sm" onclick="openModal('master')">+ Добавить мастера</button>
       </div>
 
       <!-- Данные -->
@@ -475,6 +534,7 @@
       <div class="status-bar hidden" id="status-bar">
         <span id="status-code" class="status-code"></span>
         <span id="status-time" class="dim"></span>
+        <span class="retry-after" id="retry-after"></span>
       </div>
 
       <!-- Пагинация -->
@@ -527,11 +587,11 @@
 
 </div><!-- /wrap -->
 
-<!-- ─── Модалка: Создать запись ───────────────────────── -->
+<!-- ─── Универсальная модалка ─────────────────────────── -->
 <div class="modal-overlay hidden" id="modal" onclick="onOverlayClick(event)">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-head">
-      <h2>Создать запись</h2>
+      <h2 id="modal-title">Создать</h2>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body" id="modal-body">
@@ -539,7 +599,7 @@
     </div>
     <div class="modal-foot" id="modal-foot" style="display:none;">
       <button class="btn-ghost" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" id="modal-submit" onclick="submitCreate()">Создать запись</button>
+      <button class="btn btn-primary" id="modal-submit" onclick="modalSubmit()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -552,18 +612,21 @@
 // ── Конфиг ──────────────────────────────────────────────
 const API_BASE = 'https://yakut54.ru/api/v1';
 const LS_KEY   = 'sb_api_key_demo';
+const ALL_TABS = ['bookings','orders','clients','services','products','masters'];
 
 // ── Состояние ────────────────────────────────────────────
-let apiKey   = '';
-let curTab   = 'bookings';
-let curPage  = 1;
-let lazy     = null;
-let curlOpen = false;
-let jsonOpen = false;
-let lastCurlText = '';   // plain text для копирования
-let lastJsonText = '';   // plain text JSON для копирования
-let modalServices = [];  // услуги для формы
-let modalMasters  = [];  // мастера для формы
+let apiKey        = '';
+let curTab        = 'bookings';
+let curPage       = 1;
+let lazy          = null;
+let curlOpen      = false;
+let jsonOpen      = false;
+let lastCurlText  = '';
+let lastJsonText  = '';
+let modalMode     = '';   // 'booking' | 'client' | 'master' | 'master-edit'
+let modalExtra    = null; // доп. данные для модалки (мастер для редактирования)
+let modalServices = [];
+let modalMasters  = [];
 
 // ── Инициализация ────────────────────────────────────────
 (function init() {
@@ -590,25 +653,15 @@ async function connectWithKey(key, silent) {
   btn.disabled = true;
   btn.textContent = 'Проверяю...';
   hideErr();
-
   apiKey = key;
 
   try {
-    // ──────────────────────────────────────────────────────
-    // GET /api/v1/ping
-    // Проверяет ключ и возвращает данные магазина.
-    // Ответ: { ok: true, shop: "Название", plan: "pro", version: "1" }
-    // ──────────────────────────────────────────────────────
     const data = await api('GET', '/ping');
-
     localStorage.setItem(LS_KEY, key);
-
     document.getElementById('shop-name').textContent = data.shop;
     document.getElementById('shop-plan').textContent  = data.plan.toUpperCase();
-
     show('s-shop'); hide('s-key'); show('s-main');
     loadData();
-
   } catch (e) {
     apiKey = '';
     if (!silent) showErr('Ошибка: ' + e.message);
@@ -635,9 +688,7 @@ function doDisconnect() {
 function switchTab(tab) {
   curTab = tab; curPage = 1;
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.t === tab));
-  ['bookings','clients','services','masters'].forEach(t => {
-    document.getElementById('f-' + t).classList.toggle('hidden', t !== tab);
-  });
+  ALL_TABS.forEach(t => document.getElementById('f-' + t).classList.toggle('hidden', t !== tab));
   loadData();
 }
 
@@ -647,8 +698,10 @@ function lazyLoad()   { clearTimeout(lazy); lazy = setTimeout(() => reload(), 45
 function loadData() {
   setLoading();
   if      (curTab === 'bookings') loadBookings();
+  else if (curTab === 'orders')   loadOrders();
   else if (curTab === 'clients')  loadClients();
   else if (curTab === 'services') loadServices();
+  else if (curTab === 'products') loadProducts();
   else if (curTab === 'masters')  loadMasters();
 }
 
@@ -666,14 +719,6 @@ async function loadBookings() {
   if (to)     qs.set('date_to',   to);
 
   try {
-    // ──────────────────────────────────────────────────────
-    // GET /api/v1/bookings
-    // Query: page, per_page (макс 100), status, date_from, date_to, master_id
-    // Каждая запись: id, customer_name, customer_phone, customer_email,
-    //   status, start_time, end_time, notes,
-    //   service: { id, name, price },
-    //   master:  { id, name }
-    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/bookings?' + qs);
     renderBookings(res.data);
     renderPager(res.meta);
@@ -684,9 +729,13 @@ function renderBookings(rows) {
   if (!rows.length) { setEmpty('Записей не найдено'); return; }
   document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
+      <colgroup>
+        <col style="width:75px"><col style="width:120px"><col style="width:130px">
+        <col><col style="width:130px"><col style="width:135px"><col style="width:240px">
+      </colgroup>
       <thead><tr>
         <th>#</th><th>Клиент</th><th>Телефон</th>
-        <th>Услуга</th><th>Мастер</th><th>Дата / Время</th><th>Статус</th><th></th>
+        <th>Услуга</th><th>Мастер</th><th>Дата / Время</th><th>Статус</th>
       </tr></thead>
       <tbody>
         ${rows.map(b => `<tr>
@@ -695,30 +744,22 @@ function renderBookings(rows) {
           <td class="mono">${x(b.customer_phone || '—')}</td>
           <td>${x(b.service?.name || '—')}</td>
           <td>${x(b.master?.name  || '—')}</td>
-          <td style="white-space:nowrap;">${fmtDate(b.start_time)}</td>
-          <td>${statusBadge(b.status)}</td>
-          <td style="display:flex;gap:4px;flex-wrap:wrap;">
-            ${b.status === 'pending'   ? `<button class="btn btn-confirm btn-sm" onclick="updateStatus('${b.id}','confirmed',this)">Подтвердить</button>` : ''}
-            ${b.status === 'confirmed' ? `<button class="btn btn-complete btn-sm" onclick="updateStatus('${b.id}','completed',this)">Завершить</button>` : ''}
-            ${canCancel(b.status)      ? `<button class="btn btn-cancel btn-sm"  onclick="cancelBooking('${b.id}',this)">Отменить</button>` : ''}
-          </td>
+          <td>${fmtDate(b.start_time)}</td>
+          <td class="td-actions"><div class="actions-cell">
+            ${statusBadge(b.status)}
+            ${b.status === 'pending'   ? `<button class="btn btn-confirm btn-sm" onclick="updateBookingStatus('${b.id}','confirmed',this)">Подтвердить</button>` : ''}
+            ${b.status === 'confirmed' ? `<button class="btn btn-complete btn-sm" onclick="updateBookingStatus('${b.id}','completed',this)">Завершить</button>` : ''}
+            ${canCancel(b.status)      ? `<button class="btn btn-cancel btn-sm"   onclick="cancelBooking('${b.id}',this)">Отменить</button>` : ''}
+          </div></td>
         </tr>`).join('')}
       </tbody>
     </table></div>`;
 }
 
-// ── Отмена записи ────────────────────────────────────────
 async function cancelBooking(id, btn) {
   if (!confirm(`Отменить запись ${shortId(id)}?`)) return;
   btn.disabled = true; btn.textContent = '...';
   try {
-    // ──────────────────────────────────────────────────────
-    // DELETE /api/v1/bookings/{id}
-    // Отменяет запись (только pending или confirmed).
-    // Клиент получит уведомление в Telegram/MAX если подключён.
-    // Ответ: { message: "Booking cancelled", data: {...} }
-    // Ошибки: 422 — уже отменена/завершена, 404 — не найдена
-    // ──────────────────────────────────────────────────────
     await api('DELETE', '/bookings/' + id);
     reload(curPage);
   } catch (e) {
@@ -727,21 +768,10 @@ async function cancelBooking(id, btn) {
   }
 }
 
-async function updateStatus(id, status, btn) {
-  if (!confirm(`Вы уверены? Это действие изменит статус записи.`)) return;
-  btn.disabled = true;
-  btn.textContent = '...';
+async function updateBookingStatus(id, status, btn) {
+  if (!confirm('Изменить статус записи?')) return;
+  btn.disabled = true; btn.textContent = '...';
   try {
-    // ──────────────────────────────────────────────────────
-    // PATCH /api/v1/bookings/{id}/status
-    // Тело: { "status": "confirmed" } или { "status": "completed" }
-    // Допустимые переходы:
-    //   pending   → confirmed  (подтвердить запись)
-    //   confirmed → completed  (завершить запись)
-    // Клиент получит уведомление в Telegram/MAX если подключён.
-    // Ответ: { message: "...", data: { booking } }
-    // Ошибки: 422 — недопустимый переход статуса
-    // ──────────────────────────────────────────────────────
     await api('PATCH', '/bookings/' + id + '/status', { status });
     reload(curPage);
   } catch (e) {
@@ -752,171 +782,76 @@ async function updateStatus(id, status, btn) {
 }
 
 // ══════════════════════════════════════════════════════════
-// СОЗДАТЬ ЗАПИСЬ — модалка
+// ЗАКАЗЫ
 // ══════════════════════════════════════════════════════════
 
-async function openCreateModal() {
-  show('modal');
-  document.getElementById('modal-body').innerHTML =
-    '<div class="state"><div class="spinner"></div><br>Загрузка услуг и мастеров...</div>';
-  document.getElementById('modal-foot').style.display = 'none';
+async function loadOrders() {
+  const qs = new URLSearchParams({ page: curPage, per_page: 15 });
+  const status = document.getElementById('f-order-status').value;
+  const from   = document.getElementById('f-order-from').value;
+  const to     = document.getElementById('f-order-to').value;
+  const search = document.getElementById('f-order-search').value.trim();
+  if (status) qs.set('status',    status);
+  if (from)   qs.set('date_from', from);
+  if (to)     qs.set('date_to',   to);
+  if (search) qs.set('search',    search);
 
   try {
-    // Загружаем услуги и мастеров тихо (не обновляем curl/json панели)
-    const [svcRes, masRes] = await Promise.all([
-      api('GET', '/services?per_page=100', null, { silent: true }),
-      api('GET', '/masters?per_page=100&active=1', null, { silent: true }),
-    ]);
-    modalServices = svcRes.data;
-    modalMasters  = masRes.data;
-    renderCreateForm();
-  } catch (e) {
-    document.getElementById('modal-body').innerHTML =
-      `<div class="state err">⚠ Не удалось загрузить данные: ${x(e.message)}</div>`;
-  }
+    const res = await api('GET', '/orders?' + qs);
+    renderOrders(res.data);
+    renderPager(res.meta);
+  } catch (e) { setError(e.message); }
 }
 
-function renderCreateForm() {
-  const today = new Date().toISOString().split('T')[0];
-  const now   = new Date();
-  const hh    = String(now.getHours()).padStart(2, '0');
-  const mm    = String(Math.ceil(now.getMinutes() / 15) * 15 % 60).padStart(2, '0');
-  const defTime = `${hh}:${mm}`;
-
-  document.getElementById('modal-body').innerHTML = `
-    <div class="form-row">
-      <label>Услуга <span>*</span></label>
-      <select id="m-service" required>
-        <option value="">— выберите услугу —</option>
-        ${modalServices.map(s =>
-          `<option value="${s.id}">${x(s.name)}${s.price ? ' · ' + fmtMoney(s.price) : ''}</option>`
-        ).join('')}
-      </select>
-    </div>
-    <div class="form-row-2">
-      <div class="form-row" style="margin-bottom:0;">
-        <label>Дата <span>*</span></label>
-        <input type="date" id="m-date" min="${today}" value="${today}" required />
-      </div>
-      <div class="form-row" style="margin-bottom:0;">
-        <label>Время <span>*</span></label>
-        <input type="time" id="m-time" value="${defTime}" required />
-      </div>
-    </div>
-    <div class="form-row">
-      <label>Мастер <span style="color:var(--muted);font-weight:400;">(необязательно — подберётся автоматически)</span></label>
-      <select id="m-master">
-        <option value="">— автовыбор —</option>
-        ${modalMasters.map(m =>
-          `<option value="${m.id}">${x(m.name)}</option>`
-        ).join('')}
-      </select>
-    </div>
-    <hr class="form-divider" />
-    <div class="form-row">
-      <label>Имя клиента <span>*</span></label>
-      <input type="text" id="m-name" placeholder="Иван Иванов" required />
-    </div>
-    <div class="form-row">
-      <label>Телефон <span>*</span></label>
-      <input type="text" id="m-phone" placeholder="+7 900 000-00-00" required />
-    </div>
-    <div class="form-row">
-      <label>Email <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
-      <input type="email" id="m-email" placeholder="client@example.com" />
-    </div>
-    <div class="form-row">
-      <label>Заметки <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
-      <textarea id="m-notes" placeholder="Особые пожелания, комментарии..."></textarea>
-    </div>
-    <p class="form-error hidden" id="m-error"></p>
-  `;
-  document.getElementById('modal-foot').style.display = 'flex';
-
-  // Фильтр мастеров по выбранной услуге
-  document.getElementById('m-service').addEventListener('change', function () {
-    const sid = this.value;
-    const sel = document.getElementById('m-master');
-    sel.innerHTML = '<option value="">— автовыбор —</option>';
-    const filtered = sid
-      ? modalMasters.filter(m => (m.services || []).some(s => s.id === sid))
-      : modalMasters;
-    filtered.forEach(m => {
-      const o = document.createElement('option');
-      o.value = m.id; o.textContent = m.name;
-      sel.appendChild(o);
-    });
-    if (sid && filtered.length === 0) {
-      const o = document.createElement('option');
-      o.disabled = true; o.textContent = '— нет мастеров для этой услуги —';
-      sel.appendChild(o);
-    }
-  });
+function renderOrders(rows) {
+  if (!rows.length) { setEmpty('Заказов не найдено'); return; }
+  document.getElementById('data-area').innerHTML = `
+    <div class="t-wrap"><table>
+      <colgroup>
+        <col style="width:75px"><col style="width:130px"><col style="width:130px">
+        <col style="width:80px"><col><col style="width:210px">
+      </colgroup>
+      <thead><tr>
+        <th>#</th><th>Клиент</th><th>Телефон</th>
+        <th>Сумма</th><th>Дата</th><th>Статус</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(o => `<tr>
+          <td class="mono dim">${shortId(o.id)}</td>
+          <td><strong>${x(o.customer_name || '—')}</strong></td>
+          <td class="mono">${x(o.customer_phone || '—')}</td>
+          <td style="white-space:nowrap;">${o.total_price != null ? fmtMoney(o.total_price) : '—'}</td>
+          <td>${fmtDate(o.created_at)}</td>
+          <td class="td-actions"><div class="actions-cell">
+            ${orderStatusBadge(o.status)}
+            ${o.status !== 'completed' && o.status !== 'cancelled'
+              ? `<select class="btn btn-sm" style="padding:4px 8px;font-size:11px;width:auto;" onchange="updateOrderStatus('${o.id}',this)">
+                  <option value="">Статус...</option>
+                  <option value="pending">Ожидает</option>
+                  <option value="paid">Оплачен</option>
+                  <option value="processing">В обработке</option>
+                  <option value="completed">Завершён</option>
+                  <option value="cancelled">Отменён</option>
+                </select>` : ''}
+          </div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
 }
 
-async function submitCreate() {
-  const serviceId = document.getElementById('m-service').value;
-  const date      = document.getElementById('m-date').value;
-  const time      = document.getElementById('m-time').value;
-  const masterId  = document.getElementById('m-master').value;
-  const name      = document.getElementById('m-name').value.trim();
-  const phone     = document.getElementById('m-phone').value.trim();
-  const email     = document.getElementById('m-email').value.trim();
-  const notes     = document.getElementById('m-notes').value.trim();
-
-  // Фронтовая валидация
-  if (!serviceId) { setFormErr('Выберите услугу'); return; }
-  if (!date || !time) { setFormErr('Укажите дату и время'); return; }
-  if (!name)    { setFormErr('Укажите имя клиента'); return; }
-  if (!phone)   { setFormErr('Укажите телефон'); return; }
-
-  const startTime = new Date(date + 'T' + time).toISOString();
-
-  const btn = document.getElementById('modal-submit');
-  btn.disabled = true; btn.textContent = 'Создаю...';
-  hideFormErr();
-
+async function updateOrderStatus(id, sel) {
+  const status = sel.value;
+  if (!status) return;
+  if (!confirm(`Изменить статус заказа на «${status}»?`)) { sel.value = ''; return; }
+  sel.disabled = true;
   try {
-    // ──────────────────────────────────────────────────────
-    // POST /api/v1/bookings
-    // Тело запроса (JSON):
-    //   service_id       — UUID услуги (обязательно)
-    //   start_time       — ISO 8601 дата/время (обязательно, > now)
-    //   master_id        — UUID мастера (опционально, автовыбор если не указан)
-    //   customer.name    — имя клиента (обязательно)
-    //   customer.phone   — телефон (обязательно)
-    //   customer.email   — email (опционально)
-    //   notes            — заметки (опционально)
-    //
-    // Ответ: 201 { message: "Booking created successfully", data: {...} }
-    // Ошибки:
-    //   409 — слот занят или нет свободных мастеров
-    //   422 — ошибки валидации
-    // ──────────────────────────────────────────────────────
-    await api('POST', '/bookings', {
-      service_id: serviceId,
-      start_time: startTime,
-      master_id:  masterId || null,
-      customer: { name, phone, email: email || null },
-      notes:    notes || null,
-    });
-
-    closeModal();
-    // Переключаемся на вкладку Записи и обновляем
-    if (curTab !== 'bookings') switchTab('bookings');
-    else reload(1);
-
+    await api('PATCH', '/orders/' + id + '/status', { status });
+    reload(curPage);
   } catch (e) {
-    setFormErr(e.message);
-  } finally {
-    btn.disabled = false; btn.textContent = 'Создать запись';
+    alert('Ошибка: ' + e.message);
+    sel.disabled = false; sel.value = '';
   }
 }
-
-function closeModal() { hide('modal'); }
-function onOverlayClick(e) { if (e.target === document.getElementById('modal')) closeModal(); }
-function setFormErr(msg) { const el = document.getElementById('m-error'); el.textContent = msg; el.classList.remove('hidden'); }
-function hideFormErr()   { document.getElementById('m-error')?.classList.add('hidden'); }
 
 // ══════════════════════════════════════════════════════════
 // КЛИЕНТЫ
@@ -928,12 +863,6 @@ async function loadClients() {
   if (search) qs.set('search', search);
 
   try {
-    // ──────────────────────────────────────────────────────
-    // GET /api/v1/clients
-    // Query: page, per_page (макс 100), search (имя/телефон/email)
-    // Поля: id, name, phone, email,
-    //   total_orders, total_spent, last_order_at, created_at
-    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/clients?' + qs);
     renderClients(res.data);
     renderPager(res.meta);
@@ -969,12 +898,6 @@ function renderClients(rows) {
 async function loadServices() {
   const qs = new URLSearchParams({ page: curPage, per_page: 50 });
   try {
-    // ──────────────────────────────────────────────────────
-    // GET /api/v1/services — активные услуги
-    // Query: page, per_page (макс 100)
-    // Поля: id, name, price, description,
-    //   service: { duration_minutes, requires_prepayment }
-    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/services?' + qs);
     renderServices(res.data);
     renderPager(res.meta);
@@ -995,7 +918,46 @@ function renderServices(rows) {
           <td style="white-space:nowrap;">${s.price != null ? fmtMoney(s.price) : '—'}</td>
           <td style="white-space:nowrap;">${s.service?.duration_minutes ? s.service.duration_minutes + ' мин' : '—'}</td>
           <td><span class="badge ${s.service?.requires_prepayment ? 's-yes' : 's-no'}">${s.service?.requires_prepayment ? 'Да' : 'Нет'}</span></td>
-          <td class="dim" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x(s.description || '—')}</td>
+          <td class="dim">${x(s.description || '—')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// ТОВАРЫ
+// ══════════════════════════════════════════════════════════
+
+async function loadProducts() {
+  const qs = new URLSearchParams({ page: curPage, per_page: 25 });
+  const type   = document.getElementById('f-product-type').value;
+  const active = document.getElementById('f-product-active').value;
+  if (type)   qs.set('type',   type);
+  if (active) qs.set('active', active);
+
+  try {
+    const res = await api('GET', '/products?' + qs);
+    renderProducts(res.data);
+    renderPager(res.meta);
+  } catch (e) { setError(e.message); }
+}
+
+function renderProducts(rows) {
+  if (!rows.length) { setEmpty('Товаров не найдено'); return; }
+  const typeLabel = { physical: 'Физический', digital: 'Цифровой', service: 'Услуга' };
+  document.getElementById('data-area').innerHTML = `
+    <div class="t-wrap"><table>
+      <thead><tr>
+        <th>#</th><th>Название</th><th>Тип</th><th>Цена</th><th>Статус</th><th>Описание</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(p => `<tr>
+          <td class="mono dim">${shortId(p.id)}</td>
+          <td><strong>${x(p.name)}</strong></td>
+          <td class="dim">${x(typeLabel[p.type] || p.type)}</td>
+          <td style="white-space:nowrap;">${p.price != null ? fmtMoney(p.price) : '—'}</td>
+          <td><span class="badge ${p.is_active ? 's-active' : 's-inactive'}">${p.is_active ? 'Активен' : 'Неактивен'}</span></td>
+          <td class="dim">${x(p.description || '—')}</td>
         </tr>`).join('')}
       </tbody>
     </table></div>`;
@@ -1010,11 +972,6 @@ async function loadMasters() {
   const active = document.getElementById('f-active').value;
   if (active) qs.set('active', active);
   try {
-    // ──────────────────────────────────────────────────────
-    // GET /api/v1/masters
-    // Query: page, per_page (макс 100), active=1
-    // Поля: id, name, is_active, services: [{id, name}]
-    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/masters?' + qs);
     renderMasters(res.data);
     renderPager(res.meta);
@@ -1025,8 +982,11 @@ function renderMasters(rows) {
   if (!rows.length) { setEmpty('Мастеров не найдено'); return; }
   document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
+      <colgroup>
+        <col style="width:75px"><col><col style="width:120px"><col><col style="width:180px">
+      </colgroup>
       <thead><tr>
-        <th>#</th><th>Имя</th><th>Статус</th><th>Услуги</th>
+        <th>#</th><th>Имя</th><th>Статус</th><th>Услуги</th><th></th>
       </tr></thead>
       <tbody>
         ${rows.map(m => `<tr>
@@ -1034,9 +994,25 @@ function renderMasters(rows) {
           <td><strong>${x(m.name)}</strong></td>
           <td><span class="badge ${m.is_active ? 's-active' : 's-inactive'}">${m.is_active ? 'Активен' : 'Неактивен'}</span></td>
           <td class="dim">${(m.services || []).map(s => x(s.name)).join(', ') || '—'}</td>
+          <td class="td-actions"><div class="actions-cell">
+            <button class="btn btn-edit btn-sm" onclick='openModalMasterEdit(${JSON.stringify(m)})'>Редактировать</button>
+            <button class="btn btn-delete btn-sm" onclick="deleteMaster('${m.id}',this)">Удалить</button>
+          </div></td>
         </tr>`).join('')}
       </tbody>
     </table></div>`;
+}
+
+async function deleteMaster(id, btn) {
+  if (!confirm('Удалить мастера?')) return;
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    await api('DELETE', '/masters/' + id);
+    reload(curPage);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Удалить';
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1059,6 +1035,281 @@ function renderPager(meta) {
   html += `<span class="pager-info">${total.toLocaleString('ru-RU')} записей</span>`;
   el.innerHTML = html;
 }
+
+// ══════════════════════════════════════════════════════════
+// УНИВЕРСАЛЬНАЯ МОДАЛКА
+// ══════════════════════════════════════════════════════════
+
+async function openModal(mode) {
+  modalMode  = mode;
+  modalExtra = null;
+
+  show('modal');
+  document.getElementById('modal-foot').style.display = 'none';
+
+  if (mode === 'booking') {
+    document.getElementById('modal-title').textContent = 'Создать запись';
+    document.getElementById('modal-submit').textContent = 'Создать запись';
+    document.getElementById('modal-body').innerHTML =
+      '<div class="state"><div class="spinner"></div><br>Загрузка услуг и мастеров...</div>';
+    try {
+      const [svcRes, masRes] = await Promise.all([
+        api('GET', '/services?per_page=100', null, { silent: true }),
+        api('GET', '/masters?per_page=100&active=1', null, { silent: true }),
+      ]);
+      modalServices = svcRes.data;
+      modalMasters  = masRes.data;
+      renderBookingForm();
+    } catch (e) {
+      document.getElementById('modal-body').innerHTML =
+        `<div class="state err">⚠ Не удалось загрузить данные: ${x(e.message)}</div>`;
+      return;
+    }
+  } else if (mode === 'client') {
+    document.getElementById('modal-title').textContent = 'Добавить клиента';
+    document.getElementById('modal-submit').textContent = 'Добавить клиента';
+    renderClientForm();
+  } else if (mode === 'master') {
+    document.getElementById('modal-title').textContent = 'Добавить мастера';
+    document.getElementById('modal-submit').textContent = 'Добавить мастера';
+    renderMasterForm(null);
+  }
+
+  document.getElementById('modal-foot').style.display = 'flex';
+}
+
+function openModalMasterEdit(master) {
+  modalMode  = 'master-edit';
+  modalExtra = master;
+  document.getElementById('modal-title').textContent = 'Редактировать мастера';
+  document.getElementById('modal-submit').textContent = 'Сохранить';
+  show('modal');
+  renderMasterForm(master);
+  document.getElementById('modal-foot').style.display = 'flex';
+}
+
+// ── Форма: Запись ────────────────────────────────────────
+function renderBookingForm() {
+  const today = new Date().toISOString().split('T')[0];
+  const now   = new Date();
+  const hh    = String(now.getHours()).padStart(2, '0');
+  const mm    = String(Math.ceil(now.getMinutes() / 15) * 15 % 60).padStart(2, '0');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-row">
+      <label>Услуга <span>*</span></label>
+      <select id="m-service" required>
+        <option value="">— выберите услугу —</option>
+        ${modalServices.map(s =>
+          `<option value="${s.id}">${x(s.name)}${s.price ? ' · ' + fmtMoney(s.price) : ''}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0;">
+        <label>Дата <span>*</span></label>
+        <input type="date" id="m-date" min="${today}" value="${today}" required />
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>Время <span>*</span></label>
+        <input type="time" id="m-time" value="${hh}:${mm}" required />
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Мастер <span style="font-weight:400;color:var(--muted);">(необязательно — подберётся автоматически)</span></label>
+      <select id="m-master">
+        <option value="">— автовыбор —</option>
+        ${modalMasters.map(m => `<option value="${m.id}">${x(m.name)}</option>`).join('')}
+      </select>
+    </div>
+    <hr class="form-divider" />
+    <div class="form-row">
+      <label>Имя клиента <span>*</span></label>
+      <input type="text" id="m-name" placeholder="Иван Иванов" required />
+    </div>
+    <div class="form-row">
+      <label>Телефон <span>*</span></label>
+      <input type="text" id="m-phone" placeholder="+7 900 000-00-00" required />
+    </div>
+    <div class="form-row">
+      <label>Email <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+      <input type="email" id="m-email" placeholder="client@example.com" />
+    </div>
+    <div class="form-row">
+      <label>Заметки <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+      <textarea id="m-notes" placeholder="Особые пожелания..."></textarea>
+    </div>
+    <p class="form-error hidden" id="m-error"></p>
+  `;
+
+  document.getElementById('m-service').addEventListener('change', function () {
+    const sid = this.value;
+    const sel = document.getElementById('m-master');
+    sel.innerHTML = '<option value="">— автовыбор —</option>';
+    const filtered = sid
+      ? modalMasters.filter(m => (m.services || []).some(s => s.id === sid))
+      : modalMasters;
+    filtered.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.id; o.textContent = m.name; sel.appendChild(o);
+    });
+    if (sid && filtered.length === 0) {
+      const o = document.createElement('option');
+      o.disabled = true; o.textContent = '— нет мастеров для этой услуги —'; sel.appendChild(o);
+    }
+  });
+}
+
+// ── Форма: Клиент ────────────────────────────────────────
+function renderClientForm() {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-row">
+      <label>Имя <span>*</span></label>
+      <input type="text" id="m-name" placeholder="Иван Иванов" required />
+    </div>
+    <div class="form-row">
+      <label>Телефон <span>*</span></label>
+      <input type="text" id="m-phone" placeholder="+7 900 000-00-00" required />
+    </div>
+    <div class="form-row">
+      <label>Email <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+      <input type="email" id="m-email" placeholder="client@example.com" />
+    </div>
+    <p class="form-error hidden" id="m-error"></p>
+  `;
+}
+
+// ── Форма: Мастер ────────────────────────────────────────
+function renderMasterForm(master) {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-row">
+      <label>Имя <span>*</span></label>
+      <input type="text" id="m-name" placeholder="Анна" value="${x(master?.name || '')}" required />
+    </div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0;">
+        <label>Телефон <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+        <input type="text" id="m-phone" placeholder="+7 900 000-00-00" value="${x(master?.phone || '')}" />
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>Email <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+        <input type="email" id="m-email" placeholder="master@example.com" value="${x(master?.email || '')}" />
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Специализация <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+      <input type="text" id="m-spec" placeholder="Парикмахер, массажист..." value="${x(master?.specialization || '')}" />
+    </div>
+    <div class="form-row">
+      <label>Активен</label>
+      <select id="m-active">
+        <option value="1" ${master == null || master.is_active ? 'selected' : ''}>Да</option>
+        <option value="0" ${master != null && !master.is_active ? 'selected' : ''}>Нет</option>
+      </select>
+    </div>
+    <p class="form-error hidden" id="m-error"></p>
+  `;
+}
+
+// ── Отправка формы ───────────────────────────────────────
+async function modalSubmit() {
+  const btn = document.getElementById('modal-submit');
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = 'Сохраняю...';
+  hideFormErr();
+
+  try {
+    if (modalMode === 'booking')      await submitBooking();
+    else if (modalMode === 'client')  await submitClient();
+    else if (modalMode === 'master')  await submitMaster();
+    else if (modalMode === 'master-edit') await submitMasterEdit();
+    closeModal();
+    reload(curTab === 'bookings' ? curPage : 1);
+    if (modalMode === 'booking' && curTab !== 'bookings') switchTab('bookings');
+  } catch (e) {
+    setFormErr(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = origText;
+  }
+}
+
+async function submitBooking() {
+  const serviceId = document.getElementById('m-service').value;
+  const date      = document.getElementById('m-date').value;
+  const time      = document.getElementById('m-time').value;
+  const masterId  = document.getElementById('m-master').value;
+  const name      = document.getElementById('m-name').value.trim();
+  const phone     = document.getElementById('m-phone').value.trim();
+  const email     = document.getElementById('m-email').value.trim();
+  const notes     = document.getElementById('m-notes').value.trim();
+
+  if (!serviceId) throw new Error('Выберите услугу');
+  if (!date || !time) throw new Error('Укажите дату и время');
+  if (!name)  throw new Error('Укажите имя клиента');
+  if (!phone) throw new Error('Укажите телефон');
+
+  await api('POST', '/bookings', {
+    service_id: serviceId,
+    start_time: new Date(date + 'T' + time).toISOString(),
+    master_id:  masterId || null,
+    customer:   { name, phone, email: email || null },
+    notes:      notes || null,
+  });
+}
+
+async function submitClient() {
+  const name  = document.getElementById('m-name').value.trim();
+  const phone = document.getElementById('m-phone').value.trim();
+  const email = document.getElementById('m-email').value.trim();
+
+  if (!name)  throw new Error('Укажите имя');
+  if (!phone) throw new Error('Укажите телефон');
+
+  await api('POST', '/clients', { name, phone, email: email || null });
+}
+
+async function submitMaster() {
+  const name  = document.getElementById('m-name').value.trim();
+  const phone = document.getElementById('m-phone').value.trim();
+  const email = document.getElementById('m-email').value.trim();
+  const spec  = document.getElementById('m-spec').value.trim();
+  const active = document.getElementById('m-active').value === '1';
+
+  if (!name) throw new Error('Укажите имя мастера');
+
+  await api('POST', '/masters', {
+    name,
+    phone:           phone  || null,
+    email:           email  || null,
+    specialization:  spec   || null,
+    is_active:       active,
+  });
+}
+
+async function submitMasterEdit() {
+  const id    = modalExtra.id;
+  const name  = document.getElementById('m-name').value.trim();
+  const phone = document.getElementById('m-phone').value.trim();
+  const email = document.getElementById('m-email').value.trim();
+  const spec  = document.getElementById('m-spec').value.trim();
+  const active = document.getElementById('m-active').value === '1';
+
+  if (!name) throw new Error('Укажите имя мастера');
+
+  await api('PATCH', '/masters/' + id, {
+    name,
+    phone:           phone  || null,
+    email:           email  || null,
+    specialization:  spec   || null,
+    is_active:       active,
+  });
+}
+
+function closeModal() { hide('modal'); }
+function onOverlayClick(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+function setFormErr(msg) { const el = document.getElementById('m-error'); if (!el) return; el.textContent = msg; el.classList.remove('hidden'); }
+function hideFormErr()   { document.getElementById('m-error')?.classList.add('hidden'); }
 
 // ══════════════════════════════════════════════════════════
 // UI-СОСТОЯНИЯ
@@ -1092,14 +1343,21 @@ function updateRateLimit(remaining, limit) {
 // СТРОКА СТАТУСА HTTP
 // ══════════════════════════════════════════════════════════
 
-function updateStatusBar(status, ms) {
+function updateStatusBar(status, ms, retryAfter) {
   const bar  = document.getElementById('status-bar');
   const code = document.getElementById('status-code');
   const time = document.getElementById('status-time');
+  const retry = document.getElementById('retry-after');
   bar.classList.remove('hidden');
-  code.textContent = status + ' ' + (statusText(status));
+  code.textContent = status + ' ' + statusText(status);
   code.className = 'status-code ' + (status < 300 ? 'ok' : status < 500 ? 'warn' : 'err');
   time.textContent = '· ' + ms + ' мс';
+  if (retryAfter) {
+    retry.textContent = 'retry_after: ' + retryAfter + ' с';
+    retry.classList.add('visible');
+  } else {
+    retry.classList.remove('visible');
+  }
 }
 
 function statusText(s) {
@@ -1118,13 +1376,11 @@ function showPanels(method, path, qs, body, rawData) {
   const fullUrl = API_BASE + path + (qs ? '?' + qs : '');
   const masked  = apiKey.substring(0,8) + '...' + apiKey.slice(-4);
 
-  // ── Plain text для копирования (полный ключ) ──
   lastCurlText = `curl -X ${method} "${fullUrl}" \\\n` +
     `     -H "X-API-Key: ${apiKey}" \\\n` +
     `     -H "Accept: application/json"`;
   if (body) lastCurlText += ` \\\n     -H "Content-Type: application/json" \\\n     -d '${JSON.stringify(body, null, 2)}'`;
 
-  // ── HTML версия (с раскраской) ──
   let html = `<span class="c-comment"># curl</span>\n`;
   html += `curl -X ${method} <span class="c-url">"${fullUrl}"</span> \\\n`;
   html += `     -H <span class="c-key">"X-API-Key: ${masked}"</span> \\\n`;
@@ -1141,7 +1397,6 @@ function showPanels(method, path, qs, body, rawData) {
 
   document.getElementById('curl-box').innerHTML = html;
 
-  // ── JSON ответ ──
   lastJsonText = typeof rawData === 'string' ? rawData : JSON.stringify(rawData, null, 2);
   document.getElementById('json-box').innerHTML = syntaxHighlight(rawData);
 }
@@ -1170,17 +1425,9 @@ function copyToClipboard(text, btnId) {
   }).finally(reset);
 }
 
-function copyCurl() {
-  if (!lastCurlText) return;
-  copyToClipboard(lastCurlText, 'copy-curl-btn');
-}
+function copyCurl() { if (lastCurlText) copyToClipboard(lastCurlText, 'copy-curl-btn'); }
+function copyJson() { if (lastJsonText) copyToClipboard(lastJsonText, 'copy-json-btn'); }
 
-function copyJson() {
-  if (!lastJsonText) return;
-  copyToClipboard(lastJsonText, 'copy-json-btn');
-}
-
-// Простая JSON-подсветка без зависимостей
 function syntaxHighlight(obj) {
   let str = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
   str = str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1202,26 +1449,24 @@ function syntaxHighlight(obj) {
 
 async function api(method, fullPath, body, { silent = false } = {}) {
   const [path, qs] = fullPath.split('?');
-
   const url  = API_BASE + fullPath;
-  const opts = {
-    method,
-    headers: { 'X-API-Key': apiKey, 'Accept': 'application/json', 'Content-Type': 'application/json' },
-  };
+
+  const headers = { 'X-API-Key': apiKey, 'Accept': 'application/json' };
+  if (body) headers['Content-Type'] = 'application/json';
+
+  const opts = { method, headers };
   if (body) opts.body = JSON.stringify(body);
 
   const t0  = performance.now();
   const res = await fetch(url, opts);
   const ms  = Math.round(performance.now() - t0);
 
-  // Rate limit (только если сервер вернул заголовок)
-  const remaining = res.headers.get('X-RateLimit-Remaining');
-  const limit     = res.headers.get('X-RateLimit-Limit');
+  const remaining  = res.headers.get('X-RateLimit-Remaining');
+  const limit      = res.headers.get('X-RateLimit-Limit');
+  const retryAfter = res.headers.get('Retry-After');
   if (remaining !== null) updateRateLimit(parseInt(remaining), parseInt(limit) || 60);
+  if (!silent) updateStatusBar(res.status, ms, retryAfter);
 
-  if (!silent) updateStatusBar(res.status, ms);
-
-  // Пустой ответ
   if (res.status === 204) {
     if (!silent) showPanels(method, path, qs || '', body, {});
     return {};
@@ -1234,9 +1479,7 @@ async function api(method, fullPath, body, { silent = false } = {}) {
   if (!silent) showPanels(method, path, qs || '', body, data);
 
   if (!res.ok) {
-    if (data.errors) {
-      throw new Error(Object.values(data.errors).flat().join('; ') || data.message || `HTTP ${res.status}`);
-    }
+    if (data.errors) throw new Error(Object.values(data.errors).flat().join('; ') || data.message || `HTTP ${res.status}`);
     throw new Error(data.message || data.error || `HTTP ${res.status}`);
   }
 
@@ -1269,6 +1512,14 @@ function fmtMoney(n) { return Number(n).toLocaleString('ru-RU') + ' ₽'; }
 function statusBadge(s) {
   const m = { pending:['s-pending','Ожидает'], confirmed:['s-confirmed','Подтверждена'],
               completed:['s-completed','Завершена'], cancelled:['s-cancelled','Отменена'] };
+  const [cls, lbl] = m[s] || ['s-pending', s || '—'];
+  return `<span class="badge ${cls}">${lbl}</span>`;
+}
+
+function orderStatusBadge(s) {
+  const m = { pending:['s-pending','Ожидает'], paid:['s-paid','Оплачен'],
+              processing:['s-processing','В обработке'], completed:['s-completed','Завершён'],
+              cancelled:['s-cancelled','Отменён'] };
   const [cls, lbl] = m[s] || ['s-pending', s || '—'];
   return `<span class="badge ${cls}">${lbl}</span>`;
 }
