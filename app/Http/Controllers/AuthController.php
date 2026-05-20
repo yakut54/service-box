@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Mail\ResetPasswordMail;
 use App\Models\Shop;
+use App\Models\ShopStaff;
 use App\Models\User;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
@@ -90,7 +91,8 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
-        $shop = $user->shop;
+
+        [$shop, $role] = $this->resolveShopAndRole($user);
 
         if (!$shop) {
             return response()->json([
@@ -108,24 +110,9 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_superadmin' => (bool) $user->is_superadmin,
+                'role' => $role,
             ],
-            'shop' => [
-                'id' => $shop->id,
-                'name' => $shop->name,
-                'api_key' => $shop->api_key,
-                'subscription_plan' => $shop->subscription_plan,
-                'subscription_expires_at' => $shop->subscription_expires_at,
-                'widget_config' => $shop->widget_config,
-                'work_start' => $shop->work_start,
-                'work_end' => $shop->work_end,
-                'slot_duration' => $shop->slot_duration,
-                'timezone' => $shop->timezone,
-                'telegram_bot_connected' => $shop->telegram_bot_connected,
-                'max_bot_connected' => $shop->max_bot_connected,
-                'max_chat_id' => $shop->max_chat_id,
-                'yookassa_shop_id' => $shop->yookassa_shop_id,
-                'legal_config' => $shop->legal_config,
-            ],
+            'shop' => $this->shopPayload($shop),
             'token' => $token,
         ]);
     }
@@ -148,7 +135,12 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
-        $shop = $user->shop;
+
+        [$shop, $role] = $this->resolveShopAndRole($user);
+
+        if (!$shop) {
+            return response()->json(['message' => 'Магазин не найден'], 404);
+        }
 
         return response()->json([
             'user' => [
@@ -156,30 +148,59 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_superadmin' => (bool) $user->is_superadmin,
+                'role' => $role,
             ],
-            'shop' => [
-                'id' => $shop->id,
-                'name' => $shop->name,
-                'domain' => $shop->domain,
-                'api_key' => $shop->api_key,
-                'subscription_plan' => $shop->subscription_plan,
-                'subscription_expires_at' => $shop->subscription_expires_at,
-                'widget_config' => $shop->widget_config,
-                'work_start' => $shop->work_start,
-                'work_end' => $shop->work_end,
-                'slot_duration' => $shop->slot_duration,
-                'timezone' => $shop->timezone,
-                'telegram_bot_connected' => $shop->telegram_bot_connected,
-                'max_bot_connected' => $shop->max_bot_connected,
-                'max_chat_id'         => $shop->max_chat_id,
-                'yookassa_shop_id'    => $shop->yookassa_shop_id,
-                'legal_config'        => $shop->legal_config,
-                'min_booking_notice'  => $shop->min_booking_notice,
-                'prepayment_enabled'  => (bool) $shop->prepayment_enabled,
-                'prepayment_amount'   => (int) $shop->prepayment_amount,
-                'delivery_settings'   => $shop->delivery_settings,
-            ],
+            'shop' => array_merge($this->shopPayload($shop), [
+                'domain'             => $shop->domain,
+                'min_booking_notice' => $shop->min_booking_notice,
+                'prepayment_enabled' => (bool) $shop->prepayment_enabled,
+                'prepayment_amount'  => (int) $shop->prepayment_amount,
+                'delivery_settings'  => $shop->delivery_settings,
+            ]),
         ]);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private function resolveShopAndRole(User $user): array
+    {
+        // Owner
+        if ($user->shop) {
+            return [$user->shop, 'owner'];
+        }
+
+        // Staff member
+        $staff = ShopStaff::where('user_id', $user->id)
+            ->whereNotNull('accepted_at')
+            ->with('shop')
+            ->first();
+
+        if ($staff && $staff->shop) {
+            return [$staff->shop, $staff->role];
+        }
+
+        return [null, null];
+    }
+
+    private function shopPayload(Shop $shop): array
+    {
+        return [
+            'id'                     => $shop->id,
+            'name'                   => $shop->name,
+            'api_key'                => $shop->api_key,
+            'subscription_plan'      => $shop->subscription_plan,
+            'subscription_expires_at'=> $shop->subscription_expires_at,
+            'widget_config'          => $shop->widget_config,
+            'work_start'             => $shop->work_start,
+            'work_end'               => $shop->work_end,
+            'slot_duration'          => $shop->slot_duration,
+            'timezone'               => $shop->timezone,
+            'telegram_bot_connected' => $shop->telegram_bot_connected,
+            'max_bot_connected'      => $shop->max_bot_connected,
+            'max_chat_id'            => $shop->max_chat_id,
+            'yookassa_shop_id'       => $shop->yookassa_shop_id,
+            'legal_config'           => $shop->legal_config,
+        ];
     }
 
     /**

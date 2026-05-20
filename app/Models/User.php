@@ -40,4 +40,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Shop::class);
     }
+
+    public function staffShops()
+    {
+        return $this->hasMany(ShopStaff::class)->whereNotNull('accepted_at');
+    }
 }

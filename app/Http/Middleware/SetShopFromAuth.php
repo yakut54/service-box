@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ShopStaff;
 use App\Services\TenantService;
 use Closure;
 use Illuminate\Http\Request;
@@ -14,26 +15,37 @@ class SetShopFromAuth
         $user = $request->user();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'Unauthenticated',
-            ], 401);
+            return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
+        // Owner path: user owns a shop directly
         $shop = $user->shop;
 
-        if (!$shop) {
-            return response()->json([
-                'message' => 'Shop not found for this user',
-            ], 404);
+        if ($shop) {
+            $request->attributes->set('shop', $shop);
+            $request->attributes->set('staff_role', 'owner');
+            TenantService::setContext($shop);
+            $response = $next($request);
+            TenantService::resetContext();
+            return $response;
         }
 
-        TenantService::setContext($shop);
+        // Staff path: user is a staff member of a shop
+        $staffRecord = ShopStaff::where('user_id', $user->id)
+            ->whereNotNull('accepted_at')
+            ->with('shop')
+            ->first();
+
+        if (!$staffRecord || !$staffRecord->shop) {
+            return response()->json(['message' => 'Shop not found for this user'], 404);
+        }
+
+        $shop = $staffRecord->shop;
         $request->attributes->set('shop', $shop);
-
+        $request->attributes->set('staff_role', $staffRecord->role);
+        TenantService::setContext($shop);
         $response = $next($request);
-
         TenantService::resetContext();
-
         return $response;
     }
 }
