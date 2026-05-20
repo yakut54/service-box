@@ -36,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.ratelimit'  => \App\Http\Middleware\ApiRateLimit::class,
             'api.pro'        => \App\Http\Middleware\ApiProPlan::class,
             'api.cors'       => \App\Http\Middleware\ApiCors::class,
+            'owner'          => \App\Http\Middleware\RequireOwner::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -20,6 +20,8 @@ use App\Http\Controllers\WidgetPhoneVerificationController;
 use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
 use App\Http\Controllers\MaxController;
 use App\Http\Controllers\DeliverySettingsController;
+use App\Http\Controllers\StaffController;
+use App\Http\Controllers\InviteController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -125,10 +127,10 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
 // ADMIN API (Bearer token + Shop context + Subscription check)
 // ============================================================================
 Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription'])->group(function () {
-    // Shop
+    // Shop (owner only)
     Route::get('/shop', [ShopController::class, 'show']);
-    Route::put('/shop', [ShopController::class, 'update']);
-    Route::post('/api-key/regenerate', [ShopController::class, 'regenerateApiKey']);
+    Route::put('/shop', [ShopController::class, 'update'])->middleware('owner');
+    Route::post('/api-key/regenerate', [ShopController::class, 'regenerateApiKey'])->middleware('owner');
 
     // Widget analytics funnel (Pro)
     Route::get('/widget/analytics', [WidgetAnalyticsController::class, 'funnel']);
@@ -181,25 +183,41 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::patch('/reviews/{id}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 
-    // Delivery settings
-    Route::get('/delivery-settings',  [DeliverySettingsController::class, 'show']);
-    Route::put('/delivery-settings',  [DeliverySettingsController::class, 'update']);
+    // Delivery settings (owner only for write)
+    Route::get('/delivery-settings', [DeliverySettingsController::class, 'show']);
+    Route::put('/delivery-settings',  [DeliverySettingsController::class, 'update'])->middleware('owner');
+
+    // Staff management (owner only)
+    Route::get('/staff',        [StaffController::class, 'index'])->middleware('owner');
+    Route::post('/staff',       [StaffController::class, 'store'])->middleware(['owner', 'throttle:5,1']);
+    Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->middleware('owner');
 
 });
 
 // Subscription & Telegram (no subscription check — accessible even when expired)
 Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop'])->group(function () {
-    Route::get('/subscription', [PaymentController::class, 'getSubscriptionInfo']);
-    Route::get('/subscription/payments', [PaymentController::class, 'getPaymentHistory']);
-    Route::post('/subscription/create-payment', [PaymentController::class, 'createSubscriptionPayment']);
+    // Subscription (owner only)
+    Route::get('/subscription',                [PaymentController::class, 'getSubscriptionInfo'])->middleware('owner');
+    Route::get('/subscription/payments',       [PaymentController::class, 'getPaymentHistory'])->middleware('owner');
+    Route::post('/subscription/create-payment',[PaymentController::class, 'createSubscriptionPayment'])->middleware('owner');
 
-    Route::post('/telegram/generate-code', [TelegramController::class, 'generateCode']);
-    Route::get('/telegram/status', [TelegramController::class, 'status']);
-    Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect']);
+    // Telegram (owner only)
+    Route::post('/telegram/generate-code', [TelegramController::class, 'generateCode'])->middleware('owner');
+    Route::get('/telegram/status',         [TelegramController::class, 'status'])->middleware('owner');
+    Route::post('/telegram/disconnect',    [TelegramController::class, 'disconnect'])->middleware('owner');
 
-    Route::post('/max/generate-code', [MaxController::class, 'generateCode']);
-    Route::get('/max/status', [MaxController::class, 'status']);
-    Route::post('/max/disconnect', [MaxController::class, 'disconnect']);
+    // MAX (owner only)
+    Route::post('/max/generate-code', [MaxController::class, 'generateCode'])->middleware('owner');
+    Route::get('/max/status',         [MaxController::class, 'status'])->middleware('owner');
+    Route::post('/max/disconnect',    [MaxController::class, 'disconnect'])->middleware('owner');
+});
+
+// ============================================================================
+// INVITE (public — no auth required)
+// ============================================================================
+Route::prefix('invite')->middleware('throttle:10,1')->group(function () {
+    Route::get('/{token}',   [InviteController::class, 'show']);
+    Route::post('/accept',   [InviteController::class, 'accept']);
 });
 
 // ============================================================================
