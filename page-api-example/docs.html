@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ServiceBox API — Документация</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <style>
+    :root {
+      --bg:       #f8fafc;
+      --card:     #ffffff;
+      --primary:  #4f46e5;
+      --primary-h:#4338ca;
+      --text:     #0f172a;
+      --muted:    #64748b;
+      --border:   #e2e8f0;
+      --nav-w:    260px;
+      --r: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Шапка ─────────────────────────────── */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--primary);
+      color: #fff;
+      height: 56px;
+      padding: 0 20px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.15);
+    }
+    .header-logo {
+      width: 32px; height: 32px; flex-shrink: 0;
+      background: rgba(255,255,255,.2); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 15px;
+    }
+    .header h1 { font-size: 16px; font-weight: 700; }
+    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .header-pill {
+      color: rgba(255,255,255,.85); font-size: 13px;
+      padding: 3px 12px; background: rgba(255,255,255,.15); border-radius: 20px;
+    }
+    .header-pill:hover { background: rgba(255,255,255,.25); text-decoration: none; }
+
+    /* ── Layout ─────────────────────────────── */
+    .layout { display: flex; min-height: 100vh; padding-top: 56px; }
+
+    /* ── Боковая навигация ──────────────────── */
+    .nav {
+      width: var(--nav-w); flex-shrink: 0;
+      position: fixed; top: 56px; bottom: 0; left: 0;
+      overflow-y: auto;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 24px 0 40px;
+    }
+    .nav-section { padding: 0 16px; margin-bottom: 20px; }
+    .nav-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 6px;
+      padding: 0 8px;
+    }
+    .nav a {
+      display: block; padding: 6px 8px; border-radius: 6px;
+      font-size: 13px; color: var(--text); text-decoration: none;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .nav a:hover { background: var(--bg); color: var(--primary); }
+    .nav a.active { background: #ede9fe; color: var(--primary); font-weight: 600; }
+    .nav-method {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 4px; margin-right: 6px;
+      font-family: monospace; vertical-align: middle;
+    }
+    .m-get    { background: #dbeafe; color: #1d4ed8; }
+    .m-post   { background: #d1fae5; color: #065f46; }
+    .m-patch  { background: #fef3c7; color: #92400e; }
+    .m-delete { background: #fee2e2; color: #991b1b; }
+
+    /* ── Основной контент ───────────────────── */
+    .content {
+      flex: 1;
+      margin-left: var(--nav-w);
+      max-width: 860px;
+      padding: 40px 48px 80px;
+    }
+
+    /* ── Секции ─────────────────────────────── */
+    .section { margin-bottom: 64px; scroll-margin-top: 72px; }
+    .section-title {
+      font-size: 22px; font-weight: 700;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px; margin-bottom: 20px;
+    }
+    h3 { font-size: 17px; font-weight: 700; margin: 28px 0 10px; }
+    h4 { font-size: 14px; font-weight: 600; color: var(--muted); margin: 20px 0 8px; text-transform: uppercase; letter-spacing: .5px; }
+    p { margin-bottom: 14px; }
+
+    /* ── Эндпоинт-заголовок ─────────────────── */
+    .endpoint { scroll-margin-top: 72px; margin-bottom: 56px; }
+    .endpoint-head {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+    .method-badge {
+      font-size: 12px; font-weight: 700; font-family: monospace;
+      padding: 4px 10px; border-radius: 6px; flex-shrink: 0;
+    }
+    .endpoint-path {
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 15px; font-weight: 600;
+    }
+    .endpoint-desc { color: var(--muted); font-size: 14px; margin-left: auto; }
+
+    /* ── Таблица параметров ─────────────────── */
+    .params { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+    .params th {
+      text-align: left; padding: 8px 12px;
+      background: #f8fafc; border-bottom: 1px solid var(--border);
+      font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+    }
+    .params td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .params tr:last-child td { border-bottom: none; }
+    .param-name { font-family: monospace; font-weight: 600; color: var(--primary); }
+    .param-type { font-family: monospace; font-size: 12px; color: var(--muted); }
+    .req-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 4px;
+      background: #fee2e2; color: #991b1b;
+    }
+    .opt-badge {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 4px;
+      background: #f1f5f9; color: #475569;
+    }
+
+    /* ── Блоки кода ─────────────────────────── */
+    pre {
+      background: #1e293b; color: #e2e8f0;
+      border-radius: var(--r); padding: 16px 20px;
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 13px; line-height: 1.7;
+      overflow-x: auto; margin-bottom: 16px;
+    }
+    code {
+      background: #f1f5f9; color: #4f46e5;
+      padding: 1px 6px; border-radius: 4px;
+      font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 13px;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    .hl-key    { color: #93c5fd; }
+    .hl-str    { color: #86efac; }
+    .hl-num    { color: #fb923c; }
+    .hl-bool   { color: #a5b4fc; }
+    .hl-null   { color: #94a3b8; }
+    .hl-comment{ color: #64748b; font-style: italic; }
+    .hl-method { color: #f59e0b; }
+    .hl-url    { color: #34d399; }
+
+    /* ── Коды ответов ───────────────────────── */
+    .status-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .status-row { display: flex; align-items: baseline; gap: 10px; font-size: 14px; }
+    .status-num { font-family: monospace; font-weight: 700; width: 48px; flex-shrink: 0; }
+    .s200 { color: #059669; } .s201 { color: #059669; } .s204 { color: #059669; }
+    .s400 { color: #d97706; } .s401 { color: #d97706; } .s403 { color: #d97706; }
+    .s404 { color: #d97706; } .s409 { color: #d97706; } .s422 { color: #d97706; }
+    .s429 { color: #dc2626; } .s500 { color: #dc2626; }
+
+    /* ── Инфо-блок ──────────────────────────── */
+    .info-box {
+      background: #ede9fe; border-left: 3px solid var(--primary);
+      border-radius: 0 var(--r) var(--r) 0;
+      padding: 12px 16px; font-size: 14px; margin-bottom: 16px;
+    }
+    .warn-box {
+      background: #fef3c7; border-left: 3px solid #f59e0b;
+      border-radius: 0 var(--r) var(--r) 0;
+      padding: 12px 16px; font-size: 14px; margin-bottom: 16px;
+    }
+
+    /* ── Адаптив ────────────────────────────── */
+    @media (max-width: 800px) {
+      .nav { display: none; }
+      .content { margin-left: 0; padding: 24px 16px 60px; }
+    }
+    @media (max-width: 480px) {
+      .endpoint-desc { display: none; }
+      .content { padding: 20px 12px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Шапка ──────────────────────────────────── -->
+<header class="header">
+  <div class="header-logo">SB</div>
+  <h1>ServiceBox API</h1>
+  <div class="header-right">
+    <a class="header-pill" href="index.html">← Демо</a>
+    <span class="header-pill" style="pointer-events:none;">v1</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── Боковая навигация ──────────────────── -->
+  <nav class="nav">
+    <div class="nav-section">
+      <div class="nav-label">Начало работы</div>
+      <a href="#intro">Введение</a>
+      <a href="#auth">Аутентификация</a>
+      <a href="#ratelimit">Лимиты</a>
+      <a href="#errors">Ошибки</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Диагностика</div>
+      <a href="#ping"><span class="nav-method m-get">GET</span>ping</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Записи</div>
+      <a href="#get-bookings"><span class="nav-method m-get">GET</span>bookings</a>
+      <a href="#get-booking"><span class="nav-method m-get">GET</span>bookings/{id}</a>
+      <a href="#post-booking"><span class="nav-method m-post">POST</span>bookings</a>
+      <a href="#patch-booking"><span class="nav-method m-patch">PATCH</span>bookings/{id}/status</a>
+      <a href="#delete-booking"><span class="nav-method m-delete">DELETE</span>bookings/{id}</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Клиенты</div>
+      <a href="#get-clients"><span class="nav-method m-get">GET</span>clients</a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Услуги и мастера</div>
+      <a href="#get-services"><span class="nav-method m-get">GET</span>services</a>
+      <a href="#get-masters"><span class="nav-method m-get">GET</span>masters</a>
+    </div>
+  </nav>
+
+  <!-- ── Основной контент ───────────────────── -->
+  <main class="content">
+
+    <!-- ════════════════════════════════════════
+         ВВЕДЕНИЕ
+    ════════════════════════════════════════ -->
+    <section class="section" id="intro">
+      <h2 class="section-title">Введение</h2>
+      <p>
+        ServiceBox API позволяет управлять данными вашего магазина из любого внешнего приложения —
+        CRM-системы, Telegram-бота, сайта на Tilda, Google Sheets через n8n/Make, или собственного кода.
+      </p>
+      <p>
+        Базовый URL всех запросов:
+      </p>
+      <pre><span class="hl-url">https://yakut54.ru/api/v1</span></pre>
+      <p>API возвращает JSON. Все запросы и ответы используют кодировку UTF-8.</p>
+      <div class="info-box">
+        API доступно только на тарифе <strong>Pro</strong>.
+        Ключ находится в AdminPanel → <strong>Настройки → Интеграция</strong>.
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         АУТЕНТИФИКАЦИЯ
+    ════════════════════════════════════════ -->
+    <section class="section" id="auth">
+      <h2 class="section-title">Аутентификация</h2>
+      <p>
+        Каждый запрос должен содержать заголовок <code>X-API-Key</code> с вашим API-ключом.
+      </p>
+      <pre><span class="hl-comment"># Пример</span>
+curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
+     -H <span class="hl-method">"X-API-Key: ваш-ключ"</span> \
+     -H "Accept: application/json"</pre>
+      <h4>Ошибки аутентификации</h4>
+      <div class="status-list">
+        <div class="status-row"><span class="status-num s401">401</span><span>Ключ не передан или не найден в системе</span></div>
+        <div class="status-row"><span class="status-num s403">403</span><span>Ключ валиден, но тариф не Pro</span></div>
+      </div>
+      <div class="warn-box">
+        Храните API-ключ в секрете. Не передавайте его в URL-параметрах.
+        При компрометации — немедленно перегенерируйте через AdminPanel.
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         ЛИМИТЫ
+    ════════════════════════════════════════ -->
+    <section class="section" id="ratelimit">
+      <h2 class="section-title">Лимиты запросов</h2>
+      <p>
+        Каждый API-ключ ограничен <strong>60 запросами в минуту</strong>.
+        При превышении возвращается статус <code>429 Too Many Requests</code>.
+      </p>
+      <p>Каждый ответ содержит заголовки:</p>
+      <pre><span class="hl-key">X-RateLimit-Limit</span>: 60
+<span class="hl-key">X-RateLimit-Remaining</span>: 58</pre>
+      <p>Ответ при превышении лимита:</p>
+      <pre>{
+  <span class="hl-key">"error"</span>: <span class="hl-str">"Too Many Requests"</span>,
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Rate limit exceeded. Maximum 60 requests per minute."</span>,
+  <span class="hl-key">"retry_after"</span>: <span class="hl-num">42</span>  <span class="hl-comment">// секунд до сброса</span>
+}</pre>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         ОШИБКИ
+    ════════════════════════════════════════ -->
+    <section class="section" id="errors">
+      <h2 class="section-title">Формат ошибок</h2>
+      <p>Все ошибки возвращаются в одном формате:</p>
+      <pre>{
+  <span class="hl-key">"error"</span>: <span class="hl-str">"Краткое название"</span>,
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Подробное описание ошибки"</span>
+}</pre>
+      <p>При ошибках валидации (422) добавляется поле <code>errors</code>:</p>
+      <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"The given data was invalid."</span>,
+  <span class="hl-key">"errors"</span>: {
+    <span class="hl-key">"customer.phone"</span>: [<span class="hl-str">"Укажите телефон"</span>],
+    <span class="hl-key">"start_time"</span>: [<span class="hl-str">"Нельзя записаться на прошедшее время"</span>]
+  }
+}</pre>
+      <h4>Коды HTTP</h4>
+      <div class="status-list">
+        <div class="status-row"><span class="status-num s200">200</span><span>Успешно</span></div>
+        <div class="status-row"><span class="status-num s201">201</span><span>Ресурс создан</span></div>
+        <div class="status-row"><span class="status-num s401">401</span><span>Неверный или отсутствующий API-ключ</span></div>
+        <div class="status-row"><span class="status-num s403">403</span><span>Недостаточно прав (тариф, подписка)</span></div>
+        <div class="status-row"><span class="status-num s404">404</span><span>Запись не найдена</span></div>
+        <div class="status-row"><span class="status-num s409">409</span><span>Конфликт (слот занят, мастер недоступен)</span></div>
+        <div class="status-row"><span class="status-num s422">422</span><span>Ошибки валидации или недопустимое действие</span></div>
+        <div class="status-row"><span class="status-num s429">429</span><span>Превышен лимит запросов</span></div>
+        <div class="status-row"><span class="status-num s500">500</span><span>Ошибка сервера</span></div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         PING
+    ════════════════════════════════════════ -->
+    <section class="section" id="ping">
+      <h2 class="section-title">Диагностика</h2>
+
+      <div class="endpoint" id="ping">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/ping</span>
+          <span class="endpoint-desc">Проверка ключа и соединения</span>
+        </div>
+        <p>Возвращает информацию о магазине. Используйте для проверки корректности ключа.</p>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"ok"</span>: <span class="hl-bool">true</span>,
+  <span class="hl-key">"shop"</span>: <span class="hl-str">"Название магазина"</span>,
+  <span class="hl-key">"plan"</span>: <span class="hl-str">"pro"</span>,
+  <span class="hl-key">"version"</span>: <span class="hl-str">"1"</span>
+}</pre>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         ЗАПИСИ
+    ════════════════════════════════════════ -->
+    <section class="section" id="bookings-section">
+      <h2 class="section-title">Записи (Bookings)</h2>
+
+      <!-- GET /bookings -->
+      <div class="endpoint" id="get-bookings">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/bookings</span>
+          <span class="endpoint-desc">Список записей с фильтрами</span>
+        </div>
+        <h4>Query-параметры</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Номер страницы (по умолчанию: 1)</td></tr>
+            <tr><td class="param-name">per_page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Записей на странице (по умолчанию: 50, макс: 100)</td></tr>
+            <tr><td class="param-name">status</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td><code>pending</code> / <code>confirmed</code> / <code>completed</code> / <code>cancelled</code></td></tr>
+            <tr><td class="param-name">date_from</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Дата начала фильтра (YYYY-MM-DD)</td></tr>
+            <tr><td class="param-name">date_to</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Дата конца фильтра (YYYY-MM-DD)</td></tr>
+            <tr><td class="param-name">master_id</td><td class="param-type">uuid</td><td><span class="opt-badge">opt</span></td><td>UUID мастера</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"status"</span>: <span class="hl-str">"pending"</span>,
+      <span class="hl-key">"start_time"</span>: <span class="hl-str">"2025-06-01T10:00:00.000000Z"</span>,
+      <span class="hl-key">"end_time"</span>: <span class="hl-str">"2025-06-01T10:45:00.000000Z"</span>,
+      <span class="hl-key">"customer_name"</span>: <span class="hl-str">"Иван Иванов"</span>,
+      <span class="hl-key">"customer_phone"</span>: <span class="hl-str">"+79001234567"</span>,
+      <span class="hl-key">"customer_email"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"notes"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"service"</span>: { <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>, <span class="hl-key">"name"</span>: <span class="hl-str">"Стрижка"</span>, <span class="hl-key">"price"</span>: <span class="hl-num">1500</span> },
+      <span class="hl-key">"master"</span>: { <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>, <span class="hl-key">"name"</span>: <span class="hl-str">"Анна"</span> }
+    }
+  ],
+  <span class="hl-key">"meta"</span>: { <span class="hl-key">"total"</span>: <span class="hl-num">47</span>, <span class="hl-key">"page"</span>: <span class="hl-num">1</span>, <span class="hl-key">"per_page"</span>: <span class="hl-num">15</span>, <span class="hl-key">"last_page"</span>: <span class="hl-num">4</span> }
+}</pre>
+      </div>
+
+      <!-- GET /bookings/{id} -->
+      <div class="endpoint" id="get-booking">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/bookings/{id}</span>
+          <span class="endpoint-desc">Одна запись по ID</span>
+        </div>
+        <h4>Параметры пути</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">id</td><td class="param-type">uuid</td><td><span class="req-badge">req</span></td><td>UUID записи</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{ <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект записи, аналогично списку */</span> } }</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s404">404</span><span>Запись не найдена</span></div>
+        </div>
+      </div>
+
+      <!-- POST /bookings -->
+      <div class="endpoint" id="post-booking">
+        <div class="endpoint-head">
+          <span class="method-badge m-post">POST</span>
+          <span class="endpoint-path">/bookings</span>
+          <span class="endpoint-desc">Создать запись</span>
+        </div>
+        <div class="info-box">Лимит: 20 запросов в минуту (дополнительно к общему лимиту 60/мин).</div>
+        <h4>Тело запроса (JSON)</h4>
+        <table class="params">
+          <thead><tr><th>Поле</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">service_id</td><td class="param-type">uuid</td><td><span class="req-badge">req</span></td><td>UUID услуги</td></tr>
+            <tr><td class="param-name">start_time</td><td class="param-type">datetime</td><td><span class="req-badge">req</span></td><td>ISO 8601, должно быть в будущем</td></tr>
+            <tr><td class="param-name">master_id</td><td class="param-type">uuid</td><td><span class="opt-badge">opt</span></td><td>UUID мастера. Если не указан — подбирается автоматически</td></tr>
+            <tr><td class="param-name">customer.name</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Имя клиента (макс. 255 символов)</td></tr>
+            <tr><td class="param-name">customer.phone</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td>Телефон клиента (макс. 20 символов)</td></tr>
+            <tr><td class="param-name">customer.email</td><td class="param-type">email</td><td><span class="opt-badge">opt</span></td><td>Email клиента</td></tr>
+            <tr><td class="param-name">notes</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Заметки (макс. 1000 символов)</td></tr>
+          </tbody>
+        </table>
+        <h4>Пример запроса</h4>
+        <pre>curl -X POST <span class="hl-url">"https://yakut54.ru/api/v1/bookings"</span> \
+     -H <span class="hl-method">"X-API-Key: ваш-ключ"</span> \
+     -H "Content-Type: application/json" \
+     -d '{
+       <span class="hl-key">"service_id"</span>: <span class="hl-str">"uuid-услуги"</span>,
+       <span class="hl-key">"start_time"</span>: <span class="hl-str">"2025-06-01T10:00:00Z"</span>,
+       <span class="hl-key">"customer"</span>: {
+         <span class="hl-key">"name"</span>: <span class="hl-str">"Иван Иванов"</span>,
+         <span class="hl-key">"phone"</span>: <span class="hl-str">"+79001234567"</span>
+       }
+     }'</pre>
+        <h4>Ответ 201</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Booking created successfully"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект записи */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s409">409</span><span>Слот занят или нет свободных мастеров на это время</span></div>
+          <div class="status-row"><span class="status-num s422">422</span><span>Ошибки валидации</span></div>
+        </div>
+      </div>
+
+      <!-- PATCH /bookings/{id}/status -->
+      <div class="endpoint" id="patch-booking">
+        <div class="endpoint-head">
+          <span class="method-badge m-patch">PATCH</span>
+          <span class="endpoint-path">/bookings/{id}/status</span>
+          <span class="endpoint-desc">Изменить статус записи</span>
+        </div>
+        <p>Допустимые переходы статусов:</p>
+        <pre><span class="hl-str">pending</span>   → <span class="hl-str">confirmed</span>   <span class="hl-comment">(подтвердить)</span>
+<span class="hl-str">confirmed</span> → <span class="hl-str">completed</span>   <span class="hl-comment">(завершить)</span></pre>
+        <p>Для отмены используйте <code>DELETE /bookings/{id}</code>.</p>
+        <div class="info-box">
+          При подтверждении и завершении клиент получит уведомление в Telegram/MAX, если он их подключил.
+        </div>
+        <h4>Тело запроса (JSON)</h4>
+        <table class="params">
+          <thead><tr><th>Поле</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">status</td><td class="param-type">string</td><td><span class="req-badge">req</span></td><td><code>confirmed</code> или <code>completed</code></td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Booking status updated to confirmed"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* обновлённый объект записи */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s422">422</span><span>Недопустимый переход статуса</span></div>
+          <div class="status-row"><span class="status-num s404">404</span><span>Запись не найдена</span></div>
+        </div>
+      </div>
+
+      <!-- DELETE /bookings/{id} -->
+      <div class="endpoint" id="delete-booking">
+        <div class="endpoint-head">
+          <span class="method-badge m-delete">DELETE</span>
+          <span class="endpoint-path">/bookings/{id}</span>
+          <span class="endpoint-desc">Отменить запись</span>
+        </div>
+        <p>Отменяет запись. Можно отменить только <code>pending</code> или <code>confirmed</code> записи.</p>
+        <p>Клиент получит уведомление в Telegram/MAX, если подключён.</p>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"message"</span>: <span class="hl-str">"Booking cancelled"</span>,
+  <span class="hl-key">"data"</span>: { <span class="hl-comment">/* объект записи со статусом cancelled */</span> }
+}</pre>
+        <div class="status-list">
+          <div class="status-row"><span class="status-num s422">422</span><span>Запись уже отменена или завершена</span></div>
+          <div class="status-row"><span class="status-num s404">404</span><span>Запись не найдена</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         КЛИЕНТЫ
+    ════════════════════════════════════════ -->
+    <section class="section" id="clients-section">
+      <h2 class="section-title">Клиенты (Clients)</h2>
+
+      <div class="endpoint" id="get-clients">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/clients</span>
+          <span class="endpoint-desc">Список клиентов</span>
+        </div>
+        <h4>Query-параметры</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Номер страницы</td></tr>
+            <tr><td class="param-name">per_page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Клиентов на странице (макс: 100)</td></tr>
+            <tr><td class="param-name">search</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td>Поиск по имени, телефону или email</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"name"</span>: <span class="hl-str">"Иван Иванов"</span>,
+      <span class="hl-key">"phone"</span>: <span class="hl-str">"+79001234567"</span>,
+      <span class="hl-key">"email"</span>: <span class="hl-null">null</span>,
+      <span class="hl-key">"total_orders"</span>: <span class="hl-num">5</span>,
+      <span class="hl-key">"total_spent"</span>: <span class="hl-num">7500</span>,
+      <span class="hl-key">"last_order_at"</span>: <span class="hl-str">"2025-05-10T14:30:00.000000Z"</span>,
+      <span class="hl-key">"created_at"</span>: <span class="hl-str">"2025-01-15T09:00:00.000000Z"</span>
+    }
+  ],
+  <span class="hl-key">"meta"</span>: { <span class="hl-key">"total"</span>: <span class="hl-num">128</span>, <span class="hl-key">"page"</span>: <span class="hl-num">1</span>, <span class="hl-key">"per_page"</span>: <span class="hl-num">15</span>, <span class="hl-key">"last_page"</span>: <span class="hl-num">9</span> }
+}</pre>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         УСЛУГИ И МАСТЕРА
+    ════════════════════════════════════════ -->
+    <section class="section" id="services-section">
+      <h2 class="section-title">Услуги и мастера</h2>
+
+      <!-- GET /services -->
+      <div class="endpoint" id="get-services">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/services</span>
+          <span class="endpoint-desc">Список активных услуг</span>
+        </div>
+        <p>Возвращает только активные услуги типа «услуга». Отсортированы по порядку, затем по названию.</p>
+        <h4>Query-параметры</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Номер страницы</td></tr>
+            <tr><td class="param-name">per_page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>По умолчанию: 50, макс: 100</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"name"</span>: <span class="hl-str">"Стрижка"</span>,
+      <span class="hl-key">"price"</span>: <span class="hl-num">1500</span>,
+      <span class="hl-key">"description"</span>: <span class="hl-str">"Классическая мужская стрижка"</span>,
+      <span class="hl-key">"service"</span>: {
+        <span class="hl-key">"duration_minutes"</span>: <span class="hl-num">45</span>,
+        <span class="hl-key">"requires_prepayment"</span>: <span class="hl-bool">false</span>
+      }
+    }
+  ],
+  <span class="hl-key">"meta"</span>: { <span class="hl-comment">/* ... */</span> }
+}</pre>
+      </div>
+
+      <!-- GET /masters -->
+      <div class="endpoint" id="get-masters">
+        <div class="endpoint-head">
+          <span class="method-badge m-get">GET</span>
+          <span class="endpoint-path">/masters</span>
+          <span class="endpoint-desc">Список мастеров</span>
+        </div>
+        <h4>Query-параметры</h4>
+        <table class="params">
+          <thead><tr><th>Параметр</th><th>Тип</th><th></th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>Номер страницы</td></tr>
+            <tr><td class="param-name">per_page</td><td class="param-type">integer</td><td><span class="opt-badge">opt</span></td><td>По умолчанию: 50, макс: 100</td></tr>
+            <tr><td class="param-name">active</td><td class="param-type">string</td><td><span class="opt-badge">opt</span></td><td><code>1</code> — только активные мастера</td></tr>
+          </tbody>
+        </table>
+        <h4>Ответ 200</h4>
+        <pre>{
+  <span class="hl-key">"data"</span>: [
+    {
+      <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>,
+      <span class="hl-key">"name"</span>: <span class="hl-str">"Анна"</span>,
+      <span class="hl-key">"is_active"</span>: <span class="hl-bool">true</span>,
+      <span class="hl-key">"services"</span>: [
+        { <span class="hl-key">"id"</span>: <span class="hl-str">"uuid"</span>, <span class="hl-key">"name"</span>: <span class="hl-str">"Стрижка"</span> }
+      ]
+    }
+  ],
+  <span class="hl-key">"meta"</span>: { <span class="hl-comment">/* ... */</span> }
+}</pre>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // Подсветка активного пункта навигации при скролле
+  const sections = document.querySelectorAll('[id]');
+  const navLinks  = document.querySelectorAll('.nav a');
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => obs.observe(s));
+</script>
+
+</body>
+</html>

@@ -213,9 +213,11 @@ Route::prefix('v1')->middleware('api.cors')->group(function () {
 
 Route::prefix('v1')->middleware(['api.cors', 'force.json', 'api.auth', 'api.ratelimit', 'api.pro'])->group(function () {
     Route::get('/ping',     [\App\Http\Controllers\Api\PingController::class,  'ping']);
-    Route::get('/bookings',     [\App\Http\Controllers\Api\DataController::class,  'bookings']);
-    Route::post('/bookings',    [\App\Http\Controllers\Api\WriteController::class, 'storeBooking'])->middleware('throttle:20,1');
-    Route::delete('/bookings/{id}', [\App\Http\Controllers\Api\WriteController::class, 'cancelBooking']);
+    Route::get('/bookings',               [\App\Http\Controllers\Api\DataController::class,  'bookings']);
+    Route::get('/bookings/{id}',          [\App\Http\Controllers\Api\DataController::class,  'booking']);
+    Route::post('/bookings',              [\App\Http\Controllers\Api\WriteController::class, 'storeBooking'])->middleware('throttle:20,1');
+    Route::patch('/bookings/{id}/status', [\App\Http\Controllers\Api\WriteController::class, 'updateBookingStatus']);
+    Route::delete('/bookings/{id}',       [\App\Http\Controllers\Api\WriteController::class, 'cancelBooking']);
     Route::get('/clients',      [\App\Http\Controllers\Api\DataController::class,  'clients']);
     Route::get('/services',     [\App\Http\Controllers\Api\DataController::class,  'services']);
     Route::get('/masters',      [\App\Http\Controllers\Api\DataController::class,  'masters']);

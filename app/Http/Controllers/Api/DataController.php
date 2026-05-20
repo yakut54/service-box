@@ -28,6 +28,15 @@ class DataController extends Controller
     }
 
     /**
+     * GET /api/v1/bookings/{id}
+     */
+    public function booking(string $id): JsonResponse
+    {
+        $booking = Booking::with(['service:id,name,price', 'master:id,name'])->findOrFail($id);
+        return response()->json(['data' => $booking]);
+    }
+
+    /**
      * GET /api/v1/bookings
      * Filters: status, master_id, date_from, date_to
      */

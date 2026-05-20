@@ -139,6 +139,12 @@
     .btn-cancel { background: #fee2e2; color: var(--danger); }
     .btn-cancel:hover { background: #fecaca; }
     .btn-cancel:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-confirm { background: #dbeafe; color: #1d4ed8; }
+    .btn-confirm:hover { background: #bfdbfe; }
+    .btn-confirm:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-complete { background: #d1fae5; color: #065f46; }
+    .btn-complete:hover { background: #a7f3d0; }
+    .btn-complete:disabled { opacity: .4; cursor: not-allowed; }
     .btn-ghost {
       background: none; border: 1px solid var(--border);
       padding: 6px 14px; border-radius: var(--r);
@@ -315,6 +321,15 @@
       .header h1 { font-size: 13px; }
       .header-ver { display: none; }
     }
+    .header-docs {
+      color: rgba(255,255,255,.85);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 3px 11px;
+      background: rgba(255,255,255,.15);
+      border-radius: 20px;
+    }
+    .header-docs:hover { background: rgba(255,255,255,.25); }
   </style>
 </head>
 <body>
@@ -328,6 +343,7 @@
       <div class="rl-dot" id="rl-dot"></div>
       <span id="rl-text">60 / 60</span>
     </div>
+    <a href="docs.html" class="header-docs">Документация</a>
     <span class="header-ver">v1 · Demo</span>
   </div>
 </header>
@@ -626,9 +642,11 @@ function renderBookings(rows) {
           <td>${x(b.master?.name  || '—')}</td>
           <td style="white-space:nowrap;">${fmtDate(b.start_time)}</td>
           <td>${statusBadge(b.status)}</td>
-          <td>${canCancel(b.status)
-            ? `<button class="btn btn-cancel btn-sm" onclick="cancelBooking('${b.id}',this)">Отменить</button>`
-            : ''}</td>
+          <td style="display:flex;gap:4px;flex-wrap:wrap;">
+            ${b.status === 'pending'   ? `<button class="btn btn-confirm btn-sm" onclick="updateStatus('${b.id}','confirmed',this)">Подтвердить</button>` : ''}
+            ${b.status === 'confirmed' ? `<button class="btn btn-complete btn-sm" onclick="updateStatus('${b.id}','completed',this)">Завершить</button>` : ''}
+            ${canCancel(b.status)      ? `<button class="btn btn-cancel btn-sm"  onclick="cancelBooking('${b.id}',this)">Отменить</button>` : ''}
+          </td>
         </tr>`).join('')}
       </tbody>
     </table></div>`;
@@ -651,6 +669,30 @@ async function cancelBooking(id, btn) {
   } catch (e) {
     alert('Ошибка: ' + e.message);
     btn.disabled = false; btn.textContent = 'Отменить';
+  }
+}
+
+async function updateStatus(id, status, btn) {
+  if (!confirm(`Вы уверены? Это действие изменит статус записи.`)) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    // ──────────────────────────────────────────────────────
+    // PATCH /api/v1/bookings/{id}/status
+    // Тело: { "status": "confirmed" } или { "status": "completed" }
+    // Допустимые переходы:
+    //   pending   → confirmed  (подтвердить запись)
+    //   confirmed → completed  (завершить запись)
+    // Клиент получит уведомление в Telegram/MAX если подключён.
+    // Ответ: { message: "...", data: { booking } }
+    // Ошибки: 422 — недопустимый переход статуса
+    // ──────────────────────────────────────────────────────
+    await api('PATCH', '/bookings/' + id + '/status', { status });
+    reload(curPage);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = status === 'confirmed' ? 'Подтвердить' : 'Завершить';
   }
 }
 
@@ -735,6 +777,26 @@ function renderCreateForm() {
     <p class="form-error hidden" id="m-error"></p>
   `;
   document.getElementById('modal-foot').style.display = 'flex';
+
+  // Фильтр мастеров по выбранной услуге
+  document.getElementById('m-service').addEventListener('change', function () {
+    const sid = this.value;
+    const sel = document.getElementById('m-master');
+    sel.innerHTML = '<option value="">— автовыбор —</option>';
+    const filtered = sid
+      ? modalMasters.filter(m => (m.services || []).some(s => s.id === sid))
+      : modalMasters;
+    filtered.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m.id; o.textContent = m.name;
+      sel.appendChild(o);
+    });
+    if (sid && filtered.length === 0) {
+      const o = document.createElement('option');
+      o.disabled = true; o.textContent = '— нет мастеров для этой услуги —';
+      sel.appendChild(o);
+    }
+  });
 }
 
 async function submitCreate() {

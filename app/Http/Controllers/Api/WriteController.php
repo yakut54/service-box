@@ -13,6 +13,7 @@ use App\Models\Shop;
 use App\Services\TenantService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -109,6 +110,44 @@ class WriteController extends Controller
             'message' => 'Booking created successfully',
             'data'    => $booking,
         ], 201);
+    }
+
+    /**
+     * PATCH /api/v1/bookings/{id}/status
+     * Allowed transitions: pending→confirmed, confirmed→completed
+     */
+    public function updateBookingStatus(Request $request, string $id): JsonResponse
+    {
+        $request->validate(['status' => 'required|in:confirmed,completed']);
+
+        $booking   = Booking::findOrFail($id);
+        $newStatus = $request->status;
+
+        $allowed = [
+            'pending'   => ['confirmed'],
+            'confirmed' => ['completed'],
+        ];
+
+        if (!isset($allowed[$booking->status]) || !in_array($newStatus, $allowed[$booking->status])) {
+            return response()->json([
+                'error'   => 'Invalid status transition',
+                'message' => "Cannot change '{$booking->status}' → '{$newStatus}'. Allowed: pending→confirmed, confirmed→completed",
+            ], 422);
+        }
+
+        $booking->update(['status' => $newStatus]);
+        $booking->load(['service', 'master']);
+
+        $shop = $request->get('_shop');
+        if ($shop) {
+            try { \App\Services\TelegramService::notifyBookingStatusToCustomer($shop, $booking, $newStatus); } catch (\Throwable) {}
+            try { \App\Services\MaxService::notifyCustomerStatus($booking->id, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
+        }
+
+        return response()->json([
+            'message' => "Booking status updated to {$newStatus}",
+            'data'    => $booking,
+        ]);
     }
 
     /**
