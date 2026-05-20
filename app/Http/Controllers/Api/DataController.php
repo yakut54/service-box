@@ -91,6 +91,15 @@ class DataController extends Controller
     }
 
     /**
+     * GET /api/v1/clients/{id}
+     */
+    public function client(string $id): JsonResponse
+    {
+        $customer = Customer::findOrFail($id);
+        return response()->json(['data' => $customer]);
+    }
+
+    /**
      * GET /api/v1/services
      * Returns only active services (type=service)
      */
@@ -111,6 +120,43 @@ class DataController extends Controller
     }
 
     /**
+     * GET /api/v1/products
+     * Filters: type (service|physical|digital), active (true/false)
+     */
+    public function products(Request $request): JsonResponse
+    {
+        $query = Product::with(['service:product_id,duration_minutes,requires_prepayment']);
+
+        if ($request->filled('type')) {
+            $query->ofType($request->type);
+        }
+
+        if ($request->filled('active')) {
+            if (filter_var($request->active, FILTER_VALIDATE_BOOLEAN)) {
+                $query->active();
+            } else {
+                $query->where('is_active', false);
+            }
+        }
+
+        $paginator = $query->orderBy('sort_order')->orderBy('name')->paginate($this->perPage($request));
+
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => $this->pageMeta($paginator),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/products/{id}
+     */
+    public function product(string $id): JsonResponse
+    {
+        $product = Product::with(['service:product_id,duration_minutes,requires_prepayment'])->findOrFail($id);
+        return response()->json(['data' => $product]);
+    }
+
+    /**
      * GET /api/v1/masters
      * Filters: active (true/false)
      */
@@ -128,5 +174,14 @@ class DataController extends Controller
             'data' => $paginator->items(),
             'meta' => $this->pageMeta($paginator),
         ]);
+    }
+
+    /**
+     * GET /api/v1/masters/{id}
+     */
+    public function master(string $id): JsonResponse
+    {
+        $master = Master::with('services:id,name')->findOrFail($id);
+        return response()->json(['data' => $master]);
     }
 }

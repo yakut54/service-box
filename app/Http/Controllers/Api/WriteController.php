@@ -9,8 +9,7 @@ use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Master;
 use App\Models\Product;
-use App\Models\Shop;
-use App\Services\TenantService;
+use App\Services\MasterCascadeService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +20,6 @@ class WriteController extends Controller
 {
     /**
      * POST /api/v1/bookings
-     * Same rules as widget/admin booking, shop comes from API key context.
      */
     public function storeBooking(StoreBookingRequest $request): JsonResponse
     {
@@ -178,5 +176,117 @@ class WriteController extends Controller
             'message' => 'Booking cancelled',
             'data'    => $booking,
         ]);
+    }
+
+    /**
+     * POST /api/v1/masters
+     */
+    public function storeMaster(Request $request): JsonResponse
+    {
+        $shop = $request->get('_shop');
+        if ($shop) {
+            $limits = $shop->getPlanLimits();
+            if ($limits['max_masters'] !== null && Master::count() >= $limits['max_masters']) {
+                return response()->json(['error' => 'Masters limit reached for your plan'], 403);
+            }
+        }
+
+        $data = $request->validate([
+            'name'           => 'required|string|max:255',
+            'phone'          => 'nullable|string|max:20',
+            'email'          => 'nullable|email|max:255',
+            'specialization' => 'nullable|string|max:255',
+            'avatar_url'     => 'nullable|url|max:1000',
+            'is_active'      => 'boolean',
+            'sort_order'     => 'integer|min:0',
+        ]);
+
+        $master = Master::create($data);
+        $master->load('services:id,name');
+
+        return response()->json(['message' => 'Master created', 'data' => $master], 201);
+    }
+
+    /**
+     * PATCH /api/v1/masters/{id}
+     */
+    public function updateMaster(Request $request, string $id): JsonResponse
+    {
+        $master = Master::findOrFail($id);
+
+        $shop = $request->get('_shop');
+        if ($shop && isset($request->is_active) && $request->is_active && !$master->is_active) {
+            $limits = $shop->getPlanLimits();
+            $max    = $limits['max_masters'];
+            if ($max !== null && Master::where('is_active', true)->count() >= $max) {
+                return response()->json(['error' => 'Active masters limit reached for your plan'], 403);
+            }
+        }
+
+        $data = $request->validate([
+            'name'           => 'sometimes|required|string|max:255',
+            'phone'          => 'nullable|string|max:20',
+            'email'          => 'nullable|email|max:255',
+            'specialization' => 'nullable|string|max:255',
+            'avatar_url'     => 'nullable|url|max:1000',
+            'is_active'      => 'boolean',
+            'sort_order'     => 'integer|min:0',
+        ]);
+
+        $wasActive = $master->is_active;
+        $master->update($data);
+
+        if ($shop && isset($data['is_active'])) {
+            if ($wasActive && !$master->is_active) {
+                $hidden = MasterCascadeService::handleDeactivation($master->id, $shop->schema_name, $shop);
+                MasterCascadeService::notifyDeactivation($shop, $hidden);
+            } elseif (!$wasActive && $master->is_active) {
+                $restored = MasterCascadeService::handleReactivation($master->id, $shop->schema_name, $shop);
+                MasterCascadeService::notifyReactivation($shop, $restored);
+            }
+        }
+
+        $master->load('services:id,name');
+
+        return response()->json(['message' => 'Master updated', 'data' => $master]);
+    }
+
+    /**
+     * DELETE /api/v1/masters/{id}
+     */
+    public function deleteMaster(string $id): JsonResponse
+    {
+        $master = Master::findOrFail($id);
+        $master->delete();
+
+        return response()->json(['message' => 'Master deleted']);
+    }
+
+    /**
+     * POST /api/v1/clients
+     */
+    public function storeClient(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name'  => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $phone = Customer::normalizePhone($data['phone']);
+
+        if (Customer::where('phone', $phone)->exists()) {
+            return response()->json(['error' => 'Client with this phone already exists'], 409);
+        }
+
+        $customer = Customer::create([
+            'name'  => $data['name'],
+            'phone' => $phone,
+            'email' => $data['email'] ?? null,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        return response()->json(['message' => 'Client created', 'data' => $customer], 201);
     }
 }

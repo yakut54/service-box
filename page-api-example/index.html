@@ -226,19 +226,19 @@
 
     .code-wrap { position: relative; }
 
-    /* кнопка копирования — в panel-row справа */
+    /* кнопка копирования — внутри тёмного блока, абсолютная */
     .copy-icon-btn {
-      background: none; border: 1px solid var(--border);
+      position: absolute; top: 8px; right: 16px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
       border-radius: 6px; padding: 4px 10px; cursor: pointer;
-      color: var(--muted); display: none; align-items: center; gap: 5px;
+      color: #94a3b8; display: none; align-items: center; gap: 5px;
       font-size: 11px; font-family: inherit; transition: all 0.15s;
-      white-space: nowrap; flex-shrink: 0;
+      white-space: nowrap; z-index: 3;
     }
     .copy-icon-btn svg { flex-shrink: 0; }
-    .copy-icon-btn:hover { background: var(--bg); color: var(--text); border-color: var(--text); }
-    .copy-icon-btn.ok { color: var(--success) !important; border-color: var(--success) !important; }
-    /* показываем когда панель открыта */
-    div:has(.code-box.open) .copy-icon-btn { display: flex; }
+    .copy-icon-btn:hover { background: rgba(255,255,255,0.16); color: #e2e8f0; border-color: rgba(255,255,255,0.35); }
+    .copy-icon-btn.ok { color: #34d399 !important; border-color: #34d399 !important; }
+    .code-wrap:has(.code-box.open) .copy-icon-btn { display: flex; }
 
     .code-box {
       border-radius: var(--r); font-size: 12px; font-family: 'SF Mono','Fira Code',monospace;
@@ -490,15 +490,15 @@
               <span class="arr" id="curl-arr">▶</span>
               Посмотреть запрос (curl / JS)
             </button>
+          </div>
+          <div class="code-wrap">
+            <div class="code-box curl-box" id="curl-box"></div>
             <button class="copy-icon-btn" id="copy-curl-btn" onclick="copyCurl()" title="Копировать">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
               <span class="copy-label">Копировать</span>
             </button>
-          </div>
-          <div class="code-wrap">
-            <div class="code-box curl-box" id="curl-box"></div>
           </div>
         </div>
 
@@ -509,15 +509,15 @@
               <span class="arr" id="json-arr">▶</span>
               Ответ API (JSON)
             </button>
+          </div>
+          <div class="code-wrap">
+            <div class="code-box json-box" id="json-box"></div>
             <button class="copy-icon-btn" id="copy-json-btn" onclick="copyJson()" title="Копировать JSON">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
               <span class="copy-label">Копировать</span>
             </button>
-          </div>
-          <div class="code-wrap">
-            <div class="code-box json-box" id="json-box"></div>
           </div>
         </div>
 
