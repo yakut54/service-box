@@ -90,6 +90,36 @@
     .m-patch  { background: #fef3c7; color: #92400e; }
     .m-delete { background: #fee2e2; color: #991b1b; }
 
+    /* ── Аккордеон ──────────────────────────────── */
+    .nav-group { margin: 0 0 2px; }
+    .nav-group-btn {
+      display: flex; align-items: center; gap: 6px;
+      width: 100%; padding: 6px 16px;
+      background: none; border: none; cursor: pointer;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); text-align: left;
+    }
+    .nav-group-btn:hover { color: var(--text); }
+    .nav-group.open .nav-group-btn { color: var(--primary); }
+    .nav-count {
+      margin-left: auto; flex-shrink: 0;
+      background: var(--bg); color: var(--muted);
+      font-size: 10px; font-weight: 600;
+      padding: 1px 6px; border-radius: 10px;
+      font-family: monospace; letter-spacing: 0; text-transform: none;
+    }
+    .nav-chevron {
+      width: 12px; height: 12px; flex-shrink: 0;
+      transition: transform .2s ease;
+    }
+    .nav-group.open .nav-chevron { transform: rotate(180deg); }
+    .nav-group-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height .25s ease;
+      padding: 0 16px;
+    }
+    .nav-group.open .nav-group-body { max-height: 400px; }
+
     /* ── Основной контент ───────────────────── */
     .content {
       flex: 1;
@@ -226,53 +256,82 @@
 
   <!-- ── Боковая навигация ──────────────────── -->
   <nav class="nav">
+    <!-- Всегда открыта -->
     <div class="nav-section">
       <div class="nav-label">Начало работы</div>
       <a href="#intro">Введение</a>
       <a href="#auth">Аутентификация</a>
       <a href="#ratelimit">Лимиты</a>
       <a href="#errors">Ошибки</a>
-    </div>
-    <div class="nav-section">
-      <div class="nav-label">Диагностика</div>
       <a href="#ping"><span class="nav-method m-get">GET</span>ping</a>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Записи</div>
-      <a href="#get-bookings"><span class="nav-method m-get">GET</span>bookings</a>
-      <a href="#get-booking"><span class="nav-method m-get">GET</span>bookings/{id}</a>
-      <a href="#post-booking"><span class="nav-method m-post">POST</span>bookings</a>
-      <a href="#patch-booking"><span class="nav-method m-patch">PATCH</span>bookings/{id}/status</a>
-      <a href="#delete-booking"><span class="nav-method m-delete">DELETE</span>bookings/{id}</a>
-      <a href="#get-slots"><span class="nav-method m-get">GET</span>available-slots</a>
+
+    <!-- Аккордеон: ресурсы -->
+    <div class="nav-group" id="nav-g-bookings">
+      <button class="nav-group-btn" onclick="toggleGroup('nav-g-bookings')">
+        <span>Записи</span><span class="nav-count">6</span>
+        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="#get-bookings"><span class="nav-method m-get">GET</span>bookings</a>
+        <a href="#get-booking"><span class="nav-method m-get">GET</span>bookings/{id}</a>
+        <a href="#post-booking"><span class="nav-method m-post">POST</span>bookings</a>
+        <a href="#patch-booking"><span class="nav-method m-patch">PATCH</span>bookings/{id}/status</a>
+        <a href="#delete-booking"><span class="nav-method m-delete">DELETE</span>bookings/{id}</a>
+        <a href="#get-slots"><span class="nav-method m-get">GET</span>available-slots</a>
+      </div>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Заказы</div>
-      <a href="#get-orders"><span class="nav-method m-get">GET</span>orders</a>
-      <a href="#get-order"><span class="nav-method m-get">GET</span>orders/{id}</a>
-      <a href="#post-order"><span class="nav-method m-post">POST</span>orders</a>
-      <a href="#patch-order"><span class="nav-method m-patch">PATCH</span>orders/{id}/status</a>
+
+    <div class="nav-group" id="nav-g-orders">
+      <button class="nav-group-btn" onclick="toggleGroup('nav-g-orders')">
+        <span>Заказы</span><span class="nav-count">4</span>
+        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="#get-orders"><span class="nav-method m-get">GET</span>orders</a>
+        <a href="#get-order"><span class="nav-method m-get">GET</span>orders/{id}</a>
+        <a href="#post-order"><span class="nav-method m-post">POST</span>orders</a>
+        <a href="#patch-order"><span class="nav-method m-patch">PATCH</span>orders/{id}/status</a>
+      </div>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Клиенты</div>
-      <a href="#get-clients"><span class="nav-method m-get">GET</span>clients</a>
-      <a href="#get-client"><span class="nav-method m-get">GET</span>clients/{id}</a>
-      <a href="#post-client"><span class="nav-method m-post">POST</span>clients</a>
+
+    <div class="nav-group" id="nav-g-clients">
+      <button class="nav-group-btn" onclick="toggleGroup('nav-g-clients')">
+        <span>Клиенты</span><span class="nav-count">3</span>
+        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="#get-clients"><span class="nav-method m-get">GET</span>clients</a>
+        <a href="#get-client"><span class="nav-method m-get">GET</span>clients/{id}</a>
+        <a href="#post-client"><span class="nav-method m-post">POST</span>clients</a>
+      </div>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Товары и услуги</div>
-      <a href="#get-products"><span class="nav-method m-get">GET</span>products</a>
-      <a href="#get-product"><span class="nav-method m-get">GET</span>products/{id}</a>
-      <a href="#get-services"><span class="nav-method m-get">GET</span>services</a>
-      <a href="#get-categories"><span class="nav-method m-get">GET</span>categories</a>
+
+    <div class="nav-group" id="nav-g-products">
+      <button class="nav-group-btn" onclick="toggleGroup('nav-g-products')">
+        <span>Товары и услуги</span><span class="nav-count">4</span>
+        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="#get-products"><span class="nav-method m-get">GET</span>products</a>
+        <a href="#get-product"><span class="nav-method m-get">GET</span>products/{id}</a>
+        <a href="#get-services"><span class="nav-method m-get">GET</span>services</a>
+        <a href="#get-categories"><span class="nav-method m-get">GET</span>categories</a>
+      </div>
     </div>
-    <div class="nav-section">
-      <div class="nav-label">Мастера</div>
-      <a href="#get-masters"><span class="nav-method m-get">GET</span>masters</a>
-      <a href="#get-master"><span class="nav-method m-get">GET</span>masters/{id}</a>
-      <a href="#post-master"><span class="nav-method m-post">POST</span>masters</a>
-      <a href="#patch-master"><span class="nav-method m-patch">PATCH</span>masters/{id}</a>
-      <a href="#delete-master"><span class="nav-method m-delete">DELETE</span>masters/{id}</a>
+
+    <div class="nav-group" id="nav-g-masters">
+      <button class="nav-group-btn" onclick="toggleGroup('nav-g-masters')">
+        <span>Мастера</span><span class="nav-count">5</span>
+        <svg class="nav-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="nav-group-body">
+        <a href="#get-masters"><span class="nav-method m-get">GET</span>masters</a>
+        <a href="#get-master"><span class="nav-method m-get">GET</span>masters/{id}</a>
+        <a href="#post-master"><span class="nav-method m-post">POST</span>masters</a>
+        <a href="#patch-master"><span class="nav-method m-patch">PATCH</span>masters/{id}</a>
+        <a href="#delete-master"><span class="nav-method m-delete">DELETE</span>masters/{id}</a>
+      </div>
     </div>
   </nav>
 
@@ -1057,20 +1116,74 @@ curl -X GET <span class="hl-url">"https://yakut54.ru/api/v1/ping"</span> \
 </div>
 
 <script>
-  const sections = document.querySelectorAll('[id]');
-  const navLinks  = document.querySelectorAll('.nav a');
+  // ── Section → accordion group mapping ────────────────────
+  const SECTION_GROUP = {
+    'bookings-section': 'nav-g-bookings',
+    'get-bookings':     'nav-g-bookings',
+    'get-booking':      'nav-g-bookings',
+    'post-booking':     'nav-g-bookings',
+    'patch-booking':    'nav-g-bookings',
+    'delete-booking':   'nav-g-bookings',
+    'get-slots':        'nav-g-bookings',
+    'orders-section':   'nav-g-orders',
+    'get-orders':       'nav-g-orders',
+    'get-order':        'nav-g-orders',
+    'post-order':       'nav-g-orders',
+    'patch-order':      'nav-g-orders',
+    'clients-section':  'nav-g-clients',
+    'get-clients':      'nav-g-clients',
+    'get-client':       'nav-g-clients',
+    'post-client':      'nav-g-clients',
+    'products-section': 'nav-g-products',
+    'get-products':     'nav-g-products',
+    'get-product':      'nav-g-products',
+    'get-services':     'nav-g-products',
+    'get-categories':   'nav-g-products',
+    'masters-section':  'nav-g-masters',
+    'get-masters':      'nav-g-masters',
+    'get-master':       'nav-g-masters',
+    'post-master':      'nav-g-masters',
+    'patch-master':     'nav-g-masters',
+    'delete-master':    'nav-g-masters',
+  };
+
+  function openGroup(id) {
+    document.querySelectorAll('.nav-group').forEach(g => g.classList.remove('open'));
+    const g = document.getElementById(id);
+    if (g) g.classList.add('open');
+  }
+
+  function toggleGroup(id) {
+    const g = document.getElementById(id);
+    if (!g) return;
+    const wasOpen = g.classList.contains('open');
+    document.querySelectorAll('.nav-group').forEach(el => el.classList.remove('open'));
+    if (!wasOpen) g.classList.add('open');
+  }
+
+  // Открыть группу по хэшу при загрузке страницы
+  const initHash = location.hash.slice(1);
+  if (initHash && SECTION_GROUP[initHash]) openGroup(SECTION_GROUP[initHash]);
+
+  // Scroll spy: подсветка ссылки + авто-открытие группы
+  const navLinks = document.querySelectorAll('.nav a');
 
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => {
-      if (e.isIntersecting) {
-        navLinks.forEach(l => l.classList.remove('active'));
-        const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
-        if (link) link.classList.add('active');
+      if (!e.isIntersecting) return;
+      const id = e.target.id;
+      navLinks.forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`.nav a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+      const groupId = SECTION_GROUP[id];
+      if (groupId) {
+        const g = document.getElementById(groupId);
+        if (g && !g.classList.contains('open')) openGroup(groupId);
       }
     });
   }, { rootMargin: '-20% 0px -70% 0px' });
 
-  sections.forEach(s => obs.observe(s));
+  document.querySelectorAll('[id]').forEach(s => obs.observe(s));
 </script>
 
 </body>
