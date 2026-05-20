@@ -75,6 +75,13 @@ class StaffController extends Controller
         // Проверяем: уже сотрудник или уже приглашён
         $existingUser = User::where('email', $email)->first();
 
+        // Нельзя пригласить того, кто уже владеет своим магазином
+        if ($existingUser && $existingUser->shop) {
+            return response()->json([
+                'message' => 'Этот пользователь является владельцем другого магазина и не может быть добавлен как администратор',
+            ], 422);
+        }
+
         $alreadyStaff = ShopStaff::where('shop_id', $shop->id)
             ->where(function ($q) use ($email, $existingUser) {
                 $q->where('invite_email', $email);
