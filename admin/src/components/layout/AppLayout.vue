@@ -276,7 +276,7 @@ async function handleLogout() {
             >
               <!-- Theme toggle -->
               <button
-                @click="toggle; menuOpen = false"
+                @click="toggle(); menuOpen = false"
                 class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <svg v-if="isDark" class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
