@@ -18,10 +18,12 @@ class ShopStaff extends Model
         'invite_email',
         'invite_token',
         'accepted_at',
+        'invite_expires_at',
     ];
 
     protected $casts = [
-        'accepted_at' => 'datetime',
+        'accepted_at'       => 'datetime',
+        'invite_expires_at' => 'datetime',
     ];
 
     public function shop()
