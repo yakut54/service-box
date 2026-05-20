@@ -221,6 +221,15 @@ Route::prefix('v1')->middleware(['api.cors', 'force.json', 'api.auth', 'api.rate
     Route::patch('/bookings/{id}/status', [\App\Http\Controllers\Api\WriteController::class, 'updateBookingStatus']);
     Route::delete('/bookings/{id}',       [\App\Http\Controllers\Api\WriteController::class, 'cancelBooking']);
 
+    // Available slots
+    Route::get('/available-slots', [\App\Http\Controllers\BookingController::class, 'availableSlots']);
+
+    // Orders
+    Route::get('/orders',               [\App\Http\Controllers\Api\DataController::class,  'orders']);
+    Route::get('/orders/{id}',          [\App\Http\Controllers\Api\DataController::class,  'order']);
+    Route::post('/orders',              [\App\Http\Controllers\Api\WriteController::class, 'storeOrder'])->middleware('throttle:20,1');
+    Route::patch('/orders/{id}/status', [\App\Http\Controllers\Api\WriteController::class, 'updateOrderStatus']);
+
     // Clients
     Route::get('/clients',       [\App\Http\Controllers\Api\DataController::class,  'clients']);
     Route::get('/clients/{id}',  [\App\Http\Controllers\Api\DataController::class,  'client']);
@@ -232,11 +241,14 @@ Route::prefix('v1')->middleware(['api.cors', 'force.json', 'api.auth', 'api.rate
     Route::get('/services',      [\App\Http\Controllers\Api\DataController::class,  'services']);
 
     // Masters
-    Route::get('/masters',        [\App\Http\Controllers\Api\DataController::class,  'masters']);
-    Route::get('/masters/{id}',   [\App\Http\Controllers\Api\DataController::class,  'master']);
-    Route::post('/masters',       [\App\Http\Controllers\Api\WriteController::class, 'storeMaster'])->middleware('throttle:20,1');
-    Route::patch('/masters/{id}', [\App\Http\Controllers\Api\WriteController::class, 'updateMaster']);
-    Route::delete('/masters/{id}',[\App\Http\Controllers\Api\WriteController::class, 'deleteMaster']);
+    Route::get('/masters',         [\App\Http\Controllers\Api\DataController::class,  'masters']);
+    Route::get('/masters/{id}',    [\App\Http\Controllers\Api\DataController::class,  'master']);
+    Route::post('/masters',        [\App\Http\Controllers\Api\WriteController::class, 'storeMaster'])->middleware('throttle:20,1');
+    Route::patch('/masters/{id}',  [\App\Http\Controllers\Api\WriteController::class, 'updateMaster']);
+    Route::delete('/masters/{id}', [\App\Http\Controllers\Api\WriteController::class, 'deleteMaster']);
+
+    // Categories
+    Route::get('/categories', [\App\Http\Controllers\Api\DataController::class, 'categories']);
 });
 
 // ============================================================================

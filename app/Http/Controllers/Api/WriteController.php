@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\StoreOrderRequest;
 use App\Mail\NewBookingMail;
+use App\Mail\NewOrderMail;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Master;
+use App\Models\Order;
 use App\Models\Product;
+use App\Services\DiscountService;
 use App\Services\MasterCascadeService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -18,9 +22,10 @@ use Illuminate\Support\Facades\Mail;
 
 class WriteController extends Controller
 {
-    /**
-     * POST /api/v1/bookings
-     */
+    public function __construct(private readonly DiscountService $discountService) {}
+
+    // ── Bookings ─────────────────────────────────────────────────────────────
+
     public function storeBooking(StoreBookingRequest $request): JsonResponse
     {
         $service = Product::with('service')->findOrFail($request->service_id);
@@ -43,31 +48,19 @@ class WriteController extends Controller
                         ->where('master_id', $master->id)
                         ->where('start_time', '<', $endTime)
                         ->where('end_time', '>', $startTime)
-                        ->lockForUpdate()
-                        ->exists();
+                        ->lockForUpdate()->exists();
 
-                    if (!$conflict) {
-                        $masterId = $master->id;
-                        break;
-                    }
+                    if (!$conflict) { $masterId = $master->id; break; }
                 }
-
-                if (!$masterId) {
-                    abort(409, 'No available masters for this time slot');
-                }
+                if (!$masterId) { abort(409, 'No available masters for this time slot'); }
             } else {
                 Master::findOrFail($masterId);
-
                 $conflict = Booking::whereNotIn('status', ['cancelled', 'no_show'])
                     ->where('master_id', $masterId)
                     ->where('start_time', '<', $endTime)
                     ->where('end_time', '>', $startTime)
-                    ->lockForUpdate()
-                    ->exists();
-
-                if ($conflict) {
-                    abort(409, 'This time slot is already taken');
-                }
+                    ->lockForUpdate()->exists();
+                if ($conflict) { abort(409, 'This time slot is already taken'); }
             }
 
             $customer = Customer::findOrCreateByPhone($customerPhone, [
@@ -90,11 +83,8 @@ class WriteController extends Controller
         });
 
         $booking->load(['service', 'master', 'customer']);
-
         $shop = $request->get('_shop');
-        if ($shop && !$shop->relationLoaded('user')) {
-            $shop->load('user');
-        }
+        if ($shop && !$shop->relationLoaded('user')) { $shop->load('user'); }
 
         if ($shop?->user?->email) {
             try { Mail::to($shop->user->email)->send(new NewBookingMail($booking, $shop->name)); } catch (\Throwable) {}
@@ -104,16 +94,9 @@ class WriteController extends Controller
             try { \App\Services\MaxService::notifyNewBooking($shop, $booking); } catch (\Throwable) {}
         }
 
-        return response()->json([
-            'message' => 'Booking created successfully',
-            'data'    => $booking,
-        ], 201);
+        return response()->json(['message' => 'Booking created successfully', 'data' => $booking], 201);
     }
 
-    /**
-     * PATCH /api/v1/bookings/{id}/status
-     * Allowed transitions: pending→confirmed, confirmed→completed
-     */
     public function updateBookingStatus(Request $request, string $id): JsonResponse
     {
         $request->validate(['status' => 'required|in:confirmed,completed']);
@@ -121,10 +104,7 @@ class WriteController extends Controller
         $booking   = Booking::findOrFail($id);
         $newStatus = $request->status;
 
-        $allowed = [
-            'pending'   => ['confirmed'],
-            'confirmed' => ['completed'],
-        ];
+        $allowed = ['pending' => ['confirmed'], 'confirmed' => ['completed']];
 
         if (!isset($allowed[$booking->status]) || !in_array($newStatus, $allowed[$booking->status])) {
             return response()->json([
@@ -142,16 +122,9 @@ class WriteController extends Controller
             try { \App\Services\MaxService::notifyCustomerStatus($booking->id, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
         }
 
-        return response()->json([
-            'message' => "Booking status updated to {$newStatus}",
-            'data'    => $booking,
-        ]);
+        return response()->json(['message' => "Booking status updated to {$newStatus}", 'data' => $booking]);
     }
 
-    /**
-     * DELETE /api/v1/bookings/{id}
-     * Cancels booking — only pending/confirmed can be cancelled.
-     */
     public function cancelBooking(string $id): JsonResponse
     {
         $booking = Booking::findOrFail($id);
@@ -172,15 +145,158 @@ class WriteController extends Controller
             try { \App\Services\MaxService::notifyCustomerStatus($booking->id, 'cancelled', $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
         }
 
-        return response()->json([
-            'message' => 'Booking cancelled',
-            'data'    => $booking,
-        ]);
+        return response()->json(['message' => 'Booking cancelled', 'data' => $booking]);
     }
 
-    /**
-     * POST /api/v1/masters
-     */
+    // ── Orders ───────────────────────────────────────────────────────────────
+
+    public function storeOrder(StoreOrderRequest $request): JsonResponse
+    {
+        $shop = $request->get('_shop');
+
+        if ($shop) {
+            $limits = $shop->getPlanLimits();
+            if ($limits['max_orders_per_month'] !== null) {
+                $count = Order::whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)
+                    ->count();
+                if ($count >= $limits['max_orders_per_month']) {
+                    return response()->json(['error' => 'Monthly order limit reached'], 403);
+                }
+            }
+        }
+
+        $customer = Customer::findOrCreateByPhone(
+            $request->input('customer.phone'),
+            ['name' => $request->input('customer.name'), 'email' => $request->input('customer.email')]
+        );
+
+        [$order, $cartItems] = DB::transaction(function () use ($request, $customer) {
+            $order = Order::create([
+                'customer_id'              => $customer->id,
+                'status'                   => 'pending',
+                'customer_name'            => $request->input('customer.name'),
+                'customer_email'           => $request->input('customer.email'),
+                'customer_phone'           => Customer::normalizePhone($request->input('customer.phone')),
+                'shipping_address'         => $request->shipping_address,
+                'delivery_method'          => $request->delivery_method,
+                'delivery_price'           => (int) ($request->delivery_price ?? 0),
+                'notes'                    => $request->notes,
+                'consent_offer_accepted'   => (bool) $request->input('consent_offer_accepted', false),
+                'consent_privacy_accepted' => (bool) $request->input('consent_privacy_accepted', false),
+                'consent_accepted_at'      => now(),
+                'consent_ip'               => $request->ip(),
+                'consent_ua'               => substr($request->userAgent() ?? '', 0, 500),
+            ]);
+
+            $cartItems = [];
+            foreach ($request->items as $item) {
+                $product = Product::with('physical')->lockForUpdate()->findOrFail($item['product_id']);
+
+                if ($product->type === 'physical' && $product->physical) {
+                    if ($product->physical->stock_quantity < $item['quantity']) {
+                        abort(409, "Товар «{$product->name}» закончился на складе");
+                    }
+                    $product->physical->decrement('stock_quantity', $item['quantity']);
+                }
+
+                $order->items()->create([
+                    'product_id'   => $product->id,
+                    'quantity'     => $item['quantity'],
+                    'price'        => $product->price,
+                    'product_name' => $product->name,
+                    'product_type' => $product->type,
+                ]);
+
+                $cartItems[] = [
+                    'product_id'  => $product->id,
+                    'category_id' => $product->category_id ?? null,
+                    'quantity'    => $item['quantity'],
+                    'price'       => $product->price,
+                ];
+            }
+
+            $order->calculateTotal();
+            return [$order, $cartItems];
+        });
+
+        // Best discount wins (promo code vs auto-apply)
+        $discount = $discountAmount = null;
+        $promoDiscount = $promoAmount = null;
+
+        if ($request->filled('discount_code')) {
+            try {
+                $result        = $this->discountService->validate($request->discount_code, $order->total_price, $request->input('customer.phone'), $cartItems);
+                $promoDiscount = $result['discount'];
+                $promoAmount   = $result['amount'];
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return response()->json(['error' => $e->errors()['discount_code'][0] ?? 'Invalid discount code', 'errors' => $e->errors()], 422);
+            }
+        }
+
+        $autoDiscount = $this->discountService->findAutoApply($order->total_price, $request->input('customer.phone'), $cartItems);
+        $autoAmount   = $autoDiscount ? $this->discountService->calculate($autoDiscount, $order->total_price, $cartItems) : 0;
+
+        if ($promoDiscount && $promoAmount >= $autoAmount) {
+            $discount = $promoDiscount; $discountAmount = $promoAmount;
+        } elseif ($autoDiscount && $autoAmount > (int) $promoAmount) {
+            $discount = $autoDiscount; $discountAmount = $autoAmount;
+        }
+
+        if ($discount && $discountAmount > 0) {
+            $order->update([
+                'discount_id'     => $discount->id,
+                'discount_code'   => $discount->code,
+                'discount_amount' => $discountAmount,
+                'total_price'     => max(0, $order->total_price - $discountAmount),
+            ]);
+            $this->discountService->recordUse($discount, $order);
+        }
+
+        if ($order->delivery_price > 0) {
+            $order->update(['total_price' => $order->total_price + $order->delivery_price]);
+            $order->refresh();
+        }
+
+        $customer->updateStats();
+        $order->load(['items', 'customer']);
+
+        if ($shop && $shop->user?->email) {
+            try { Mail::to($shop->user->email)->send(new NewOrderMail($order, $shop->name)); } catch (\Throwable) {}
+        }
+        if ($shop) {
+            try { \App\Services\TelegramService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
+            try { \App\Services\MaxService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
+        }
+
+        return response()->json(['message' => 'Order created successfully', 'data' => $order], 201);
+    }
+
+    public function updateOrderStatus(Request $request, string $id): JsonResponse
+    {
+        $request->validate(['status' => 'required|in:pending,paid,processing,completed,cancelled']);
+
+        $order     = Order::with('items.product')->findOrFail($id);
+        $oldStatus = $order->status;
+        $newStatus = $request->status;
+
+        $order->update(['status' => $newStatus]);
+
+        if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+            foreach ($order->items as $item) {
+                if ($item->product && $item->product->type === 'physical') {
+                    $item->product->physical?->increment('stock_quantity', $item->quantity);
+                }
+            }
+        }
+
+        $order->load(['items', 'customer']);
+
+        return response()->json(['message' => "Order status updated to {$newStatus}", 'data' => $order]);
+    }
+
+    // ── Masters ──────────────────────────────────────────────────────────────
+
     public function storeMaster(Request $request): JsonResponse
     {
         $shop = $request->get('_shop');
@@ -207,15 +323,12 @@ class WriteController extends Controller
         return response()->json(['message' => 'Master created', 'data' => $master], 201);
     }
 
-    /**
-     * PATCH /api/v1/masters/{id}
-     */
     public function updateMaster(Request $request, string $id): JsonResponse
     {
         $master = Master::findOrFail($id);
+        $shop   = $request->get('_shop');
 
-        $shop = $request->get('_shop');
-        if ($shop && isset($request->is_active) && $request->is_active && !$master->is_active) {
+        if ($shop && $request->input('is_active') && !$master->is_active) {
             $limits = $shop->getPlanLimits();
             $max    = $limits['max_masters'];
             if ($max !== null && Master::where('is_active', true)->count() >= $max) {
@@ -247,24 +360,17 @@ class WriteController extends Controller
         }
 
         $master->load('services:id,name');
-
         return response()->json(['message' => 'Master updated', 'data' => $master]);
     }
 
-    /**
-     * DELETE /api/v1/masters/{id}
-     */
     public function deleteMaster(string $id): JsonResponse
     {
-        $master = Master::findOrFail($id);
-        $master->delete();
-
+        Master::findOrFail($id)->delete();
         return response()->json(['message' => 'Master deleted']);
     }
 
-    /**
-     * POST /api/v1/clients
-     */
+    // ── Clients ──────────────────────────────────────────────────────────────
+
     public function storeClient(Request $request): JsonResponse
     {
         $data = $request->validate([
