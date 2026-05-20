@@ -225,17 +225,20 @@
     .panel-toggle .arr { font-size: 11px; }
 
     .code-wrap { position: relative; }
+
+    /* кнопка копирования — в panel-row справа */
     .copy-icon-btn {
-      position: absolute; top: 8px; right: 8px;
-      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 6px; padding: 5px 7px; cursor: pointer;
-      color: #94a3b8; display: none; align-items: center; gap: 5px;
-      font-size: 11px; font-family: inherit; transition: all 0.15s; z-index: 2;
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 10px; cursor: pointer;
+      color: var(--muted); display: none; align-items: center; gap: 5px;
+      font-size: 11px; font-family: inherit; transition: all 0.15s;
+      white-space: nowrap; flex-shrink: 0;
     }
     .copy-icon-btn svg { flex-shrink: 0; }
-    .copy-icon-btn:hover { background: rgba(255,255,255,0.18); color: #e2e8f0; }
-    .copy-icon-btn.ok { color: #34d399 !important; border-color: #34d399 !important; }
-    .code-wrap:has(.code-box.open) .copy-icon-btn { display: flex; }
+    .copy-icon-btn:hover { background: var(--bg); color: var(--text); border-color: var(--text); }
+    .copy-icon-btn.ok { color: var(--success) !important; border-color: var(--success) !important; }
+    /* показываем когда панель открыта */
+    div:has(.code-box.open) .copy-icon-btn { display: flex; }
 
     .code-box {
       border-radius: var(--r); font-size: 12px; font-family: 'SF Mono','Fira Code',monospace;
@@ -306,6 +309,38 @@
     .form-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
     .form-error { color: var(--danger); font-size: 13px; margin-top: 8px; }
     .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Скроллбары ─────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    /* тёмные блоки кода */
+    .json-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+    .json-box::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+    .curl-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+
+    /* ── Селекты / инпуты ───────────────────── */
+    select {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px !important;
+      cursor: pointer;
+      color: var(--text);
+    }
+    select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+    input[type="date"], input[type="time"] {
+      color: var(--text); cursor: pointer;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      opacity: 0.5; cursor: pointer;
+      filter: hue-rotate(210deg) saturate(0.6);
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover,
+    input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 0.85; }
 
     /* ── Утилиты ────────────────────────────── */
     .hidden { display: none !important; }
@@ -455,15 +490,15 @@
               <span class="arr" id="curl-arr">▶</span>
               Посмотреть запрос (curl / JS)
             </button>
-          </div>
-          <div class="code-wrap">
-            <div class="code-box curl-box" id="curl-box"></div>
             <button class="copy-icon-btn" id="copy-curl-btn" onclick="copyCurl()" title="Копировать">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
               <span class="copy-label">Копировать</span>
             </button>
+          </div>
+          <div class="code-wrap">
+            <div class="code-box curl-box" id="curl-box"></div>
           </div>
         </div>
 
@@ -474,15 +509,15 @@
               <span class="arr" id="json-arr">▶</span>
               Ответ API (JSON)
             </button>
-          </div>
-          <div class="code-wrap">
-            <div class="code-box json-box" id="json-box"></div>
             <button class="copy-icon-btn" id="copy-json-btn" onclick="copyJson()" title="Копировать JSON">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
               </svg>
               <span class="copy-label">Копировать</span>
             </button>
+          </div>
+          <div class="code-wrap">
+            <div class="code-box json-box" id="json-box"></div>
           </div>
         </div>
 
