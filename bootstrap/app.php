@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.auth'       => \App\Http\Middleware\ApiKeyAuth::class,
             'api.ratelimit'  => \App\Http\Middleware\ApiRateLimit::class,
             'api.pro'        => \App\Http\Middleware\ApiProPlan::class,
+            'api.cors'       => \App\Http\Middleware\ApiCors::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

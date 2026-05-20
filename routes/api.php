@@ -205,7 +205,13 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop'])->group(functio
 // ============================================================================
 // EXTERNAL API v1 (X-API-Key, Pro plan only)
 // ============================================================================
-Route::prefix('v1')->middleware(['force.json', 'api.auth', 'api.ratelimit', 'api.pro'])->group(function () {
+
+// CORS preflight — без auth, чтобы браузер мог сделать OPTIONS до основного запроса
+Route::prefix('v1')->middleware('api.cors')->group(function () {
+    Route::options('{any}', fn () => response('', 200))->where('any', '.*');
+});
+
+Route::prefix('v1')->middleware(['api.cors', 'force.json', 'api.auth', 'api.ratelimit', 'api.pro'])->group(function () {
     Route::get('/ping',     [\App\Http\Controllers\Api\PingController::class,  'ping']);
     Route::get('/bookings',     [\App\Http\Controllers\Api\DataController::class,  'bookings']);
     Route::post('/bookings',    [\App\Http\Controllers\Api\WriteController::class, 'storeBooking'])->middleware('throttle:20,1');
