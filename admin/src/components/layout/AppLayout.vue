@@ -12,12 +12,27 @@ const router = useRouter()
 const { isDark, toggle } = useTheme()
 
 const sidebarOpen = ref(false)
+const menuOpen    = ref(false)
+const menuRef     = ref<HTMLElement | null>(null)
 
 // Clock
 const now = ref(new Date())
 let clockTimer: ReturnType<typeof setInterval> | null = null
-onMounted(() => { clockTimer = setInterval(() => { now.value = new Date() }, 1000) })
-onUnmounted(() => { if (clockTimer) clearInterval(clockTimer) })
+
+function onClickOutside(e: MouseEvent) {
+  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
+    menuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  clockTimer = setInterval(() => { now.value = new Date() }, 1000)
+  document.addEventListener('click', onClickOutside)
+})
+onUnmounted(() => {
+  if (clockTimer) clearInterval(clockTimer)
+  document.removeEventListener('click', onClickOutside)
+})
 
 const shopTimezone = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
@@ -214,59 +229,104 @@ async function handleLogout() {
         </RouterLink>
       </div>
 
-      <!-- Bottom: theme toggle + user + logout -->
-      <div class="p-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0 space-y-3">
-        <!-- Clock -->
-        <div class="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 text-center select-none">
-          <div class="text-xl font-mono font-semibold text-gray-900 dark:text-white tabular-nums tracking-wide">{{ currentTime }}</div>
-          <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 capitalize">{{ currentDate }}</div>
+      <!-- Bottom: user menu -->
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
+
+        <!-- Subtle clock line -->
+        <p class="text-xs text-gray-400 dark:text-gray-600 tabular-nums select-none text-center mb-2">
+          {{ currentTime }} · <span class="capitalize">{{ currentDate }}</span>
+        </p>
+
+        <!-- User row → dropdown trigger -->
+        <div ref="menuRef" class="relative">
+          <button
+            @click.stop="menuOpen = !menuOpen"
+            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+          >
+            <div class="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+              <span class="text-gray-600 dark:text-gray-300 font-medium text-sm">
+                {{ authStore.user?.name?.charAt(0).toUpperCase() || authStore.user?.email?.charAt(0).toUpperCase() }}
+              </span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate leading-tight">{{ authStore.user?.name || authStore.user?.email }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 leading-tight">{{ authStore.isOwner ? 'Владелец' : 'Администратор' }}</p>
+            </div>
+            <svg
+              class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-150"
+              :class="menuOpen ? 'rotate-180' : ''"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+
+          <!-- Dropdown (opens upward) -->
+          <Transition
+            enter-active-class="transition duration-100 ease-out"
+            enter-from-class="opacity-0 translate-y-1"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-75 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-1"
+          >
+            <div
+              v-if="menuOpen"
+              class="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-1 z-10"
+            >
+              <!-- Theme toggle -->
+              <button
+                @click="toggle; menuOpen = false"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <svg v-if="isDark" class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                </svg>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+                {{ isDark ? 'Светлая тема' : 'Тёмная тема' }}
+              </button>
+
+              <div class="my-1 border-t border-gray-100 dark:border-gray-800" />
+
+              <!-- Legal links -->
+              <a
+                href="/offer" target="_blank" rel="noopener"
+                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                @click="menuOpen = false"
+              >
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Оферта
+              </a>
+              <a
+                href="/privacy" target="_blank" rel="noopener"
+                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                @click="menuOpen = false"
+              >
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1v3m0 16v3M4.22 4.22l2.12 2.12m11.32 11.32l2.12 2.12M1 12h3m16 0h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+                </svg>
+                Конфиденциальность
+              </a>
+
+              <div class="my-1 border-t border-gray-100 dark:border-gray-800" />
+
+              <!-- Logout -->
+              <button
+                @click="handleLogout"
+                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Выйти
+              </button>
+            </div>
+          </Transition>
         </div>
-
-        <!-- Theme toggle -->
-        <button
-            @click="toggle"
-            class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
-        >
-          <!-- Sun icon (shown in dark mode → click to go light) -->
-          <svg v-if="isDark" class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-          </svg>
-          <!-- Moon icon (shown in light mode → click to go dark) -->
-          <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-          </svg>
-          {{ isDark ? 'Светлая тема' : 'Тёмная тема' }}
-        </button>
-
-        <!-- User info -->
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-gray-600 dark:text-gray-300 font-medium text-sm">
-              {{ authStore.user?.name?.charAt(0).toUpperCase() || authStore.user?.email?.charAt(0).toUpperCase() }}
-            </span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ authStore.user?.name || authStore.user?.email }}</p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ authStore.user?.email }}</p>
-            <span v-if="!authStore.isOwner" class="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-              Администратор
-            </span>
-          </div>
-        </div>
-
-        <!-- Legal links -->
-        <div class="flex items-center justify-center gap-3 text-xs text-gray-400 dark:text-gray-600">
-          <a href="/offer"   target="_blank" rel="noopener" class="hover:text-gray-600 dark:hover:text-gray-400 transition-colors">Оферта</a>
-          <span>·</span>
-          <a href="/privacy" target="_blank" rel="noopener" class="hover:text-gray-600 dark:hover:text-gray-400 transition-colors">Конфиденциальность</a>
-        </div>
-
-        <button @click="handleLogout" class="w-full btn-ghost text-sm text-gray-600 dark:text-gray-400">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Выйти
-        </button>
 
       </div>
     </aside>
