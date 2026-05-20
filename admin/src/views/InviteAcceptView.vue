@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
@@ -27,11 +27,33 @@ const passwordConfirm = ref('')
 const submitting      = ref(false)
 const submitError     = ref('')
 
+// ── Touched flags ──────────────────────────────────────────────
+const nameTouched     = ref(false)
+const passwordTouched = ref(false)
+const confirmTouched  = ref(false)
+
+// ── Field-level errors ─────────────────────────────────────────
+const nameError = computed(() => {
+  if (!nameTouched.value) return ''
+  return name.value.trim() ? '' : 'Введите ваше имя'
+})
+
+const passwordError = computed(() => {
+  if (!passwordTouched.value || !password.value) return ''
+  return password.value.length >= 8 ? '' : 'Минимум 8 символов'
+})
+
+const confirmStatus = computed((): 'error' | 'success' | undefined => {
+  if (!confirmTouched.value || !passwordConfirm.value) return undefined
+  return passwordConfirm.value === password.value ? 'success' : 'error'
+})
+
+// ── Token validation ───────────────────────────────────────────
 async function validateToken() {
   try {
     const data = await api.validateInvite(inviteToken)
-    shopName.value           = data.shop_name
-    email.value              = data.email
+    shopName.value             = data.shop_name
+    email.value                = data.email
     requiresRegistration.value = data.requires_registration
     stage.value = 'form'
   } catch (err) {
@@ -40,11 +62,15 @@ async function validateToken() {
   }
 }
 
+// ── Submit ─────────────────────────────────────────────────────
 async function accept() {
   if (requiresRegistration.value) {
-    if (!name.value.trim())                         { submitError.value = 'Введите ваше имя'; return }
-    if (password.value.length < 8)                  { submitError.value = 'Пароль: минимум 8 символов'; return }
-    if (password.value !== passwordConfirm.value)   { submitError.value = 'Пароли не совпадают'; return }
+    nameTouched.value     = true
+    passwordTouched.value = true
+    confirmTouched.value  = true
+
+    if (nameError.value || passwordError.value) return
+    if (!passwordConfirm.value || confirmStatus.value === 'error') return
   }
 
   submitting.value = true
@@ -60,7 +86,6 @@ async function accept() {
       payload.password_confirmation = passwordConfirm.value
     }
     const res = await api.acceptInvite(payload)
-    // Set token so api.me() can authenticate, then fetch complete user+shop data
     api.setToken(res.token)
     const meData = await api.me()
     authStore.loginWithToken(res.token, meData.user, meData.shop)
@@ -80,7 +105,7 @@ onMounted(validateToken)
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
     <div class="w-full max-w-md">
 
-      <!-- Logo header -->
+      <!-- Logo -->
       <div class="text-center mb-8">
         <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span class="text-white font-bold text-3xl">S</span>
@@ -105,7 +130,7 @@ onMounted(validateToken)
         <RouterLink to="/login" class="btn-primary inline-flex px-6">Войти в аккаунт</RouterLink>
       </div>
 
-      <!-- Success / redirecting -->
+      <!-- Done -->
       <div v-else-if="stage === 'done'" class="card text-center py-10 px-6">
         <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +141,7 @@ onMounted(validateToken)
         <p class="text-sm text-gray-500 dark:text-gray-400">Переход в панель управления...</p>
       </div>
 
-      <!-- Invite form -->
+      <!-- Form -->
       <div v-else-if="stage === 'form'" class="card">
         <div class="mb-5">
           <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center mb-3">
@@ -144,19 +169,33 @@ onMounted(validateToken)
               v-model="name"
               placeholder="Иван Петров"
               autocomplete="name"
+              :error="nameError"
+              @blur="nameTouched = true"
             />
-            <PasswordInput
-              label="Придумайте пароль"
-              v-model="password"
-              placeholder="Минимум 8 символов"
-              autocomplete="new-password"
-            />
-            <PasswordInput
-              label="Повторите пароль"
-              v-model="passwordConfirm"
-              placeholder="Повторите пароль"
-              autocomplete="new-password"
-            />
+
+            <div>
+              <PasswordInput
+                label="Придумайте пароль"
+                v-model="password"
+                placeholder="Минимум 8 символов"
+                autocomplete="new-password"
+                @blur="passwordTouched = true"
+              />
+              <p v-if="passwordError" class="mt-1 text-sm text-red-500">{{ passwordError }}</p>
+            </div>
+
+            <div>
+              <PasswordInput
+                label="Повторите пароль"
+                v-model="passwordConfirm"
+                placeholder="Повторите пароль"
+                autocomplete="new-password"
+                :status="confirmStatus"
+                @blur="confirmTouched = true"
+              />
+              <p v-if="confirmStatus === 'error'"   class="mt-1 text-sm text-red-500">Пароли не совпадают</p>
+              <p v-if="confirmStatus === 'success'" class="mt-1 text-sm text-green-600">Пароли совпадают</p>
+            </div>
           </template>
 
           <button type="submit" class="btn-primary w-full" :disabled="submitting">
