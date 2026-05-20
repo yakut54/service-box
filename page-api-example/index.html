@@ -6,21 +6,18 @@
   <title>ServiceBox API — Демо</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
   <style>
-    /* ========== CSS переменные ========== */
     :root {
-      --bg:        #f1f5f9;
-      --card:      #ffffff;
-      --primary:   #4f46e5;
-      --primary-h: #4338ca;
-      --text:      #0f172a;
-      --muted:     #64748b;
-      --border:    #e2e8f0;
-      --success:   #059669;
-      --danger:    #dc2626;
-      --warning:   #d97706;
-      --info:      #2563eb;
-      --r:         8px;
-      --shadow:    0 1px 4px rgba(0,0,0,.08);
+      --bg:       #f1f5f9;
+      --card:     #ffffff;
+      --primary:  #4f46e5;
+      --primary-h:#4338ca;
+      --text:     #0f172a;
+      --muted:    #64748b;
+      --border:   #e2e8f0;
+      --success:  #059669;
+      --danger:   #dc2626;
+      --r: 8px;
+      --shadow: 0 1px 4px rgba(0,0,0,.08);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,36 +31,49 @@
       min-height: 100vh;
     }
 
-    /* ========== Шапка ========== */
+    /* ── Шапка ─────────────────────────────── */
     .header {
       background: var(--primary);
       color: #fff;
-      padding: 0 24px;
       height: 56px;
+      padding: 0 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .header-logo {
-      width: 32px; height: 32px;
+      width: 32px; height: 32px; flex-shrink: 0;
       background: rgba(255,255,255,.2);
       border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 16px; flex-shrink: 0;
+      font-weight: 700; font-size: 15px;
     }
-    .header h1 { font-size: 17px; font-weight: 700; }
-    .header-badge {
-      margin-left: auto;
+    .header h1 { font-size: 16px; font-weight: 700; }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .rl-badge {
       background: rgba(255,255,255,.15);
       border-radius: 20px;
-      padding: 3px 12px;
+      padding: 3px 11px;
+      font-size: 12px;
+      display: none;
+      align-items: center;
+      gap: 5px;
+    }
+    .rl-badge.visible { display: flex; }
+    .rl-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+    .rl-dot.warn { background: #fbbf24; }
+    .rl-dot.crit { background: #f87171; }
+    .header-ver {
+      background: rgba(255,255,255,.15);
+      border-radius: 20px;
+      padding: 3px 11px;
       font-size: 12px;
     }
 
-    /* ========== Контейнер ========== */
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+    /* ── Контейнер ─────────────────────────── */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
 
-    /* ========== Карточки ========== */
+    /* ── Карточки ──────────────────────────── */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -73,7 +83,7 @@
       margin-bottom: 16px;
     }
 
-    /* ========== API-ключ ========== */
+    /* ── API-ключ ──────────────────────────── */
     .key-hint { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
     .key-hint strong { color: var(--text); }
     .key-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -81,43 +91,34 @@
     .key-input {
       flex: 1; min-width: 220px;
       padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      font-size: 13px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      border: 1px solid var(--border); border-radius: var(--r);
+      font-size: 13px; font-family: 'SF Mono','Fira Code',monospace;
     }
     .key-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
     .connect-error { color: var(--danger); font-size: 13px; margin-top: 10px; }
 
-    /* ========== Шапка магазина ========== */
-    .shop-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .shop-dot { width: 10px; height: 10px; background: var(--success); border-radius: 50%; flex-shrink: 0; }
+    /* ── Шапка магазина ────────────────────── */
+    .shop-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .shop-dot { width: 9px; height: 9px; background: var(--success); border-radius: 50%; flex-shrink: 0; }
     .shop-name { font-weight: 700; font-size: 15px; }
     .plan-tag {
       background: #fef9c3; color: #854d0e;
-      padding: 2px 10px; border-radius: 20px;
+      padding: 2px 9px; border-radius: 20px;
       font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
     }
-    .btn-ghost {
-      margin-left: auto;
-      background: none; border: 1px solid var(--border);
-      padding: 6px 14px; border-radius: var(--r);
-      cursor: pointer; color: var(--muted); font-size: 13px;
-    }
-    .btn-ghost:hover { background: var(--bg); }
 
-    /* ========== Вкладки ========== */
+    /* ── Вкладки ───────────────────────────── */
     .tabs { display: flex; gap: 2px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
     .tab {
       padding: 9px 20px; background: none; border: none;
       cursor: pointer; font-size: 14px; color: var(--muted);
       border-bottom: 2px solid transparent; margin-bottom: -2px;
-      border-radius: 6px 6px 0 0; transition: color .15s;
+      border-radius: 6px 6px 0 0;
     }
     .tab:hover { color: var(--text); background: var(--bg); }
     .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 
-    /* ========== Фильтры ========== */
+    /* ── Фильтры ───────────────────────────── */
     .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
     .filters label { font-size: 12px; color: var(--muted); white-space: nowrap; }
     .filters input, .filters select {
@@ -126,7 +127,7 @@
     }
     .filters input:focus, .filters select:focus { outline: none; border-color: var(--primary); }
 
-    /* ========== Кнопки ========== */
+    /* ── Кнопки ────────────────────────────── */
     .btn {
       padding: 8px 18px; border: none; border-radius: var(--r);
       cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s;
@@ -138,8 +139,16 @@
     .btn-cancel { background: #fee2e2; color: var(--danger); }
     .btn-cancel:hover { background: #fecaca; }
     .btn-cancel:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-ghost {
+      background: none; border: 1px solid var(--border);
+      padding: 6px 14px; border-radius: var(--r);
+      cursor: pointer; color: var(--muted); font-size: 13px;
+    }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-create { background: #d1fae5; color: #065f46; }
+    .btn-create:hover { background: #a7f3d0; }
 
-    /* ========== Таблица ========== */
+    /* ── Таблица ───────────────────────────── */
     .t-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
     thead th {
@@ -152,7 +161,7 @@
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover td { background: #f8f9ff; }
 
-    /* ========== Бейджи статусов ========== */
+    /* ── Бейджи ────────────────────────────── */
     .badge {
       display: inline-block; padding: 2px 9px; border-radius: 20px;
       font-size: 11px; font-weight: 600; white-space: nowrap;
@@ -166,131 +175,194 @@
     .s-yes       { background: #dbeafe; color: #1d4ed8; }
     .s-no        { background: #f1f5f9; color: #475569; }
 
-    /* ========== Состояния загрузки/ошибки/пусто ========== */
-    .state {
-      text-align: center; padding: 52px 20px; color: var(--muted);
-    }
+    /* ── Состояния ─────────────────────────── */
+    .state { text-align: center; padding: 52px 20px; color: var(--muted); }
     .state.err { color: var(--danger); }
     .spinner {
-      display: inline-block; width: 22px; height: 22px;
+      display: inline-block; width: 20px; height: 20px;
       border: 2px solid var(--border); border-top-color: var(--primary);
-      border-radius: 50%; animation: spin .65s linear infinite; margin-bottom: 10px;
+      border-radius: 50%; animation: spin .65s linear infinite; margin-bottom: 8px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ========== Пагинация ========== */
-    .pager {
-      display: flex; gap: 4px; align-items: center;
-      justify-content: center; flex-wrap: wrap; padding-top: 16px;
+    /* ── Строка статуса (HTTP + время) ─────── */
+    .status-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0 4px;
+      font-size: 12px; color: var(--muted);
+      border-top: 1px solid var(--border); margin-top: 4px;
     }
-    .pager-btn {
-      padding: 5px 11px; border: 1px solid var(--border);
-      border-radius: 6px; background: var(--card);
-      cursor: pointer; font-size: 13px;
+    .status-code {
+      font-weight: 700; font-family: monospace; font-size: 13px;
     }
+    .status-code.ok  { color: var(--success); }
+    .status-code.err { color: var(--danger); }
+    .status-code.warn { color: #d97706; }
+
+    /* ── Пагинация ─────────────────────────── */
+    .pager { display: flex; gap: 4px; align-items: center; justify-content: center; flex-wrap: wrap; padding-top: 16px; }
+    .pager-btn { padding: 5px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); cursor: pointer; font-size: 13px; }
     .pager-btn:hover { background: var(--bg); }
     .pager-btn.cur { background: var(--primary); color: #fff; border-color: var(--primary); }
     .pager-btn:disabled { opacity: .35; cursor: not-allowed; }
     .pager-info { color: var(--muted); font-size: 12px; padding: 0 6px; }
 
-    /* ========== Curl-пример ========== */
-    .curl-wrap { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px; }
-    .curl-toggle {
-      background: none; border: none; cursor: pointer;
-      font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px;
+    /* ── Curl / JSON панели ─────────────────── */
+    .bottom-panels { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+    .panel-row { display: flex; align-items: center; gap: 8px; }
+    .panel-toggle {
+      flex: 1; background: none; border: none; cursor: pointer;
+      font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; text-align: left;
     }
-    .curl-toggle:hover { color: var(--text); }
-    .curl-toggle .arr { font-size: 11px; }
-    .curl-box {
-      background: #1e293b; color: #e2e8f0; border-radius: var(--r);
-      padding: 14px 16px; font-size: 12px; font-family: 'SF Mono','Fira Code',monospace;
-      overflow-x: auto; margin-top: 8px; line-height: 1.7; white-space: pre;
+    .panel-toggle:hover { color: var(--text); }
+    .panel-toggle .arr { font-size: 11px; }
+
+    .copy-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 10px;
+      font-size: 12px; color: var(--muted); cursor: pointer;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: var(--bg); color: var(--text); }
+    .copy-btn.ok { color: var(--success); border-color: var(--success); }
+
+    .code-box {
+      border-radius: var(--r); font-size: 12px; font-family: 'SF Mono','Fira Code',monospace;
+      overflow-x: auto; margin-top: 6px; line-height: 1.7; white-space: pre;
       display: none;
     }
-    .curl-box.open { display: block; }
+    .code-box.open { display: block; }
+
+    .curl-box { background: #1e293b; color: #e2e8f0; padding: 14px 16px; }
     .c-comment { color: #94a3b8; }
-    .c-key { color: #f59e0b; }
-    .c-url { color: #34d399; }
+    .c-key  { color: #f59e0b; }
+    .c-url  { color: #34d399; }
 
-    /* ========== Мобайл ========== */
-    @media (max-width: 640px) {
-      .wrap { padding: 14px 10px; }
-      .header { padding: 0 14px; }
-      .header h1 { font-size: 15px; }
-      .tab { padding: 8px 12px; font-size: 13px; }
-      thead th, tbody td { padding: 8px 8px; font-size: 12px; }
+    .json-box { background: #1e293b; color: #e2e8f0; padding: 14px 16px; max-height: 320px; overflow-y: auto; white-space: pre; }
+    .json-key  { color: #93c5fd; }
+    .json-str  { color: #86efac; }
+    .json-num  { color: #fb923c; }
+    .json-bool { color: #a5b4fc; }
+    .json-null { color: #94a3b8; }
+
+    /* ── Модальное окно ─────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,.5);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
     }
-    @media (max-width: 380px) {
-      .tab { padding: 7px 8px; font-size: 11px; }
-      .header h1 { font-size: 13px; }
-      .header-badge { display: none; }
+    .modal-box {
+      background: var(--card);
+      border-radius: 12px;
+      width: min(520px, 100%);
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      display: flex; flex-direction: column;
+      max-height: calc(100vh - 40px);
+      overflow: hidden;
     }
-    @media (max-width: 320px) {
-      .key-input { min-width: 140px; }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-head h2 { font-size: 16px; font-weight: 700; }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 18px; line-height: 1; padding: 4px;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+    .modal-foot {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 14px 20px; border-top: 1px solid var(--border);
     }
 
+    .form-row { margin-bottom: 14px; }
+    .form-row label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+    .form-row label span { font-weight: 400; color: var(--muted); }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border); border-radius: var(--r);
+      font-size: 13px; font-family: inherit; background: var(--card);
+    }
+    .form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.1);
+    }
+    .form-row textarea { resize: vertical; min-height: 72px; }
+    .form-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+    .form-error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Утилиты ────────────────────────────── */
     .hidden { display: none !important; }
     .mono { font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; }
     .dim { color: var(--muted); }
+
+    /* ── Адаптив ────────────────────────────── */
+    @media (max-width: 640px) {
+      .wrap { padding: 12px 10px; }
+      .header { padding: 0 12px; }
+      .tab { padding: 8px 10px; font-size: 13px; }
+      thead th, tbody td { padding: 7px 8px; font-size: 12px; }
+      .form-row-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 380px) {
+      .tab { padding: 7px 7px; font-size: 11px; }
+      .header h1 { font-size: 13px; }
+      .header-ver { display: none; }
+    }
   </style>
 </head>
 <body>
 
-<!-- ===================================================
-     ШАПКА
-     =================================================== -->
+<!-- ─── Шапка ───────────────────────────────────────── -->
 <header class="header">
   <div class="header-logo">SB</div>
   <h1>ServiceBox API</h1>
-  <span class="header-badge">v1 · Demo</span>
+  <div class="header-right">
+    <div class="rl-badge" id="rl-badge">
+      <div class="rl-dot" id="rl-dot"></div>
+      <span id="rl-text">60 / 60</span>
+    </div>
+    <span class="header-ver">v1 · Demo</span>
+  </div>
 </header>
 
 <div class="wrap">
 
-  <!-- ===================================================
-       ШАГ 1: ВВОД API-КЛЮЧА
-       Показывается до подключения.
-       Ключ берётся из: Настройки → Интеграция
-       =================================================== -->
+  <!-- ─── API-ключ ──────────────────────────────────── -->
   <div class="card" id="s-key">
     <p class="key-hint">
       <strong>Введите API-ключ</strong> из вашего аккаунта ServiceBox.<br>
-      Найти его можно: <strong>Настройки → Интеграция</strong>. Доступно на тарифе Pro.
+      Найти: <strong>Настройки → Интеграция</strong>. Доступно на тарифе Pro.
     </p>
     <div class="key-row">
       <label for="inp-key">API Ключ:</label>
-      <input
-        id="inp-key"
-        class="key-input"
-        type="text"
-        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-        autocomplete="off"
-        spellcheck="false"
-      />
+      <input id="inp-key" class="key-input" type="text"
+             placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+             autocomplete="off" spellcheck="false" />
       <button class="btn btn-primary" id="btn-connect" onclick="doConnect()">Подключиться</button>
     </div>
     <p class="connect-error hidden" id="conn-err"></p>
   </div>
 
-  <!-- ===================================================
-       ПЛАШКА МАГАЗИНА
-       Показывается после успешного подключения.
-       =================================================== -->
+  <!-- ─── Шапка магазина ────────────────────────────── -->
   <div class="card hidden" id="s-shop">
     <div class="shop-bar">
       <div class="shop-dot"></div>
       <span class="shop-name" id="shop-name"></span>
       <span class="plan-tag" id="shop-plan"></span>
-      <button class="btn-ghost" onclick="doDisconnect()">Сменить ключ</button>
+      <button class="btn-ghost" style="margin-left:auto;" onclick="doDisconnect()">Сменить ключ</button>
     </div>
   </div>
 
-  <!-- ===================================================
-       ОСНОВНОЙ КОНТЕНТ
-       =================================================== -->
+  <!-- ─── Основной контент ──────────────────────────── -->
   <div class="hidden" id="s-main">
 
-    <!-- Вкладки -->
     <div class="tabs">
       <button class="tab active" data-t="bookings" onclick="switchTab('bookings')">Записи</button>
       <button class="tab"        data-t="clients"  onclick="switchTab('clients')">Клиенты</button>
@@ -300,7 +372,7 @@
 
     <div class="card">
 
-      <!-- === Фильтры: Записи === -->
+      <!-- Фильтры: Записи -->
       <div id="f-bookings" class="filters">
         <label>Статус:</label>
         <select id="f-status" onchange="reload()">
@@ -315,9 +387,10 @@
         <label>По:</label>
         <input type="date" id="f-to"   onchange="reload()" />
         <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
+        <button class="btn btn-create btn-sm"  onclick="openCreateModal()">+ Создать запись</button>
       </div>
 
-      <!-- === Фильтры: Клиенты === -->
+      <!-- Фильтры: Клиенты -->
       <div id="f-clients" class="filters hidden">
         <label>Поиск:</label>
         <input type="text" id="f-search" placeholder="Имя, телефон или email"
@@ -325,12 +398,12 @@
         <button class="btn btn-primary btn-sm" onclick="reload()">Найти</button>
       </div>
 
-      <!-- === Фильтры: Услуги === -->
+      <!-- Фильтры: Услуги -->
       <div id="f-services" class="filters hidden">
         <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
       </div>
 
-      <!-- === Фильтры: Мастера === -->
+      <!-- Фильтры: Мастера -->
       <div id="f-masters" class="filters hidden">
         <label>Показать:</label>
         <select id="f-active" onchange="reload()">
@@ -340,87 +413,100 @@
         <button class="btn btn-primary btn-sm" onclick="reload()">Обновить</button>
       </div>
 
-      <!-- Область данных -->
+      <!-- Данные -->
       <div id="data-area"></div>
+
+      <!-- Строка статуса HTTP -->
+      <div class="status-bar hidden" id="status-bar">
+        <span id="status-code" class="status-code"></span>
+        <span id="status-time" class="dim"></span>
+      </div>
 
       <!-- Пагинация -->
       <div id="pager" class="pager hidden"></div>
 
-      <!-- Curl-пример -->
-      <div class="curl-wrap" id="curl-wrap" style="display:none;">
-        <button class="curl-toggle" onclick="toggleCurl()">
-          <span class="arr" id="curl-arr">▶</span>
-          Посмотреть как это сделать в коде (curl / JS / Python)
-        </button>
-        <div class="curl-box" id="curl-box"></div>
-      </div>
+      <!-- Нижние панели: curl + JSON -->
+      <div class="bottom-panels" id="bottom-panels" style="display:none;">
 
+        <!-- Curl-пример -->
+        <div>
+          <div class="panel-row">
+            <button class="panel-toggle" onclick="togglePanel('curl')">
+              <span class="arr" id="curl-arr">▶</span>
+              Посмотреть запрос (curl / JS)
+            </button>
+            <button class="copy-btn" id="copy-btn" onclick="copyCurl()">Копировать</button>
+          </div>
+          <div class="code-box curl-box" id="curl-box"></div>
+        </div>
+
+        <!-- JSON-ответ -->
+        <div>
+          <div class="panel-row">
+            <button class="panel-toggle" onclick="togglePanel('json')">
+              <span class="arr" id="json-arr">▶</span>
+              Ответ API (JSON)
+            </button>
+          </div>
+          <div class="code-box json-box" id="json-box"></div>
+        </div>
+
+      </div>
     </div>
   </div><!-- /s-main -->
 
 </div><!-- /wrap -->
 
-<!-- =======================================================
-     JavaScript
-     =======================================================
+<!-- ─── Модалка: Создать запись ───────────────────────── -->
+<div class="modal-overlay hidden" id="modal" onclick="onOverlayClick(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>Создать запись</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="state"><div class="spinner"></div><br>Загрузка...</div>
+    </div>
+    <div class="modal-foot" id="modal-foot" style="display:none;">
+      <button class="btn-ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" id="modal-submit" onclick="submitCreate()">Создать запись</button>
+    </div>
+  </div>
+</div>
 
-  Структура:
-    1. Конфиг
-    2. Состояние
-    3. Инициализация
-    4. Подключение
-    5. Переключение вкладок
-    6. Загрузка данных (по вкладкам)
-    7. Рендер таблиц
-    8. Отмена записи
-    9. Пагинация
-   10. UI-утилиты (loading, error, empty)
-   11. Curl-пример
-   12. Базовый fetch-хелпер
-   13. Форматирование
-
-======================================================= -->
+<!-- ═══════════════════════════════════════════════════════
+     JS
+═══════════════════════════════════════════════════════ -->
 <script>
 
-// ============================================================
-// 1. КОНФИГ
-// ============================================================
-
-// Базовый URL API. Измените, если деплоите на другой домен.
+// ── Конфиг ──────────────────────────────────────────────
 const API_BASE = 'https://yakut54.ru/api/v1';
+const LS_KEY   = 'sb_api_key_demo';
 
-// Ключ в localStorage для хранения API-ключа
-const LS_KEY = 'sb_api_key_demo';
+// ── Состояние ────────────────────────────────────────────
+let apiKey   = '';
+let curTab   = 'bookings';
+let curPage  = 1;
+let lazy     = null;
+let curlOpen = false;
+let jsonOpen = false;
+let lastCurlText = '';   // plain text для копирования
+let modalServices = [];  // услуги для формы
+let modalMasters  = [];  // мастера для формы
 
-// ============================================================
-// 2. СОСТОЯНИЕ
-// ============================================================
-
-let apiKey   = '';          // Текущий API-ключ
-let curTab   = 'bookings';  // Активная вкладка
-let curPage  = 1;           // Текущая страница
-let lastMeta = null;        // Последняя мета-информация пагинации
-let lazy     = null;        // Таймер debounce для поиска
-let curlOpen = false;       // Открыт ли curl-пример
-let lastReq  = null;        // Последний запрос для curl
-
-// ============================================================
-// 3. ИНИЦИАЛИЗАЦИЯ — восстановить ключ из localStorage
-// ============================================================
-
+// ── Инициализация ────────────────────────────────────────
 (function init() {
   const saved = localStorage.getItem(LS_KEY);
   if (saved) {
     apiKey = saved;
     document.getElementById('inp-key').value = saved;
-    // Тихая проверка: ключ мог устареть
-    connectWithKey(saved, /*silent=*/ true);
+    connectWithKey(saved, true);
   }
 })();
 
-// ============================================================
-// 4. ПОДКЛЮЧЕНИЕ / ОТКЛЮЧЕНИЕ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// ПОДКЛЮЧЕНИЕ
+// ══════════════════════════════════════════════════════════
 
 function doConnect() {
   const val = document.getElementById('inp-key').value.trim();
@@ -434,22 +520,14 @@ async function connectWithKey(key, silent) {
   btn.textContent = 'Проверяю...';
   hideErr();
 
-  apiKey = key; // выставляем до запроса, чтобы заголовок X-API-Key отправился
+  apiKey = key;
 
   try {
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
     // GET /api/v1/ping
-    //
-    // Самый простой запрос — просто проверяет ключ.
-    // Если ключ верный, возвращает данные магазина.
-    //
+    // Проверяет ключ и возвращает данные магазина.
     // Ответ: { ok: true, shop: "Название", plan: "pro", version: "1" }
-    //
-    // Коды ответа:
-    //   200 — ключ верный
-    //   401 — ключ не найден / не передан
-    //   403 — тариф не Pro
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
     const data = await api('GET', '/ping');
 
     localStorage.setItem(LS_KEY, key);
@@ -457,14 +535,11 @@ async function connectWithKey(key, silent) {
     document.getElementById('shop-name').textContent = data.shop;
     document.getElementById('shop-plan').textContent  = data.plan.toUpperCase();
 
-    show('s-shop');
-    hide('s-key');
-    show('s-main');
-
+    show('s-shop'); hide('s-key'); show('s-main');
     loadData();
 
   } catch (e) {
-    apiKey = ''; // ключ не прошёл — сбрасываем
+    apiKey = '';
     if (!silent) showErr('Ошибка: ' + e.message);
     else localStorage.removeItem(LS_KEY);
   } finally {
@@ -477,44 +552,26 @@ function doDisconnect() {
   apiKey = '';
   localStorage.removeItem(LS_KEY);
   document.getElementById('inp-key').value = '';
-  hide('s-shop');
-  hide('s-main');
-  show('s-key');
+  document.getElementById('rl-badge').classList.remove('visible');
+  hide('s-shop'); hide('s-main'); show('s-key');
   hideErr();
 }
 
-// ============================================================
-// 5. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// ВКЛАДКИ И ЗАГРУЗКА
+// ══════════════════════════════════════════════════════════
 
 function switchTab(tab) {
-  curTab  = tab;
-  curPage = 1;
-
-  document.querySelectorAll('.tab').forEach(b => {
-    b.classList.toggle('active', b.dataset.t === tab);
-  });
-
-  ['bookings', 'clients', 'services', 'masters'].forEach(t => {
+  curTab = tab; curPage = 1;
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.t === tab));
+  ['bookings','clients','services','masters'].forEach(t => {
     document.getElementById('f-' + t).classList.toggle('hidden', t !== tab);
   });
-
   loadData();
 }
 
-// ============================================================
-// 6. ЗАГРУЗКА ДАННЫХ
-// ============================================================
-
-function reload(page) {
-  curPage = (page !== undefined) ? page : 1;
-  loadData();
-}
-
-function lazyLoad() {
-  clearTimeout(lazy);
-  lazy = setTimeout(() => reload(), 450);
-}
+function reload(page) { curPage = page ?? 1; loadData(); }
+function lazyLoad()   { clearTimeout(lazy); lazy = setTimeout(() => reload(), 450); }
 
 function loadData() {
   setLoading();
@@ -524,67 +581,41 @@ function loadData() {
   else if (curTab === 'masters')  loadMasters();
 }
 
-// ============================================================
-// 7а. ЗАГРУЗКА ЗАПИСЕЙ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// ЗАПИСИ
+// ══════════════════════════════════════════════════════════
 
 async function loadBookings() {
   const qs = new URLSearchParams({ page: curPage, per_page: 15 });
-
   const status = document.getElementById('f-status').value;
   const from   = document.getElementById('f-from').value;
   const to     = document.getElementById('f-to').value;
-
   if (status) qs.set('status',    status);
   if (from)   qs.set('date_from', from);
   if (to)     qs.set('date_to',   to);
 
   try {
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
     // GET /api/v1/bookings
-    //
-    // Возвращает список записей (bронирований) вашего магазина.
-    //
-    // Query-параметры (все необязательные):
-    //   page       — страница (по умолчанию: 1)
-    //   per_page   — записей на странице (по умолчанию: 50, макс: 100)
-    //   status     — фильтр: pending | confirmed | completed | cancelled
-    //   date_from  — с какой даты (YYYY-MM-DD)
-    //   date_to    — по какую дату  (YYYY-MM-DD)
-    //   master_id  — ID мастера (UUID)
-    //
-    // Каждая запись содержит:
-    //   id, customer_name, customer_phone, customer_email,
+    // Query: page, per_page (макс 100), status, date_from, date_to, master_id
+    // Каждая запись: id, customer_name, customer_phone, customer_email,
     //   status, start_time, end_time, notes,
     //   service: { id, name, price },
     //   master:  { id, name }
-    //
-    // Ответ:
-    //   { data: [...], meta: { total, page, per_page, last_page } }
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/bookings?' + qs);
-    lastMeta = res.meta;
     renderBookings(res.data);
     renderPager(res.meta);
-  } catch (e) {
-    setError(e.message);
-  }
+  } catch (e) { setError(e.message); }
 }
 
 function renderBookings(rows) {
   if (!rows.length) { setEmpty('Записей не найдено'); return; }
-
-  const html = `
+  document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
       <thead><tr>
-        <th>#</th>
-        <th>Клиент</th>
-        <th>Телефон</th>
-        <th>Услуга</th>
-        <th>Мастер</th>
-        <th>Дата/Время</th>
-        <th>Статус</th>
-        <th></th>
+        <th>#</th><th>Клиент</th><th>Телефон</th>
+        <th>Услуга</th><th>Мастер</th><th>Дата / Время</th><th>Статус</th><th></th>
       </tr></thead>
       <tbody>
         ${rows.map(b => `<tr>
@@ -595,105 +626,210 @@ function renderBookings(rows) {
           <td>${x(b.master?.name  || '—')}</td>
           <td style="white-space:nowrap;">${fmtDate(b.start_time)}</td>
           <td>${statusBadge(b.status)}</td>
-          <td>
-            ${canCancel(b.status)
-              ? `<button class="btn btn-cancel btn-sm" data-id="${b.id}"
-                         onclick="cancelBooking('${b.id}', this)">Отменить</button>`
-              : ''}
-          </td>
+          <td>${canCancel(b.status)
+            ? `<button class="btn btn-cancel btn-sm" onclick="cancelBooking('${b.id}',this)">Отменить</button>`
+            : ''}</td>
         </tr>`).join('')}
       </tbody>
-    </table></div>
-  `;
-  document.getElementById('data-area').innerHTML = html;
+    </table></div>`;
 }
 
-// ============================================================
-// 7б. ОТМЕНА ЗАПИСИ
-// ============================================================
-
+// ── Отмена записи ────────────────────────────────────────
 async function cancelBooking(id, btn) {
   if (!confirm(`Отменить запись ${shortId(id)}?`)) return;
-
-  btn.disabled = true;
-  btn.textContent = '...';
-
+  btn.disabled = true; btn.textContent = '...';
   try {
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
     // DELETE /api/v1/bookings/{id}
-    //
-    // Отменяет запись. Статус меняется на "cancelled".
-    // Клиент получит уведомление, если подключён Telegram/MAX.
-    //
-    // Можно отменить только записи со статусом:
-    //   pending (ожидает) или confirmed (подтверждена)
-    //
-    // Ответ при успехе:
-    //   200 { message: "Booking cancelled." }
-    //
-    // Ошибки:
-    //   422 — уже отменена или завершена
-    //   404 — запись не найдена
-    // ---------------------------------------------------------
+    // Отменяет запись (только pending или confirmed).
+    // Клиент получит уведомление в Telegram/MAX если подключён.
+    // Ответ: { message: "Booking cancelled", data: {...} }
+    // Ошибки: 422 — уже отменена/завершена, 404 — не найдена
+    // ──────────────────────────────────────────────────────
     await api('DELETE', '/bookings/' + id);
-    reload(curPage); // перезагружаем текущую страницу
+    reload(curPage);
   } catch (e) {
     alert('Ошибка: ' + e.message);
-    btn.disabled = false;
-    btn.textContent = 'Отменить';
+    btn.disabled = false; btn.textContent = 'Отменить';
   }
 }
 
-// ============================================================
-// 7в. ЗАГРУЗКА КЛИЕНТОВ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// СОЗДАТЬ ЗАПИСЬ — модалка
+// ══════════════════════════════════════════════════════════
+
+async function openCreateModal() {
+  show('modal');
+  document.getElementById('modal-body').innerHTML =
+    '<div class="state"><div class="spinner"></div><br>Загрузка услуг и мастеров...</div>';
+  document.getElementById('modal-foot').style.display = 'none';
+
+  try {
+    // Загружаем услуги и мастеров тихо (не обновляем curl/json панели)
+    const [svcRes, masRes] = await Promise.all([
+      api('GET', '/services?per_page=100', null, { silent: true }),
+      api('GET', '/masters?per_page=100&active=1', null, { silent: true }),
+    ]);
+    modalServices = svcRes.data;
+    modalMasters  = masRes.data;
+    renderCreateForm();
+  } catch (e) {
+    document.getElementById('modal-body').innerHTML =
+      `<div class="state err">⚠ Не удалось загрузить данные: ${x(e.message)}</div>`;
+  }
+}
+
+function renderCreateForm() {
+  const today = new Date().toISOString().split('T')[0];
+  const now   = new Date();
+  const hh    = String(now.getHours()).padStart(2, '0');
+  const mm    = String(Math.ceil(now.getMinutes() / 15) * 15 % 60).padStart(2, '0');
+  const defTime = `${hh}:${mm}`;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-row">
+      <label>Услуга <span>*</span></label>
+      <select id="m-service" required>
+        <option value="">— выберите услугу —</option>
+        ${modalServices.map(s =>
+          `<option value="${s.id}">${x(s.name)}${s.price ? ' · ' + fmtMoney(s.price) : ''}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div class="form-row-2">
+      <div class="form-row" style="margin-bottom:0;">
+        <label>Дата <span>*</span></label>
+        <input type="date" id="m-date" min="${today}" value="${today}" required />
+      </div>
+      <div class="form-row" style="margin-bottom:0;">
+        <label>Время <span>*</span></label>
+        <input type="time" id="m-time" value="${defTime}" required />
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Мастер <span style="color:var(--muted);font-weight:400;">(необязательно — подберётся автоматически)</span></label>
+      <select id="m-master">
+        <option value="">— автовыбор —</option>
+        ${modalMasters.map(m =>
+          `<option value="${m.id}">${x(m.name)}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <hr class="form-divider" />
+    <div class="form-row">
+      <label>Имя клиента <span>*</span></label>
+      <input type="text" id="m-name" placeholder="Иван Иванов" required />
+    </div>
+    <div class="form-row">
+      <label>Телефон <span>*</span></label>
+      <input type="text" id="m-phone" placeholder="+7 900 000-00-00" required />
+    </div>
+    <div class="form-row">
+      <label>Email <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+      <input type="email" id="m-email" placeholder="client@example.com" />
+    </div>
+    <div class="form-row">
+      <label>Заметки <span style="font-weight:400;color:var(--muted);">(необязательно)</span></label>
+      <textarea id="m-notes" placeholder="Особые пожелания, комментарии..."></textarea>
+    </div>
+    <p class="form-error hidden" id="m-error"></p>
+  `;
+  document.getElementById('modal-foot').style.display = 'flex';
+}
+
+async function submitCreate() {
+  const serviceId = document.getElementById('m-service').value;
+  const date      = document.getElementById('m-date').value;
+  const time      = document.getElementById('m-time').value;
+  const masterId  = document.getElementById('m-master').value;
+  const name      = document.getElementById('m-name').value.trim();
+  const phone     = document.getElementById('m-phone').value.trim();
+  const email     = document.getElementById('m-email').value.trim();
+  const notes     = document.getElementById('m-notes').value.trim();
+
+  // Фронтовая валидация
+  if (!serviceId) { setFormErr('Выберите услугу'); return; }
+  if (!date || !time) { setFormErr('Укажите дату и время'); return; }
+  if (!name)    { setFormErr('Укажите имя клиента'); return; }
+  if (!phone)   { setFormErr('Укажите телефон'); return; }
+
+  const startTime = new Date(date + 'T' + time).toISOString();
+
+  const btn = document.getElementById('modal-submit');
+  btn.disabled = true; btn.textContent = 'Создаю...';
+  hideFormErr();
+
+  try {
+    // ──────────────────────────────────────────────────────
+    // POST /api/v1/bookings
+    // Тело запроса (JSON):
+    //   service_id       — UUID услуги (обязательно)
+    //   start_time       — ISO 8601 дата/время (обязательно, > now)
+    //   master_id        — UUID мастера (опционально, автовыбор если не указан)
+    //   customer.name    — имя клиента (обязательно)
+    //   customer.phone   — телефон (обязательно)
+    //   customer.email   — email (опционально)
+    //   notes            — заметки (опционально)
+    //
+    // Ответ: 201 { message: "Booking created successfully", data: {...} }
+    // Ошибки:
+    //   409 — слот занят или нет свободных мастеров
+    //   422 — ошибки валидации
+    // ──────────────────────────────────────────────────────
+    await api('POST', '/bookings', {
+      service_id: serviceId,
+      start_time: startTime,
+      master_id:  masterId || null,
+      customer: { name, phone, email: email || null },
+      notes:    notes || null,
+    });
+
+    closeModal();
+    // Переключаемся на вкладку Записи и обновляем
+    if (curTab !== 'bookings') switchTab('bookings');
+    else reload(1);
+
+  } catch (e) {
+    setFormErr(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Создать запись';
+  }
+}
+
+function closeModal() { hide('modal'); }
+function onOverlayClick(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+function setFormErr(msg) { const el = document.getElementById('m-error'); el.textContent = msg; el.classList.remove('hidden'); }
+function hideFormErr()   { document.getElementById('m-error')?.classList.add('hidden'); }
+
+// ══════════════════════════════════════════════════════════
+// КЛИЕНТЫ
+// ══════════════════════════════════════════════════════════
 
 async function loadClients() {
   const qs = new URLSearchParams({ page: curPage, per_page: 15 });
-
   const search = document.getElementById('f-search').value.trim();
   if (search) qs.set('search', search);
 
   try {
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
     // GET /api/v1/clients
-    //
-    // Возвращает клиентов вашего магазина.
-    //
-    // Query-параметры:
-    //   page      — страница
-    //   per_page  — клиентов на странице (макс: 100)
-    //   search    — поиск по имени, телефону или email (частичное совпадение)
-    //
-    // Каждый клиент содержит:
-    //   id, name, phone, email, notes,
-    //   total_orders  — кол-во заказов/записей
-    //   total_spent   — сумма потраченного (в рублях, целое)
-    //   last_order_at — дата последнего визита
-    //   created_at    — дата регистрации
-    // ---------------------------------------------------------
+    // Query: page, per_page (макс 100), search (имя/телефон/email)
+    // Поля: id, name, phone, email,
+    //   total_orders, total_spent, last_order_at, created_at
+    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/clients?' + qs);
-    lastMeta = res.meta;
     renderClients(res.data);
     renderPager(res.meta);
-  } catch (e) {
-    setError(e.message);
-  }
+  } catch (e) { setError(e.message); }
 }
 
 function renderClients(rows) {
   if (!rows.length) { setEmpty('Клиентов не найдено'); return; }
-
-  const html = `
+  document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
       <thead><tr>
-        <th>#</th>
-        <th>Имя</th>
-        <th>Телефон</th>
-        <th>Email</th>
-        <th>Визитов</th>
-        <th>Потратил</th>
-        <th>С нами с</th>
+        <th>#</th><th>Имя</th><th>Телефон</th><th>Email</th>
+        <th>Визитов</th><th>Потратил</th><th>С нами с</th>
       </tr></thead>
       <tbody>
         ${rows.map(c => `<tr>
@@ -706,56 +842,34 @@ function renderClients(rows) {
           <td class="dim">${fmtDate(c.created_at)}</td>
         </tr>`).join('')}
       </tbody>
-    </table></div>
-  `;
-  document.getElementById('data-area').innerHTML = html;
+    </table></div>`;
 }
 
-// ============================================================
-// 7г. ЗАГРУЗКА УСЛУГ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// УСЛУГИ
+// ══════════════════════════════════════════════════════════
 
 async function loadServices() {
   const qs = new URLSearchParams({ page: curPage, per_page: 50 });
-
   try {
-    // ---------------------------------------------------------
-    // GET /api/v1/services
-    //
-    // Возвращает активные услуги магазина.
-    //
-    // Query-параметры:
-    //   page     — страница
-    //   per_page — услуг на странице (макс: 100)
-    //
-    // Каждая услуга содержит:
-    //   id, name, price, description,
-    //   service: {
-    //     duration_minutes     — длительность (минуты)
-    //     requires_prepayment  — требует предоплаты (bool)
-    //   }
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
+    // GET /api/v1/services — активные услуги
+    // Query: page, per_page (макс 100)
+    // Поля: id, name, price, description,
+    //   service: { duration_minutes, requires_prepayment }
+    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/services?' + qs);
-    lastMeta = res.meta;
     renderServices(res.data);
     renderPager(res.meta);
-  } catch (e) {
-    setError(e.message);
-  }
+  } catch (e) { setError(e.message); }
 }
 
 function renderServices(rows) {
   if (!rows.length) { setEmpty('Услуг не найдено'); return; }
-
-  const html = `
+  document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
       <thead><tr>
-        <th>#</th>
-        <th>Название</th>
-        <th>Цена</th>
-        <th>Длительность</th>
-        <th>Предоплата</th>
-        <th>Описание</th>
+        <th>#</th><th>Название</th><th>Цена</th><th>Длительность</th><th>Предоплата</th><th>Описание</th>
       </tr></thead>
       <tbody>
         ${rows.map(s => `<tr>
@@ -763,216 +877,244 @@ function renderServices(rows) {
           <td><strong>${x(s.name)}</strong></td>
           <td style="white-space:nowrap;">${s.price != null ? fmtMoney(s.price) : '—'}</td>
           <td style="white-space:nowrap;">${s.service?.duration_minutes ? s.service.duration_minutes + ' мин' : '—'}</td>
-          <td>
-            <span class="badge ${s.service?.requires_prepayment ? 's-yes' : 's-no'}">
-              ${s.service?.requires_prepayment ? 'Да' : 'Нет'}
-            </span>
-          </td>
-          <td class="dim" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-            ${x(s.description || '—')}
-          </td>
+          <td><span class="badge ${s.service?.requires_prepayment ? 's-yes' : 's-no'}">${s.service?.requires_prepayment ? 'Да' : 'Нет'}</span></td>
+          <td class="dim" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x(s.description || '—')}</td>
         </tr>`).join('')}
       </tbody>
-    </table></div>
-  `;
-  document.getElementById('data-area').innerHTML = html;
+    </table></div>`;
 }
 
-// ============================================================
-// 7д. ЗАГРУЗКА МАСТЕРОВ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// МАСТЕРА
+// ══════════════════════════════════════════════════════════
 
 async function loadMasters() {
   const qs = new URLSearchParams({ page: curPage, per_page: 50 });
-
   const active = document.getElementById('f-active').value;
   if (active) qs.set('active', active);
-
   try {
-    // ---------------------------------------------------------
+    // ──────────────────────────────────────────────────────
     // GET /api/v1/masters
-    //
-    // Возвращает мастеров магазина.
-    //
-    // Query-параметры:
-    //   page     — страница
-    //   per_page — мастеров на странице (макс: 100)
-    //   active   — "1" для фильтрации по активным
-    //
-    // Каждый мастер содержит:
-    //   id, name, is_active,
-    //   services: [ { id, name }, ... ]  — список привязанных услуг
-    // ---------------------------------------------------------
+    // Query: page, per_page (макс 100), active=1
+    // Поля: id, name, is_active, services: [{id, name}]
+    // ──────────────────────────────────────────────────────
     const res = await api('GET', '/masters?' + qs);
-    lastMeta = res.meta;
     renderMasters(res.data);
     renderPager(res.meta);
-  } catch (e) {
-    setError(e.message);
-  }
+  } catch (e) { setError(e.message); }
 }
 
 function renderMasters(rows) {
   if (!rows.length) { setEmpty('Мастеров не найдено'); return; }
-
-  const html = `
+  document.getElementById('data-area').innerHTML = `
     <div class="t-wrap"><table>
       <thead><tr>
-        <th>#</th>
-        <th>Имя</th>
-        <th>Статус</th>
-        <th>Услуги</th>
+        <th>#</th><th>Имя</th><th>Статус</th><th>Услуги</th>
       </tr></thead>
       <tbody>
         ${rows.map(m => `<tr>
           <td class="mono dim">${shortId(m.id)}</td>
           <td><strong>${x(m.name)}</strong></td>
-          <td>
-            <span class="badge ${m.is_active ? 's-active' : 's-inactive'}">
-              ${m.is_active ? 'Активен' : 'Неактивен'}
-            </span>
-          </td>
+          <td><span class="badge ${m.is_active ? 's-active' : 's-inactive'}">${m.is_active ? 'Активен' : 'Неактивен'}</span></td>
           <td class="dim">${(m.services || []).map(s => x(s.name)).join(', ') || '—'}</td>
         </tr>`).join('')}
       </tbody>
-    </table></div>
-  `;
-  document.getElementById('data-area').innerHTML = html;
+    </table></div>`;
 }
 
-// ============================================================
-// 8. ПАГИНАЦИЯ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// ПАГИНАЦИЯ
+// ══════════════════════════════════════════════════════════
 
 function renderPager(meta) {
   const el = document.getElementById('pager');
   if (!meta || meta.last_page <= 1) { el.classList.add('hidden'); return; }
-
   el.classList.remove('hidden');
-
   const { page, last_page, total } = meta;
-  let html = '';
-
-  html += `<button class="pager-btn" ${page <= 1 ? 'disabled' : ''}
-             onclick="reload(${page - 1})">←</button>`;
-
   const start = Math.max(1, page - 2);
   const end   = Math.min(last_page, start + 4);
-
+  let html = `<button class="pager-btn" ${page <= 1 ? 'disabled' : ''} onclick="reload(${page-1})">←</button>`;
   if (start > 1) html += `<span class="pager-info">…</span>`;
-  for (let p = start; p <= end; p++) {
-    html += `<button class="pager-btn ${p === page ? 'cur' : ''}"
-               onclick="reload(${p})">${p}</button>`;
-  }
+  for (let p = start; p <= end; p++)
+    html += `<button class="pager-btn ${p===page?'cur':''}" onclick="reload(${p})">${p}</button>`;
   if (end < last_page) html += `<span class="pager-info">…</span>`;
-
-  html += `<button class="pager-btn" ${page >= last_page ? 'disabled' : ''}
-             onclick="reload(${page + 1})">→</button>`;
+  html += `<button class="pager-btn" ${page>=last_page?'disabled':''} onclick="reload(${page+1})">→</button>`;
   html += `<span class="pager-info">${total.toLocaleString('ru-RU')} записей</span>`;
-
   el.innerHTML = html;
 }
 
-// ============================================================
-// 9. UI-СОСТОЯНИЯ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// UI-СОСТОЯНИЯ
+// ══════════════════════════════════════════════════════════
 
 function setLoading() {
   document.getElementById('data-area').innerHTML =
     '<div class="state"><div class="spinner"></div><br>Загрузка...</div>';
   document.getElementById('pager').classList.add('hidden');
+  document.getElementById('status-bar').classList.add('hidden');
+}
+function setEmpty(msg) { document.getElementById('data-area').innerHTML = `<div class="state">${x(msg)}</div>`; }
+function setError(msg) { document.getElementById('data-area').innerHTML = `<div class="state err">⚠ ${x(msg)}</div>`; }
+
+// ══════════════════════════════════════════════════════════
+// RATE LIMIT ИНДИКАТОР
+// ══════════════════════════════════════════════════════════
+
+function updateRateLimit(remaining, limit) {
+  const badge = document.getElementById('rl-badge');
+  const dot   = document.getElementById('rl-dot');
+  const text  = document.getElementById('rl-text');
+  badge.classList.add('visible');
+  text.textContent = remaining + ' / ' + limit;
+  dot.className = 'rl-dot';
+  if (remaining <= 5)  dot.classList.add('crit');
+  else if (remaining <= 15) dot.classList.add('warn');
 }
 
-function setEmpty(msg) {
-  document.getElementById('data-area').innerHTML =
-    `<div class="state">${x(msg)}</div>`;
+// ══════════════════════════════════════════════════════════
+// СТРОКА СТАТУСА HTTP
+// ══════════════════════════════════════════════════════════
+
+function updateStatusBar(status, ms) {
+  const bar  = document.getElementById('status-bar');
+  const code = document.getElementById('status-code');
+  const time = document.getElementById('status-time');
+  bar.classList.remove('hidden');
+  code.textContent = status + ' ' + (statusText(status));
+  code.className = 'status-code ' + (status < 300 ? 'ok' : status < 500 ? 'warn' : 'err');
+  time.textContent = '· ' + ms + ' мс';
 }
 
-function setError(msg) {
-  document.getElementById('data-area').innerHTML =
-    `<div class="state err">⚠ ${x(msg)}</div>`;
+function statusText(s) {
+  return { 200:'OK', 201:'Created', 204:'No Content', 400:'Bad Request',
+           401:'Unauthorized', 403:'Forbidden', 404:'Not Found',
+           409:'Conflict', 422:'Unprocessable', 429:'Too Many Requests', 500:'Server Error' }[s] || '';
 }
 
-// ============================================================
-// 10. CURL-ПРИМЕР
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// CURL + JSON ПАНЕЛИ
+// ══════════════════════════════════════════════════════════
 
-function showCurl(method, path, qs, body) {
-  if (!lastReq) return;
-  const wrap = document.getElementById('curl-wrap');
-  wrap.style.display = '';
+function showPanels(method, path, qs, body, rawData) {
+  document.getElementById('bottom-panels').style.display = '';
 
   const fullUrl = API_BASE + path + (qs ? '?' + qs : '');
-  const maskedKey = apiKey.substring(0, 8) + '...' + apiKey.slice(-4);
+  const masked  = apiKey.substring(0,8) + '...' + apiKey.slice(-4);
 
-  // Curl
-  let curl = `<span class="c-comment"># curl</span>\n`;
-  curl += `curl -X ${method} <span class="c-url">"${fullUrl}"</span> \\\n`;
-  curl += `     -H <span class="c-key">"X-API-Key: ${maskedKey}"</span> \\\n`;
-  curl += `     -H "Accept: application/json"`;
-  if (body) {
-    curl += ` \\\n     -H "Content-Type: application/json" \\\n`;
-    curl += `     -d '${JSON.stringify(body)}'`;
+  // ── Plain text для копирования (полный ключ) ──
+  lastCurlText = `curl -X ${method} "${fullUrl}" \\\n` +
+    `     -H "X-API-Key: ${apiKey}" \\\n` +
+    `     -H "Accept: application/json"`;
+  if (body) lastCurlText += ` \\\n     -H "Content-Type: application/json" \\\n     -d '${JSON.stringify(body, null, 2)}'`;
+
+  // ── HTML версия (с раскраской) ──
+  let html = `<span class="c-comment"># curl</span>\n`;
+  html += `curl -X ${method} <span class="c-url">"${fullUrl}"</span> \\\n`;
+  html += `     -H <span class="c-key">"X-API-Key: ${masked}"</span> \\\n`;
+  html += `     -H "Accept: application/json"`;
+  if (body) html += ` \\\n     -H "Content-Type: application/json" \\\n     -d '${x(JSON.stringify(body, null, 2))}'`;
+
+  html += `\n\n<span class="c-comment"># JavaScript (fetch)</span>\n`;
+  html += `fetch(<span class="c-url">"${fullUrl}"</span>, {\n  method: "${method}",\n  headers: {\n`;
+  html += `    <span class="c-key">"X-API-Key"</span>: "${masked}",\n    "Accept": "application/json"`;
+  if (body) html += `,\n    "Content-Type": "application/json"`;
+  html += `\n  }`;
+  if (body) html += `,\n  body: JSON.stringify(${x(JSON.stringify(body, null, 2))})`;
+  html += `\n})\n.then(r => r.json())\n.then(data => console.log(data));`;
+
+  document.getElementById('curl-box').innerHTML = html;
+
+  // ── JSON ответ ──
+  document.getElementById('json-box').innerHTML = syntaxHighlight(rawData);
+}
+
+function togglePanel(which) {
+  if (which === 'curl') {
+    curlOpen = !curlOpen;
+    document.getElementById('curl-box').classList.toggle('open', curlOpen);
+    document.getElementById('curl-arr').textContent = curlOpen ? '▼' : '▶';
+  } else {
+    jsonOpen = !jsonOpen;
+    document.getElementById('json-box').classList.toggle('open', jsonOpen);
+    document.getElementById('json-arr').textContent = jsonOpen ? '▼' : '▶';
   }
-
-  // JavaScript (fetch)
-  curl += `\n\n<span class="c-comment"># JavaScript</span>\n`;
-  curl += `fetch(<span class="c-url">"${fullUrl}"</span>, {\n`;
-  curl += `  method: "${method}",\n`;
-  curl += `  headers: {\n`;
-  curl += `    <span class="c-key">"X-API-Key"</span>: "${maskedKey}",\n`;
-  curl += `    "Accept": "application/json"${body ? ',\n    "Content-Type": "application/json"' : ''}\n`;
-  curl += `  }${body ? ',\n  body: JSON.stringify(' + JSON.stringify(body) + ')' : ''}\n`;
-  curl += `})\n`;
-  curl += `.then(r => r.json())\n`;
-  curl += `.then(data => console.log(data));`;
-
-  document.getElementById('curl-box').innerHTML = curl;
 }
 
-function toggleCurl() {
-  curlOpen = !curlOpen;
-  document.getElementById('curl-box').classList.toggle('open', curlOpen);
-  document.getElementById('curl-arr').textContent = curlOpen ? '▼' : '▶';
+function copyCurl() {
+  if (!lastCurlText) return;
+  const btn = document.getElementById('copy-btn');
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(lastCurlText)
+    .then(() => { btn.textContent = '✓ Скопировано'; btn.classList.add('ok'); })
+    .catch(() => {
+      // Fallback для старых браузеров
+      const ta = document.createElement('textarea');
+      ta.value = lastCurlText;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = '✓ Скопировано'; btn.classList.add('ok');
+    })
+    .finally(() => setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 2000));
 }
 
-// ============================================================
-// 11. БАЗОВЫЙ FETCH-ХЕЛПЕР
-// ============================================================
+// Простая JSON-подсветка без зависимостей
+function syntaxHighlight(obj) {
+  let str = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+  str = str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return str.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    m => {
+      let cls = 'json-num';
+      if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
+      else if (/true|false/.test(m)) cls = 'json-bool';
+      else if (/null/.test(m)) cls = 'json-null';
+      return `<span class="${cls}">${m}</span>`;
+    }
+  );
+}
 
-async function api(method, fullPath, body) {
-  // Разбиваем path и qs для curl-примера
+// ══════════════════════════════════════════════════════════
+// БАЗОВЫЙ FETCH
+// ══════════════════════════════════════════════════════════
+
+async function api(method, fullPath, body, { silent = false } = {}) {
   const [path, qs] = fullPath.split('?');
-  lastReq = { method, path, qs: qs || '', body };
 
-  const url = API_BASE + fullPath;
+  const url  = API_BASE + fullPath;
   const opts = {
     method,
-    headers: {
-      'X-API-Key':    apiKey,
-      'Accept':       'application/json',
-      'Content-Type': 'application/json',
-    },
+    headers: { 'X-API-Key': apiKey, 'Accept': 'application/json', 'Content-Type': 'application/json' },
   };
   if (body) opts.body = JSON.stringify(body);
 
-  showCurl(method, path, qs || '', body);
-
+  const t0  = performance.now();
   const res = await fetch(url, opts);
+  const ms  = Math.round(performance.now() - t0);
 
-  // DELETE может вернуть 200 без тела
-  if (res.status === 204) return {};
+  // Rate limit (только если сервер вернул заголовок)
+  const remaining = res.headers.get('X-RateLimit-Remaining');
+  const limit     = res.headers.get('X-RateLimit-Limit');
+  if (remaining !== null) updateRateLimit(parseInt(remaining), parseInt(limit) || 60);
 
-  // Попытаться распарсить JSON
+  if (!silent) updateStatusBar(res.status, ms);
+
+  // Пустой ответ
+  if (res.status === 204) {
+    if (!silent) showPanels(method, path, qs || '', body, {});
+    return {};
+  }
+
   let data;
   try { data = await res.json(); }
   catch { throw new Error(`HTTP ${res.status}`); }
 
+  if (!silent) showPanels(method, path, qs || '', body, data);
+
   if (!res.ok) {
-    // Валидационные ошибки (422)
     if (data.errors) {
-      const msgs = Object.values(data.errors).flat().join('; ');
-      throw new Error(msgs || data.message || `HTTP ${res.status}`);
+      throw new Error(Object.values(data.errors).flat().join('; ') || data.message || `HTTP ${res.status}`);
     }
     throw new Error(data.message || data.error || `HTTP ${res.status}`);
   }
@@ -980,71 +1122,46 @@ async function api(method, fullPath, body) {
   return data;
 }
 
-// ============================================================
-// 12. УТИЛИТЫ
-// ============================================================
+// ══════════════════════════════════════════════════════════
+// УТИЛИТЫ
+// ══════════════════════════════════════════════════════════
 
-// Экранирование HTML (защита от XSS в данных API)
 function x(s) {
   return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Короткий ID (для UUID — первые 8 символов)
 function shortId(id) {
   if (!id) return '—';
   const s = String(id);
-  return s.length > 12 ? s.substring(0, 8) + '…' : s;
+  return s.length > 12 ? s.substring(0,8) + '…' : s;
 }
 
-// Форматирование даты
 function fmtDate(iso) {
   if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('ru-RU', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  } catch { return iso; }
+  try { return new Date(iso).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+  catch { return iso; }
 }
 
-// Форматирование суммы в рублях
-function fmtMoney(n) {
-  return Number(n).toLocaleString('ru-RU') + ' ₽';
+function fmtMoney(n) { return Number(n).toLocaleString('ru-RU') + ' ₽'; }
+
+function statusBadge(s) {
+  const m = { pending:['s-pending','Ожидает'], confirmed:['s-confirmed','Подтверждена'],
+              completed:['s-completed','Завершена'], cancelled:['s-cancelled','Отменена'] };
+  const [cls, lbl] = m[s] || ['s-pending', s || '—'];
+  return `<span class="badge ${cls}">${lbl}</span>`;
 }
 
-// Бейдж статуса записи
-function statusBadge(status) {
-  const map = {
-    pending:   ['s-pending',   'Ожидает'],
-    confirmed: ['s-confirmed', 'Подтверждена'],
-    completed: ['s-completed', 'Завершена'],
-    cancelled: ['s-cancelled', 'Отменена'],
-  };
-  const [cls, label] = map[status] || ['s-pending', status || '—'];
-  return `<span class="badge ${cls}">${label}</span>`;
-}
+function canCancel(s) { return s === 'pending' || s === 'confirmed'; }
 
-// Можно ли отменить запись
-function canCancel(status) {
-  return status === 'pending' || status === 'confirmed';
-}
-
-// show/hide по id
 function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 
-// Ошибка подключения
-function showErr(msg) { const e = document.getElementById('conn-err'); e.textContent = msg; e.classList.remove('hidden'); }
+function showErr(msg) { const e=document.getElementById('conn-err'); e.textContent=msg; e.classList.remove('hidden'); }
 function hideErr()    { document.getElementById('conn-err').classList.add('hidden'); }
 
-// Enter в поле ключа
-document.getElementById('inp-key').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doConnect();
-});
+document.getElementById('inp-key').addEventListener('keydown', e => { if (e.key==='Enter') doConnect(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
 
 </script>
 </body>
