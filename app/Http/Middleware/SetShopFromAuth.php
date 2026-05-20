@@ -36,8 +36,9 @@ class SetShopFromAuth
             ->with('shop')
             ->first();
 
+        // Return 401 (not 404) so the frontend unauthorized handler triggers logout
         if (!$staffRecord || !$staffRecord->shop) {
-            return response()->json(['message' => 'Shop not found for this user'], 404);
+            return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
         $shop = $staffRecord->shop;

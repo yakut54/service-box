@@ -117,16 +117,19 @@ const router = createRouter({
           path: 'subscription',
           name: 'subscription',
           component: () => import('@/views/SubscriptionView.vue'),
+          meta: { requiresOwner: true },
         },
         {
           path: 'legal',
           name: 'legal',
           component: () => import('@/views/LegalView.vue'),
+          meta: { requiresOwner: true },
         },
         {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
+          meta: { requiresOwner: true },
         },
         // Superadmin routes
         {
@@ -171,6 +174,8 @@ router.beforeEach(async (to, _from, next) => {
   } else if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
     next({ name: 'dashboard' })
   } else if (to.meta.requiresSuperadmin && !authStore.user?.is_superadmin) {
+    next({ name: 'dashboard' })
+  } else if (to.meta.requiresOwner && authStore.isAuthenticated && !authStore.isOwner) {
     next({ name: 'dashboard' })
   } else {
     next()

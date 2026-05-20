@@ -36,20 +36,24 @@ const currentDate = computed(() =>
 )
 
 const navigation = [
-  { name: 'Главная', href: '/', icon: 'home' },
-  { name: 'Аналитика', href: '/analytics', icon: 'analytics' },
-  { name: 'Товары', href: '/products', icon: 'package' },
-  { name: 'Категории', href: '/categories', icon: 'categories' },
-  { name: 'Заказы', href: '/orders', icon: 'shopping-cart' },
-  { name: 'Записи', href: '/bookings', icon: 'calendar' },
-  { name: 'Мастера', href: '/masters', icon: 'master' },
-  { name: 'Клиенты', href: '/customers', icon: 'users' },
-  { name: 'Скидки', href: '/discounts', icon: 'discount' },
-  { name: 'Отзывы', href: '/reviews', icon: 'reviews' },
-  { name: 'Подписка', href: '/subscription', icon: 'subscription' },
-  { name: 'Документы', href: '/legal', icon: 'legal' },
-  { name: 'Настройки', href: '/settings', icon: 'settings' },
+  { name: 'Главная',    href: '/',            icon: 'home' },
+  { name: 'Аналитика', href: '/analytics',    icon: 'analytics' },
+  { name: 'Товары',    href: '/products',     icon: 'package' },
+  { name: 'Категории', href: '/categories',   icon: 'categories' },
+  { name: 'Заказы',    href: '/orders',       icon: 'shopping-cart' },
+  { name: 'Записи',    href: '/bookings',     icon: 'calendar' },
+  { name: 'Мастера',   href: '/masters',      icon: 'master' },
+  { name: 'Клиенты',   href: '/customers',    icon: 'users' },
+  { name: 'Скидки',    href: '/discounts',    icon: 'discount' },
+  { name: 'Отзывы',    href: '/reviews',      icon: 'reviews' },
+  { name: 'Подписка',  href: '/subscription', icon: 'subscription', ownerOnly: true },
+  { name: 'Документы', href: '/legal',        icon: 'legal',        ownerOnly: true },
+  { name: 'Настройки', href: '/settings',     icon: 'settings',     ownerOnly: true },
 ]
+
+const visibleNavigation = computed(() =>
+  navigation.filter(item => !item.ownerOnly || authStore.isOwner)
+)
 
 const superadminNavigation = [
   { name: 'Магазины', href: '/superadmin/shops', icon: 'sa-shops' },
@@ -116,7 +120,7 @@ async function handleLogout() {
       <!-- Navigation -->
       <nav class="p-4 space-y-1 flex-1 overflow-y-auto">
         <RouterLink
-            v-for="item in navigation"
+            v-for="item in visibleNavigation"
             :key="item.href"
             :to="item.href"
             :class="[
@@ -234,11 +238,15 @@ async function handleLogout() {
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
             <span class="text-gray-600 dark:text-gray-300 font-medium text-sm">
-              {{ authStore.user?.email?.charAt(0).toUpperCase() }}
+              {{ authStore.user?.name?.charAt(0).toUpperCase() || authStore.user?.email?.charAt(0).toUpperCase() }}
             </span>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ authStore.user?.email }}</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ authStore.user?.name || authStore.user?.email }}</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ authStore.user?.email }}</p>
+            <span v-if="!authStore.isOwner" class="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              Администратор
+            </span>
           </div>
         </div>
 
