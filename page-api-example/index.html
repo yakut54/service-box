@@ -224,14 +224,18 @@
     .panel-toggle:hover { color: var(--text); }
     .panel-toggle .arr { font-size: 11px; }
 
-    .copy-btn {
-      background: none; border: 1px solid var(--border);
-      border-radius: 6px; padding: 3px 10px;
-      font-size: 12px; color: var(--muted); cursor: pointer;
-      white-space: nowrap;
+    .code-wrap { position: relative; }
+    .copy-icon-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px; padding: 5px 7px; cursor: pointer;
+      color: #94a3b8; display: none; align-items: center; gap: 5px;
+      font-size: 11px; font-family: inherit; transition: all 0.15s; z-index: 2;
     }
-    .copy-btn:hover { background: var(--bg); color: var(--text); }
-    .copy-btn.ok { color: var(--success); border-color: var(--success); }
+    .copy-icon-btn svg { flex-shrink: 0; }
+    .copy-icon-btn:hover { background: rgba(255,255,255,0.18); color: #e2e8f0; }
+    .copy-icon-btn.ok { color: #34d399 !important; border-color: #34d399 !important; }
+    .code-wrap:has(.code-box.open) .copy-icon-btn { display: flex; }
 
     .code-box {
       border-radius: var(--r); font-size: 12px; font-family: 'SF Mono','Fira Code',monospace;
@@ -451,9 +455,16 @@
               <span class="arr" id="curl-arr">▶</span>
               Посмотреть запрос (curl / JS)
             </button>
-            <button class="copy-btn" id="copy-btn" onclick="copyCurl()">Копировать</button>
           </div>
-          <div class="code-box curl-box" id="curl-box"></div>
+          <div class="code-wrap">
+            <div class="code-box curl-box" id="curl-box"></div>
+            <button class="copy-icon-btn" id="copy-curl-btn" onclick="copyCurl()" title="Копировать">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span class="copy-label">Копировать</span>
+            </button>
+          </div>
         </div>
 
         <!-- JSON-ответ -->
@@ -464,7 +475,15 @@
               Ответ API (JSON)
             </button>
           </div>
-          <div class="code-box json-box" id="json-box"></div>
+          <div class="code-wrap">
+            <div class="code-box json-box" id="json-box"></div>
+            <button class="copy-icon-btn" id="copy-json-btn" onclick="copyJson()" title="Копировать JSON">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span class="copy-label">Копировать</span>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -507,6 +526,7 @@ let lazy     = null;
 let curlOpen = false;
 let jsonOpen = false;
 let lastCurlText = '';   // plain text для копирования
+let lastJsonText = '';   // plain text JSON для копирования
 let modalServices = [];  // услуги для формы
 let modalMasters  = [];  // мастера для формы
 
@@ -1087,6 +1107,7 @@ function showPanels(method, path, qs, body, rawData) {
   document.getElementById('curl-box').innerHTML = html;
 
   // ── JSON ответ ──
+  lastJsonText = typeof rawData === 'string' ? rawData : JSON.stringify(rawData, null, 2);
   document.getElementById('json-box').innerHTML = syntaxHighlight(rawData);
 }
 
@@ -1102,23 +1123,26 @@ function togglePanel(which) {
   }
 }
 
+function copyToClipboard(text, btnId) {
+  const btn = document.getElementById(btnId);
+  const flash = () => { btn.classList.add('ok'); btn.querySelector('.copy-label').textContent = '✓ Скопировано'; };
+  const reset = () => setTimeout(() => { btn.classList.remove('ok'); btn.querySelector('.copy-label').textContent = 'Копировать'; }, 2000);
+  navigator.clipboard.writeText(text).then(flash).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    flash();
+  }).finally(reset);
+}
+
 function copyCurl() {
   if (!lastCurlText) return;
-  const btn = document.getElementById('copy-btn');
-  const orig = btn.textContent;
-  navigator.clipboard.writeText(lastCurlText)
-    .then(() => { btn.textContent = '✓ Скопировано'; btn.classList.add('ok'); })
-    .catch(() => {
-      // Fallback для старых браузеров
-      const ta = document.createElement('textarea');
-      ta.value = lastCurlText;
-      ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      btn.textContent = '✓ Скопировано'; btn.classList.add('ok');
-    })
-    .finally(() => setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 2000));
+  copyToClipboard(lastCurlText, 'copy-curl-btn');
+}
+
+function copyJson() {
+  if (!lastJsonText) return;
+  copyToClipboard(lastJsonText, 'copy-json-btn');
 }
 
 // Простая JSON-подсветка без зависимостей
