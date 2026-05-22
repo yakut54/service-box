@@ -159,6 +159,18 @@ const router = createRouter({
       ],
     },
     {
+      path: '/master',
+      component: () => import('@/components/layout/MasterLayout.vue'),
+      meta: { requiresAuth: true, requiresMaster: true },
+      children: [
+        {
+          path: '',
+          name: 'master-schedule',
+          component: () => import('@/views/master/MasterScheduleView.vue'),
+        },
+      ],
+    },
+    {
       path: '/invite/:token',
       name: 'invite-accept',
       component: () => import('@/views/InviteAcceptView.vue'),
@@ -183,15 +195,38 @@ router.beforeEach(async (to, _from, next) => {
 
   if (requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
-  } else if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
-    next({ name: 'dashboard' })
-  } else if (to.meta.requiresSuperadmin && !authStore.user?.is_superadmin) {
-    next({ name: 'dashboard' })
-  } else if (to.meta.requiresOwner && authStore.isAuthenticated && !authStore.isOwner) {
-    next({ name: 'dashboard' })
-  } else {
-    next()
+    return
   }
+
+  // Мастер после логина/регистрации → в свой кабинет, не в dashboard
+  if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
+    next({ name: authStore.isMaster ? 'master-schedule' : 'dashboard' })
+    return
+  }
+
+  // Мастер пытается открыть обычную admin-панель → redirect в свой кабинет
+  if (authStore.isMaster && !to.meta.requiresMaster && requiresAuth && to.name !== 'not-found') {
+    next({ name: 'master-schedule' })
+    return
+  }
+
+  // Не-мастер пытается открыть мастерский раздел
+  if (to.meta.requiresMaster && !authStore.isMaster) {
+    next({ name: 'dashboard' })
+    return
+  }
+
+  if (to.meta.requiresSuperadmin && !authStore.user?.is_superadmin) {
+    next({ name: 'dashboard' })
+    return
+  }
+
+  if (to.meta.requiresOwner && authStore.isAuthenticated && !authStore.isOwner) {
+    next({ name: 'dashboard' })
+    return
+  }
+
+  next()
 })
 
 export default router

@@ -7,7 +7,7 @@ export interface User {
   name: string
   email: string
   is_superadmin: boolean
-  role: 'owner' | 'admin'
+  role: 'owner' | 'admin' | 'master'
   created_at: string
 }
 
@@ -440,7 +440,8 @@ export interface SubscriptionInfo {
 
 export interface StaffMember {
   id: string
-  role: 'admin'
+  role: 'admin' | 'master'
+  master_id: string | null
   invite_email: string | null
   accepted_at: string | null
   invite_expires_at: string | null
