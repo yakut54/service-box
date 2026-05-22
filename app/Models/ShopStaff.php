@@ -15,6 +15,7 @@ class ShopStaff extends Model
         'shop_id',
         'user_id',
         'role',
+        'master_id',
         'invite_email',
         'invite_token',
         'accepted_at',

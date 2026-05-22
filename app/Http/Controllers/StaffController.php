@@ -7,6 +7,7 @@ use App\Models\ShopStaff;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class StaffController extends Controller
@@ -32,6 +33,7 @@ class StaffController extends Controller
             ->map(fn($s) => [
                 'id'                => $s->id,
                 'role'              => $s->role,
+                'master_id'         => $s->master_id,
                 'invite_email'      => $s->invite_email,
                 'accepted_at'       => $s->accepted_at,
                 'invite_expires_at' => $s->invite_expires_at,
@@ -62,14 +64,36 @@ class StaffController extends Controller
         }
 
         $data = $request->validate([
-            'email' => 'required|email|max:255',
+            'email'     => 'required|email|max:255',
+            'role'      => 'sometimes|in:admin,master',
+            'master_id' => 'required_if:role,master|nullable|uuid',
         ]);
 
+        $role  = $data['role'] ?? 'admin';
         $email = strtolower(trim($data['email']));
 
         // Нельзя пригласить самого себя (владельца магазина)
         if ($request->user()->email === $email) {
             return response()->json(['message' => 'Нельзя пригласить себя'], 422);
+        }
+
+        // При роли master — проверяем что master_id существует в tenant-схеме
+        $masterId = null;
+        if ($role === 'master') {
+            $masterId = $data['master_id'];
+            $masterExists = DB::table('masters')->where('id', $masterId)->exists();
+            if (!$masterExists) {
+                return response()->json(['message' => 'Мастер не найден'], 404);
+            }
+            // Нельзя пригласить мастера, если к нему уже привязан аккаунт
+            $alreadyLinked = ShopStaff::where('shop_id', $shop->id)
+                ->where('role', 'master')
+                ->where('master_id', $masterId)
+                ->whereNotNull('accepted_at')
+                ->exists();
+            if ($alreadyLinked) {
+                return response()->json(['message' => 'К этому мастеру уже привязан аккаунт'], 409);
+            }
         }
 
         // Проверяем: уже сотрудник или уже приглашён
@@ -78,7 +102,7 @@ class StaffController extends Controller
         // Нельзя пригласить того, кто уже владеет своим магазином
         if ($existingUser && $existingUser->shop) {
             return response()->json([
-                'message' => 'Этот пользователь является владельцем другого магазина и не может быть добавлен как администратор',
+                'message' => 'Этот пользователь является владельцем другого магазина и не может быть добавлен',
             ], 422);
         }
 
@@ -99,12 +123,13 @@ class StaffController extends Controller
         $token = bin2hex(random_bytes(32));
 
         $staffRecord = ShopStaff::create([
-            'shop_id'            => $shop->id,
-            'user_id'            => $existingUser?->id,
-            'role'               => 'admin',
-            'invite_email'       => $email,
-            'invite_token'       => $token,
-            'invite_expires_at'  => now()->addHours(48),
+            'shop_id'           => $shop->id,
+            'user_id'           => $existingUser?->id,
+            'role'              => $role,
+            'master_id'         => $masterId,
+            'invite_email'      => $email,
+            'invite_token'      => $token,
+            'invite_expires_at' => now()->addHours(48),
         ]);
 
         $inviteUrl = rtrim(config('app.frontend_url'), '/') . '/invite/' . $token;
@@ -121,7 +146,8 @@ class StaffController extends Controller
             'data'    => [
                 'id'           => $staffRecord->id,
                 'invite_email' => $email,
-                'role'         => 'admin',
+                'role'         => $role,
+                'master_id'    => $masterId,
             ],
         ], 201);
     }
