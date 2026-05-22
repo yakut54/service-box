@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shop;
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -170,8 +171,16 @@ class ShopController extends Controller
 
         // Мержим widget_config с существующими данными
         if (isset($validated['widget_config'])) {
+            $oldLogoUrl      = ($shop->widget_config ?? [])['logo_url'] ?? null;
+            $incomingLogoUrl = $validated['widget_config']['logo_url'] ?? null;
+
             $existing = $shop->widget_config ?? [];
             $validated['widget_config'] = array_merge($existing, $validated['widget_config']);
+
+            // Удаляем старый логотип если он был заменён
+            if (array_key_exists('logo_url', $request->input('widget_config', [])) && $oldLogoUrl && $oldLogoUrl !== $incomingLogoUrl) {
+                StorageService::deleteByUrl($oldLogoUrl);
+            }
         }
 
         // Мержим legal_config с существующими данными — не затираем незатронутые поля

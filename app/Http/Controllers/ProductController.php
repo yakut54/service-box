@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -121,7 +122,7 @@ class ProductController extends Controller
         $product = Product::findOrFail($product);
 
         if ($request->has('image_url') && $request->image_url !== $product->image_url) {
-            $this->deleteProductImage($product->image_url);
+            StorageService::deleteByUrl($product->image_url);
         }
 
         $product->update($request->only([
@@ -156,7 +157,7 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($product);
 
-        $this->deleteProductImage($product->image_url);
+        StorageService::deleteByUrl($product->image_url);
         $product->delete();
 
         return response()->json([
@@ -173,14 +174,6 @@ class ProductController extends Controller
             unset($data['file_size_mb']);
         }
         return $data;
-    }
-
-    protected function deleteProductImage(?string $imageUrl): void
-    {
-        if ($imageUrl && str_contains($imageUrl, '/storage/')) {
-            $path = str_replace('/storage/', '', parse_url($imageUrl, PHP_URL_PATH));
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
-        }
     }
 
     protected function storeProductDetails(Product $product, Request $request): void

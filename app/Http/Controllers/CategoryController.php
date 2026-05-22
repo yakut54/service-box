@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -92,6 +93,10 @@ class CategoryController extends Controller
             $data['slug'] = $this->uniqueSlug($data['slug'], $category->name, $category->id);
         }
 
+        if (isset($data['image_url']) && $data['image_url'] !== $category->image_url) {
+            StorageService::deleteByUrl($category->image_url);
+        }
+
         $category->update($data);
 
         return response()->json(['data' => $category->fresh()->load('children')]);
@@ -131,7 +136,10 @@ class CategoryController extends Controller
                 Product::whereIn('category_id', $categoryIds)->update(['category_id' => null]);
             }
 
-            // Soft delete — дочерние сначала, потом родитель
+            // Удаляем файлы изображений перед удалением категорий
+            Category::whereIn('id', $categoryIds)->get(['image_url'])
+                ->each(fn($cat) => StorageService::deleteByUrl($cat->image_url));
+
             Category::whereIn('id', $categoryIds)->delete();
 
             return response()->json(['message' => 'Категория удалена']);

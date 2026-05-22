@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Master;
 use App\Services\MasterCascadeService;
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -134,6 +135,10 @@ class MasterController extends Controller
             }
         }
 
+        if (isset($data['avatar_url']) && $data['avatar_url'] !== $master->avatar_url) {
+            StorageService::deleteByUrl($master->avatar_url);
+        }
+
         $wasActive = $master->is_active;
         $master->update($data);
 
@@ -159,6 +164,7 @@ class MasterController extends Controller
     public function destroy(string $master): JsonResponse
     {
         $master = Master::findOrFail($master);
+        StorageService::deleteByUrl($master->avatar_url);
         $master->delete();
 
         return response()->json(['message' => 'Мастер удалён'], 200);

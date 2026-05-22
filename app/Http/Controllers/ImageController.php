@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,15 +15,15 @@ class ImageController extends Controller
         $request->validate([
             'image' => 'required|image|max:1024',
         ], [
-            'image.image'    => 'Файл должен быть изображением',
-            'image.max'      => 'Максимальный размер файла — 1 МБ',
+            'image.image' => 'Файл должен быть изображением',
+            'image.max'   => 'Максимальный размер файла — 1 МБ',
         ]);
 
-        $file      = $request->file('image');
-        $ext       = $file->guessExtension() ?? 'jpg';
-        $filename  = Str::uuid() . '.' . $ext;
-        $path      = $file->storeAs('products', $filename, 'public');
-        $url       = Storage::disk('public')->url($path);
+        $file     = $request->file('image');
+        $ext      = $file->guessExtension() ?? 'jpg';
+        $filename = Str::uuid() . '.' . $ext;
+        $path     = $file->storeAs('uploads', $filename, 'public');
+        $url      = Storage::disk('public')->url($path);
 
         return response()->json(['url' => $url]);
     }
@@ -31,15 +32,7 @@ class ImageController extends Controller
     {
         $request->validate(['url' => 'required|string']);
 
-        $url      = $request->input('url');
-        $basePath = Storage::disk('public')->url('');
-        $path     = ltrim(str_replace($basePath, '', $url), '/');
-
-        if (!str_starts_with($path, 'products/')) {
-            return response()->json(['error' => 'Forbidden'], 403);
-        }
-
-        Storage::disk('public')->delete($path);
+        StorageService::deleteByUrl($request->input('url'));
 
         return response()->json(['ok' => true]);
     }
