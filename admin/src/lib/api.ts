@@ -581,6 +581,13 @@ class ApiClient {
     })
   }
 
+  async inviteMaster(masterId: string, email: string) {
+    return this.request<{ message: string }>('/admin/staff', {
+      method: 'POST',
+      body: JSON.stringify({ email, role: 'master', master_id: masterId }),
+    })
+  }
+
   async revokeStaff(id: string) {
     return this.request<{ message: string }>(`/admin/staff/${id}`, {
       method: 'DELETE',

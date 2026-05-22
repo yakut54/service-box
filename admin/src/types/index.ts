@@ -288,6 +288,7 @@ export interface Master {
   avatar_url: string | null
   is_active: boolean
   sort_order: number
+  user_id: string | null
   created_at: string
   service_ids?: string[]
   services?: { id: string; name: string }[]

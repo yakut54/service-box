@@ -10,6 +10,37 @@ import MasterFormModal from '@/components/modals/MasterFormModal.vue'
 import { UiConfirmDialog, UiEmptyState, UiSpinner } from '@/shared/ui'
 import type { Master } from '@/types'
 
+// ── Invite master ────────────────────────────────────────────────
+const inviteOpenId   = ref<string | null>(null)  // master.id с открытой формой
+const inviteEmails   = ref<Record<string, string>>({})
+const invitingId     = ref<string | null>(null)
+const inviteErrors   = ref<Record<string, string>>({})
+
+function openInviteForm(master: Master) {
+  inviteOpenId.value = inviteOpenId.value === master.id ? null : master.id
+  if (!inviteEmails.value[master.id]) inviteEmails.value[master.id] = master.email ?? ''
+  inviteErrors.value[master.id] = ''
+}
+
+async function sendMasterInvite(master: Master) {
+  const email = (inviteEmails.value[master.id] ?? '').trim()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    inviteErrors.value[master.id] = 'Введите корректный email'
+    return
+  }
+  invitingId.value = master.id
+  inviteErrors.value[master.id] = ''
+  try {
+    const res = await api.inviteMaster(master.id, email)
+    toast.success(res.message || 'Приглашение отправлено')
+    inviteOpenId.value = null
+  } catch (e) {
+    inviteErrors.value[master.id] = e instanceof ApiError ? e.message : 'Ошибка отправки'
+  } finally {
+    invitingId.value = null
+  }
+}
+
 const route = useRoute()
 
 const masters = ref<Master[]>([])
@@ -261,11 +292,55 @@ function initials(name: string) {
         <!-- Actions -->
         <div class="flex gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
           <button @click="openEdit(master)" class="btn-secondary btn-sm flex-1">Редактировать</button>
+
+          <!-- Invite / linked badge -->
+          <template v-if="master.user_id">
+            <span class="badge-confirmed self-center text-xs px-2">✓ Привязан</span>
+          </template>
+          <template v-else>
+            <button
+              @click="openInviteForm(master)"
+              class="btn-ghost btn-sm"
+              title="Пригласить мастера в личный кабинет"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </button>
+          </template>
+
           <button @click="confirmDelete(master)" class="btn-danger btn-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </button>
+        </div>
+
+        <!-- Inline invite form -->
+        <div
+          v-if="inviteOpenId === master.id"
+          class="flex flex-col gap-2 pt-3 border-t border-gray-100 dark:border-gray-700"
+        >
+          <p class="text-xs text-gray-500 dark:text-gray-400">Введите email мастера — он получит ссылку для входа в личный кабинет</p>
+          <div class="flex gap-2">
+            <input
+              v-model="inviteEmails[master.id]"
+              type="email"
+              class="input text-sm flex-1 min-w-0"
+              placeholder="email@example.com"
+              @keydown.enter="sendMasterInvite(master)"
+              @keydown.escape="inviteOpenId = null"
+            />
+            <button
+              @click="sendMasterInvite(master)"
+              class="btn-primary btn-sm flex-shrink-0"
+              :disabled="invitingId === master.id"
+            >
+              <UiSpinner v-if="invitingId === master.id" class="w-4 h-4" />
+              <span v-else>Отправить</span>
+            </button>
+          </div>
+          <p v-if="inviteErrors[master.id]" class="text-xs text-red-500">{{ inviteErrors[master.id] }}</p>
         </div>
       </div>
     </div>
