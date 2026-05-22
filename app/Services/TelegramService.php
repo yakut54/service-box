@@ -558,6 +558,93 @@ class TelegramService
         return htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
 
+    // ── Master messenger methods ──────────────────────────────────────────
+
+    public static function generateMasterLinkToken(\App\Models\ShopStaff $staff): string
+    {
+        $token = bin2hex(random_bytes(16)); // 32-char hex
+        $staff->update([
+            'messenger_link_token'            => $token,
+            'messenger_link_token_expires_at' => now()->addHours(24),
+        ]);
+        $botUsername = config('services.telegram.bot_username', 'sb_widget_bot');
+        return "https://t.me/{$botUsername}?start=m{$token}";
+    }
+
+    public static function notifyMasterNewBooking(int $chatId, $booking, Shop $shop): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        $tz      = $shop->timezone ?? 'Europe/Moscow';
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz)->locale('ru');
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
+        $service = $booking->service?->name ?? '—';
+
+        $text  = "📅 <b>Новая запись!</b>\n\n";
+        $text .= "🕐 <b>{$date} в {$time}</b>\n";
+        $text .= "📋 " . self::esc($service) . "\n\n";
+        $text .= "👤 " . self::esc($booking->customer_name) . "\n";
+        $text .= "📞 " . self::esc($booking->customer_phone);
+        if (!empty($booking->notes)) $text .= "\n\n💬 " . self::esc($booking->notes);
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $chatId,
+                'text'       => $text,
+                'parse_mode' => 'HTML',
+            ]);
+    }
+
+    public static function notifyMasterBookingStatus(int $chatId, $booking, string $status, Shop $shop): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        $label = match($status) {
+            'cancelled' => '❌ Запись отменена',
+            default     => null,
+        };
+        if (!$label) return;
+
+        $tz   = $shop->timezone ?? 'Europe/Moscow';
+        $dt   = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz);
+        $date = $dt->format('d.m H:i');
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $chatId,
+                'text'       => "{$label}\n🕐 {$date} — " . self::esc($booking->customer_name),
+                'parse_mode' => 'HTML',
+            ]);
+    }
+
+    public static function notifyMasterReminder(int $chatId, object $booking, string $type, Shop $shop): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        $tz      = $shop->timezone ?? 'Europe/Moscow';
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz)->locale('ru');
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
+        $service = $booking->service_name ?? '—';
+        $label   = $type === '24h' ? 'Завтра' : 'Через 2 часа';
+
+        $text  = "⏰ <b>Напоминание</b>\n\n";
+        $text .= "🕐 <b>{$label}, {$date} в {$time}</b>\n";
+        $text .= "📋 " . self::esc($service) . "\n";
+        $text .= "👤 " . self::esc($booking->customer_name);
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $chatId,
+                'text'       => $text,
+                'parse_mode' => 'HTML',
+            ]);
+    }
+
     public static function removeKeyboardByEntity(string $entityType, string $entityId): void
     {
         $msg = TelegramMessage::where('entity_type', $entityType)

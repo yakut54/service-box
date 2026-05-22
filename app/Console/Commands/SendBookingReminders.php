@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Shop;
+use App\Models\ShopStaff;
 use App\Services\MaxService;
 use App\Services\TelegramService;
 use Illuminate\Console\Command;
@@ -45,6 +46,7 @@ class SendBookingReminders extends Command
             $bookings = DB::select("
                 SELECT
                     b.id, b.start_time, b.customer_phone, b.customer_name,
+                    b.master_id,
                     s.name  AS service_name,
                     m.name  AS master_name
                 FROM {$s}.bookings b
@@ -70,6 +72,20 @@ class SendBookingReminders extends Command
                     }
                     if ($shop->max_bot_connected) {
                         MaxService::notifyBookingReminder($booking->id, $booking, $type, $shop->timezone ?? 'Europe/Moscow');
+                    }
+
+                    // Notify the assigned master
+                    if (!empty($booking->master_id)) {
+                        $masterStaff = ShopStaff::where('master_id', $booking->master_id)
+                            ->where('shop_id', $shop->id)
+                            ->whereNotNull('accepted_at')
+                            ->first();
+                        if ($masterStaff?->telegram_chat_id) {
+                            try { TelegramService::notifyMasterReminder($masterStaff->telegram_chat_id, $booking, $type, $shop); } catch (\Throwable) {}
+                        }
+                        if ($masterStaff?->max_user_id) {
+                            try { MaxService::notifyMasterReminder($masterStaff->max_user_id, $booking, $type, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
+                        }
                     }
 
                     DB::statement("UPDATE {$s}.bookings SET {$flag} = TRUE WHERE id = ?", [$booking->id]);

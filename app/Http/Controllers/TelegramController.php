@@ -140,6 +140,12 @@ class TelegramController extends Controller
                 return;
             }
 
+            // Master link token: starts with 'm', 33 chars total (m + 32 hex)
+            if (str_starts_with($code, 'm') && strlen($code) === 33) {
+                $this->handleMasterLink(substr($code, 1), $chatId);
+                return;
+            }
+
             // Shop connection code: 6 alphanumeric chars
             $shop = TelegramService::verifyConnectionCode(strtoupper($code));
 
@@ -215,6 +221,28 @@ class TelegramController extends Controller
         }
 
         $this->sendReply($chatId, '❌ Ссылка недействительна или устарела. Создайте новую запись.');
+    }
+
+    private function handleMasterLink(string $token, int $chatId): void
+    {
+        $staff = \App\Models\ShopStaff::where('messenger_link_token', $token)
+            ->where('role', 'master')
+            ->where('messenger_link_token_expires_at', '>', now())
+            ->first();
+
+        if (!$staff) {
+            $this->sendReply($chatId, '❌ Ссылка недействительна или устарела. Создайте новую в портале мастера.');
+            return;
+        }
+
+        $staff->update([
+            'telegram_chat_id'                => $chatId,
+            'messenger_link_token'            => null,
+            'messenger_link_token_expires_at' => null,
+        ]);
+
+        $this->sendReply($chatId, "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.");
+        Log::info('[TG] master linked', ['staff_id' => $staff->id, 'chat_id' => $chatId]);
     }
 
     private function handleCallbackQuery(array $callbackQuery): void

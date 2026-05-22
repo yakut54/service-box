@@ -455,6 +455,84 @@ class MaxService
         Log::info('MAX connected', ['shop_id' => $shop->id, 'user_id' => $userId]);
     }
 
+    // ── Master messenger methods ──────────────────────────────────────────
+
+    public static function generateMasterCode(\App\Models\ShopStaff $staff): string
+    {
+        $code = strtoupper(substr(md5($staff->id . microtime()), 0, 6));
+        Cache::put("max_master_code:{$code}", $staff->id, now()->addMinutes(10));
+        return $code;
+    }
+
+    public static function verifyMasterCode(string $code): ?\App\Models\ShopStaff
+    {
+        $staffId = Cache::get("max_master_code:{$code}");
+        if (!$staffId) return null;
+        Cache::forget("max_master_code:{$code}");
+        return \App\Models\ShopStaff::find($staffId);
+    }
+
+    public static function connectMaster(\App\Models\ShopStaff $staff, int $userId): void
+    {
+        $staff->update(['max_user_id' => $userId]);
+        Log::info('MAX master connected', ['staff_id' => $staff->id, 'user_id' => $userId]);
+    }
+
+    public static function notifyMasterNewBooking(int $userId, $booking, string $timezone): void
+    {
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
+        $service = $booking->service?->name ?? '—';
+
+        $text  = "📅 <b>Новая запись!</b>\n\n";
+        $text .= "🕐 <b>{$date} в {$time}</b>\n";
+        $text .= "📋 " . self::esc($service) . "\n\n";
+        $text .= "👤 " . self::esc($booking->customer_name) . "\n";
+        $text .= "📞 " . self::esc($booking->customer_phone);
+        if (!empty($booking->notes)) $text .= "\n\n💬 " . self::esc($booking->notes);
+
+        try {
+            self::sendRaw($userId, $text);
+        } catch (\Throwable $e) {
+            Log::warning('MAX notify master booking failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public static function notifyMasterBookingStatus(int $userId, $booking, string $status, string $timezone): void
+    {
+        $label = match($status) {
+            'cancelled' => '❌ Запись отменена',
+            default     => null,
+        };
+        if (!$label) return;
+
+        $dt   = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone);
+        $date = $dt->format('d.m H:i');
+
+        try {
+            self::sendRaw($userId, "{$label}\n🕐 {$date} — " . self::esc($booking->customer_name));
+        } catch (\Throwable) {}
+    }
+
+    public static function notifyMasterReminder(int $userId, object $booking, string $type, string $timezone): void
+    {
+        $label   = $type === '24h' ? 'Завтра' : 'Через 2 часа';
+        $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');
+        $date    = $dt->translatedFormat('j M, D');
+        $time    = $dt->format('H:i');
+        $service = $booking->service_name ?? '—';
+
+        $text  = "⏰ <b>Напоминание</b>\n\n";
+        $text .= "🕐 <b>{$label}, {$date} в {$time}</b>\n";
+        $text .= "📋 " . self::esc($service) . "\n";
+        $text .= "👤 " . self::esc($booking->customer_name);
+
+        try {
+            self::sendRaw($userId, $text);
+        } catch (\Throwable) {}
+    }
+
     // ── Webhook registration ──────────────────────────────────────────────
 
     public static function registerWebhook(string $url): array

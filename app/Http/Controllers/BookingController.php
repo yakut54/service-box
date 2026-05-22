@@ -183,6 +183,22 @@ class BookingController extends Controller
             }
         }
 
+        // Notify assigned master via messengers
+        if ($shop && $booking->master_id) {
+            $masterStaff = \App\Models\ShopStaff::where('master_id', $booking->master_id)
+                ->where('shop_id', $shop->id)
+                ->whereNotNull('accepted_at')
+                ->first();
+            if ($masterStaff) {
+                if ($masterStaff->telegram_chat_id) {
+                    try { \App\Services\TelegramService::notifyMasterNewBooking($masterStaff->telegram_chat_id, $booking, $shop); } catch (\Throwable) {}
+                }
+                if ($masterStaff->max_user_id) {
+                    try { \App\Services\MaxService::notifyMasterNewBooking($masterStaff->max_user_id, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
+                }
+            }
+        }
+
         $maxLink = null;
         $maxCode = null;
         if ($shop?->max_bot_connected && config('services.max.bot_username')) {
@@ -244,6 +260,22 @@ class BookingController extends Controller
                 try { \App\Services\TelegramService::notifyRatingRequest($shop, $booking); } catch (\Throwable) {}
                 try { \App\Services\MaxService::notifyRatingRequest($booking->id, $booking); } catch (\Throwable) {}
                 $booking->update(['rating_sent' => true]);
+            }
+
+            // Notify master when their booking is cancelled
+            if ($request->status === 'cancelled' && $booking->master_id) {
+                $masterStaff = \App\Models\ShopStaff::where('master_id', $booking->master_id)
+                    ->where('shop_id', $shop->id)
+                    ->whereNotNull('accepted_at')
+                    ->first();
+                if ($masterStaff) {
+                    if ($masterStaff->telegram_chat_id) {
+                        try { \App\Services\TelegramService::notifyMasterBookingStatus($masterStaff->telegram_chat_id, $booking, $request->status, $shop); } catch (\Throwable) {}
+                    }
+                    if ($masterStaff->max_user_id) {
+                        try { \App\Services\MaxService::notifyMasterBookingStatus($masterStaff->max_user_id, $booking, $request->status, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
+                    }
+                }
             }
         }
 

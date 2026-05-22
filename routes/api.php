@@ -22,6 +22,7 @@ use App\Http\Controllers\MaxController;
 use App\Http\Controllers\DeliverySettingsController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\InviteController;
+use App\Http\Controllers\MasterPortalController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -210,6 +211,17 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop'])->group(functio
     Route::post('/max/generate-code', [MaxController::class, 'generateCode'])->middleware('owner');
     Route::get('/max/status',         [MaxController::class, 'status'])->middleware('owner');
     Route::post('/max/disconnect',    [MaxController::class, 'disconnect'])->middleware('owner');
+});
+
+// ============================================================================
+// MASTER PORTAL (master role only — own messenger connection)
+// ============================================================================
+Route::prefix('master')->middleware(['auth:sanctum', 'auth.shop', 'subscription'])->group(function () {
+    Route::get('/messenger-status',  [MasterPortalController::class, 'messengerStatus']);
+    Route::get('/telegram-link',     [MasterPortalController::class, 'generateTelegramLink']);
+    Route::post('/max-code',         [MasterPortalController::class, 'generateMaxCode']);
+    Route::delete('/telegram',       [MasterPortalController::class, 'disconnectTelegram']);
+    Route::delete('/max',            [MasterPortalController::class, 'disconnectMax']);
 });
 
 // ============================================================================

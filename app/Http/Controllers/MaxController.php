@@ -95,6 +95,11 @@ class MaxController extends Controller
                 $this->trySubscribeCustomer($userId, $bookingId);
                 return;
             }
+            $staff = MaxService::verifyMasterCode($code);
+            if ($staff) {
+                $this->tryConnectMaster($userId, $staff);
+                return;
+            }
             $this->tryConnect($userId, $code);
             return;
         }
@@ -135,14 +140,18 @@ class MaxController extends Controller
         if (preg_match('/^[A-Z0-9]{6}$/i', $text)) {
             $code = strtoupper($text);
 
-            // Try customer booking code first
             $bookingId = MaxService::verifyCustomerCode($code);
             if ($bookingId) {
                 $this->trySubscribeCustomer($userId, $bookingId);
                 return;
             }
 
-            // Fall back to shop owner connect code
+            $staff = MaxService::verifyMasterCode($code);
+            if ($staff) {
+                $this->tryConnectMaster($userId, $staff);
+                return;
+            }
+
             $this->tryConnect($userId, $code);
             return;
         }
@@ -191,6 +200,12 @@ class MaxController extends Controller
             $userId,
             "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
         );
+    }
+
+    private function tryConnectMaster(int $userId, \App\Models\ShopStaff $staff): void
+    {
+        MaxService::connectMaster($staff, $userId);
+        MaxService::sendRaw($userId, "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.");
     }
 
     private function handleCallback(array $update): void
