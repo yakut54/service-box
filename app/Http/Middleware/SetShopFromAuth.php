@@ -44,6 +44,7 @@ class SetShopFromAuth
         $shop = $staffRecord->shop;
         $request->attributes->set('shop', $shop);
         $request->attributes->set('staff_role', $staffRecord->role);
+        $request->attributes->set('staff_master_id', $staffRecord->master_id);
         TenantService::setContext($shop);
         $response = $next($request);
         TenantService::resetContext();

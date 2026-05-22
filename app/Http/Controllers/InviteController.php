@@ -86,6 +86,15 @@ class InviteController extends Controller
             $staff->invite_token = null;
             $staff->save();
 
+            // Для мастера — привязать user_id к записи мастера в tenant-схеме
+            if ($staff->role === 'master' && $staff->master_id) {
+                \App\Services\TenantService::setContext($staff->shop);
+                \Illuminate\Support\Facades\DB::table('masters')
+                    ->where('id', $staff->master_id)
+                    ->update(['user_id' => $user->id]);
+                \App\Services\TenantService::resetContext();
+            }
+
             DB::commit();
 
             $token = $user->createToken('auth_token')->plainTextToken;

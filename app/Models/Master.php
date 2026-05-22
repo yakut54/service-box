@@ -21,6 +21,7 @@ class Master extends Model
         'avatar_url',
         'is_active',
         'sort_order',
+        'user_id',
     ];
 
     protected $casts = [

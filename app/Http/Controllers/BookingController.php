@@ -39,7 +39,11 @@ class BookingController extends Controller
             $query->withStatus($request->status);
         }
 
-        if ($request->filled('master_id')) {
+        // Мастер видит только свои записи — переопределяет любой query-параметр
+        $staffRole = $request->attributes->get('staff_role');
+        if ($staffRole === 'master') {
+            $query->where('master_id', $request->attributes->get('staff_master_id'));
+        } elseif ($request->filled('master_id')) {
             $query->where('master_id', $request->master_id);
         }
 
