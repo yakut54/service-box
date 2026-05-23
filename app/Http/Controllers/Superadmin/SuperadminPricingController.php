@@ -17,7 +17,8 @@ class SuperadminPricingController extends Controller
             'price_rubles'         => round($p->price_kopecks / 100, 2),
             'max_orders_per_month' => $p->max_orders_per_month,
             'max_masters'          => $p->max_masters,
-            'features'             => $p->features ?? [],
+            'features'             => $p->features      ?? [],
+            'capabilities'         => $p->capabilities  ?? [],
         ]);
 
         return response()->json($pricing);
@@ -33,6 +34,8 @@ class SuperadminPricingController extends Controller
             '*.max_masters'          => ['nullable', 'integer', 'min:1'],
             '*.features'             => ['nullable', 'array'],
             '*.features.*'           => ['string', 'max:200'],
+            '*.capabilities'         => ['nullable', 'array'],
+            '*.capabilities.*'       => ['string', 'max:100'],
         ]);
 
         foreach ($data as $item) {
@@ -40,7 +43,8 @@ class SuperadminPricingController extends Controller
                 'price_kopecks'        => $item['price_kopecks'],
                 'max_orders_per_month' => $item['max_orders_per_month'] ?? null,
                 'max_masters'          => $item['max_masters'] ?? null,
-                'features'             => json_encode($item['features'] ?? []),
+                'features'             => json_encode($item['features']      ?? []),
+                'capabilities'         => json_encode($item['capabilities']  ?? []),
             ]);
         }
 

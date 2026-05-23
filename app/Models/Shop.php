@@ -147,7 +147,7 @@ class Shop extends Model
 
     public function getPlanLimits(): array
     {
-        $expired = ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => []];
+        $expired = ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => [], 'capabilities' => []];
 
         if (!$this->subscription_plan) {
             return $expired;
@@ -166,7 +166,8 @@ class Shop extends Model
         return [
             'max_orders_per_month' => $pricing->max_orders_per_month,
             'max_masters'          => $pricing->max_masters,
-            'features'             => $pricing->features ?? [],
+            'features'             => $pricing->features      ?? [],
+            'capabilities'         => $pricing->capabilities  ?? [],
         ];
     }
 
@@ -205,7 +206,8 @@ class Shop extends Model
     public function hasFeature(string $feature): bool
     {
         $limits = $this->getPlanLimits();
-        return in_array($feature, $limits['features']) || in_array('all_features', $limits['features']);
+        $caps   = $limits['capabilities'];
+        return in_array($feature, $caps) || in_array('all_features', $caps);
     }
 
     public function hasLegalDocs(): bool

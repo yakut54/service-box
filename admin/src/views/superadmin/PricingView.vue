@@ -11,6 +11,8 @@ interface PlanEdit {
   max_masters: string
   features: string[]
   newFeature: string
+  capabilities: string[]
+  newCapability: string
 }
 
 const pricing = ref<Record<string, SuperadminPricing>>({})
@@ -39,11 +41,13 @@ const planBadges: Record<string, string> = {
 
 function initEdits(p: SuperadminPricing): PlanEdit {
   return {
-    price_rubles: String(p.price_kopecks),
-    max_orders:   p.max_orders_per_month != null ? String(p.max_orders_per_month) : '',
-    max_masters:  p.max_masters != null ? String(p.max_masters) : '',
-    features:     [...(p.features ?? [])],
-    newFeature:   '',
+    price_rubles:  String(p.price_kopecks),
+    max_orders:    p.max_orders_per_month != null ? String(p.max_orders_per_month) : '',
+    max_masters:   p.max_masters != null ? String(p.max_masters) : '',
+    features:      [...(p.features      ?? [])],
+    newFeature:    '',
+    capabilities:  [...(p.capabilities  ?? [])],
+    newCapability: '',
   }
 }
 
@@ -82,6 +86,25 @@ function onFeatureKeydown(plan: string, e: KeyboardEvent) {
   }
 }
 
+function addCapability(plan: string) {
+  const ed = edits.value[plan]
+  const text = ed.newCapability.trim()
+  if (!text) return
+  ed.capabilities.push(text)
+  ed.newCapability = ''
+}
+
+function removeCapability(plan: string, idx: number) {
+  edits.value[plan].capabilities.splice(idx, 1)
+}
+
+function onCapabilityKeydown(plan: string, e: KeyboardEvent) {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    addCapability(plan)
+  }
+}
+
 async function save() {
   saving.value = true
   success.value = false
@@ -95,6 +118,7 @@ async function save() {
         max_orders_per_month: ed.max_orders ? (parseInt(ed.max_orders) || null) : null,
         max_masters:          ed.max_masters ? (parseInt(ed.max_masters) || null) : null,
         features:             ed.features,
+        capabilities:         ed.capabilities,
       }
     })
     await api.superadminUpdatePricing(items)
@@ -232,6 +256,57 @@ onMounted(load)
                 </svg>
               </button>
               <template #content>Добавить строку</template>
+            </UiTooltip>
+          </div>
+        </div>
+
+        <!-- Capabilities (technical keys for hasFeature()) -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            Возможности <span class="font-mono text-gray-400">(технические ключи для hasFeature)</span>
+          </label>
+
+          <div
+            v-for="(_cap, idx) in edits[plan].capabilities"
+            :key="idx"
+            class="flex items-center gap-2 group"
+          >
+            <input
+              v-model="edits[plan].capabilities[idx]"
+              type="text"
+              class="input flex-1 text-sm font-mono"
+            />
+            <UiTooltip>
+              <button
+                @click="removeCapability(plan, idx)"
+                class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <template #content>Удалить</template>
+            </UiTooltip>
+          </div>
+
+          <div class="flex items-center gap-2 mt-1">
+            <input
+              v-model="edits[plan].newCapability"
+              type="text"
+              placeholder="api_access, widget_analytics..."
+              class="input flex-1 text-sm font-mono"
+              @keydown="onCapabilityKeydown(plan, $event)"
+            />
+            <UiTooltip>
+              <button
+                @click="addCapability(plan)"
+                class="p-1.5 rounded text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <template #content>Добавить ключ</template>
             </UiTooltip>
           </div>
         </div>

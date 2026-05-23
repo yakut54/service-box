@@ -17,6 +17,7 @@ class PlanPricing extends Model
         'max_orders_per_month',
         'max_masters',
         'features',
+        'capabilities',
     ];
 
     protected $casts = [
@@ -24,6 +25,7 @@ class PlanPricing extends Model
         'max_orders_per_month' => 'integer',
         'max_masters'          => 'integer',
         'features'             => 'array',
+        'capabilities'         => 'array',
     ];
 
     public static function forPlan(string $plan): int

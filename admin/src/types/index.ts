@@ -48,6 +48,7 @@ export interface SuperadminPricing {
   max_orders_per_month: number | null
   max_masters: number | null
   features: string[]
+  capabilities: string[]
 }
 
 export interface WidgetConfig {
