@@ -21,7 +21,7 @@ class StaffController extends Controller
 
         if (!$shop->hasFeature('staff_management')) {
             return response()->json([
-                'message' => 'Управление командой недоступно на вашем тарифе. Перейдите на Business или Pro.',
+                'message'          => 'Управление командой недоступно на вашем тарифе. Перейдите на Business или Pro.',
                 'upgrade_required' => true,
             ], 403);
         }
@@ -35,6 +35,7 @@ class StaffController extends Controller
                 'role'              => $s->role,
                 'master_id'         => $s->master_id,
                 'invite_email'      => $s->invite_email,
+                'invite_name'       => $s->invite_name,
                 'accepted_at'       => $s->accepted_at,
                 'invite_expires_at' => $s->invite_expires_at,
                 'is_pending'        => !$s->isAccepted(),
@@ -58,12 +59,13 @@ class StaffController extends Controller
 
         if (!$shop->hasFeature('staff_management')) {
             return response()->json([
-                'message' => 'Управление командой недоступно на вашем тарифе. Перейдите на Business или Pro.',
+                'message'          => 'Управление командой недоступно на вашем тарифе. Перейдите на Business или Pro.',
                 'upgrade_required' => true,
             ], 403);
         }
 
         $data = $request->validate([
+            'name'      => 'required_if:role,admin|nullable|string|max:255',
             'email'     => 'required|email|max:255',
             'role'      => 'sometimes|in:admin,master',
             'master_id' => 'required_if:role,master|nullable|uuid',
@@ -71,13 +73,12 @@ class StaffController extends Controller
 
         $role  = $data['role'] ?? 'admin';
         $email = strtolower(trim($data['email']));
+        $name  = isset($data['name']) ? trim($data['name']) : null;
 
-        // Нельзя пригласить самого себя (владельца магазина)
         if ($request->user()->email === $email) {
             return response()->json(['message' => 'Нельзя пригласить себя'], 422);
         }
 
-        // При роли master — проверяем что master_id существует в tenant-схеме
         $masterId = null;
         if ($role === 'master') {
             $masterId = $data['master_id'];
@@ -85,7 +86,6 @@ class StaffController extends Controller
             if (!$masterExists) {
                 return response()->json(['message' => 'Мастер не найден'], 404);
             }
-            // Нельзя пригласить мастера, если к нему уже привязан аккаунт
             $alreadyLinked = ShopStaff::where('shop_id', $shop->id)
                 ->where('role', 'master')
                 ->where('master_id', $masterId)
@@ -96,10 +96,8 @@ class StaffController extends Controller
             }
         }
 
-        // Проверяем: уже сотрудник или уже приглашён
         $existingUser = User::where('email', $email)->first();
 
-        // Нельзя пригласить того, кто уже владеет своим магазином
         if ($existingUser && $existingUser->shop) {
             return response()->json([
                 'message' => 'Этот пользователь является владельцем другого магазина и не может быть добавлен',
@@ -119,7 +117,6 @@ class StaffController extends Controller
             return response()->json(['message' => 'Этот пользователь уже является сотрудником или уже приглашён'], 409);
         }
 
-        // Безопасный случайный токен (64 hex-символа = 256 бит энтропии)
         $token = bin2hex(random_bytes(32));
 
         $staffRecord = ShopStaff::create([
@@ -128,6 +125,7 @@ class StaffController extends Controller
             'role'              => $role,
             'master_id'         => $masterId,
             'invite_email'      => $email,
+            'invite_name'       => $name,
             'invite_token'      => $token,
             'invite_expires_at' => now()->addHours(48),
         ]);
@@ -146,10 +144,70 @@ class StaffController extends Controller
             'data'    => [
                 'id'           => $staffRecord->id,
                 'invite_email' => $email,
+                'invite_name'  => $name,
                 'role'         => $role,
                 'master_id'    => $masterId,
+                'is_pending'   => true,
+                'is_expired'   => false,
+                'accepted_at'  => null,
+                'invite_expires_at' => $staffRecord->invite_expires_at,
+                'user'         => null,
             ],
         ], 201);
+    }
+
+    /**
+     * PUT /api/admin/staff/{id}
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+
+        $staffRecord = ShopStaff::where('id', $id)
+            ->where('shop_id', $shop->id)
+            ->where('role', 'admin')
+            ->firstOrFail();
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $staffRecord->update(['invite_name' => trim($data['name'])]);
+
+        return response()->json(['message' => 'Имя обновлено']);
+    }
+
+    /**
+     * POST /api/admin/staff/{id}/resend
+     */
+    public function resend(Request $request, string $id): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+
+        $staffRecord = ShopStaff::where('id', $id)
+            ->where('shop_id', $shop->id)
+            ->whereNull('accepted_at')
+            ->firstOrFail();
+
+        $token = bin2hex(random_bytes(32));
+
+        $staffRecord->update([
+            'invite_token'      => $token,
+            'invite_expires_at' => now()->addHours(48),
+        ]);
+
+        $inviteUrl = rtrim(config('app.frontend_url'), '/') . '/invite/' . $token;
+
+        $existingUser = $staffRecord->user_id ? User::find($staffRecord->user_id) : null;
+
+        Mail::to($staffRecord->invite_email)->send(new StaffInviteMail(
+            inviteUrl:            $inviteUrl,
+            shopName:             $shop->name,
+            email:                $staffRecord->invite_email,
+            requiresRegistration: $existingUser === null,
+        ));
+
+        return response()->json(['message' => 'Приглашение отправлено повторно']);
     }
 
     /**
@@ -163,7 +221,6 @@ class StaffController extends Controller
             ->where('shop_id', $shop->id)
             ->firstOrFail();
 
-        // Инвалидируем все токены сотрудника немедленно
         if ($staffRecord->user_id && $staffRecord->accepted_at) {
             User::find($staffRecord->user_id)?->tokens()->delete();
         }

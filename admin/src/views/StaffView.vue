@@ -2,35 +2,26 @@
 import { ref, computed, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import PageHeader from '@/components/PageHeader.vue'
-import AppInput from '@/components/AppInput.vue'
 import PlanGate from '@/components/PlanGate.vue'
-import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
-import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import AdminFormModal from '@/components/modals/AdminFormModal.vue'
+import { UiConfirmDialog, UiEmptyState, UiSpinner, UiTooltip } from '@/shared/ui'
 import type { StaffMember } from '@/types'
 
 const authStore = useAuthStore()
+const toast = useToast()
 
-const staff          = ref<StaffMember[]>([])
-const loading        = ref(false)
-const loadError      = ref('')
+const staff   = ref<StaffMember[]>([])
+const loading = ref(false)
+const error   = ref('')
 
-const inviteEmail        = ref('')
-const inviteEmailTouched = ref(false)
-const inviting           = ref(false)
-const inviteError        = ref('')
-const inviteSuccess      = ref('')
+const showModal    = ref(false)
+const editingAdmin = ref<StaffMember | null>(null)
 
-const revokeTarget     = ref<StaffMember | null>(null)
-const revokeDialogOpen = ref(false)
-const revoking         = ref(false)
-
-const inviteEmailError = computed(() => {
-  if (!inviteEmailTouched.value) return ''
-  if (!inviteEmail.value) return 'Введите email'
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.value) ? '' : 'Некорректный email'
-})
+const deleteTarget  = ref<StaffMember | null>(null)
+const deleting      = ref(false)
+const resendingId   = ref<string | null>(null)
 
 const hasFeature = computed(() => {
   const plan = authStore.shop?.subscription_plan
@@ -38,57 +29,85 @@ const hasFeature = computed(() => {
 })
 
 async function load() {
+  loading.value = true
+  error.value = ''
   try {
-    loading.value = true
-    loadError.value = ''
     const res = await api.getStaff()
-    staff.value = res.data
-  } catch (err) {
-    loadError.value = err instanceof ApiError ? err.message : 'Ошибка загрузки'
+    staff.value = res.data.filter(s => s.role === 'admin')
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Ошибка загрузки'
   } finally {
     loading.value = false
   }
 }
 
-async function sendInvite() {
-  inviteEmailTouched.value = true
-  if (inviteEmailError.value || !inviteEmail.value) return
+function openCreate() {
+  editingAdmin.value = null
+  showModal.value = true
+}
 
-  inviting.value = true
-  inviteError.value = ''
-  inviteSuccess.value = ''
+function openEdit(admin: StaffMember) {
+  editingAdmin.value = admin
+  showModal.value = true
+}
 
-  try {
-    const res = await api.inviteStaff(inviteEmail.value)
-    inviteSuccess.value = res.message || 'Приглашение отправлено'
-    inviteEmail.value = ''
-    inviteEmailTouched.value = false
-    await load()
-  } catch (err) {
-    inviteError.value = err instanceof ApiError ? err.message : 'Ошибка отправки'
-  } finally {
-    inviting.value = false
+function handleSaved(admin: StaffMember, mode: 'create' | 'edit') {
+  if (mode === 'create') {
+    staff.value.unshift(admin)
+    toast.success('Приглашение отправлено')
+  } else {
+    const idx = staff.value.findIndex(s => s.id === admin.id)
+    if (idx !== -1) staff.value[idx] = admin
+    toast.success('Имя обновлено')
   }
 }
 
-function openRevoke(member: StaffMember) {
-  revokeTarget.value = member
-  revokeDialogOpen.value = true
+async function resend(admin: StaffMember) {
+  resendingId.value = admin.id
+  try {
+    await api.resendAdminInvite(admin.id)
+    const idx = staff.value.findIndex(s => s.id === admin.id)
+    if (idx !== -1) {
+      staff.value[idx] = {
+        ...staff.value[idx],
+        is_expired: false,
+        is_pending: true,
+      }
+    }
+    toast.success('Приглашение отправлено повторно')
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Ошибка отправки')
+  } finally {
+    resendingId.value = null
+  }
 }
 
-async function confirmRevoke() {
-  if (!revokeTarget.value) return
-  revoking.value = true
+async function confirmDelete() {
+  if (!deleteTarget.value) return
+  deleting.value = true
   try {
-    await api.revokeStaff(revokeTarget.value.id)
-    revokeDialogOpen.value = false
-    revokeTarget.value = null
-    await load()
-  } catch {
-    // ignore
+    await api.revokeStaff(deleteTarget.value.id)
+    staff.value = staff.value.filter(s => s.id !== deleteTarget.value!.id)
+    deleteTarget.value = null
+    toast.success('Доступ отозван')
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Ошибка')
   } finally {
-    revoking.value = false
+    deleting.value = false
   }
+}
+
+function displayName(admin: StaffMember) {
+  return admin.user?.name || admin.invite_name || admin.invite_email || '?'
+}
+
+function displayEmail(admin: StaffMember) {
+  return admin.user?.email || admin.invite_email || ''
+}
+
+function initials(admin: StaffMember) {
+  const name = displayName(admin)
+  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
 onMounted(load)
@@ -96,136 +115,132 @@ onMounted(load)
 
 <template>
   <div class="space-y-6">
-    <PageHeader title="Команда" subtitle="Управление доступом администраторов" />
 
-    <PlanGate v-if="!hasFeature" required-plan="Business" feature="Управление командой" />
+    <PageHeader title="Администраторы" subtitle="Люди с доступом к панели управления">
+      <button v-if="hasFeature" @click="openCreate" class="btn-primary shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span class="hidden sm:inline">Добавить администратора</span>
+      </button>
+    </PageHeader>
+
+    <PlanGate v-if="!hasFeature" required-plan="Business" feature="Управление администраторами" />
 
     <template v-else>
-      <!-- Invite form -->
-      <div class="card">
-        <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Пригласить администратора</h2>
-        <form @submit.prevent="sendInvite" class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1">
-            <AppInput
-              v-model="inviteEmail"
-              type="email"
-              placeholder="admin@example.com"
-              :error="inviteEmailError"
-              @blur="inviteEmailTouched = true"
-            />
-          </div>
-          <button type="submit" class="btn-primary shrink-0" :disabled="inviting">
-            {{ inviting ? 'Отправка...' : 'Отправить приглашение' }}
-          </button>
-        </form>
-        <p v-if="inviteError"   class="mt-2 text-sm text-red-600 dark:text-red-400">{{ inviteError }}</p>
-        <p v-if="inviteSuccess" class="mt-2 text-sm text-green-600 dark:text-green-400">{{ inviteSuccess }}</p>
-        <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">Ссылка-приглашение будет отправлена на email. Действует 48 часов.</p>
-      </div>
 
-      <!-- Staff list -->
       <div v-if="loading" class="card flex items-center justify-center py-16">
         <UiSpinner />
       </div>
 
-      <div v-else-if="loadError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
-        {{ loadError }}
+      <div v-else-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+        {{ error }}
       </div>
 
       <UiEmptyState
         v-else-if="staff.length === 0"
         title="Нет администраторов"
-        description="Пригласите первого администратора выше"
+        description="Добавьте первого администратора — он получит доступ к панели управления"
       >
         <template #icon>
           <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         </template>
+        <button @click="openCreate" class="btn-primary">Добавить администратора</button>
       </UiEmptyState>
 
-      <div v-else class="card p-0 overflow-hidden">
-        <!-- Table header (desktop) -->
-        <div class="hidden sm:grid grid-cols-[1fr_120px_110px_80px] gap-4 px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-          <span>Пользователь</span>
-          <span>Роль</span>
-          <span>Статус</span>
-          <span></span>
-        </div>
-
-        <!-- Rows -->
+      <!-- Cards grid -->
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="member in staff"
-          :key="member.id"
-          class="flex flex-wrap sm:grid sm:grid-cols-[1fr_120px_110px_80px] sm:items-center gap-x-4 gap-y-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0"
+          v-for="admin in staff"
+          :key="admin.id"
+          class="card flex flex-col gap-4"
         >
-          <!-- User info -->
-          <div class="flex items-center gap-3 min-w-0 w-full sm:w-auto">
-            <div class="w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center flex-shrink-0">
-              <span class="text-sm font-medium text-gray-600 dark:text-gray-300">
-                {{ (member.user?.name || member.invite_email || '?').charAt(0).toUpperCase() }}
-              </span>
+          <!-- Avatar + info -->
+          <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-semibold text-lg flex-shrink-0">
+              {{ initials(admin) }}
             </div>
-            <div class="min-w-0">
-              <p v-if="member.user" class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ member.user.name }}</p>
-              <p v-else class="text-sm text-gray-500 dark:text-gray-400 truncate italic">{{ member.invite_email }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 truncate">
-                {{ member.user?.email || member.invite_email }}
-              </p>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-gray-900 dark:text-white truncate">{{ displayName(admin) }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ displayEmail(admin) }}</p>
             </div>
           </div>
-
-          <!-- Role -->
-          <span class="text-sm text-gray-700 dark:text-gray-300">Администратор</span>
 
           <!-- Status badge -->
           <div>
             <span
-              v-if="member.accepted_at"
+              v-if="admin.accepted_at"
               class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400"
             >
               <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Активен
             </span>
             <span
-              v-else-if="member.is_expired"
-              class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+              v-else-if="admin.is_expired"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
             >
-              Истёк
+              <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Приглашение истекло
             </span>
             <span
               v-else
               class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
             >
-              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Ожидает
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Ожидает принятия
             </span>
           </div>
 
           <!-- Actions -->
-          <div class="text-right sm:text-right">
-            <button
-              @click="openRevoke(member)"
-              class="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors"
-            >
-              Удалить
+          <div class="flex gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
+            <button @click="openEdit(admin)" class="btn-secondary btn-sm flex-1">
+              Редактировать
+            </button>
+
+            <UiTooltip v-if="!admin.accepted_at">
+              <button
+                @click="resend(admin)"
+                :disabled="resendingId === admin.id"
+                class="btn-ghost btn-sm"
+              >
+                <UiSpinner v-if="resendingId === admin.id" class="w-4 h-4" />
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </button>
+              <template #content>Переслать приглашение</template>
+            </UiTooltip>
+
+            <button @click="deleteTarget = admin" class="btn-danger btn-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
             </button>
           </div>
         </div>
       </div>
+
     </template>
 
-    <!-- Revoke confirm dialog -->
+    <AdminFormModal
+      v-model="showModal"
+      :admin="editingAdmin"
+      @saved="handleSaved"
+    />
+
     <UiConfirmDialog
-      v-model="revokeDialogOpen"
+      :model-value="!!deleteTarget"
+      @update:model-value="!$event && (deleteTarget = null)"
       title="Удалить администратора?"
-      :loading="revoking"
-      @confirm="confirmRevoke"
+      :loading="deleting"
+      @confirm="confirmDelete"
     >
-      <template v-if="revokeTarget?.user">
-        Доступ <strong>{{ revokeTarget.user.name }}</strong> будет немедленно отозван — при следующем запросе произойдёт выход из системы.
+      <template v-if="deleteTarget?.accepted_at">
+        Доступ <strong>{{ displayName(deleteTarget) }}</strong> будет немедленно отозван.
       </template>
       <template v-else>
-        Приглашение для <strong>{{ revokeTarget?.invite_email }}</strong> будет аннулировано.
+        Приглашение для <strong>{{ displayName(deleteTarget!) }}</strong> будет аннулировано.
       </template>
     </UiConfirmDialog>
+
   </div>
 </template>

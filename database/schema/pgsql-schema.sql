@@ -467,6 +467,7 @@ CREATE TABLE IF NOT EXISTS public.shop_staff (
     user_id uuid,
     role character varying(20) DEFAULT 'admin'::character varying NOT NULL,
     invite_email character varying(255),
+    invite_name character varying(255),
     invite_token character varying(64),
     accepted_at timestamp(0) without time zone,
     created_at timestamp(0) without time zone,

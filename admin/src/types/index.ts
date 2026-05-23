@@ -447,6 +447,7 @@ export interface StaffMember {
   role: 'admin' | 'master'
   master_id: string | null
   invite_email: string | null
+  invite_name: string | null
   accepted_at: string | null
   invite_expires_at: string | null
   is_pending: boolean

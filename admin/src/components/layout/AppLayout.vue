@@ -62,7 +62,7 @@ const navigation = [
   { name: 'Клиенты',   href: '/customers',    icon: 'users' },
   { name: 'Скидки',    href: '/discounts',    icon: 'discount' },
   { name: 'Отзывы',    href: '/reviews',      icon: 'reviews' },
-  { name: 'Команда',   href: '/staff',        icon: 'staff',        ownerOnly: true },
+  { name: 'Администраторы', href: '/staff',   icon: 'staff',        ownerOnly: true },
   { name: 'Подписка',  href: '/subscription', icon: 'subscription', ownerOnly: true },
   { name: 'Документы', href: '/legal',        icon: 'legal',        ownerOnly: true },
   { name: 'Настройки', href: '/settings',     icon: 'settings',     ownerOnly: true },

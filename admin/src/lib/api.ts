@@ -574,10 +574,23 @@ class ApiClient {
     return this.request<{ data: StaffMember[] }>('/admin/staff')
   }
 
-  async inviteStaff(email: string) {
-    return this.request<{ message: string }>('/admin/staff', {
+  async createAdmin(name: string, email: string) {
+    return this.request<{ message: string; data: StaffMember }>('/admin/staff', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ name, email, role: 'admin' }),
+    })
+  }
+
+  async updateAdmin(id: string, name: string) {
+    return this.request<{ message: string }>(`/admin/staff/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    })
+  }
+
+  async resendAdminInvite(id: string) {
+    return this.request<{ message: string }>(`/admin/staff/${id}/resend`, {
+      method: 'POST',
     })
   }
 

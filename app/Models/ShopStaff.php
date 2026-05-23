@@ -21,6 +21,7 @@ class ShopStaff extends Model
         'messenger_link_token',
         'messenger_link_token_expires_at',
         'invite_email',
+        'invite_name',
         'invite_token',
         'accepted_at',
         'invite_expires_at',

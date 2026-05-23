@@ -189,9 +189,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
     Route::put('/delivery-settings',  [DeliverySettingsController::class, 'update'])->middleware('owner');
 
     // Staff management (owner only)
-    Route::get('/staff',        [StaffController::class, 'index'])->middleware('owner');
-    Route::post('/staff',       [StaffController::class, 'store'])->middleware(['owner', 'throttle:5,1']);
-    Route::delete('/staff/{id}', [StaffController::class, 'destroy'])->middleware('owner');
+    Route::get('/staff',              [StaffController::class, 'index'])->middleware('owner');
+    Route::post('/staff',             [StaffController::class, 'store'])->middleware(['owner', 'throttle:5,1']);
+    Route::put('/staff/{id}',         [StaffController::class, 'update'])->middleware('owner');
+    Route::post('/staff/{id}/resend', [StaffController::class, 'resend'])->middleware(['owner', 'throttle:5,1']);
+    Route::delete('/staff/{id}',      [StaffController::class, 'destroy'])->middleware('owner');
 
 });
 
