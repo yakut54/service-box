@@ -19,6 +19,8 @@ const stage      = ref<Stage>('loading')
 const errorMsg   = ref('')
 const shopName   = ref('')
 const email      = ref('')
+const role       = ref('')
+const masterName = ref('')
 const requiresRegistration = ref(false)
 
 const name            = ref('')
@@ -54,7 +56,10 @@ async function validateToken() {
     const data = await api.validateInvite(inviteToken)
     shopName.value             = data.shop_name
     email.value                = data.email
+    role.value                 = data.role ?? 'admin'
+    masterName.value           = data.master_name ?? ''
     requiresRegistration.value = data.requires_registration
+    if (masterName.value) name.value = masterName.value
     stage.value = 'form'
   } catch (err) {
     errorMsg.value = err instanceof ApiError ? err.message : 'Приглашение недействительно или уже использовано'
@@ -149,10 +154,12 @@ onMounted(validateToken)
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Приглашение в команду</h2>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ masterName ? `Привет, ${masterName.split(' ')[0]}!` : 'Приглашение в команду' }}
+          </h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Магазин <strong class="text-gray-700 dark:text-gray-300">{{ shopName }}</strong>
-            приглашает вас в качестве администратора
+            приглашает вас в качестве {{ role === 'master' ? 'мастера' : 'администратора' }}
           </p>
         </div>
 

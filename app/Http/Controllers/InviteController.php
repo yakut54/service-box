@@ -25,9 +25,19 @@ class InviteController extends Controller
             ], 404);
         }
 
+        $masterName = null;
+        if ($staff->role === 'master' && $staff->master_id) {
+            \App\Services\TenantService::setContext($staff->shop);
+            $master = DB::table('masters')->where('id', $staff->master_id)->first();
+            $masterName = $master?->name;
+            \App\Services\TenantService::resetContext();
+        }
+
         return response()->json([
-            'shop_name'            => $staff->shop->name,
-            'email'                => $staff->invite_email,
+            'shop_name'             => $staff->shop->name,
+            'email'                 => $staff->invite_email,
+            'role'                  => $staff->role,
+            'master_name'           => $masterName,
             'requires_registration' => $staff->user_id === null,
         ]);
     }
