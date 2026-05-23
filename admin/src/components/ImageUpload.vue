@@ -27,16 +27,21 @@ const emit = defineEmits<{
   'update:uploading': [uploading: boolean]
 }>()
 
-const uploading   = ref(false)
-const isDragging  = ref(false)
-const uploadError = ref('')
-const imageError  = ref(false)
-const confirmDel  = ref(false)
-const fileInputEl = ref<HTMLInputElement | null>(null)
+const uploading          = ref(false)
+const isDragging         = ref(false)
+const uploadError        = ref('')
+const imageError         = ref(false)
+const confirmDel         = ref(false)
+const fileInputEl        = ref<HTMLInputElement | null>(null)
+const sessionUploadedUrl = ref<string | null>(null)
 
 const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
-watch(() => props.modelValue, () => { imageError.value = false })
+watch(() => props.modelValue, (newVal) => {
+  imageError.value = false
+  // Parent changed the value from outside (form reset) — clear session tracking
+  if (newVal !== sessionUploadedUrl.value) sessionUploadedUrl.value = null
+})
 
 const previewClass = computed(() => ({
   sm: 'h-12 w-12',
@@ -68,6 +73,12 @@ async function handleFile(file: File) {
   const err = validateFile(file)
   if (err) { uploadError.value = err; return }
 
+  // Replacing an image uploaded this session — delete the old one immediately
+  if (sessionUploadedUrl.value && props.modelValue === sessionUploadedUrl.value) {
+    api.deleteImage(sessionUploadedUrl.value).catch(() => {})
+    sessionUploadedUrl.value = null
+  }
+
   uploadError.value = ''
   imageError.value  = false
 
@@ -81,6 +92,7 @@ async function handleFile(file: File) {
       : file
     const result = await api.uploadImage(toUpload)
     URL.revokeObjectURL(previewUrl)
+    sessionUploadedUrl.value = result.url
     emit('update:modelValue', result.url)
   } catch (e: unknown) {
     URL.revokeObjectURL(previewUrl)
@@ -104,6 +116,11 @@ function onDrop(e: DragEvent) {
 }
 
 function doDelete() {
+  // Delete immediately if this image was uploaded in the current session
+  if (props.modelValue && props.modelValue === sessionUploadedUrl.value) {
+    api.deleteImage(props.modelValue).catch(() => {})
+    sessionUploadedUrl.value = null
+  }
   emit('update:modelValue', null)
   uploadError.value = ''
   imageError.value  = false
