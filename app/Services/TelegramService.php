@@ -639,12 +639,21 @@ class TelegramService
         $text .= "📋 " . self::esc($service) . "\n";
         $text .= "👤 " . self::esc($booking->customer_name);
 
+        $payload = [
+            'chat_id'    => $chatId,
+            'text'       => $text,
+            'parse_mode' => 'HTML',
+        ];
+
+        if ($type === '2h') {
+            $payload['reply_markup'] = json_encode(['inline_keyboard' => [[
+                ['text' => '✅ Пришёл',    'callback_data' => "master_booking:arrived:{$booking->id}"],
+                ['text' => '👻 Не пришёл', 'callback_data' => "master_booking:noshow:{$booking->id}"],
+            ]]]);
+        }
+
         \Illuminate\Support\Facades\Http::timeout(5)
-            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-                'chat_id'    => $chatId,
-                'text'       => $text,
-                'parse_mode' => 'HTML',
-            ]);
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
     }
 
     public static function removeKeyboardByEntity(string $entityType, string $entityId): void

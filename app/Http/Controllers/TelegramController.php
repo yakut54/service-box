@@ -283,6 +283,11 @@ class TelegramController extends Controller
             return;
         }
 
+        if ($entityType === 'master_booking') {
+            $this->handleMasterBookingAction($callbackId, $action, $entityId, $chatId, $messageId);
+            return;
+        }
+
         // Find shop by chat_id (owner-side callbacks)
         $shop = Shop::where('telegram_chat_id', $chatId)
             ->where('telegram_bot_connected', true)
@@ -603,6 +608,76 @@ class TelegramController extends Controller
 
         Log::warning('[TG] client cancel: booking not found in any schema', ['booking' => $bookingId]);
         $this->answerCallback($callbackId, 'Запись не найдена');
+    }
+
+    private function handleMasterBookingAction(string $callbackId, string $action, string $bookingId, int $chatId, ?int $messageId): void
+    {
+        $staff = \App\Models\ShopStaff::where('telegram_chat_id', $chatId)
+            ->where('role', 'master')
+            ->whereNotNull('master_id')
+            ->first();
+
+        if (!$staff) {
+            $this->answerCallback($callbackId, 'Нет доступа');
+            return;
+        }
+
+        $shop = Shop::find($staff->shop_id);
+        if (!$shop) {
+            $this->answerCallback($callbackId, 'Магазин не найден');
+            return;
+        }
+
+        TenantService::setContext($shop);
+        try {
+            $booking = \App\Models\Booking::where('id', $bookingId)
+                ->where('master_id', $staff->master_id)
+                ->first();
+
+            if (!$booking) {
+                $this->answerCallback($callbackId, 'Запись не найдена');
+                return;
+            }
+
+            if (!in_array($booking->status, ['pending', 'confirmed'])) {
+                $this->answerCallback($callbackId, 'Статус уже изменён', true);
+                return;
+            }
+
+            $newStatus = match($action) {
+                'arrived' => 'completed',
+                'noshow'  => 'no_show',
+                default   => null,
+            };
+
+            if (!$newStatus) {
+                $this->answerCallback($callbackId, 'Неизвестное действие');
+                return;
+            }
+
+            $booking->load(['service']);
+            $booking->update(['status' => $newStatus]);
+
+            if ($newStatus === 'completed' && !$booking->rating_sent) {
+                try { TelegramService::notifyRatingRequest($shop, $booking); } catch (\Throwable) {}
+                try { MaxService::notifyRatingRequest($bookingId, $booking); } catch (\Throwable) {}
+                $booking->update(['rating_sent' => true]);
+            }
+
+            $label = $newStatus === 'completed' ? '✅ Завершена' : '👻 Неявка';
+            $this->answerCallback($callbackId, "Запись отмечена: {$label}");
+            $this->removeKeyboard($chatId, $messageId);
+
+            $date = \Carbon\Carbon::parse($booking->start_time)
+                ->setTimezone($shop->timezone ?? 'Europe/Moscow')
+                ->format('d.m H:i');
+            $ownerMsg = "Запись {$date} (" . htmlspecialchars($booking->customer_name, ENT_QUOTES | ENT_HTML5, 'UTF-8') . ") — {$label}";
+            TelegramService::sendMessage(shop: $shop, text: $ownerMsg);
+            MaxService::sendMessage($shop, $ownerMsg);
+
+        } finally {
+            TenantService::resetContext();
+        }
     }
 
     // ── Telegram Bot API helpers ──────────────────────────────────────
