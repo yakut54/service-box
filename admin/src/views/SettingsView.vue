@@ -61,11 +61,13 @@ function setTab(id: TabId) {
 
     <!-- Основное -->
     <div v-show="activeTab === 'main'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <SettingsShopInfo />
+      <div class="flex flex-col gap-6">
+        <SettingsShopInfo />
+        <SettingsPassword />
+      </div>
       <div class="flex flex-col gap-6">
         <SettingsWorkHours />
         <SettingsMasters />
-        <SettingsPassword />
       </div>
     </div>
 
