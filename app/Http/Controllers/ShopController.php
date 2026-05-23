@@ -102,6 +102,7 @@ class ShopController extends Controller
             'widget_config'                     => 'sometimes|array',
             'widget_config.preset'              => 'sometimes|nullable|string|in:light,dark,minimal',
             'widget_config.logo_url'            => 'sometimes|nullable|string|max:1000',
+            'widget_config.logo_fit'            => 'sometimes|nullable|string|in:contain,cover,fill',
             'widget_config.primary_color'       => 'sometimes|nullable|string|max:20',
             'widget_config.border_radius'       => 'sometimes|nullable|integer|in:4,8,16',
             'widget_config.font_family'         => 'sometimes|nullable|string|in:system,inter,roboto,montserrat,georgia',
