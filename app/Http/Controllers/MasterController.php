@@ -135,12 +135,13 @@ class MasterController extends Controller
             }
         }
 
-        if (isset($data['avatar_url']) && $data['avatar_url'] !== $master->avatar_url) {
-            StorageService::deleteByUrl($master->avatar_url);
-        }
-
-        $wasActive = $master->is_active;
+        $oldAvatarUrl = $master->avatar_url;
+        $wasActive    = $master->is_active;
         $master->update($data);
+
+        if (isset($data['avatar_url']) && $data['avatar_url'] !== $oldAvatarUrl) {
+            StorageService::deleteByUrl($oldAvatarUrl);
+        }
 
         $shop = $request->attributes->get('shop');
         if ($shop && isset($data['is_active'])) {
@@ -164,8 +165,9 @@ class MasterController extends Controller
     public function destroy(string $master): JsonResponse
     {
         $master = Master::findOrFail($master);
-        StorageService::deleteByUrl($master->avatar_url);
+        $avatarUrl = $master->avatar_url;
         $master->delete();
+        StorageService::deleteByUrl($avatarUrl);
 
         return response()->json(['message' => 'Мастер удалён'], 200);
     }

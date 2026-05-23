@@ -170,6 +170,9 @@ class ShopController extends Controller
         }
 
         // Мержим widget_config с существующими данными
+        $oldLogoUrl     = null;
+        $shouldDeleteLogo = false;
+
         if (isset($validated['widget_config'])) {
             $oldLogoUrl      = ($shop->widget_config ?? [])['logo_url'] ?? null;
             $incomingLogoUrl = $validated['widget_config']['logo_url'] ?? null;
@@ -177,10 +180,9 @@ class ShopController extends Controller
             $existing = $shop->widget_config ?? [];
             $validated['widget_config'] = array_merge($existing, $validated['widget_config']);
 
-            // Удаляем старый логотип если он был заменён
-            if (array_key_exists('logo_url', $request->input('widget_config', [])) && $oldLogoUrl && $oldLogoUrl !== $incomingLogoUrl) {
-                StorageService::deleteByUrl($oldLogoUrl);
-            }
+            $shouldDeleteLogo = array_key_exists('logo_url', $request->input('widget_config', []))
+                && $oldLogoUrl
+                && $oldLogoUrl !== $incomingLogoUrl;
         }
 
         // Мержим legal_config с существующими данными — не затираем незатронутые поля
@@ -191,6 +193,10 @@ class ShopController extends Controller
         }
 
         $shop->update($validated);
+
+        if ($shouldDeleteLogo) {
+            StorageService::deleteByUrl($oldLogoUrl);
+        }
 
         return response()->json($shop);
     }

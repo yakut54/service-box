@@ -121,9 +121,7 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($product);
 
-        if ($request->has('image_url') && $request->image_url !== $product->image_url) {
-            StorageService::deleteByUrl($product->image_url);
-        }
+        $oldImageUrl = $product->image_url;
 
         $product->update($request->only([
             'type',
@@ -137,6 +135,10 @@ class ProductController extends Controller
             'category_id',
             'sort_order',
         ]));
+
+        if ($request->has('image_url') && $request->image_url !== $oldImageUrl) {
+            StorageService::deleteByUrl($oldImageUrl);
+        }
 
         $this->updateProductDetails($product, $request);
 
@@ -157,8 +159,9 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($product);
 
-        StorageService::deleteByUrl($product->image_url);
+        $imageUrl = $product->image_url;
         $product->delete();
+        StorageService::deleteByUrl($imageUrl);
 
         return response()->json([
             'message' => 'Product deleted successfully',

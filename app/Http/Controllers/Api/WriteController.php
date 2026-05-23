@@ -14,6 +14,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Services\DiscountService;
 use App\Services\MasterCascadeService;
+use App\Services\StorageService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -346,8 +347,13 @@ class WriteController extends Controller
             'sort_order'     => 'integer|min:0',
         ]);
 
-        $wasActive = $master->is_active;
+        $oldAvatarUrl = $master->avatar_url;
+        $wasActive    = $master->is_active;
         $master->update($data);
+
+        if (isset($data['avatar_url']) && $data['avatar_url'] !== $oldAvatarUrl) {
+            StorageService::deleteByUrl($oldAvatarUrl);
+        }
 
         if ($shop && isset($data['is_active'])) {
             if ($wasActive && !$master->is_active) {
@@ -365,7 +371,11 @@ class WriteController extends Controller
 
     public function deleteMaster(string $id): JsonResponse
     {
-        Master::findOrFail($id)->delete();
+        $master    = Master::findOrFail($id);
+        $avatarUrl = $master->avatar_url;
+        $master->delete();
+        StorageService::deleteByUrl($avatarUrl);
+
         return response()->json(['message' => 'Master deleted']);
     }
 

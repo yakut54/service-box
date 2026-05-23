@@ -93,11 +93,12 @@ class CategoryController extends Controller
             $data['slug'] = $this->uniqueSlug($data['slug'], $category->name, $category->id);
         }
 
-        if (isset($data['image_url']) && $data['image_url'] !== $category->image_url) {
-            StorageService::deleteByUrl($category->image_url);
-        }
-
+        $oldImageUrl = $category->image_url;
         $category->update($data);
+
+        if (isset($data['image_url']) && $data['image_url'] !== $oldImageUrl) {
+            StorageService::deleteByUrl($oldImageUrl);
+        }
 
         return response()->json(['data' => $category->fresh()->load('children')]);
     }
@@ -136,11 +137,9 @@ class CategoryController extends Controller
                 Product::whereIn('category_id', $categoryIds)->update(['category_id' => null]);
             }
 
-            // Удаляем файлы изображений перед удалением категорий
-            Category::whereIn('id', $categoryIds)->get(['image_url'])
-                ->each(fn($cat) => StorageService::deleteByUrl($cat->image_url));
-
+            $imageUrls = Category::whereIn('id', $categoryIds)->pluck('image_url')->filter()->values();
             Category::whereIn('id', $categoryIds)->delete();
+            $imageUrls->each(fn($url) => StorageService::deleteByUrl($url));
 
             return response()->json(['message' => 'Категория удалена']);
         }
