@@ -41,7 +41,7 @@ const showDuration    = ref(true)
 const showMasterName  = ref(true)
 const showDescription = ref(true)
 const logoUrl        = ref<string | null>(null)
-const logoFit        = ref<'contain' | 'cover' | 'fill'>('contain')
+const logoFit        = ref<'contain' | 'cover'>('contain')
 const whiteLabel     = ref(false)
 const customCss      = ref('')
 const saving         = ref(false)
@@ -90,7 +90,7 @@ onMounted(() => {
     if (wc.show_master_name != null) showMasterName.value  = wc.show_master_name
     if (wc.show_description != null) showDescription.value = wc.show_description
     logoUrl.value    = wc.logo_url   ?? null
-    logoFit.value    = (wc.logo_fit as 'contain' | 'cover' | 'fill') ?? 'contain'
+    logoFit.value    = (wc.logo_fit as 'contain' | 'cover') ?? 'contain'
     whiteLabel.value = wc.white_label ?? false
     customCss.value  = wc.custom_css  ?? ''
   }
@@ -347,9 +347,8 @@ async function saveConfig() {
             <div class="flex flex-col gap-1.5">
               <button
                 v-for="opt in ([
-                  { v: 'contain', label: 'Вписать',    desc: 'Лого целиком, без обрезки' },
-                  { v: 'cover',   label: 'Заполнить',  desc: 'Заполняет область, края срезаются' },
-                  { v: 'fill',    label: 'Растянуть',  desc: 'Принудительно под размер рамки' },
+                  { v: 'contain', label: 'Вписать',   desc: 'Лого целиком, без обрезки' },
+                  { v: 'cover',   label: 'Заполнить', desc: 'Заполняет область, края срезаются' },
                 ] as const)"
                 :key="opt.v"
                 type="button"
