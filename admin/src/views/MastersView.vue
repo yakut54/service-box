@@ -298,7 +298,7 @@ function initials(name: string) {
 
           <!-- Invite / linked badge -->
           <template v-if="master.user_id">
-            <span class="badge-confirmed self-center text-xs px-2">✓ Привязан</span>
+            <span class="badge-confirmed self-center text-xs px-2">✓ Подключён</span>
           </template>
           <template v-else>
             <button
