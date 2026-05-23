@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
@@ -13,6 +13,8 @@ const { isDark, toggle } = useTheme()
 const showMessengers = ref(false)
 const tgConnected = ref(false)
 const maxConnected = ref(false)
+const bannerDismissed = ref(localStorage.getItem('master_messenger_banner') === '1')
+const showBanner = computed(() => !tgConnected.value && !maxConnected.value && !bannerDismissed.value)
 const tgLink = ref<string | null>(null)
 const maxCode = ref<string | null>(null)
 const maxUsername = ref<string | null>(null)
@@ -64,6 +66,16 @@ async function disconnectMax() {
   await api.request('/master/max', { method: 'DELETE' })
   maxConnected.value = false
   maxCode.value = null
+}
+
+function dismissBanner() {
+  bannerDismissed.value = true
+  localStorage.setItem('master_messenger_banner', '1')
+}
+
+function openFromBanner() {
+  dismissBanner()
+  showMessengers.value = true
 }
 
 onMounted(loadMessengerStatus)
@@ -204,6 +216,28 @@ onMounted(loadMessengerStatus)
         </div>
       </div>
     </header>
+
+    <!-- Messenger onboarding banner -->
+    <div v-if="showBanner" class="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 flex items-center gap-3">
+      <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+      <p class="text-xs text-amber-800 dark:text-amber-200 flex-1">
+        Подключите Telegram или MAX, чтобы получать уведомления о новых заказах
+      </p>
+      <button
+        @click="openFromBanner"
+        class="text-xs px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors flex-shrink-0"
+      >Подключить</button>
+      <button
+        @click="dismissBanner"
+        class="p-1 rounded text-amber-500 hover:text-amber-700 dark:hover:text-amber-300 transition-colors flex-shrink-0"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Content -->
     <main class="flex-1 overflow-auto">
