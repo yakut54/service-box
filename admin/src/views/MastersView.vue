@@ -16,6 +16,7 @@ const inviteOpenId   = ref<string | null>(null)  // master.id с открыто�
 const inviteEmails   = ref<Record<string, string>>({})
 const invitingId     = ref<string | null>(null)
 const inviteErrors   = ref<Record<string, string>>({})
+const inviteSentIds  = ref<Set<string>>(new Set())
 
 function openInviteForm(master: Master) {
   inviteOpenId.value = inviteOpenId.value === master.id ? null : master.id
@@ -35,6 +36,7 @@ async function sendMasterInvite(master: Master, emailOverride?: string) {
     const res = await api.inviteMaster(master.id, email)
     toast.success(res.message || 'Приглашение отправлено')
     inviteOpenId.value = null
+    inviteSentIds.value = new Set([...inviteSentIds.value, master.id])
   } catch (e) {
     inviteErrors.value[master.id] = e instanceof ApiError ? e.message : 'Ошибка отправки'
   } finally {
@@ -300,12 +302,18 @@ function initials(name: string) {
           </template>
           <template v-else>
             <button
-              @click="master.email ? sendMasterInvite(master, master.email) : openInviteForm(master)"
-              :disabled="invitingId === master.id"
-              class="btn-ghost btn-sm"
-              :title="master.email ? `Отправить приглашение на ${master.email}` : 'Пригласить мастера в личный кабинет'"
+              @click="!inviteSentIds.has(master.id) && (master.email ? sendMasterInvite(master, master.email) : openInviteForm(master))"
+              :disabled="invitingId === master.id || inviteSentIds.has(master.id)"
+              :class="['btn-ghost btn-sm transition-colors', inviteSentIds.has(master.id) ? 'text-emerald-600 dark:text-emerald-400' : '']"
+              :title="inviteSentIds.has(master.id) ? 'Приглашение отправлено' : (master.email ? `Отправить приглашение на ${master.email}` : 'Пригласить мастера в личный кабинет')"
             >
+              <!-- В процессе -->
               <UiSpinner v-if="invitingId === master.id" class="w-4 h-4" />
+              <!-- Успех -->
+              <svg v-else-if="inviteSentIds.has(master.id)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              <!-- Обычное состояние -->
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
@@ -318,6 +326,11 @@ function initials(name: string) {
             </svg>
           </button>
         </div>
+
+        <!-- Inline error for direct send (master has email) -->
+        <p v-if="inviteErrors[master.id] && master.email && inviteOpenId !== master.id" class="text-xs text-red-500 pt-1">
+          {{ inviteErrors[master.id] }}
+        </p>
 
         <!-- Inline invite form -->
         <div
