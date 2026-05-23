@@ -581,10 +581,10 @@ class ApiClient {
     })
   }
 
-  async updateAdmin(id: string, name: string) {
+  async updateAdmin(id: string, data: { name: string; phone?: string | null; avatar_url?: string | null }) {
     return this.request<{ message: string }>(`/admin/staff/${id}`, {
       method: 'PUT',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(data),
     })
   }
 

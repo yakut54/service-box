@@ -110,6 +110,29 @@ function initials(admin: StaffMember) {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
+function lastLoginText(admin: StaffMember): string {
+  if (!admin.last_login_at) return 'Ещё не входил'
+  const diff = Date.now() - new Date(admin.last_login_at).getTime()
+  const min  = Math.floor(diff / 60000)
+  if (min < 5)   return 'Сейчас онлайн'
+  if (min < 60)  return `${min} мин. назад`
+  const hrs = Math.floor(min / 60)
+  if (hrs < 24)  return `${hrs} ч. назад`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'Вчера'
+  if (days < 30)  return `${days} дн. назад`
+  const months = Math.floor(days / 30)
+  return `${months} мес. назад`
+}
+
+function lastLoginColor(admin: StaffMember): string {
+  if (!admin.last_login_at) return 'text-gray-400 dark:text-gray-500'
+  const days = Math.floor((Date.now() - new Date(admin.last_login_at).getTime()) / 86400000)
+  if (days < 1)  return 'text-green-600 dark:text-green-400'
+  if (days < 7)  return 'text-gray-500 dark:text-gray-400'
+  return 'text-amber-500 dark:text-amber-400'
+}
+
 onMounted(load)
 </script>
 
@@ -159,12 +182,26 @@ onMounted(load)
         >
           <!-- Avatar + info -->
           <div class="flex items-start gap-3">
-            <div class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-semibold text-lg flex-shrink-0">
-              {{ initials(admin) }}
+            <div class="flex-shrink-0">
+              <img
+                v-if="admin.avatar_url"
+                :src="admin.avatar_url"
+                :alt="displayName(admin)"
+                class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+              />
+              <div
+                v-else
+                class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 font-semibold text-lg"
+              >{{ initials(admin) }}</div>
             </div>
             <div class="flex-1 min-w-0">
               <p class="font-semibold text-gray-900 dark:text-white truncate">{{ displayName(admin) }}</p>
               <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ displayEmail(admin) }}</p>
+              <a
+                v-if="admin.phone"
+                :href="`tel:${admin.phone}`"
+                class="text-xs text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >{{ admin.phone }}</a>
             </div>
           </div>
 
@@ -188,6 +225,14 @@ onMounted(load)
             >
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Ожидает принятия
             </span>
+          </div>
+
+          <!-- Last login -->
+          <div class="flex items-center gap-1.5 text-xs" :class="lastLoginColor(admin)">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ lastLoginText(admin) }}
           </div>
 
           <!-- Actions -->

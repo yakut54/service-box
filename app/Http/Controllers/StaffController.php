@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\StaffInviteMail;
 use App\Models\ShopStaff;
 use App\Models\User;
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,9 @@ class StaffController extends Controller
                 'master_id'         => $s->master_id,
                 'invite_email'      => $s->invite_email,
                 'invite_name'       => $s->invite_name,
+                'avatar_url'        => $s->avatar_url,
+                'phone'             => $s->phone,
+                'last_login_at'     => $s->last_login_at,
                 'accepted_at'       => $s->accepted_at,
                 'invite_expires_at' => $s->invite_expires_at,
                 'is_pending'        => !$s->isAccepted(),
@@ -69,6 +73,7 @@ class StaffController extends Controller
             'email'     => 'required|email|max:255',
             'role'      => 'sometimes|in:admin,master',
             'master_id' => 'required_if:role,master|nullable|uuid',
+            'phone'     => 'nullable|string|max:20',
         ]);
 
         $role  = $data['role'] ?? 'admin';
@@ -126,6 +131,7 @@ class StaffController extends Controller
             'master_id'         => $masterId,
             'invite_email'      => $email,
             'invite_name'       => $name,
+            'phone'             => isset($data['phone']) ? trim($data['phone']) : null,
             'invite_token'      => $token,
             'invite_expires_at' => now()->addHours(48),
         ]);
@@ -169,12 +175,24 @@ class StaffController extends Controller
             ->firstOrFail();
 
         $data = $request->validate([
-            'name' => 'required|string|max:255',
+            'name'       => 'required|string|max:255',
+            'phone'      => 'nullable|string|max:20',
+            'avatar_url' => 'nullable|url|max:1000',
         ]);
 
-        $staffRecord->update(['invite_name' => trim($data['name'])]);
+        $oldAvatarUrl = $staffRecord->avatar_url;
 
-        return response()->json(['message' => 'Имя обновлено']);
+        $staffRecord->update([
+            'invite_name' => trim($data['name']),
+            'phone'       => isset($data['phone']) ? trim($data['phone']) : null,
+            'avatar_url'  => $data['avatar_url'] ?? $staffRecord->avatar_url,
+        ]);
+
+        if (array_key_exists('avatar_url', $data) && $data['avatar_url'] !== $oldAvatarUrl) {
+            StorageService::deleteByUrl($oldAvatarUrl);
+        }
+
+        return response()->json(['message' => 'Данные обновлены']);
     }
 
     /**
@@ -225,7 +243,9 @@ class StaffController extends Controller
             User::find($staffRecord->user_id)?->tokens()->delete();
         }
 
+        $avatarUrl = $staffRecord->avatar_url;
         $staffRecord->delete();
+        StorageService::deleteByUrl($avatarUrl);
 
         return response()->json(['message' => 'Доступ отозван']);
     }

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { api, ApiError } from '@/lib/api'
+import { handlePhoneInput, applyPhoneMask } from '@/composables/usePhoneInput'
 import { UiModal } from '@/shared/ui'
+import ImageUpload from '@/components/ImageUpload.vue'
 import type { StaffMember } from '@/types'
 
 const props = defineProps<{
@@ -16,10 +18,13 @@ const emit = defineEmits<{
 
 const mode = computed(() => props.admin ? 'edit' : 'create')
 
-const name   = ref('')
-const email  = ref('')
-const saving = ref(false)
-const error  = ref('')
+const name       = ref('')
+const email      = ref('')
+const phone      = ref('')
+const avatarUrl  = ref<string | null>(null)
+const saving     = ref(false)
+const error      = ref('')
+const uploading  = ref(false)
 
 const nameTouched  = ref(false)
 const emailTouched = ref(false)
@@ -46,28 +51,49 @@ watch(() => props.modelValue, (open) => {
   nameTouched.value  = false
   emailTouched.value = false
   if (props.admin) {
-    name.value  = props.admin.invite_name ?? props.admin.user?.name ?? ''
-    email.value = props.admin.invite_email ?? props.admin.user?.email ?? ''
+    name.value      = props.admin.invite_name ?? props.admin.user?.name ?? ''
+    email.value     = props.admin.invite_email ?? props.admin.user?.email ?? ''
+    phone.value     = props.admin.phone ? applyPhoneMask(props.admin.phone) : ''
+    avatarUrl.value = props.admin.avatar_url ?? null
   } else {
-    name.value  = ''
-    email.value = ''
+    name.value      = ''
+    email.value     = ''
+    phone.value     = ''
+    avatarUrl.value = null
   }
 })
 
 async function save() {
   nameTouched.value  = true
   emailTouched.value = true
-  if (!isValid.value) return
+  if (!isValid.value || uploading.value) return
 
   saving.value = true
   error.value  = ''
   try {
     if (mode.value === 'create') {
       const res = await api.createAdmin(name.value.trim(), email.value.trim())
-      emit('saved', res.data, 'create')
+      // Если при создании уже загрузили аватар/телефон — сразу обновляем
+      if (avatarUrl.value || phone.value) {
+        await api.updateAdmin(res.data.id, {
+          name:       name.value.trim(),
+          phone:      phone.value || null,
+          avatar_url: avatarUrl.value,
+        })
+      }
+      emit('saved', { ...res.data, avatar_url: avatarUrl.value, phone: phone.value || null }, 'create')
     } else {
-      await api.updateAdmin(props.admin!.id, name.value.trim())
-      emit('saved', { ...props.admin!, invite_name: name.value.trim() }, 'edit')
+      await api.updateAdmin(props.admin!.id, {
+        name:       name.value.trim(),
+        phone:      phone.value || null,
+        avatar_url: avatarUrl.value,
+      })
+      emit('saved', {
+        ...props.admin!,
+        invite_name: name.value.trim(),
+        phone:       phone.value || null,
+        avatar_url:  avatarUrl.value,
+      }, 'edit')
     }
     emit('update:modelValue', false)
   } catch (e) {
@@ -100,6 +126,17 @@ async function save() {
         {{ error }}
       </div>
 
+      <!-- Avatar -->
+      <div class="flex justify-center">
+        <ImageUpload
+          v-model="avatarUrl"
+          v-model:uploading="uploading"
+          shape="circle"
+          size="lg"
+          confirmText="Фото администратора будет удалено."
+        />
+      </div>
+
       <!-- Name -->
       <div>
         <p class="label">Имя <span class="text-red-500">*</span></p>
@@ -126,30 +163,37 @@ async function save() {
           @blur="emailTouched = true"
           @keydown.enter="save"
         />
-        <div
-          v-else
-          class="input bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default select-all"
-        >{{ email }}</div>
+        <div v-else class="input bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default select-all">
+          {{ email }}
+        </div>
         <p v-if="emailError" class="mt-1 text-xs text-red-500">{{ emailError }}</p>
         <p v-if="mode === 'create'" class="mt-1 text-xs text-gray-400 dark:text-gray-500">
           На этот адрес придёт ссылка-приглашение. Действует 48 часов.
         </p>
       </div>
 
+      <!-- Phone -->
+      <div>
+        <p class="label">Телефон</p>
+        <input
+          :value="phone"
+          type="tel"
+          class="input"
+          placeholder="+7 (999) 123-45-67"
+          @input="handlePhoneInput($event, (v) => phone = v)"
+        />
+      </div>
+
     </div>
 
     <!-- Footer -->
     <div class="flex justify-end gap-3 px-4 py-3 border-t border-gray-100 dark:border-gray-700">
-      <button
-        @click="$emit('update:modelValue', false)"
-        class="btn-secondary"
-        :disabled="saving"
-      >Отмена</button>
-      <button
-        @click="save"
-        class="btn-primary"
-        :disabled="saving"
-      >{{ saving ? 'Сохранение...' : (mode === 'create' ? 'Добавить и отправить' : 'Сохранить') }}</button>
+      <button @click="$emit('update:modelValue', false)" class="btn-secondary" :disabled="saving">
+        Отмена
+      </button>
+      <button @click="save" class="btn-primary" :disabled="saving || uploading">
+        {{ saving ? 'Сохранение...' : (mode === 'create' ? 'Добавить и отправить' : 'Сохранить') }}
+      </button>
     </div>
 
   </UiModal>

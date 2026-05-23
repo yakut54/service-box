@@ -22,6 +22,9 @@ class ShopStaff extends Model
         'messenger_link_token_expires_at',
         'invite_email',
         'invite_name',
+        'avatar_url',
+        'phone',
+        'last_login_at',
         'invite_token',
         'accepted_at',
         'invite_expires_at',
@@ -30,6 +33,7 @@ class ShopStaff extends Model
     protected $casts = [
         'accepted_at'                    => 'datetime',
         'invite_expires_at'              => 'datetime',
+        'last_login_at'                  => 'datetime',
         'messenger_link_token_expires_at'=> 'datetime',
     ];
 

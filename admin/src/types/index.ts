@@ -448,6 +448,9 @@ export interface StaffMember {
   master_id: string | null
   invite_email: string | null
   invite_name: string | null
+  avatar_url: string | null
+  phone: string | null
+  last_login_at: string | null
   accepted_at: string | null
   invite_expires_at: string | null
   is_pending: boolean

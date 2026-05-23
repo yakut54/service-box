@@ -45,6 +45,12 @@ class SetShopFromAuth
         $request->attributes->set('shop', $shop);
         $request->attributes->set('staff_role', $staffRecord->role);
         $request->attributes->set('staff_master_id', $staffRecord->master_id);
+
+        // Обновляем last_login_at не чаще раза в 5 минут
+        if (is_null($staffRecord->last_login_at) || $staffRecord->last_login_at->diffInMinutes(now()) >= 5) {
+            $staffRecord->updateQuietly(['last_login_at' => now()]);
+        }
+
         TenantService::setContext($shop);
         $response = $next($request);
         TenantService::resetContext();
