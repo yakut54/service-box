@@ -112,6 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
       // ignore
     } finally {
       clearAuth()
+      router.push({ name: 'login' })
     }
   }
 
