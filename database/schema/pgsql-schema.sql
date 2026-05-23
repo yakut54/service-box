@@ -452,7 +452,8 @@ CREATE TABLE IF NOT EXISTS public.plan_pricing (
     updated_at timestamp(0) without time zone,
     max_orders_per_month integer,
     max_masters integer,
-    features jsonb DEFAULT '[]'::jsonb NOT NULL
+    features jsonb DEFAULT '[]'::jsonb NOT NULL,
+    capabilities jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 
@@ -514,6 +515,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     min_booking_notice integer DEFAULT 0 NOT NULL,
     prepayment_enabled boolean DEFAULT false NOT NULL,
     prepayment_amount integer DEFAULT 0 NOT NULL,
+    hide_customer_phone boolean DEFAULT false NOT NULL,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[]))),
     CONSTRAINT shops_subscription_plan_check CHECK (((subscription_plan)::text = ANY ((ARRAY['micro'::character varying, 'start'::character varying, 'business'::character varying, 'pro'::character varying])::text[])))
 );
