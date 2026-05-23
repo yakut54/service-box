@@ -19,12 +19,12 @@ const inviteErrors   = ref<Record<string, string>>({})
 
 function openInviteForm(master: Master) {
   inviteOpenId.value = inviteOpenId.value === master.id ? null : master.id
-  if (!inviteEmails.value[master.id]) inviteEmails.value[master.id] = master.email ?? ''
+  inviteEmails.value[master.id] = ''
   inviteErrors.value[master.id] = ''
 }
 
-async function sendMasterInvite(master: Master) {
-  const email = (inviteEmails.value[master.id] ?? '').trim()
+async function sendMasterInvite(master: Master, emailOverride?: string) {
+  const email = (emailOverride ?? inviteEmails.value[master.id] ?? '').trim()
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     inviteErrors.value[master.id] = 'Введите корректный email'
     return
@@ -300,11 +300,13 @@ function initials(name: string) {
           </template>
           <template v-else>
             <button
-              @click="openInviteForm(master)"
+              @click="master.email ? sendMasterInvite(master, master.email) : openInviteForm(master)"
+              :disabled="invitingId === master.id"
               class="btn-ghost btn-sm"
-              title="Пригласить мастера в личный кабинет"
+              :title="master.email ? `Отправить приглашение на ${master.email}` : 'Пригласить мастера в личный кабинет'"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <UiSpinner v-if="invitingId === master.id" class="w-4 h-4" />
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </button>
@@ -322,7 +324,7 @@ function initials(name: string) {
           v-if="inviteOpenId === master.id"
           class="flex flex-col gap-2 pt-3 border-t border-gray-100 dark:border-gray-700"
         >
-          <p class="text-xs text-gray-500 dark:text-gray-400">Введите email мастера — он получит ссылку для входа в личный кабинет</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">У мастера не указан email. Введите адрес — он получит ссылку для входа в личный кабинет</p>
           <div class="flex gap-2">
             <input
               v-model="inviteEmails[master.id]"
