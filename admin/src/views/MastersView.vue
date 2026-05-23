@@ -8,7 +8,7 @@ import { useToast } from '@/composables/useToast'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import MasterFormModal from '@/components/modals/MasterFormModal.vue'
-import { UiConfirmDialog, UiEmptyState, UiSpinner } from '@/shared/ui'
+import { UiConfirmDialog, UiEmptyState, UiSpinner, UiTooltip } from '@/shared/ui'
 import type { Master } from '@/types'
 
 // ── Invite master ────────────────────────────────────────────────
@@ -259,13 +259,15 @@ function initials(name: string) {
             </div>
           </div>
 
-          <button
-            @click="toggleActive(master)"
-            :class="['relative flex-shrink-0 w-10 h-5 rounded-full transition-colors', master.is_active ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600']"
-            :title="master.is_active ? 'Деактивировать' : 'Активировать'"
-          >
-            <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', master.is_active ? 'translate-x-5' : '']" />
-          </button>
+          <UiTooltip>
+            <button
+              @click="toggleActive(master)"
+              :class="['relative flex-shrink-0 w-10 h-5 rounded-full transition-colors', master.is_active ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600']"
+            >
+              <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', master.is_active ? 'translate-x-5' : '']" />
+            </button>
+            <template #content>{{ master.is_active ? 'Деактивировать' : 'Активировать' }}</template>
+          </UiTooltip>
         </div>
 
         <!-- Contacts -->
@@ -301,23 +303,25 @@ function initials(name: string) {
             <span class="badge-confirmed self-center text-xs px-2">✓ Подключён</span>
           </template>
           <template v-else>
-            <button
-              @click="!inviteSentIds.has(master.id) && (master.email ? sendMasterInvite(master, master.email) : openInviteForm(master))"
-              :disabled="invitingId === master.id || inviteSentIds.has(master.id)"
-              :class="['btn-ghost btn-sm transition-colors', inviteSentIds.has(master.id) ? 'text-emerald-600 dark:text-emerald-400' : '']"
-              :title="inviteSentIds.has(master.id) ? 'Приглашение отправлено' : (master.email ? `Отправить приглашение на ${master.email}` : 'Пригласить мастера в личный кабинет')"
-            >
-              <!-- В процессе -->
-              <UiSpinner v-if="invitingId === master.id" class="w-4 h-4" />
-              <!-- Успех -->
-              <svg v-else-if="inviteSentIds.has(master.id)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-              </svg>
-              <!-- Обычное состояние -->
-              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </button>
+            <UiTooltip>
+              <button
+                @click="!inviteSentIds.has(master.id) && (master.email ? sendMasterInvite(master, master.email) : openInviteForm(master))"
+                :disabled="invitingId === master.id || inviteSentIds.has(master.id)"
+                :class="['btn-ghost btn-sm transition-colors', inviteSentIds.has(master.id) ? 'text-emerald-600 dark:text-emerald-400' : '']"
+              >
+                <!-- В процессе -->
+                <UiSpinner v-if="invitingId === master.id" class="w-4 h-4" />
+                <!-- Успех -->
+                <svg v-else-if="inviteSentIds.has(master.id)" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+                <!-- Обычное состояние -->
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </button>
+              <template #content>{{ inviteSentIds.has(master.id) ? 'Приглашение отправлено' : (master.email ? `Отправить на ${master.email}` : 'Пригласить в кабинет') }}</template>
+            </UiTooltip>
           </template>
 
           <button @click="confirmDelete(master)" class="btn-danger btn-sm">

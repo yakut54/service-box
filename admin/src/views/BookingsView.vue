@@ -13,6 +13,7 @@ import BookingCreateModal from '@/components/modals/BookingCreateModal.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
+import UiTooltip from '@/shared/ui/UiTooltip.vue'
 import { BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
 import type { Booking, Product } from '@/types'
 
@@ -305,13 +306,19 @@ onMounted(async () => {
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <!-- ← Today → -->
           <div class="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
-            <button @click="navigate(-1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700" title="Предыдущий день">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            </button>
+            <UiTooltip>
+              <button @click="navigate(-1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <template #content>Предыдущий день</template>
+            </UiTooltip>
             <button @click="goToday" :class="['px-3 py-1.5 text-sm font-medium transition-colors', isAnchorToday ? 'bg-primary-600 text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300']">Сегодня</button>
-            <button @click="navigate(1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700" title="Следующий день">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
+            <UiTooltip>
+              <button @click="navigate(1)" class="px-2.5 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+              <template #content>Следующий день</template>
+            </UiTooltip>
           </div>
           <!-- List: DatePicker fills remaining space in the row -->
           <DatePicker v-if="viewMode === 'list'" v-model="anchorDateStr" @change="applyFilters" placeholder="Дата" class="flex-1 sm:w-44 sm:flex-none" />
@@ -410,21 +417,36 @@ onMounted(async () => {
                 <td><span :class="`badge-${effectiveStatus(b)}`">{{ BOOKING_STATUS_LABELS[effectiveStatus(b)] || effectiveStatus(b) }}</span></td>
                 <td>
                   <div class="flex items-center gap-1">
-                    <button v-if="b.status === 'pending'" @click="changeStatus(b.id, 'confirmed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-blue-600 hover:text-blue-700" title="Подтвердить">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    </button>
-                    <button v-if="b.status === 'confirmed'" @click="changeStatus(b.id, 'completed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-green-600 hover:text-green-700" title="Завершить">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </button>
-                    <button v-if="b.status !== 'cancelled' && b.status !== 'completed'" @click="changeStatus(b.id, 'cancelled')" :disabled="updatingStatus" class="btn-ghost btn-sm text-red-500 hover:text-red-700" title="Отменить">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                    <RouterLink :to="`/bookings/${b.id}`" class="btn-ghost btn-sm" title="Открыть">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                    </RouterLink>
-                    <button @click="deleteConfirm = b.id" class="btn-ghost btn-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20" title="Удалить">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                    <UiTooltip v-if="b.status === 'pending'">
+                      <button @click="changeStatus(b.id, 'confirmed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-blue-600 hover:text-blue-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                      </button>
+                      <template #content>Подтвердить</template>
+                    </UiTooltip>
+                    <UiTooltip v-if="b.status === 'confirmed'">
+                      <button @click="changeStatus(b.id, 'completed')" :disabled="updatingStatus" class="btn-ghost btn-sm text-green-600 hover:text-green-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      </button>
+                      <template #content>Завершить</template>
+                    </UiTooltip>
+                    <UiTooltip v-if="b.status !== 'cancelled' && b.status !== 'completed'">
+                      <button @click="changeStatus(b.id, 'cancelled')" :disabled="updatingStatus" class="btn-ghost btn-sm text-red-500 hover:text-red-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                      </button>
+                      <template #content>Отменить</template>
+                    </UiTooltip>
+                    <UiTooltip>
+                      <RouterLink :to="`/bookings/${b.id}`" class="btn-ghost btn-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                      </RouterLink>
+                      <template #content>Открыть</template>
+                    </UiTooltip>
+                    <UiTooltip>
+                      <button @click="deleteConfirm = b.id" class="btn-ghost btn-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                      <template #content>Удалить</template>
+                    </UiTooltip>
                   </div>
                 </td>
               </tr>

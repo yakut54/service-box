@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import type { SuperadminPricing } from '@/types'
 import PageHeader from '@/components/PageHeader.vue'
+import UiTooltip from '@/shared/ui/UiTooltip.vue'
 
 interface PlanEdit {
   price_rubles: string
@@ -199,15 +200,17 @@ onMounted(load)
               type="text"
               class="input flex-1 text-sm"
             />
-            <button
-              @click="removeFeature(plan, idx)"
-              class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-              title="Удалить"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <UiTooltip>
+              <button
+                @click="removeFeature(plan, idx)"
+                class="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <template #content>Удалить строку</template>
+            </UiTooltip>
           </div>
 
           <!-- Add new feature -->
@@ -219,15 +222,17 @@ onMounted(load)
               class="input flex-1 text-sm"
               @keydown="onFeatureKeydown(plan, $event)"
             />
-            <button
-              @click="addFeature(plan)"
-              class="p-1.5 rounded text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-              title="Добавить"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
+            <UiTooltip>
+              <button
+                @click="addFeature(plan)"
+                class="p-1.5 rounded text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <template #content>Добавить строку</template>
+            </UiTooltip>
           </div>
         </div>
       </div>

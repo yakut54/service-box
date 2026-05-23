@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
+import UiTooltip from '@/shared/ui/UiTooltip.vue'
 
 const authStore = useAuthStore()
 
@@ -197,25 +198,30 @@ function copyUrl(type: string, key: string) {
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Публичная оферта</h2>
             <div class="flex items-center gap-2">
               <span class="text-xs text-gray-400 font-mono truncate max-w-xs">{{ docUrl('offer') }}</span>
-              <button
-                @click="copyUrl('offer', 'offer')"
-                class="btn-ghost btn-sm flex-shrink-0"
-                title="Скопировать ссылку"
-              >
-                <svg v-if="copiedKey !== 'offer'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
-              <a :href="docUrl('offer')" target="_blank" class="btn-ghost btn-sm flex-shrink-0" title="Открыть">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+              <UiTooltip>
+                <button
+                  @click="copyUrl('offer', 'offer')"
+                  class="btn-ghost btn-sm flex-shrink-0"
+                >
+                  <svg v-if="copiedKey !== 'offer'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <template #content>{{ copiedKey === 'offer' ? 'Скопировано!' : 'Скопировать ссылку' }}</template>
+              </UiTooltip>
+              <UiTooltip>
+                <a :href="docUrl('offer')" target="_blank" class="btn-ghost btn-sm flex-shrink-0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <template #content>Открыть</template>
+              </UiTooltip>
             </div>
           </div>
           <textarea
@@ -232,21 +238,27 @@ function copyUrl(type: string, key: string) {
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Политика конфиденциальности</h2>
             <div class="flex items-center gap-2">
               <span class="text-xs text-gray-400 font-mono truncate max-w-xs">{{ docUrl('privacy') }}</span>
-              <button @click="copyUrl('privacy', 'privacy')" class="btn-ghost btn-sm flex-shrink-0" title="Скопировать ссылку">
-                <svg v-if="copiedKey !== 'privacy'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
-              <a :href="docUrl('privacy')" target="_blank" class="btn-ghost btn-sm flex-shrink-0" title="Открыть">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+              <UiTooltip>
+                <button @click="copyUrl('privacy', 'privacy')" class="btn-ghost btn-sm flex-shrink-0">
+                  <svg v-if="copiedKey !== 'privacy'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <template #content>{{ copiedKey === 'privacy' ? 'Скопировано!' : 'Скопировать ссылку' }}</template>
+              </UiTooltip>
+              <UiTooltip>
+                <a :href="docUrl('privacy')" target="_blank" class="btn-ghost btn-sm flex-shrink-0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <template #content>Открыть</template>
+              </UiTooltip>
             </div>
           </div>
           <textarea
@@ -263,21 +275,27 @@ function copyUrl(type: string, key: string) {
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Согласие на обработку персональных данных</h2>
             <div class="flex items-center gap-2">
               <span class="text-xs text-gray-400 font-mono truncate max-w-xs">{{ docUrl('personal-data') }}</span>
-              <button @click="copyUrl('personal-data', 'personal_data')" class="btn-ghost btn-sm flex-shrink-0" title="Скопировать ссылку">
-                <svg v-if="copiedKey !== 'personal_data'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
-              <a :href="docUrl('personal-data')" target="_blank" class="btn-ghost btn-sm flex-shrink-0" title="Открыть">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+              <UiTooltip>
+                <button @click="copyUrl('personal-data', 'personal_data')" class="btn-ghost btn-sm flex-shrink-0">
+                  <svg v-if="copiedKey !== 'personal_data'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <template #content>{{ copiedKey === 'personal_data' ? 'Скопировано!' : 'Скопировать ссылку' }}</template>
+              </UiTooltip>
+              <UiTooltip>
+                <a :href="docUrl('personal-data')" target="_blank" class="btn-ghost btn-sm flex-shrink-0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <template #content>Открыть</template>
+              </UiTooltip>
             </div>
           </div>
           <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -297,21 +315,27 @@ function copyUrl(type: string, key: string) {
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Согласие на получение уведомлений</h2>
             <div class="flex items-center gap-2">
               <span class="text-xs text-gray-400 font-mono truncate max-w-xs">{{ docUrl('marketing') }}</span>
-              <button @click="copyUrl('marketing', 'marketing')" class="btn-ghost btn-sm flex-shrink-0" title="Скопировать ссылку">
-                <svg v-if="copiedKey !== 'marketing'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
-              <a :href="docUrl('marketing')" target="_blank" class="btn-ghost btn-sm flex-shrink-0" title="Открыть">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+              <UiTooltip>
+                <button @click="copyUrl('marketing', 'marketing')" class="btn-ghost btn-sm flex-shrink-0">
+                  <svg v-if="copiedKey !== 'marketing'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <svg v-else class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <template #content>{{ copiedKey === 'marketing' ? 'Скопировано!' : 'Скопировать ссылку' }}</template>
+              </UiTooltip>
+              <UiTooltip>
+                <a :href="docUrl('marketing')" target="_blank" class="btn-ghost btn-sm flex-shrink-0">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <template #content>Открыть</template>
+              </UiTooltip>
             </div>
           </div>
           <textarea

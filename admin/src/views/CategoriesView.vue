@@ -10,6 +10,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
+import UiTooltip from '@/shared/ui/UiTooltip.vue'
 
 const categoriesStore = useCategoriesStore()
 
@@ -304,9 +305,12 @@ async function doDelete() {
             </div>
 
             <div class="flex items-center gap-2 flex-shrink-0">
-              <button @click="toggleVisible(cat)" :disabled="toggling === cat.id" :class="['relative w-9 h-5 rounded-full transition-colors flex-shrink-0', cat.is_visible ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600']" :title="cat.is_visible ? 'Скрыть' : 'Показать'">
-                <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', cat.is_visible ? 'translate-x-4' : '']" />
-              </button>
+              <UiTooltip>
+                <button @click="toggleVisible(cat)" :disabled="toggling === cat.id" :class="['relative w-9 h-5 rounded-full transition-colors flex-shrink-0', cat.is_visible ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600']">
+                  <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform', cat.is_visible ? 'translate-x-4' : '']" />
+                </button>
+                <template #content>{{ cat.is_visible ? 'Скрыть' : 'Показать' }}</template>
+              </UiTooltip>
               <button @click="openEdit(cat)" class="btn-ghost btn-sm text-xs px-2">Изменить</button>
               <button @click="openDelete(cat)" class="text-gray-400 hover:text-red-500 transition-colors p-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
