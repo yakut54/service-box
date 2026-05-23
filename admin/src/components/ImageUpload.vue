@@ -119,34 +119,45 @@ function onUrlInput(e: Event) {
 </script>
 
 <template>
-  <!-- Preview -->
-  <div v-if="modelValue && !imageError" class="flex items-start gap-3 mb-2">
-    <div class="relative flex-shrink-0">
+  <!-- Preview с оверлеем -->
+  <div v-if="modelValue && !imageError" class="mb-2">
+    <div :class="['relative flex-shrink-0 group overflow-hidden', previewClass, shapeClass]">
       <img
         :src="modelValue"
-        :class="['border border-gray-200 dark:border-gray-700', previewClass, shapeClass,
+        :class="['w-full h-full border border-gray-200 dark:border-gray-700', shapeClass,
           objectFit === 'contain' ? 'object-contain bg-white dark:bg-gray-900 p-1' : 'object-cover']"
         alt=""
         @error="imageError = true"
       />
-      <div v-if="uploading" :class="['absolute inset-0 bg-black/50 flex items-center justify-center', shapeClass]">
+      <!-- Спиннер загрузки -->
+      <div v-if="uploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
         <div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
       </div>
+      <!-- Оверлей с кнопками при наведении -->
+      <div v-else class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors">
+        <!-- Заменить (камера, снизу по центру) -->
+        <button
+          type="button"
+          @click.stop="fileInputEl?.click()"
+          class="absolute bottom-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white text-gray-700 rounded-full p-1.5 shadow-sm"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+        <!-- Удалить (×, правый верхний угол) -->
+        <button
+          type="button"
+          @click.stop="confirmDel = true"
+          class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white text-red-500 hover:text-red-600 rounded-full p-1 shadow-sm"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
-    <div v-if="!uploading" class="flex flex-col gap-1.5 pt-1">
-      <button type="button" @click="fileInputEl?.click()"
-        class="text-xs text-primary-600 dark:text-primary-400 hover:underline text-left">
-        Заменить
-      </button>
-      <button type="button" @click="confirmDel = true"
-        class="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 text-left">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-        Удалить
-      </button>
-    </div>
-    <p v-else class="text-xs text-gray-400 pt-1">Загружается...</p>
   </div>
 
   <!-- Dropzone -->
@@ -180,8 +191,8 @@ function onUrlInput(e: Event) {
     <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ hint }}</p>
   </div>
 
-  <!-- URL input -->
-  <div v-if="withUrlInput" class="mt-2">
+  <!-- URL input: только когда картинки нет -->
+  <div v-if="withUrlInput && (!modelValue || imageError)" class="mt-2">
     <input
       :value="modelValue ?? ''"
       type="url"
