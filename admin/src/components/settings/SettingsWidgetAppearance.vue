@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
-import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
+import ImageUpload from '@/components/ImageUpload.vue'
 import UiCheckbox from '@/shared/ui/UiCheckbox.vue'
 
 type FontFamily = 'system' | 'inter' | 'roboto' | 'montserrat' | 'georgia'
@@ -46,8 +46,6 @@ const saving         = ref(false)
 const success        = ref(false)
 const error          = ref('')
 const uploadingLogo  = ref(false)
-const logoError      = ref('')
-const confirmDelete  = ref(false)
 
 const previewIframeEl = ref<HTMLIFrameElement | null>(null)
 const previewLoaded   = ref(false)
@@ -95,76 +93,9 @@ onMounted(() => {
   }
 })
 
-function dataURLtoBlob(dataUrl: string): Blob {
-  const [header, data] = dataUrl.split(',')
-  const mime = header.match(/:(.*?);/)![1]
-  const binary = atob(data)
-  const arr = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i)
-  return new Blob([arr], { type: mime })
-}
-
-function compressImage(file: File, maxBytes: number): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const objectUrl = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-      const canvas = document.createElement('canvas')
-      let { width, height } = img
-      let scale = 1
-      const tryCompress = (q: number): File | null => {
-        canvas.width  = Math.round(width  * scale)
-        canvas.height = Math.round(height * scale)
-        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-        const dataUrl = canvas.toDataURL('image/jpeg', q)
-        const bytes = Math.round((dataUrl.length - 'data:image/jpeg;base64,'.length) * 0.75)
-        if (bytes <= maxBytes) {
-          return new File([dataURLtoBlob(dataUrl)], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
-        }
-        return null
-      }
-      for (const q of [0.8, 0.6, 0.4]) {
-        const result = tryCompress(q)
-        if (result) { resolve(result); return }
-      }
-      scale = 0.7
-      for (const q of [0.8, 0.6, 0.4]) {
-        const result = tryCompress(q)
-        if (result) { resolve(result); return }
-      }
-      reject(new Error('Не удалось сжать изображение до 1 МБ'))
-    }
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Ошибка чтения файла')) }
-    img.src = objectUrl
-  })
-}
-
-async function uploadLogo(e: Event) {
-  const raw = (e.target as HTMLInputElement).files?.[0]
-  if (!raw) return
-  const MAX_BYTES = 1 * 1024 * 1024
-  logoError.value = ''
-  if (!raw.type.startsWith('image/')) { logoError.value = 'Выберите изображение'; return }
-  uploadingLogo.value = true
-  const oldUrl = logoUrl.value
-  try {
-    const file = raw.size > MAX_BYTES ? await compressImage(raw, MAX_BYTES) : raw
-    const res = await api.uploadImage(file)
-    logoUrl.value = res.url
-    if (oldUrl) await api.deleteImage(oldUrl).catch(() => {})
-    await saveConfig()
-  } catch (err) {
-    logoError.value = err instanceof Error ? err.message : 'Ошибка загрузки логотипа'
-  } finally {
-    uploadingLogo.value = false
-  }
-}
-
-async function removeLogo() {
-  const url = logoUrl.value
-  logoUrl.value = null
-  if (url) await api.deleteImage(url).catch(() => {})
+function onLogoChange(newUrl: string | null) {
+  if (typeof newUrl === 'string' && newUrl.startsWith('blob:')) return
+  saveConfig()
 }
 
 function sendPreviewConfig() {
@@ -402,16 +333,15 @@ async function saveConfig() {
           <!-- Logo -->
           <div class="shrink-0">
             <p class="label">Логотип магазина</p>
-            <div v-if="logoUrl" class="flex items-center gap-3 mb-2">
-              <img :src="logoUrl" class="h-12 w-12 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white p-1" />
-              <button @click="confirmDelete = true" class="text-sm text-red-500 hover:text-red-700">Удалить</button>
-            </div>
-            <label class="flex items-center gap-2 cursor-pointer w-fit">
-              <span class="btn-secondary text-sm">{{ uploadingLogo ? 'Загрузка...' : logoUrl ? 'Изменить логотип' : 'Загрузить логотип' }}</span>
-              <input type="file" accept="image/*" @change="uploadLogo" class="hidden" :disabled="uploadingLogo" />
-            </label>
-            <p v-if="logoError" class="text-xs text-red-500 mt-1">{{ logoError }}</p>
-            <p v-else class="text-xs text-gray-400 mt-1">PNG или SVG, рекомендуется квадратный</p>
+            <ImageUpload
+              v-model="logoUrl"
+              v-model:uploading="uploadingLogo"
+              size="sm"
+              objectFit="contain"
+              hint="PNG, WEBP · рекомендуется квадратный"
+              confirmText="Логотип будет удалён с сервера без возможности восстановления."
+              @update:modelValue="onLogoChange"
+            />
           </div>
 
           <!-- Show/hide elements -->
@@ -481,7 +411,7 @@ async function saveConfig() {
 
       <div v-if="success" class="text-sm text-green-600 dark:text-green-400">Сохранено!</div>
       <div v-if="error"   class="text-sm text-red-600">{{ error }}</div>
-      <button @click="saveConfig" :disabled="saving" class="btn-primary">
+      <button @click="saveConfig" :disabled="saving || uploadingLogo" class="btn-primary">
         {{ saving ? 'Сохранение...' : 'Сохранить внешний вид' }}
       </button>
     </div>
@@ -520,12 +450,4 @@ async function saveConfig() {
     </div><!-- /flex wrapper -->
   </div>
 
-  <UiConfirmDialog
-    v-model="confirmDelete"
-    title="Удалить логотип?"
-    confirmLabel="Удалить"
-    @confirm="removeLogo(); confirmDelete = false; saveConfig()"
-  >
-    Логотип будет удалён с сервера без возможности восстановления.
-  </UiConfirmDialog>
 </template>

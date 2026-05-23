@@ -3,6 +3,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { api } from '@/lib/api'
 import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
 import { UiModal } from '@/shared/ui'
+import ImageUpload from '@/components/ImageUpload.vue'
 import type { Master, Product } from '@/types'
 
 const props = defineProps<{
@@ -71,51 +72,13 @@ const isFormValid = computed(() =>
 )
 
 // ── Avatar upload ─────────────────────────────────────────────
-const avatarUploading   = ref(false)
-const avatarUploadError = ref('')
-const avatarFileInputEl = ref<HTMLInputElement | null>(null)
-const AVATAR_ALLOWED    = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-const AVATAR_MAX_BYTES  = 1 * 1024 * 1024
-
-function validateAvatarFile(file: File): string | null {
-  if (!AVATAR_ALLOWED.includes(file.type)) return 'Только JPG, PNG или WEBP'
-  if (file.size > AVATAR_MAX_BYTES) return `Слишком большой (макс. 1 МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ)`
-  return null
-}
-
-async function handleAvatarFile(file: File) {
-  const err = validateAvatarFile(file)
-  if (err) { avatarUploadError.value = err; return }
-  avatarUploadError.value = ''
-  form.value.avatar_url   = URL.createObjectURL(file)
-  avatarUploading.value   = true
-  try {
-    const result = await api.uploadImage(file)
-    form.value.avatar_url = result.url
-  } catch (e: unknown) {
-    form.value.avatar_url   = ''
-    avatarUploadError.value = e instanceof Error ? e.message : 'Не удалось загрузить'
-  }
-  avatarUploading.value = false
-}
-
-function onAvatarFileInput(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (file) handleAvatarFile(file)
-}
-
-function clearAvatar() {
-  form.value.avatar_url   = ''
-  avatarUploadError.value = ''
-  if (avatarFileInputEl.value) avatarFileInputEl.value.value = ''
-}
+const avatarUploading = ref(false)
 
 
 // ── Open / Reset ──────────────────────────────────────────────
 watch(() => props.modelValue, async (open) => {
   if (!open) return
-  error.value             = ''
-  avatarUploadError.value = ''
+  error.value              = ''
   selectedServiceIds.value = []
   resetErrors()
 
@@ -227,32 +190,13 @@ async function save() {
       <!-- Avatar -->
       <div>
         <p class="label">Фото</p>
-        <div v-if="form.avatar_url" class="flex items-start gap-3 mb-2">
-          <div class="relative flex-shrink-0">
-            <img :src="form.avatar_url" class="h-20 w-20 object-cover rounded-full border border-gray-200 dark:border-gray-700" alt="Аватар" />
-            <div v-if="avatarUploading" class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-              <div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-            </div>
-          </div>
-          <div v-if="!avatarUploading" class="flex flex-col gap-1.5 pt-1">
-            <button type="button" @click="avatarFileInputEl?.click()" class="text-xs text-primary-600 dark:text-primary-400 hover:underline text-left">Заменить</button>
-            <button type="button" @click="clearAvatar" class="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 text-left">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              Удалить
-            </button>
-          </div>
-          <p v-else class="text-xs text-gray-400 pt-1">Загружается...</p>
-        </div>
-        <div v-else @click="avatarFileInputEl?.click()"
-          class="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl p-4 text-center cursor-pointer transition-colors">
-          <svg class="w-7 h-7 mx-auto mb-1 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-          </svg>
-          <p class="text-sm text-gray-500 dark:text-gray-400"><span class="text-primary-600 dark:text-primary-400 font-medium">Нажмите</span> для загрузки фото</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">JPG, PNG, WEBP · до 1 МБ</p>
-        </div>
-        <p v-if="avatarUploadError" class="mt-1 text-xs text-red-500">{{ avatarUploadError }}</p>
-        <input ref="avatarFileInputEl" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onAvatarFileInput" />
+        <ImageUpload
+          v-model="form.avatar_url"
+          v-model:uploading="avatarUploading"
+          shape="circle"
+          size="md"
+          confirmText="Фото мастера будет удалено. Это действие нельзя отменить."
+        />
       </div>
 
       <div>
@@ -302,7 +246,7 @@ async function save() {
 
     <div class="flex gap-3 p-4 pt-0">
       <button @click="emit('update:modelValue', false)" class="btn-secondary flex-1">Отмена</button>
-      <button @click="save" class="btn-primary flex-1" :disabled="saving || !isFormValid">
+      <button @click="save" class="btn-primary flex-1" :disabled="saving || !isFormValid || avatarUploading">
         {{ saving ? 'Сохранение...' : (mode === 'create' ? 'Создать' : 'Сохранить') }}
       </button>
     </div>

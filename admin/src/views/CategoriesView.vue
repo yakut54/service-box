@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
+import ImageUpload from '@/components/ImageUpload.vue'
 import type { Category } from '@/types'
 import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
@@ -64,54 +65,7 @@ const emptyForm = () => ({
 const form = ref(emptyForm())
 
 // ── Image upload ──────────────────────────────────────────────────────────
-const imageError  = ref(false)
-const uploading   = ref(false)
-const isDragging  = ref(false)
-const uploadError = ref('')
-const fileInputEl = ref<HTMLInputElement | null>(null)
-
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-const MAX_BYTES     = 1 * 1024 * 1024
-
-function validateFile(file: File): string | null {
-  if (!ALLOWED_TYPES.includes(file.type)) return 'Только JPG, PNG или WEBP'
-  if (file.size > MAX_BYTES) return `Слишком большой (макс. 1 МБ, у вас ${(file.size / 1024 / 1024).toFixed(1)} МБ)`
-  return null
-}
-
-async function handleFile(file: File) {
-  const err = validateFile(file)
-  if (err) { uploadError.value = err; return }
-  uploadError.value    = ''
-  form.value.image_url = URL.createObjectURL(file)
-  uploading.value      = true
-  try {
-    const result         = await api.uploadImage(file)
-    form.value.image_url = result.url
-  } catch (e: unknown) {
-    form.value.image_url = ''
-    uploadError.value    = e instanceof Error ? e.message : 'Не удалось загрузить'
-  }
-  uploading.value = false
-}
-
-function onFileInput(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (file) handleFile(file)
-}
-
-function onDrop(e: DragEvent) {
-  isDragging.value = false
-  const file = e.dataTransfer?.files?.[0]
-  if (file) handleFile(file)
-}
-
-function clearImage() {
-  form.value.image_url = ''
-  imageError.value     = false
-  uploadError.value    = ''
-  if (fileInputEl.value) fileInputEl.value.value = ''
-}
+const uploading = ref(false)
 
 // ── Delete flow ────────────────────────────────────────────────────────────
 const deleteTarget      = ref<Category | null>(null)
@@ -159,18 +113,16 @@ onMounted(() => categoriesStore.fetchCategories())
 
 // ── Modal open ─────────────────────────────────────────────────────────────
 function openCreate() {
-  modalMode.value   = 'create'
-  editingId.value   = null
-  form.value        = emptyForm()
-  modalError.value  = ''
-  imageError.value  = false
-  uploadError.value = ''
-  showModal.value   = true
+  modalMode.value  = 'create'
+  editingId.value  = null
+  form.value       = emptyForm()
+  modalError.value = ''
+  showModal.value  = true
 }
 
 function openEdit(cat: Category) {
-  modalMode.value   = 'edit'
-  editingId.value   = cat.id
+  modalMode.value  = 'edit'
+  editingId.value  = cat.id
   form.value = {
     name:        cat.name,
     parent_id:   cat.parent_id ?? '',
@@ -179,10 +131,8 @@ function openEdit(cat: Category) {
     is_visible:  cat.is_visible,
     sort_order:  cat.sort_order,
   }
-  modalError.value  = ''
-  imageError.value  = false
-  uploadError.value = ''
-  showModal.value   = true
+  modalError.value = ''
+  showModal.value  = true
 }
 
 // ── Save ───────────────────────────────────────────────────────────────────
@@ -448,46 +398,13 @@ async function doDelete() {
 
         <div>
           <p class="label">Изображение</p>
-          <div v-if="form.image_url && !imageError" class="flex items-start gap-3">
-            <div class="relative flex-shrink-0">
-              <img :src="form.image_url" @error="imageError = true" class="h-20 w-20 object-cover rounded-xl border border-gray-200 dark:border-gray-700" alt="Превью" />
-              <div v-if="uploading" class="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
-                <div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-              </div>
-            </div>
-            <div v-if="!uploading" class="flex flex-col gap-1.5 pt-1">
-              <button type="button" @click="fileInputEl?.click()" class="text-xs text-primary-600 dark:text-primary-400 hover:underline text-left">Заменить</button>
-              <button type="button" @click="clearImage" class="text-xs text-red-500 hover:text-red-700 text-left">Удалить</button>
-            </div>
-            <p v-else class="text-xs text-gray-400 pt-1">Загружается...</p>
-          </div>
-          <div
-            v-else
-            @dragenter.prevent="isDragging = true"
-            @dragover.prevent="isDragging = true"
-            @dragleave.prevent="isDragging = false"
-            @drop.prevent="onDrop"
-            @click="fileInputEl?.click()"
-            :class="[
-              'border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors',
-              isDragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-            ]"
-          >
-            <svg class="w-7 h-7 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              <span class="text-primary-600 dark:text-primary-400 font-medium">Нажмите</span>
-              {{ isDragging ? ' или отпустите файл' : ' или перетащите фото' }}
-            </p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">JPG, PNG, WEBP · до 1 МБ</p>
-          </div>
-          <div class="mt-2">
-            <input v-model="form.image_url" type="url" class="input text-sm" placeholder="или вставьте ссылку https://..." @input="imageError = false; uploadError = ''" />
-          </div>
-          <p v-if="uploadError" class="mt-1 text-xs text-red-500">{{ uploadError }}</p>
-          <p v-if="imageError" class="mt-1 text-xs text-red-500">Не удалось загрузить изображение</p>
-          <input ref="fileInputEl" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onFileInput" />
+          <ImageUpload
+            v-model="form.image_url"
+            v-model:uploading="uploading"
+            size="md"
+            :withUrlInput="true"
+            confirmText="Фото категории будет удалено. Это действие нельзя отменить."
+          />
         </div>
 
         <div class="flex items-center justify-between py-2">
@@ -504,7 +421,7 @@ async function doDelete() {
       <!-- Footer -->
       <div class="flex gap-3 p-4 pt-0">
         <button @click="showModal = false" class="btn-secondary flex-1">Отмена</button>
-        <button @click="save" class="btn-primary flex-1" :disabled="saving">
+        <button @click="save" class="btn-primary flex-1" :disabled="saving || uploading">
           {{ saving ? 'Сохранение...' : (modalMode === 'create' ? 'Создать' : 'Сохранить') }}
         </button>
       </div>
