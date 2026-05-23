@@ -235,6 +235,7 @@ function selectSidebarCategory(catId: string) {
               :src="shopStore.config.logo_url"
               :alt="shopStore.shop?.name"
               class="sb-logo"
+              :style="{ objectFit: shopStore.config.logo_fit ?? 'contain' }"
           />
 
           <!-- Shop name -->

@@ -41,6 +41,7 @@ const showDuration    = ref(true)
 const showMasterName  = ref(true)
 const showDescription = ref(true)
 const logoUrl        = ref<string | null>(null)
+const logoFit        = ref<'contain' | 'cover' | 'fill'>('contain')
 const whiteLabel     = ref(false)
 const customCss      = ref('')
 const saving         = ref(false)
@@ -89,6 +90,7 @@ onMounted(() => {
     if (wc.show_master_name != null) showMasterName.value  = wc.show_master_name
     if (wc.show_description != null) showDescription.value = wc.show_description
     logoUrl.value    = wc.logo_url   ?? null
+    logoFit.value    = (wc.logo_fit as 'contain' | 'cover' | 'fill') ?? 'contain'
     whiteLabel.value = wc.white_label ?? false
     customCss.value  = wc.custom_css  ?? ''
   }
@@ -141,6 +143,7 @@ async function saveConfig() {
         text_color:       textColorEnabled.value ? textColor.value : null,
         border_radius:    borderRadius.value,
         logo_url:         logoUrl.value,
+        logo_fit:         logoFit.value,
         show_price:       showPrice.value,
         show_duration:    showDuration.value,
         show_master_name: showMasterName.value,
@@ -329,15 +332,39 @@ async function saveConfig() {
       <!-- Logo -->
       <div>
         <p class="label mb-2">Логотип магазина</p>
-        <ImageUpload
-          v-model="logoUrl"
-          v-model:uploading="uploadingLogo"
-          size="xl"
-          objectFit="contain"
-          hint="PNG, WEBP · рекомендуется квадратный"
-          confirmText="Логотип будет удалён с сервера без возможности восстановления."
-          @update:modelValue="onLogoChange"
-        />
+        <div class="flex items-start gap-4">
+          <ImageUpload
+            v-model="logoUrl"
+            v-model:uploading="uploadingLogo"
+            size="xl"
+            :objectFit="logoFit"
+            hint="PNG, WEBP · рекомендуется квадратный"
+            confirmText="Логотип будет удалён с сервера без возможности восстановления."
+            @update:modelValue="onLogoChange"
+          />
+          <div>
+            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Отображение</p>
+            <div class="flex flex-col gap-1.5">
+              <button
+                v-for="opt in ([
+                  { v: 'contain', label: 'Вписать',    desc: 'Лого целиком, без обрезки' },
+                  { v: 'cover',   label: 'Заполнить',  desc: 'Заполняет область, края срезаются' },
+                  { v: 'fill',    label: 'Растянуть',  desc: 'Принудительно под размер рамки' },
+                ] as const)"
+                :key="opt.v"
+                type="button"
+                @click="logoFit = opt.v"
+                :class="['flex items-center gap-2 px-3 py-1.5 rounded-lg border text-left transition-all text-sm',
+                  logoFit === opt.v
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
+                    : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600']"
+              >
+                <span class="font-medium">{{ opt.label }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">— {{ opt.desc }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Visibility / Border radius + Sidebar position -->

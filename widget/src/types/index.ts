@@ -17,6 +17,7 @@ export interface WidgetConfig {
   font_family?: 'system' | 'inter' | 'roboto' | 'montserrat' | 'georgia' | null
   sidebar_position?: 'left' | 'right' | null
   logo_url?: string | null
+  logo_fit?: 'contain' | 'cover' | 'fill' | null
   border_radius?: number
   show_price?: boolean
   show_duration?: boolean
