@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 defineProps<{
   label: string
   isToday: boolean
@@ -8,7 +10,11 @@ defineEmits<{
   prev: []
   next: []
   today: []
+  'click-label': []
 }>()
+
+const labelEl = ref<HTMLElement | null>(null)
+defineExpose({ labelEl })
 </script>
 
 <template>
@@ -24,13 +30,15 @@ defineEmits<{
     </button>
 
     <div class="text-center min-w-[160px]">
-      <div class="font-semibold text-gray-900 dark:text-white text-sm capitalize leading-tight">
-        {{ label }}
-      </div>
+      <button
+        ref="labelEl"
+        @click="$emit('click-label')"
+        class="font-semibold text-gray-900 dark:text-white text-sm capitalize leading-tight hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+      >{{ label }}</button>
       <button
         v-if="!isToday"
         @click="$emit('today')"
-        class="text-xs text-primary-600 dark:text-primary-400 font-medium hover:underline"
+        class="block w-full text-xs text-primary-600 dark:text-primary-400 font-medium hover:underline"
       >Сегодня</button>
       <div v-else class="text-xs text-primary-600 dark:text-primary-400 font-medium">Сегодня</div>
     </div>

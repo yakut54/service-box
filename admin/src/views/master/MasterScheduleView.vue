@@ -6,6 +6,7 @@ import { useToast } from '@/composables/useToast'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner, UiEmptyState, UiDayNav } from '@/shared/ui'
+import DatePicker from '@/components/DatePicker.vue'
 import type { Booking, BookingStatus } from '@/types'
 
 const authStore = useAuthStore()
@@ -41,6 +42,18 @@ const anchorDate  = ref(toYMD(new Date()))
 const bookings    = ref<Booking[]>([])
 const loading     = ref(false)
 const updatingId  = ref<string | null>(null)
+const dayNavRef   = ref<InstanceType<typeof UiDayNav> | null>(null)
+const pickerRef   = ref<InstanceType<typeof DatePicker> | null>(null)
+
+function openCalendar() {
+  if (dayNavRef.value?.labelEl) {
+    pickerRef.value?.openAt(dayNavRef.value.labelEl)
+  }
+}
+
+function onDatePick(val: string) {
+  if (val) { anchorDate.value = val; load() }
+}
 
 const isToday = computed(() => anchorDate.value === toYMD(new Date()))
 
@@ -130,12 +143,15 @@ onMounted(load)
     <!-- Date navigation -->
     <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2">
       <UiDayNav
+        ref="dayNavRef"
         :label="navLabel"
         :is-today="isToday"
         @prev="navigate(-1)"
         @next="navigate(+1)"
         @today="anchorDate = toYMD(new Date()); load()"
+        @click-label="openCalendar"
       />
+      <DatePicker ref="pickerRef" :model-value="anchorDate" @change="onDatePick" class="hidden" />
     </div>
 
     <!-- Loading -->
