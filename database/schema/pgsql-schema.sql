@@ -344,7 +344,7 @@ SET default_table_access_method = heap;
 -- Name: cache; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.cache (
+CREATE TABLE IF NOT EXISTS public.cache (
     key character varying(255) NOT NULL,
     value text NOT NULL,
     expiration integer NOT NULL
@@ -355,7 +355,7 @@ CREATE TABLE public.cache (
 -- Name: cache_locks; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.cache_locks (
+CREATE TABLE IF NOT EXISTS public.cache_locks (
     key character varying(255) NOT NULL,
     owner character varying(255) NOT NULL,
     expiration integer NOT NULL
@@ -366,7 +366,7 @@ CREATE TABLE public.cache_locks (
 -- Name: migrations; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.migrations (
+CREATE TABLE IF NOT EXISTS public.migrations (
     id integer NOT NULL,
     migration character varying(255) NOT NULL,
     batch integer NOT NULL
@@ -377,7 +377,7 @@ CREATE TABLE public.migrations (
 -- Name: migrations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.migrations_id_seq
+CREATE SEQUENCE IF NOT EXISTS public.migrations_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -397,7 +397,7 @@ ALTER SEQUENCE public.migrations_id_seq OWNED BY public.migrations.id;
 -- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.password_reset_tokens (
+CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
     email character varying(255) NOT NULL,
     token character varying(255) NOT NULL,
     created_at timestamp(0) without time zone
@@ -408,7 +408,7 @@ CREATE TABLE public.password_reset_tokens (
 -- Name: personal_access_tokens; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.personal_access_tokens (
+CREATE TABLE IF NOT EXISTS public.personal_access_tokens (
     id bigint NOT NULL,
     tokenable_type character varying(255) NOT NULL,
     tokenable_id uuid NOT NULL,
@@ -426,7 +426,7 @@ CREATE TABLE public.personal_access_tokens (
 -- Name: personal_access_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.personal_access_tokens_id_seq
+CREATE SEQUENCE IF NOT EXISTS public.personal_access_tokens_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -445,7 +445,7 @@ ALTER SEQUENCE public.personal_access_tokens_id_seq OWNED BY public.personal_acc
 -- Name: plan_pricing; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.plan_pricing (
+CREATE TABLE IF NOT EXISTS public.plan_pricing (
     plan character varying(255) NOT NULL,
     price_kopecks integer NOT NULL,
     created_at timestamp(0) without time zone,
@@ -460,7 +460,7 @@ CREATE TABLE public.plan_pricing (
 -- Name: shop_staff; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.shop_staff (
+CREATE TABLE IF NOT EXISTS public.shop_staff (
     id uuid NOT NULL,
     shop_id uuid NOT NULL,
     user_id uuid,
@@ -483,7 +483,7 @@ CREATE TABLE public.shop_staff (
 -- Name: shops; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.shops (
+CREATE TABLE IF NOT EXISTS public.shops (
     id uuid NOT NULL,
     user_id uuid NOT NULL,
     name character varying(255) NOT NULL,
@@ -523,7 +523,7 @@ CREATE TABLE public.shops (
 -- Name: subscription_payments; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.subscription_payments (
+CREATE TABLE IF NOT EXISTS public.subscription_payments (
     id uuid NOT NULL,
     shop_id uuid NOT NULL,
     payment_id character varying(255) NOT NULL,
@@ -545,7 +545,7 @@ CREATE TABLE public.subscription_payments (
 -- Name: subscriptions; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
     id uuid NOT NULL,
     shop_id uuid NOT NULL,
     plan character varying(255) NOT NULL,
@@ -563,7 +563,7 @@ CREATE TABLE public.subscriptions (
 -- Name: telegram_codes; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.telegram_codes (
+CREATE TABLE IF NOT EXISTS public.telegram_codes (
     id uuid NOT NULL,
     code character varying(255) NOT NULL,
     shop_id uuid NOT NULL,
@@ -578,7 +578,7 @@ CREATE TABLE public.telegram_codes (
 -- Name: telegram_messages; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.telegram_messages (
+CREATE TABLE IF NOT EXISTS public.telegram_messages (
     id uuid NOT NULL,
     shop_id uuid NOT NULL,
     telegram_message_id bigint,
@@ -605,7 +605,7 @@ CREATE TABLE public.telegram_messages (
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
     id uuid NOT NULL,
     name character varying(255) NOT NULL,
     email character varying(255) NOT NULL,
