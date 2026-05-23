@@ -194,7 +194,6 @@ async function save() {
         <ImageUpload
           v-model="form.avatar_url"
           v-model:uploading="avatarUploading"
-          shape="circle"
           size="md"
           confirmText="Фото мастера будет удалено. Это действие нельзя отменить."
         />
