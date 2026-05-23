@@ -16,8 +16,8 @@ const emit = defineEmits<{
 
 const mode = computed(() => props.admin ? 'edit' : 'create')
 
-const name  = ref('')
-const email = ref('')
+const name   = ref('')
+const email  = ref('')
 const saving = ref(false)
 const error  = ref('')
 
@@ -42,8 +42,8 @@ const isValid = computed(() =>
 
 watch(() => props.modelValue, (open) => {
   if (!open) return
-  error.value = ''
-  nameTouched.value = false
+  error.value        = ''
+  nameTouched.value  = false
   emailTouched.value = false
   if (props.admin) {
     name.value  = props.admin.invite_name ?? props.admin.user?.name ?? ''
@@ -79,23 +79,34 @@ async function save() {
 </script>
 
 <template>
-  <UiModal
-    :model-value="modelValue"
-    :title="mode === 'create' ? 'Добавить администратора' : 'Редактировать'"
-    @update:model-value="$emit('update:modelValue', $event)"
-  >
-    <div class="flex flex-col gap-4">
+  <UiModal :model-value="modelValue" max-width="max-w-md" @update:model-value="$emit('update:modelValue', $event)">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+        {{ mode === 'create' ? 'Добавить администратора' : 'Редактировать' }}
+      </h2>
+      <button @click="$emit('update:modelValue', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="p-4 space-y-4">
+
+      <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
+        {{ error }}
+      </div>
 
       <!-- Name -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Имя <span class="text-red-500">*</span>
-        </label>
+        <p class="label">Имя <span class="text-red-500">*</span></p>
         <input
           v-model="name"
           type="text"
-          class="input w-full"
-          :class="{ 'border-red-400 dark:border-red-500': nameError }"
+          :class="['input', nameError ? 'input-error' : '']"
           placeholder="Анна Петрова"
           @blur="nameTouched = true"
           @keydown.enter="save"
@@ -103,36 +114,32 @@ async function save() {
         <p v-if="nameError" class="mt-1 text-xs text-red-500">{{ nameError }}</p>
       </div>
 
-      <!-- Email (read-only when editing) -->
+      <!-- Email -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Email <span class="text-red-500">*</span>
-        </label>
+        <p class="label">Email <span class="text-red-500">*</span></p>
         <input
           v-if="mode === 'create'"
           v-model="email"
           type="email"
-          class="input w-full"
-          :class="{ 'border-red-400 dark:border-red-500': emailError }"
+          :class="['input', emailError ? 'input-error' : '']"
           placeholder="admin@example.com"
           @blur="emailTouched = true"
           @keydown.enter="save"
         />
         <div
           v-else
-          class="input w-full bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default"
+          class="input bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-default select-all"
         >{{ email }}</div>
         <p v-if="emailError" class="mt-1 text-xs text-red-500">{{ emailError }}</p>
         <p v-if="mode === 'create'" class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-          На этот адрес придёт приглашение. Действует 48 часов.
+          На этот адрес придёт ссылка-приглашение. Действует 48 часов.
         </p>
       </div>
 
-      <!-- Error -->
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     </div>
 
-    <template #footer>
+    <!-- Footer -->
+    <div class="flex justify-end gap-3 px-4 py-3 border-t border-gray-100 dark:border-gray-700">
       <button
         @click="$emit('update:modelValue', false)"
         class="btn-secondary"
@@ -143,6 +150,7 @@ async function save() {
         class="btn-primary"
         :disabled="saving"
       >{{ saving ? 'Сохранение...' : (mode === 'create' ? 'Добавить и отправить' : 'Сохранить') }}</button>
-    </template>
+    </div>
+
   </UiModal>
 </template>
