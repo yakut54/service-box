@@ -8,7 +8,7 @@ import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 const props = withDefaults(defineProps<{
   modelValue?: string | null
   shape?: 'square' | 'circle'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   objectFit?: 'cover' | 'contain'
   withUrlInput?: boolean
   hint?: string
@@ -47,6 +47,7 @@ const previewClass = computed(() => ({
   sm: 'h-12 w-12',
   md: 'h-20 w-20',
   lg: 'h-24 w-24',
+  xl: 'h-32 w-32',
 }[props.size]))
 
 const shapeClass = computed(() =>
@@ -57,6 +58,7 @@ const padClass = computed(() => ({
   sm: 'p-3',
   md: 'p-4',
   lg: 'p-6',
+  xl: 'p-8',
 }[props.size]))
 
 function setUploading(v: boolean) {

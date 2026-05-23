@@ -326,42 +326,39 @@ async function saveConfig() {
         </div>
       </div>
 
-      <!-- Logo + visibility / Border radius + Sidebar position -->
+      <!-- Logo -->
+      <div>
+        <p class="label mb-2">Логотип магазина</p>
+        <ImageUpload
+          v-model="logoUrl"
+          v-model:uploading="uploadingLogo"
+          size="xl"
+          objectFit="contain"
+          hint="PNG, WEBP · рекомендуется квадратный"
+          confirmText="Логотип будет удалён с сервера без возможности восстановления."
+          @update:modelValue="onLogoChange"
+        />
+      </div>
+
+      <!-- Visibility / Border radius + Sidebar position -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
 
-        <!-- Left: Logo + Show/hide elements side by side -->
-        <div class="flex gap-5 items-start">
-          <!-- Logo -->
-          <div class="shrink-0">
-            <p class="label">Логотип магазина</p>
-            <ImageUpload
-              v-model="logoUrl"
-              v-model:uploading="uploadingLogo"
-              size="sm"
-              objectFit="contain"
-              hint="PNG, WEBP · рекомендуется квадратный"
-              confirmText="Логотип будет удалён с сервера без возможности восстановления."
-              @update:modelValue="onLogoChange"
-            />
-          </div>
-
-          <!-- Show/hide elements -->
-          <div>
-            <p class="label mb-2">Показывать в карточке услуги</p>
-            <div class="space-y-2">
-              <UiCheckbox v-model="showPrice">
-                <span class="text-sm text-gray-700 dark:text-gray-300">Цену</span>
-              </UiCheckbox>
-              <UiCheckbox v-model="showDuration">
-                <span class="text-sm text-gray-700 dark:text-gray-300">Длительность</span>
-              </UiCheckbox>
-              <UiCheckbox v-model="showMasterName">
-                <span class="text-sm text-gray-700 dark:text-gray-300">Имя мастера</span>
-              </UiCheckbox>
-              <UiCheckbox v-model="showDescription">
-                <span class="text-sm text-gray-700 dark:text-gray-300">Описание</span>
-              </UiCheckbox>
-            </div>
+        <!-- Left: Show/hide elements -->
+        <div>
+          <p class="label mb-2">Показывать в карточке услуги</p>
+          <div class="space-y-2">
+            <UiCheckbox v-model="showPrice">
+              <span class="text-sm text-gray-700 dark:text-gray-300">Цену</span>
+            </UiCheckbox>
+            <UiCheckbox v-model="showDuration">
+              <span class="text-sm text-gray-700 dark:text-gray-300">Длительность</span>
+            </UiCheckbox>
+            <UiCheckbox v-model="showMasterName">
+              <span class="text-sm text-gray-700 dark:text-gray-300">Имя мастера</span>
+            </UiCheckbox>
+            <UiCheckbox v-model="showDescription">
+              <span class="text-sm text-gray-700 dark:text-gray-300">Описание</span>
+            </UiCheckbox>
           </div>
         </div>
 
