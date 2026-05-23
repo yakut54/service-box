@@ -36,7 +36,7 @@ const confirmTouched  = ref(false)
 
 // ── Field-level errors ─────────────────────────────────────────
 const nameError = computed(() => {
-  if (!nameTouched.value) return ''
+  if (masterName.value || !nameTouched.value) return ''
   return name.value.trim() ? '' : 'Введите ваше имя'
 })
 
@@ -176,7 +176,8 @@ onMounted(validateToken)
               v-model="name"
               placeholder="Иван Петров"
               autocomplete="name"
-              :error="nameError"
+              :disabled="!!masterName"
+              :error="masterName ? '' : nameError"
               @blur="nameTouched = true"
             />
 
