@@ -89,7 +89,7 @@ onMounted(loadMessengerStatus)
         <!-- Actions -->
         <div class="flex items-center gap-2 flex-shrink-0">
           <!-- Messenger connect toggle -->
-          <UiTooltip align="center">
+          <UiTooltip align="center" side="bottom">
             <button
               @click="showMessengers = !showMessengers"
               class="p-2 rounded-lg transition-colors"
@@ -106,7 +106,7 @@ onMounted(loadMessengerStatus)
           </UiTooltip>
 
           <!-- Dark mode toggle -->
-          <UiTooltip align="center">
+          <UiTooltip align="center" side="bottom">
             <button
               @click="toggle"
               class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -122,7 +122,7 @@ onMounted(loadMessengerStatus)
           </UiTooltip>
 
           <!-- Logout -->
-          <UiTooltip align="end">
+          <UiTooltip align="end" side="bottom">
             <button
               @click="logout"
               class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
