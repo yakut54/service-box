@@ -33,8 +33,13 @@ defineExpose({ labelEl })
       <button
         ref="labelEl"
         @click="$emit('click-label')"
-        class="font-semibold text-gray-900 dark:text-white text-sm capitalize leading-tight hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
-      >{{ label }}</button>
+        class="inline-flex items-center gap-1.5 font-semibold text-gray-900 dark:text-white text-sm capitalize leading-tight hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+      >
+        <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        {{ label }}
+      </button>
       <button
         v-if="!isToday"
         @click="$emit('today')"
