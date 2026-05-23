@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner, UiEmptyState } from '@/shared/ui'
+import { UiSpinner, UiEmptyState, UiDayNav } from '@/shared/ui'
 import type { Booking, BookingStatus } from '@/types'
 
 const authStore = useAuthStore()
@@ -128,47 +128,14 @@ onMounted(load)
   <div class="flex flex-col min-h-0">
 
     <!-- Date navigation -->
-    <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
-      <div class="flex items-center gap-2">
-        <!-- Prev -->
-        <button
-          @click="navigate(-1)"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all flex-shrink-0"
-          aria-label="Предыдущий день"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-
-        <!-- Date label -->
-        <div class="flex-1 text-center">
-          <div class="font-semibold text-gray-900 dark:text-white text-sm capitalize leading-tight">
-            {{ navLabel }}
-          </div>
-          <div v-if="isToday" class="text-xs text-primary-600 dark:text-primary-400 font-medium">Сегодня</div>
-        </div>
-
-        <!-- Next -->
-        <button
-          @click="navigate(+1)"
-          class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all flex-shrink-0"
-          aria-label="Следующий день"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-
-        <!-- Today button (shows only when not today) -->
-        <button
-          v-if="!isToday"
-          @click="anchorDate = toYMD(new Date()); load()"
-          class="btn-ghost btn-sm flex-shrink-0 text-xs"
-        >
-          Сегодня
-        </button>
-      </div>
+    <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2">
+      <UiDayNav
+        :label="navLabel"
+        :is-today="isToday"
+        @prev="navigate(-1)"
+        @next="navigate(+1)"
+        @today="anchorDate = toYMD(new Date()); load()"
+      />
     </div>
 
     <!-- Loading -->
