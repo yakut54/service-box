@@ -52,17 +52,23 @@ const currentDate = computed(() =>
 )
 
 const navigation = [
+  // Обзор
   { name: 'Главная',    href: '/',            icon: 'home' },
   { name: 'Аналитика', href: '/analytics',    icon: 'analytics' },
+  // Работа
+  { name: 'Записи',    href: '/bookings',     icon: 'calendar' },
+  { name: 'Заказы',    href: '/orders',       icon: 'shopping-cart' },
+  { name: 'Клиенты',   href: '/customers',    icon: 'users' },
+  // Каталог
   { name: 'Товары',    href: '/products',     icon: 'package' },
   { name: 'Категории', href: '/categories',   icon: 'categories' },
-  { name: 'Заказы',    href: '/orders',       icon: 'shopping-cart' },
-  { name: 'Записи',    href: '/bookings',     icon: 'calendar' },
+  // Команда
   { name: 'Мастера',   href: '/masters',      icon: 'master' },
-  { name: 'Клиенты',   href: '/customers',    icon: 'users' },
+  { name: 'Администраторы', href: '/staff',   icon: 'staff',        ownerOnly: true },
+  // Маркетинг
   { name: 'Скидки',    href: '/discounts',    icon: 'discount' },
   { name: 'Отзывы',    href: '/reviews',      icon: 'reviews' },
-  { name: 'Администраторы', href: '/staff',   icon: 'staff',        ownerOnly: true },
+  // Магазин
   { name: 'Подписка',  href: '/subscription', icon: 'subscription', ownerOnly: true },
   { name: 'Документы', href: '/legal',        icon: 'legal',        ownerOnly: true },
   { name: 'Настройки', href: '/settings',     icon: 'settings',     ownerOnly: true },
