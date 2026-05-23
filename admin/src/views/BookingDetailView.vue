@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
 import type { Booking } from '@/types'
@@ -58,7 +59,7 @@ async function changeStatus(status: string) {
     const res = await api.updateBookingStatus(booking.value.id, status)
     booking.value = res.data
   } catch (e: unknown) {
-    statusError.value = e instanceof Error ? e.message : 'Не удалось изменить статус'
+    statusError.value = parseApiError(e, 'Не удалось изменить статус записи')
   }
   updatingStatus.value = false
 }

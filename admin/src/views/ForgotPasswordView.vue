@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 
 const email   = ref('')
 const loading = ref(false)
@@ -18,7 +19,7 @@ async function handleSubmit() {
     await api.forgotPassword(email.value)
     sent.value = true
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка отправки'
+    error.value = parseApiError(e, 'Не удалось отправить письмо')
   } finally {
     loading.value = false
   }

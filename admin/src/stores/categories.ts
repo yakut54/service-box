@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import type { Category } from '@/types'
 
 export const useCategoriesStore = defineStore('categories', () => {
@@ -43,7 +44,7 @@ export const useCategoriesStore = defineStore('categories', () => {
       const data = await api.getCategories()
       categories.value = data.data
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : 'Ошибка загрузки категорий'
+      error.value = parseApiError(e, 'Не удалось загрузить категории')
     } finally {
       loading.value = false
     }

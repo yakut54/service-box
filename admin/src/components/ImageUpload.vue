@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import imageCompression from 'browser-image-compression'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
 const props = withDefaults(defineProps<{
@@ -84,7 +85,7 @@ async function handleFile(file: File) {
   } catch (e: unknown) {
     URL.revokeObjectURL(previewUrl)
     emit('update:modelValue', null)
-    uploadError.value = e instanceof Error ? e.message : 'Не удалось загрузить'
+    uploadError.value = parseApiError(e, 'Не удалось загрузить изображение')
   } finally {
     setUploading(false)
   }

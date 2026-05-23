@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import { plural } from '@/lib/utils'
 import { useToast } from '@/composables/useToast'
 import CustomSelect from '@/components/CustomSelect.vue'
@@ -88,7 +89,7 @@ async function loadMasters() {
     masters.value = res.data
     sortMasters()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Не удалось загрузить мастеров'
+    error.value = parseApiError(e, 'Не удалось загрузить мастеров')
   } finally {
     loading.value = false
   }
@@ -143,7 +144,7 @@ async function doDelete() {
     masters.value = masters.value.filter(m => m.id !== targetId)
     deleteTarget.value = null
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка удаления'
+    error.value = parseApiError(e, 'Не удалось удалить мастера')
   } finally {
     deleting.value = false
   }

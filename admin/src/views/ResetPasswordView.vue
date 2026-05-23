@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import PasswordInput from '@/components/PasswordInput.vue'
 
 const router = useRouter()
@@ -44,7 +45,7 @@ async function handleSubmit() {
     success.value = true
     setTimeout(() => router.push('/login'), 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка сброса пароля'
+    error.value = parseApiError(e, 'Не удалось сбросить пароль')
   } finally {
     loading.value = false
   }

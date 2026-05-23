@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
@@ -157,7 +158,7 @@ async function save() {
     showModal.value = false
     await categoriesStore.fetchCategories()
   } catch (e: unknown) {
-    modalError.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+    modalError.value = parseApiError(e, 'Не удалось сохранить категорию')
   } finally {
     saving.value = false
   }
@@ -189,7 +190,7 @@ async function hideCategory(cat: Category) {
     await api.deleteCategory(cat.id, { action: 'hide' })
     await categoriesStore.fetchCategories()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка'
+    error.value = parseApiError(e, 'Не удалось изменить видимость категории')
   }
 }
 
@@ -210,7 +211,7 @@ async function doDelete() {
     deleteTarget.value = null
     await categoriesStore.fetchCategories()
   } catch (e: unknown) {
-    deleteError.value = e instanceof Error ? e.message : 'Ошибка удаления'
+    deleteError.value = parseApiError(e, 'Не удалось удалить категорию')
   } finally {
     deleting.value = false
   }

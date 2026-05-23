@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, formatDateTime, formatDate } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
@@ -42,7 +43,7 @@ async function doDelete() {
     showDeleteModal.value = false
     router.push('/customers')
   } catch (e: unknown) {
-    deleteError.value = e instanceof Error ? e.message : 'Ошибка удаления'
+    deleteError.value = parseApiError(e, 'Не удалось удалить клиента')
   } finally {
     deleting.value = false
   }

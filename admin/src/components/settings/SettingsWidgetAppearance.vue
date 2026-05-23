@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import ImageUpload from '@/components/ImageUpload.vue'
 import UiCheckbox from '@/shared/ui/UiCheckbox.vue'
 
@@ -152,7 +153,7 @@ async function saveConfig() {
     success.value = true
     setTimeout(() => success.value = false, 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+    error.value = parseApiError(e, 'Не удалось сохранить внешний вид виджета')
   } finally {
     saving.value = false
   }

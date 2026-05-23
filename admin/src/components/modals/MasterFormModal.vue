@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
 import { UiModal } from '@/shared/ui'
 import ImageUpload from '@/components/ImageUpload.vue'
@@ -134,7 +135,7 @@ async function save() {
     emit('saved', savedMaster, mode.value)
     emit('update:modelValue', false)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+    error.value = parseApiError(e, 'Не удалось сохранить мастера')
   } finally {
     saving.value = false
   }

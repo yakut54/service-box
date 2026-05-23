@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 
 interface MethodForm {
   enabled:   boolean
@@ -48,7 +49,7 @@ onMounted(async () => {
       }
     }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка загрузки'
+    error.value = parseApiError(e, 'Не удалось загрузить настройки доставки')
   } finally {
     loading.value = false
   }
@@ -75,7 +76,7 @@ async function save() {
     success.value = true
     setTimeout(() => { success.value = false }, 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+    error.value = parseApiError(e, 'Не удалось сохранить настройки доставки')
   } finally {
     saving.value = false
   }

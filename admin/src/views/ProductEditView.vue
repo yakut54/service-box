@@ -1,7 +1,8 @@
 ﻿<script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
 
@@ -12,6 +13,7 @@ const isEditing = computed(() => !!route.params.id)
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
+const errorEl = ref<HTMLElement | null>(null)
 
 const form = ref({
   name: '',
@@ -123,8 +125,7 @@ onMounted(async () => {
         }
       }
     } catch (e: unknown) {
-      console.error('ProductEdit load error:', e)
-      error.value = e instanceof Error ? e.message : 'Товар не найден'
+      error.value = parseApiError(e, 'Не удалось загрузить товар')
     }
     loading.value = false
   }
@@ -156,7 +157,10 @@ async function handleSubmit() {
     if (isEditing.value) { await api.updateProduct(route.params.id as string, data) }
     else { await api.createProduct(data) }
     await router.push('/products')
-  } catch (e: unknown) { error.value = e instanceof Error ? e.message : 'Ошибка сохранения' }
+  } catch (e: unknown) {
+    error.value = parseApiError(e, 'Не удалось сохранить товар')
+    nextTick(() => errorEl.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+  }
   saving.value = false
 }
 </script>
@@ -172,7 +176,7 @@ async function handleSubmit() {
     </div>
 
     <form v-else @submit.prevent="handleSubmit" class="space-y-6">
-      <div v-if="error" class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">{{ error }}</div>
+      <div v-if="error" ref="errorEl" class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">{{ error }}</div>
 
       <!-- ══════════ ОСНОВНАЯ ИНФОРМАЦИЯ ══════════ -->
       <div class="card">

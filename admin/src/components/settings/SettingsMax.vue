@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
 const authStore = useAuthStore()
@@ -32,7 +33,7 @@ async function connect() {
     window.open(botUrl.value, '_blank')
     awaiting.value = true
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка подключения'
+    error.value = parseApiError(e, 'Не удалось подключить MAX')
   }
   connecting.value = false
 }
@@ -64,7 +65,7 @@ async function disconnect() {
     }
     awaiting.value = false
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка отключения'
+    error.value = parseApiError(e, 'Не удалось отключить MAX')
   }
   disconnecting.value = false
 }

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useCategoriesStore } from '@/stores/categories'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import CustomSelect from '@/components/CustomSelect.vue'
 
 const props = withDefaults(defineProps<{
@@ -47,7 +48,7 @@ async function quickCreate(name: string, close: () => void) {
     newCatName.value = ''
     close()
   } catch (e: unknown) {
-    createError.value = e instanceof Error ? e.message : 'Не удалось создать категорию'
+    createError.value = parseApiError(e, 'Не удалось создать категорию')
   }
 }
 

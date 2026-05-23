@@ -3,6 +3,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
 import { api, ApiError } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import { handlePhoneInput, isValidPhone } from '@/composables/usePhoneInput'
 import { RouterLink } from 'vue-router'
 import CustomSelect from '@/components/CustomSelect.vue'
@@ -168,7 +169,7 @@ async function submit() {
     emit('created')
     emit('update:modelValue', false)
   } catch (e: unknown) {
-    modalError.value = e instanceof Error ? e.message : 'Не удалось создать запись'
+    modalError.value = parseApiError(e, 'Не удалось создать запись')
   }
   creating.value = false
 }

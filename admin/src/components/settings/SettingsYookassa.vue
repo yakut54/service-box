@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import PasswordInput from '@/components/PasswordInput.vue'
 
 const authStore = useAuthStore()
@@ -42,7 +43,7 @@ async function save() {
     success.value = true
     setTimeout(() => success.value = false, 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+    error.value = parseApiError(e, 'Не удалось сохранить настройки ЮКассы')
   } finally {
     saving.value = false
   }

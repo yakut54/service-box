@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 
 const authStore = useAuthStore()
 
@@ -106,7 +107,7 @@ async function save() {
     success.value = true
     setTimeout(() => { success.value = false }, 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+    error.value = parseApiError(e, 'Не удалось сохранить')
   } finally {
     saving.value = false
   }

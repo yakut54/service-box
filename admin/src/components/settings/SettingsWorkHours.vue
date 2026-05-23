@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import TimeInput from '@/components/TimeInput.vue'
 import CustomSelect from '@/components/CustomSelect.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
@@ -74,7 +75,7 @@ async function save() {
     success.value = true
     setTimeout(() => success.value = false, 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка сохранения'
+    error.value = parseApiError(e, 'Не удалось сохранить часы работы')
   } finally {
     saving.value = false
   }

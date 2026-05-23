@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 
 const authStore = useAuthStore()
 
@@ -24,7 +25,7 @@ async function loadFunnel() {
     const res = await api.getWidgetAnalytics(funnelDays.value)
     funnelData.value = res.funnel
   } catch (e: unknown) {
-    funnelError.value = e instanceof Error ? e.message : 'Ошибка загрузки'
+    funnelError.value = parseApiError(e, 'Не удалось загрузить аналитику')
   } finally {
     funnelLoading.value = false
   }

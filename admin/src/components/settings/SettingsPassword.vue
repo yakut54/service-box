@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import PasswordInput from '@/components/PasswordInput.vue'
 
 const currentPassword = ref('')
@@ -39,7 +40,7 @@ async function save() {
     newPasswordConfirm.value = ''
     setTimeout(() => success.value = false, 3000)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка смены пароля'
+    error.value = parseApiError(e, 'Не удалось изменить пароль')
   } finally {
     saving.value = false
   }

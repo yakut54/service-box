@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDate } from '@/shared/lib/format'
 import { UiSpinner, UiEmptyState } from '@/shared/ui'
@@ -64,7 +65,7 @@ async function doDelete() {
     customers.value = customers.value.filter(c => c.id !== targetId)
     deleteTarget.value = null
   } catch (e: unknown) {
-    deleteError.value = e instanceof Error ? e.message : 'Ошибка удаления'
+    deleteError.value = parseApiError(e, 'Не удалось удалить клиента')
   } finally {
     deleting.value = false
   }

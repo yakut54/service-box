@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
 const authStore = useAuthStore()
@@ -24,7 +25,7 @@ async function connect() {
     window.open(`https://t.me/sb_widget_bot?start=${resp.code}`, '_blank')
     awaiting.value = true
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка подключения'
+    error.value = parseApiError(e, 'Не удалось подключить Telegram')
   }
   connecting.value = false
 }
@@ -50,7 +51,7 @@ async function disconnect() {
     }
     awaiting.value = false
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка отключения'
+    error.value = parseApiError(e, 'Не удалось отключить Telegram')
   }
   disconnecting.value = false
 }

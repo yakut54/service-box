@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import type { SubscriptionStatus, SubscriptionPayment } from '@/types'
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ async function load() {
       })
     if (sub.plan) selectedPlan.value = sub.plan
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка загрузки данных'
+    error.value = parseApiError(e, 'Не удалось загрузить данные подписки')
   } finally {
     loading.value = false
   }
@@ -133,7 +134,7 @@ async function handlePay() {
       success.value = `Платёж создан (ID: ${result.payment_id}). Ожидаем подтверждения.`
     }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка создания платежа'
+    error.value = parseApiError(e, 'Не удалось создать платёж')
   } finally {
     paying.value = false
   }

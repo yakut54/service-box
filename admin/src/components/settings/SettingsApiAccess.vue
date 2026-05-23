@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { parseApiError } from '@/lib/parseApiError'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
 const authStore = useAuthStore()
@@ -38,7 +39,7 @@ async function regenerate() {
     if (authStore.shop) authStore.shop.api_key = res.api_key
     revealed.value = false
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Ошибка'
+    error.value = parseApiError(e, 'Не удалось обновить API-ключ')
   } finally {
     regenerating.value = false
     showConfirm.value = false
