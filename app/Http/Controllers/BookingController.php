@@ -194,7 +194,7 @@ class BookingController extends Controller
                     try { \App\Services\TelegramService::notifyMasterNewBooking($masterStaff->telegram_chat_id, $booking, $shop); } catch (\Throwable) {}
                 }
                 if ($masterStaff->max_user_id) {
-                    try { \App\Services\MaxService::notifyMasterNewBooking($masterStaff->max_user_id, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
+                    try { \App\Services\MaxService::notifyMasterNewBooking($masterStaff->max_user_id, $booking, $shop->timezone ?? 'Europe/Moscow', (bool) $shop->hide_customer_phone); } catch (\Throwable) {}
                 }
             }
         }

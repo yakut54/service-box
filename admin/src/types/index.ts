@@ -105,6 +105,7 @@ export interface Shop {
   timezone: string | null
   prepayment_enabled: boolean
   prepayment_amount: number
+  hide_customer_phone: boolean
   delivery_settings: Record<string, unknown> | null
   created_at: string
   updated_at: string

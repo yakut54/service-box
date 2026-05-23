@@ -244,9 +244,9 @@ onMounted(load)
             <span class="truncate">{{ booking.customer_name }}</span>
           </div>
 
-          <!-- Phone (tap to call) -->
+          <!-- Phone (tap to call) — hidden if owner enabled client base protection -->
           <a
-            v-if="booking.customer_phone"
+            v-if="booking.customer_phone && !authStore.shop?.hide_customer_phone"
             :href="`tel:${booking.customer_phone}`"
             class="flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline mb-3"
           >

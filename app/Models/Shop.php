@@ -41,6 +41,7 @@ class Shop extends Model
         'prepayment_enabled',
         'prepayment_amount',
         'timezone',
+        'hide_customer_phone',
     ];
 
     protected $casts = [
@@ -53,8 +54,9 @@ class Shop extends Model
         'delivery_settings' => 'array',
         'slot_duration'      => 'integer',
         'min_booking_notice'  => 'integer',
-        'prepayment_enabled'  => 'boolean',
-        'prepayment_amount'   => 'integer',
+        'prepayment_enabled'    => 'boolean',
+        'prepayment_amount'     => 'integer',
+        'hide_customer_phone'   => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

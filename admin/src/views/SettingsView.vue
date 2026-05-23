@@ -12,6 +12,7 @@ import SettingsWidgetAppearance from '@/components/settings/SettingsWidgetAppear
 import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalytics.vue'
 import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue'
 import SettingsApiAccess        from '@/components/settings/SettingsApiAccess.vue'
+import SettingsMasters          from '@/components/settings/SettingsMasters.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -63,6 +64,7 @@ function setTab(id: TabId) {
       <SettingsShopInfo />
       <div class="flex flex-col gap-6">
         <SettingsWorkHours />
+        <SettingsMasters />
         <SettingsPassword />
       </div>
     </div>

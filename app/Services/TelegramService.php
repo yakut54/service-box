@@ -585,8 +585,10 @@ class TelegramService
         $text  = "📅 <b>Новая запись!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
         $text .= "📋 " . self::esc($service) . "\n\n";
-        $text .= "👤 " . self::esc($booking->customer_name) . "\n";
-        $text .= "📞 " . self::esc($booking->customer_phone);
+        $text .= "👤 " . self::esc($booking->customer_name);
+        if (empty($shop->hide_customer_phone) && !empty($booking->customer_phone)) {
+            $text .= "\n📞 " . self::esc($booking->customer_phone);
+        }
         if (!empty($booking->notes)) $text .= "\n\n💬 " . self::esc($booking->notes);
 
         \Illuminate\Support\Facades\Http::timeout(5)

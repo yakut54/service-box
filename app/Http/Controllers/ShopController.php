@@ -128,8 +128,9 @@ class ShopController extends Controller
             'slot_duration'      => 'sometimes|integer|in:10,15,20,30,45,60',
             'min_booking_notice'  => 'sometimes|integer|in:0,30,60,120,180,360,720,1440,2880',
             'timezone'            => 'sometimes|string|timezone',
-            'prepayment_enabled'  => 'sometimes|boolean',
-            'prepayment_amount'   => 'sometimes|integer|min:0',
+            'prepayment_enabled'    => 'sometimes|boolean',
+            'prepayment_amount'     => 'sometimes|integer|min:0',
+            'hide_customer_phone'   => 'sometimes|boolean',
             // Юридические документы
             'legal_config'                                  => 'sometimes|array',
             'legal_config.public_offer_text'                => 'nullable|string|max:50000',

@@ -478,7 +478,7 @@ class MaxService
         Log::info('MAX master connected', ['staff_id' => $staff->id, 'user_id' => $userId]);
     }
 
-    public static function notifyMasterNewBooking(int $userId, $booking, string $timezone): void
+    public static function notifyMasterNewBooking(int $userId, $booking, string $timezone, bool $hidePhone = false): void
     {
         $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');
         $date    = $dt->translatedFormat('j M, D');
@@ -488,8 +488,10 @@ class MaxService
         $text  = "📅 <b>Новая запись!</b>\n\n";
         $text .= "🕐 <b>{$date} в {$time}</b>\n";
         $text .= "📋 " . self::esc($service) . "\n\n";
-        $text .= "👤 " . self::esc($booking->customer_name) . "\n";
-        $text .= "📞 " . self::esc($booking->customer_phone);
+        $text .= "👤 " . self::esc($booking->customer_name);
+        if (!$hidePhone && !empty($booking->customer_phone)) {
+            $text .= "\n📞 " . self::esc($booking->customer_phone);
+        }
         if (!empty($booking->notes)) $text .= "\n\n💬 " . self::esc($booking->notes);
 
         try {
