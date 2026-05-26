@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
+use App\Services\MasterBotService;
 use App\Services\MaxService;
 use App\Services\TelegramService;
 use App\Services\TenantService;
@@ -156,6 +157,34 @@ class MaxController extends Controller
             return;
         }
 
+        // ── Master slash commands ─────────────────────────────────────────
+        $masterCmd = match(true) {
+            in_array($text, ['/today', 'today'])   => 'today',
+            in_array($text, ['/week',  'week'])    => 'week',
+            in_array($text, ['/stats', 'stats'])   => 'stats',
+            default => null,
+        };
+
+        if ($masterCmd !== null) {
+            $ctx = MasterBotService::findByMaxUserId($userId);
+            if ($ctx) {
+                $responseText = match($masterCmd) {
+                    'today' => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'today', $ctx['hide_phone']),
+                    'week'  => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'week',  $ctx['hide_phone']),
+                    'stats' => MasterBotService::getStatsText($ctx['schema'], $ctx['master_id'], $ctx['tz']),
+                };
+                MaxService::sendMasterMenu($userId, $responseText);
+                return;
+            }
+        }
+
+        // ── If master sends unrecognized text → show menu ─────────────────
+        $masterCtx = MasterBotService::findByMaxUserId($userId);
+        if ($masterCtx) {
+            MaxService::sendMasterMenu($userId);
+            return;
+        }
+
         $pendingBookingId = \Illuminate\Support\Facades\Cache::get("awaiting_review:max:{$userId}");
         if ($pendingBookingId) {
             \Illuminate\Support\Facades\Cache::forget("awaiting_review:max:{$userId}");
@@ -206,7 +235,10 @@ class MaxController extends Controller
     private function tryConnectMaster(int $userId, \App\Models\ShopStaff $staff): void
     {
         MaxService::connectMaster($staff, $userId);
-        MaxService::sendRaw($userId, "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.");
+        MaxService::sendMasterMenu(
+            $userId,
+            "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.\n\nИспользуйте кнопки ниже 👇"
+        );
     }
 
     private function handleCallback(array $update): void
@@ -248,6 +280,11 @@ class MaxController extends Controller
 
         if ($entityType === 'master_booking') {
             $this->handleMasterBookingAction($callbackId, $action, $entityId, $userId);
+            return;
+        }
+
+        if ($entityType === 'master_menu') {
+            $this->handleMasterMenuCallback($callbackId, $action, $userId);
             return;
         }
 
@@ -611,6 +648,34 @@ class MaxController extends Controller
         } finally {
             TenantService::resetContext();
         }
+    }
+
+    private function handleMasterMenuCallback(string $cbId, string $action, int $userId): void
+    {
+        $ctx = MasterBotService::findByMaxUserId($userId);
+
+        if (!$ctx) {
+            MaxService::answerCallback($cbId, 'Мастер не найден');
+            return;
+        }
+
+        MaxService::answerCallback($cbId, '');
+
+        $responseText = match ($action) {
+            'today' => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'today', $ctx['hide_phone']),
+            'week'  => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'week',  $ctx['hide_phone']),
+            'stats' => MasterBotService::getStatsText($ctx['schema'], $ctx['master_id'], $ctx['tz']),
+            default => null,
+        };
+
+        if ($responseText === null) {
+            MaxService::answerCallback($cbId, 'Неизвестная команда');
+            return;
+        }
+
+        MaxService::sendMasterMenu($userId, $responseText);
+
+        Log::info('[MAX] master_menu callback handled', ['action' => $action, 'user_id' => $userId]);
     }
 
     private function safeSchema(string $schema): string

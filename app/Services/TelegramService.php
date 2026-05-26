@@ -622,6 +622,53 @@ class TelegramService
             ]);
     }
 
+    /**
+     * Send welcome message with persistent ReplyKeyboard to master.
+     * Called once on connection — keyboard stays at the bottom forever.
+     */
+    public static function sendMasterWelcome(int $chatId): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+            'chat_id'      => $chatId,
+            'text'         => "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.\n\nИспользуйте кнопки ниже 👇",
+            'parse_mode'   => 'HTML',
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => '📅 Сегодня'], ['text' => '📅 Неделя']],
+                    [['text' => '📊 Статистика']],
+                ],
+                'resize_keyboard' => true,
+                'persistent'      => true,
+            ]),
+        ]);
+    }
+
+    /**
+     * Send a message to master — always re-attaches the keyboard.
+     */
+    public static function sendToMaster(int $chatId, string $text): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+            'chat_id'      => $chatId,
+            'text'         => $text,
+            'parse_mode'   => 'HTML',
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => '📅 Сегодня'], ['text' => '📅 Неделя']],
+                    [['text' => '📊 Статистика']],
+                ],
+                'resize_keyboard' => true,
+                'persistent'      => true,
+            ]),
+        ]);
+    }
+
     public static function notifyMasterReminder(int $chatId, object $booking, string $type, Shop $shop): void
     {
         $botToken = config('services.telegram.bot_token');

@@ -478,6 +478,23 @@ class MaxService
         Log::info('MAX master connected', ['staff_id' => $staff->id, 'user_id' => $userId]);
     }
 
+    /**
+     * Send (or re-send) the master navigation menu with inline buttons.
+     */
+    public static function sendMasterMenu(int $userId, string $intro = ''): void
+    {
+        $text = $intro ?: '📋 Выберите действие:';
+
+        $buttons = [[
+            ['type' => 'callback', 'text' => '📅 Сегодня', 'payload' => 'master_menu:today:0'],
+            ['type' => 'callback', 'text' => '📅 Неделя',  'payload' => 'master_menu:week:0'],
+        ],[
+            ['type' => 'callback', 'text' => '📊 Статистика', 'payload' => 'master_menu:stats:0'],
+        ]];
+
+        self::sendRaw($userId, $text, $buttons);
+    }
+
     public static function notifyMasterNewBooking(int $userId, $booking, string $timezone, bool $hidePhone = false): void
     {
         $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');

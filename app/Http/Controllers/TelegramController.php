@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
+use App\Services\MasterBotService;
 use App\Services\MaxService;
 use App\Services\TelegramService;
 use App\Services\TenantService;
@@ -163,6 +164,27 @@ class TelegramController extends Controller
             return;
         }
 
+        // ── Master commands (keyboard buttons + slash commands) ───────────
+        $masterCmd = match(true) {
+            in_array($text, ['📅 Сегодня', '/today'])   => 'today',
+            in_array($text, ['📅 Неделя',  '/week'])    => 'week',
+            in_array($text, ['📊 Статистика', '/stats']) => 'stats',
+            default => null,
+        };
+
+        if ($masterCmd !== null) {
+            $ctx = MasterBotService::findByTelegramChatId($chatId);
+            if ($ctx) {
+                $responseText = match($masterCmd) {
+                    'today' => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'today', $ctx['hide_phone']),
+                    'week'  => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'week',  $ctx['hide_phone']),
+                    'stats' => MasterBotService::getStatsText($ctx['schema'], $ctx['master_id'], $ctx['tz']),
+                };
+                TelegramService::sendToMaster($chatId, $responseText);
+                return;
+            }
+        }
+
         $pendingBookingId = \Illuminate\Support\Facades\Cache::get("awaiting_review:tg:{$chatId}");
         if ($pendingBookingId) {
             \Illuminate\Support\Facades\Cache::forget("awaiting_review:tg:{$chatId}");
@@ -242,7 +264,7 @@ class TelegramController extends Controller
             'messenger_link_token_expires_at' => null,
         ]);
 
-        $this->sendReply($chatId, "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.");
+        TelegramService::sendMasterWelcome($chatId);
         Log::info('[TG] master linked', ['staff_id' => $staff->id, 'chat_id' => $chatId]);
     }
 
