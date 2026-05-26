@@ -161,9 +161,10 @@ class MaxController extends Controller
             \Illuminate\Support\Facades\Cache::forget("awaiting_review:max:{$userId}");
             $cached = \Illuminate\Support\Facades\Cache::get("review_id:{$pendingBookingId}");
             if ($cached) {
-                \DB::table("{$cached['schema']}.reviews")
-                    ->where('id', $cached['id'])
-                    ->update(['text' => $text]);
+                \DB::statement(
+                    "UPDATE {$cached['schema']}.reviews SET text = ? WHERE id = ?",
+                    [$text, $cached['id']]
+                );
                 Log::info('[MAX] review: text saved', ['booking' => $pendingBookingId]);
             }
             $reviewBtn = \Illuminate\Support\Facades\Cache::get("max_review_btn_mid:{$pendingBookingId}");
@@ -496,15 +497,10 @@ class MaxController extends Controller
             $reviewId = (string) \Illuminate\Support\Str::uuid();
 
             try {
-                \DB::table("{$s}.reviews")->insert([
-                    'id'            => $reviewId,
-                    'product_id'    => $booking->service_id,
-                    'customer_id'   => $booking->customer_id,
-                    'customer_name' => $booking->customer_name,
-                    'rating'        => $score,
-                    'is_published'  => false,
-                    'created_at'    => now(),
-                ]);
+                \DB::statement(
+                    "INSERT INTO {$s}.reviews (id, product_id, customer_id, customer_name, rating, is_published, created_at) VALUES (?, ?, ?, ?, ?, false, NOW())",
+                    [$reviewId, $booking->service_id, $booking->customer_id, $booking->customer_name, $score]
+                );
             } catch (\Throwable $e) {
                 Log::error('[MAX] rating: DB insert FAILED', ['booking' => $bookingId, 'error' => $e->getMessage()]);
                 MaxService::answerCallback($cbId, 'Ошибка сохранения');
