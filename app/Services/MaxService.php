@@ -531,7 +531,18 @@ class MaxService
         $text .= "👤 " . self::esc($booking->customer_name);
 
         try {
-            self::sendRaw($userId, $text);
+            if ($type === '2h') {
+                $buttons = [[
+                    ['type' => 'callback', 'text' => '✅ Пришёл',    'payload' => "master_booking:arrived:{$booking->id}"],
+                    ['type' => 'callback', 'text' => '👻 Не пришёл', 'payload' => "master_booking:noshow:{$booking->id}"],
+                ]];
+                $mid = self::sendRaw($userId, $text, $buttons);
+                if ($mid) {
+                    Cache::put("max_master_reminder_mid:{$booking->id}", ['user_id' => $userId, 'mid' => $mid], now()->addDays(2));
+                }
+            } else {
+                self::sendRaw($userId, $text);
+            }
         } catch (\Throwable) {}
     }
 

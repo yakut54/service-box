@@ -246,6 +246,11 @@ class MaxController extends Controller
             return;
         }
 
+        if ($entityType === 'master_booking') {
+            $this->handleMasterBookingAction($callbackId, $action, $entityId, $userId);
+            return;
+        }
+
         $shop = Shop::where('max_chat_id', $userId)
             ->where('max_bot_connected', true)
             ->first();
@@ -530,6 +535,82 @@ class MaxController extends Controller
 
         Log::warning('[MAX] rating: booking not found in any schema', ['booking' => $bookingId]);
         MaxService::answerCallback($cbId, 'Запись не найдена');
+    }
+
+    private function handleMasterBookingAction(string $cbId, string $action, string $bookingId, int $userId): void
+    {
+        $staff = \App\Models\ShopStaff::where('max_user_id', $userId)
+            ->where('role', 'master')
+            ->whereNotNull('master_id')
+            ->first();
+
+        if (!$staff) {
+            MaxService::answerCallback($cbId, 'Нет доступа');
+            return;
+        }
+
+        $shop = Shop::find($staff->shop_id);
+        if (!$shop) {
+            MaxService::answerCallback($cbId, 'Магазин не найден');
+            return;
+        }
+
+        TenantService::setContext($shop);
+        try {
+            $booking = \App\Models\Booking::where('id', $bookingId)
+                ->where('master_id', $staff->master_id)
+                ->first();
+
+            if (!$booking) {
+                MaxService::answerCallback($cbId, 'Запись не найдена');
+                return;
+            }
+
+            if (!in_array($booking->status, ['pending', 'confirmed'])) {
+                MaxService::answerCallback($cbId, 'Статус уже изменён');
+                return;
+            }
+
+            $newStatus = match($action) {
+                'arrived' => 'completed',
+                'noshow'  => 'no_show',
+                default   => null,
+            };
+
+            if (!$newStatus) {
+                MaxService::answerCallback($cbId, 'Неизвестное действие');
+                return;
+            }
+
+            $booking->load(['service']);
+            $booking->update(['status' => $newStatus]);
+
+            if ($newStatus === 'completed' && !$booking->rating_sent) {
+                try { TelegramService::notifyRatingRequest($shop, $booking); } catch (\Throwable) {}
+                try { MaxService::notifyRatingRequest($bookingId, $booking); } catch (\Throwable) {}
+                $booking->update(['rating_sent' => true]);
+            }
+
+            $label = $newStatus === 'completed' ? '✅ Завершена' : '👻 Неявка';
+            MaxService::answerCallback($cbId, "Запись отмечена: {$label}");
+
+            // Убираем кнопки с напоминания
+            $cached = \Illuminate\Support\Facades\Cache::get("max_master_reminder_mid:{$bookingId}");
+            if ($cached) MaxService::removeButtons((int) $cached['user_id'], $cached['mid']);
+
+            $date = \Carbon\Carbon::parse($booking->start_time)
+                ->setTimezone($shop->timezone ?? 'Europe/Moscow')
+                ->format('d.m H:i');
+
+            $ownerMsg = "Запись {$date} (" . htmlspecialchars($booking->customer_name, ENT_QUOTES | ENT_HTML5, 'UTF-8') . ") — {$label}";
+            MaxService::sendMessage($shop, $ownerMsg);
+            TelegramService::sendMessage(shop: $shop, text: $ownerMsg);
+
+            Log::info('[MAX] master booking action', ['booking' => $bookingId, 'status' => $newStatus]);
+
+        } finally {
+            TenantService::resetContext();
+        }
     }
 
     private function safeSchema(string $schema): string
