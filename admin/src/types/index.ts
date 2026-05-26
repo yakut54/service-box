@@ -292,6 +292,8 @@ export interface Master {
   is_active: boolean
   sort_order: number
   user_id: string | null
+  salary_type: 'fixed' | 'percent'
+  salary_rate: number
   created_at: string
   service_ids?: string[]
   services?: { id: string; name: string }[]

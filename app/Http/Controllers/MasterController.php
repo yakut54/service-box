@@ -119,6 +119,8 @@ class MasterController extends Controller
             'avatar_url'     => 'nullable|url|max:1000',
             'is_active'      => 'boolean',
             'sort_order'     => 'integer|min:0',
+            'salary_type'    => 'sometimes|in:fixed,percent',
+            'salary_rate'    => 'sometimes|numeric|min:0|max:99999',
         ]);
 
         if (isset($data['is_active']) && $data['is_active'] && !$master->is_active) {

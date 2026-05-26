@@ -22,12 +22,15 @@ class Master extends Model
         'is_active',
         'sort_order',
         'user_id',
+        'salary_type',
+        'salary_rate',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
-        'sort_order' => 'integer',
-        'created_at' => 'datetime',
+        'is_active'   => 'boolean',
+        'sort_order'  => 'integer',
+        'salary_rate' => 'float',
+        'created_at'  => 'datetime',
     ];
 
     public function bookings()

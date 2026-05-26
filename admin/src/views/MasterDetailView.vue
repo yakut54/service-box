@@ -3,16 +3,39 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import type { Master, Booking, Product } from '@/types'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const { showToast } = useToast()
 const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
 const master = ref<Master | null>(null)
 const bookings = ref<Booking[]>([])
 const masterServices = ref<Product[]>([])
 const loading = ref(true)
+
+// Salary form
+const salaryType = ref<'fixed' | 'percent'>('percent')
+const salaryRate = ref<number>(0)
+const salarySaving = ref(false)
+
+async function saveSalary() {
+  if (!master.value) return
+  salarySaving.value = true
+  try {
+    await api.updateMaster(master.value.id, {
+      salary_type: salaryType.value,
+      salary_rate: salaryRate.value,
+    })
+    showToast('Ставка сохранена', 'success')
+  } catch {
+    showToast('Ошибка сохранения', 'error')
+  } finally {
+    salarySaving.value = false
+  }
+}
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '—'
@@ -61,6 +84,8 @@ onMounted(async () => {
       api.getProducts({ type: 'service', per_page: '100' }),
     ])
     master.value = masterRes.data
+    salaryType.value = masterRes.data.salary_type ?? 'percent'
+    salaryRate.value = masterRes.data.salary_rate ?? 0
     bookings.value = bookingsRes.data
     const ids = new Set(servicesRes.data)
     masterServices.value = ids.size > 0
@@ -172,6 +197,68 @@ onMounted(async () => {
             {{ svc.name }}
           </span>
         </div>
+      </div>
+
+      <!-- Salary settings (owner only) -->
+      <div v-if="authStore.isOwner" class="card mb-6">
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Оплата</h3>
+
+        <!-- Type toggle -->
+        <div class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 mb-4 w-fit">
+          <button
+            @click="salaryType = 'percent'"
+            class="px-4 py-2 text-sm font-medium transition-colors"
+            :class="salaryType === 'percent'
+              ? 'bg-primary-600 text-white'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'"
+          >
+            % от услуги
+          </button>
+          <button
+            @click="salaryType = 'fixed'"
+            class="px-4 py-2 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-700"
+            :class="salaryType === 'fixed'
+              ? 'bg-primary-600 text-white'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'"
+          >
+            ₽ за визит
+          </button>
+        </div>
+
+        <!-- Rate input -->
+        <div class="flex items-center gap-3">
+          <div class="relative w-40">
+            <input
+              v-model.number="salaryRate"
+              type="number"
+              min="0"
+              :max="salaryType === 'percent' ? 100 : 99999"
+              step="0.01"
+              class="input pr-8 w-full"
+              :placeholder="salaryType === 'percent' ? '0' : '0'"
+            />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
+              {{ salaryType === 'percent' ? '%' : '₽' }}
+            </span>
+          </div>
+
+          <button
+            @click="saveSalary"
+            :disabled="salarySaving"
+            class="btn-primary"
+          >
+            {{ salarySaving ? 'Сохраняем...' : 'Сохранить' }}
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
+          <template v-if="salaryType === 'percent'">
+            Мастер получает {{ salaryRate }}% от стоимости каждой выполненной услуги.
+          </template>
+          <template v-else>
+            Мастер получает {{ salaryRate }} ₽ за каждый завершённый визит.
+          </template>
+        </p>
       </div>
 
       <!-- Bookings list -->
