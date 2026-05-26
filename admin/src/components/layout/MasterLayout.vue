@@ -40,6 +40,7 @@ async function connectTelegram() {
   try {
     const data = await api.request<{ url: string }>('/master/telegram-link')
     tgLink.value = data.url
+    window.open(data.url, '_blank')
   } finally {
     loadingTg.value = false
   }
@@ -52,6 +53,7 @@ async function connectMax() {
     const data = await api.request<{ code: string; bot_username: string }>('/master/max-code', { method: 'POST' })
     maxCode.value = data.code
     maxUsername.value = data.bot_username
+    window.open(`https://max.ru/${data.bot_username}`, '_blank')
   } finally {
     loadingMax.value = false
   }
