@@ -224,6 +224,7 @@ Route::prefix('master')->middleware(['auth:sanctum', 'auth.shop', 'subscription'
     Route::post('/max-code',         [MasterPortalController::class, 'generateMaxCode']);
     Route::delete('/telegram',       [MasterPortalController::class, 'disconnectTelegram']);
     Route::delete('/max',            [MasterPortalController::class, 'disconnectMax']);
+    Route::get('/stats',             [MasterPortalController::class, 'stats']);
 });
 
 // ============================================================================
