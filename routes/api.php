@@ -127,7 +127,7 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
 // ============================================================================
 // ADMIN API (Bearer token + Shop context + Subscription check)
 // ============================================================================
-Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription'])->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription', 'not.master'])->group(function () {
     // Shop (owner only)
     Route::get('/shop', [ShopController::class, 'show']);
     Route::put('/shop', [ShopController::class, 'update'])->middleware('owner');
@@ -198,7 +198,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription']
 });
 
 // Subscription & Telegram (no subscription check — accessible even when expired)
-Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop'])->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])->group(function () {
     // Subscription (owner only)
     Route::get('/subscription',                [PaymentController::class, 'getSubscriptionInfo'])->middleware('owner');
     Route::get('/subscription/payments',       [PaymentController::class, 'getPaymentHistory'])->middleware('owner');

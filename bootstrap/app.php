@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.pro'        => \App\Http\Middleware\ApiProPlan::class,
             'api.cors'       => \App\Http\Middleware\ApiCors::class,
             'owner'          => \App\Http\Middleware\RequireOwner::class,
+            'not.master'     => \App\Http\Middleware\RequireNotMaster::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
