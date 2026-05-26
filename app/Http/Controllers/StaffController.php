@@ -109,17 +109,52 @@ class StaffController extends Controller
             ], 422);
         }
 
-        $alreadyStaff = ShopStaff::where('shop_id', $shop->id)
+        $staffQuery = ShopStaff::where('shop_id', $shop->id)
             ->where(function ($q) use ($email, $existingUser) {
                 $q->where('invite_email', $email);
                 if ($existingUser) {
                     $q->orWhere('user_id', $existingUser->id);
                 }
-            })
-            ->exists();
+            });
 
-        if ($alreadyStaff) {
-            return response()->json(['message' => 'Этот пользователь уже является сотрудником или уже приглашён'], 409);
+        // Уже активный сотрудник (принял приглашение) — блокируем
+        if ((clone $staffQuery)->whereNotNull('accepted_at')->exists()) {
+            return response()->json(['message' => 'Этот пользователь уже является сотрудником'], 409);
+        }
+
+        // Есть pending-приглашение — переотправляем вместо ошибки
+        $pendingStaff = (clone $staffQuery)->whereNull('accepted_at')->first();
+        if ($pendingStaff) {
+            $token = bin2hex(random_bytes(32));
+            $pendingStaff->update([
+                'invite_token'      => $token,
+                'invite_expires_at' => now()->addHours(48),
+            ]);
+
+            $inviteUrl = rtrim(config('app.frontend_url'), '/') . '/invite/' . $token;
+
+            Mail::to($email)->send(new StaffInviteMail(
+                inviteUrl:            $inviteUrl,
+                shopName:             $shop->name,
+                email:                $email,
+                requiresRegistration: $existingUser === null,
+            ));
+
+            return response()->json([
+                'message' => 'Приглашение отправлено повторно на ' . $email,
+                'data'    => [
+                    'id'                => $pendingStaff->id,
+                    'invite_email'      => $email,
+                    'invite_name'       => $pendingStaff->invite_name,
+                    'role'              => $pendingStaff->role,
+                    'master_id'         => $pendingStaff->master_id,
+                    'is_pending'        => true,
+                    'is_expired'        => false,
+                    'accepted_at'       => null,
+                    'invite_expires_at' => $pendingStaff->fresh()->invite_expires_at,
+                    'user'              => null,
+                ],
+            ]);
         }
 
         $token = bin2hex(random_bytes(32));
