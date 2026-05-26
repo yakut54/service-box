@@ -260,6 +260,8 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         is_active      BOOLEAN DEFAULT TRUE,
                         sort_order     INTEGER DEFAULT 0,
                         user_id        UUID DEFAULT NULL,
+                        salary_type    VARCHAR(10) NOT NULL DEFAULT 'percent',
+                        salary_rate    NUMERIC(10,2) NOT NULL DEFAULT 0,
                         created_at     TIMESTAMPTZ DEFAULT NOW()
                     )
                 $sql$, p_schema_name);
