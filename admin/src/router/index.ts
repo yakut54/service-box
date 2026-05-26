@@ -173,6 +173,11 @@ const router = createRouter({
           name: 'master-notifications',
           component: () => import('@/views/master/MasterNotificationsView.vue'),
         },
+        {
+          path: 'stats',
+          name: 'master-stats',
+          component: () => import('@/views/master/MasterStatsView.vue'),
+        },
       ],
     },
     {

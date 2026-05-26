@@ -99,6 +99,23 @@ onMounted(async () => {
           <span class="text-xs font-medium">Записи</span>
         </RouterLink>
 
+        <!-- Статистика -->
+        <RouterLink
+          to="/master/stats"
+          active-class=""
+          exact-active-class=""
+          class="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors"
+          :class="route.path === '/master/stats'
+            ? 'text-primary-600 dark:text-primary-400'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <span class="text-xs font-medium">Статистика</span>
+        </RouterLink>
+
         <!-- Уведомления -->
         <RouterLink
           to="/master/notifications"
@@ -114,7 +131,6 @@ onMounted(async () => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <!-- Green dot if connected -->
             <span
               v-if="anyConnected"
               class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"
