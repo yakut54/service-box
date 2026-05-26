@@ -210,7 +210,9 @@ onMounted(loadMessengerStatus)
 
     <!-- Content -->
     <main class="flex-1 overflow-auto">
-      <RouterView />
+      <div class="max-w-2xl mx-auto w-full">
+        <RouterView />
+      </div>
     </main>
 
     <ToastContainer />
