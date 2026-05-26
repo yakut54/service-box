@@ -77,7 +77,7 @@ onMounted(loadMessengerStatus)
 
     <!-- Header -->
     <header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-      <div class="flex items-center justify-between px-4 h-14">
+      <div class="max-w-2xl mx-auto w-full px-4 h-14 flex items-center justify-between">
 
         <!-- Shop name -->
         <div class="flex flex-col min-w-0">
@@ -141,7 +141,8 @@ onMounted(loadMessengerStatus)
       </div>
 
       <!-- Messenger panel (dropdown under header) -->
-      <div v-if="showMessengers" class="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 space-y-3">
+      <div v-if="showMessengers" class="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+      <div class="max-w-2xl mx-auto w-full px-4 py-3 space-y-3">
         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Уведомления в мессенджеры</p>
 
         <!-- Telegram -->
@@ -205,6 +206,7 @@ onMounted(loadMessengerStatus)
           <p class="text-2xl font-mono font-bold tracking-widest text-center text-purple-800 dark:text-purple-200 py-2">{{ maxCode }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Действителен 10 минут</p>
         </div>
+      </div>
       </div>
     </header>
 
