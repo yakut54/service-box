@@ -8,7 +8,7 @@ import type { Master, Booking, Product } from '@/types'
 
 const route = useRoute()
 const authStore = useAuthStore()
-const { showToast } = useToast()
+const toast = useToast()
 const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
 const master = ref<Master | null>(null)
@@ -29,9 +29,9 @@ async function saveSalary() {
       salary_type: salaryType.value,
       salary_rate: salaryRate.value,
     })
-    showToast('Ставка сохранена', 'success')
+    toast.success('Ставка сохранена')
   } catch {
-    showToast('Ошибка сохранения', 'error')
+    toast.error('Ошибка сохранения')
   } finally {
     salarySaving.value = false
   }
