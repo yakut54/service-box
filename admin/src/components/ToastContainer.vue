@@ -27,7 +27,7 @@ const iconColors = {
 
 <template>
   <Teleport to="body">
-    <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div class="fixed right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none" style="bottom: calc(1rem + env(safe-area-inset-bottom))">
       <TransitionGroup name="toast">
         <div
           v-for="toast in toasts"
