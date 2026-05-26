@@ -11,8 +11,15 @@ class RegisterBotCommands extends Command
     protected $signature   = 'bots:register-commands';
     protected $description = 'Register master commands (/today, /week, /stats) in Telegram and MAX bots';
 
-    // Commands shown to masters in both bots
-    private const MASTER_COMMANDS = [
+    // Telegram format: {command, description}
+    private const TG_COMMANDS = [
+        ['command' => 'today', 'description' => 'Мои записи на сегодня'],
+        ['command' => 'week',  'description' => 'Мои записи на неделю'],
+        ['command' => 'stats', 'description' => 'Статистика за текущий месяц'],
+    ];
+
+    // MAX format: {name, description}
+    private const MAX_COMMANDS = [
         ['name' => 'today', 'description' => 'Мои записи на сегодня'],
         ['name' => 'week',  'description' => 'Мои записи на неделю'],
         ['name' => 'stats', 'description' => 'Статистика за текущий месяц'],
@@ -38,7 +45,7 @@ class RegisterBotCommands extends Command
         $response = Http::timeout(10)->post(
             "https://api.telegram.org/bot{$token}/setMyCommands",
             [
-                'commands' => self::MASTER_COMMANDS,
+                'commands' => self::TG_COMMANDS,
                 'scope'    => ['type' => 'all_private_chats'],
             ]
         );
@@ -66,7 +73,7 @@ class RegisterBotCommands extends Command
         $response = Http::timeout(10)
             ->withHeaders(['Authorization' => $token])
             ->patch("{$apiUrl}/me", [
-                'commands' => self::MASTER_COMMANDS,
+                'commands' => self::MAX_COMMANDS,
             ]);
 
         if ($response->successful()) {
