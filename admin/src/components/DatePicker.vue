@@ -37,9 +37,10 @@ const DOW          = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-const open    = ref(false)
-const openUp  = ref(false)
+const open        = ref(false)
+const openUp      = ref(false)
 const anchorStyle = ref<Record<string, string>>({})
+const viewMode    = ref<'days' | 'months' | 'years'>('days')
 
 const selected = computed(() => parseYMD(props.modelValue))
 const minDate  = computed(() => parseYMD(props.min))
@@ -60,9 +61,14 @@ const displayValue = computed(() => {
   return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`
 })
 
-const headerLabel = computed(() =>
-  `${MONTH_FULL[cursor.value.getMonth()]} ${cursor.value.getFullYear()}`
-)
+// Начало диапазона лет (блоками по 12, например 2024–2035)
+const yearRangeStart = computed(() => Math.floor(cursor.value.getFullYear() / 12) * 12)
+
+const headerLabel = computed(() => {
+  if (viewMode.value === 'days')   return `${MONTH_FULL[cursor.value.getMonth()]} ${cursor.value.getFullYear()}`
+  if (viewMode.value === 'months') return `${cursor.value.getFullYear()}`
+  return `${yearRangeStart.value} – ${yearRangeStart.value + 11}`
+})
 
 // ─── Calendar cells ───────────────────────────────────────────────────────────
 
@@ -84,16 +90,35 @@ const cells = computed(() => {
   return days
 })
 
-const isDisabled = (d: Date) => !!(minDate.value && d < minDate.value)
-const isToday    = (d: Date) => d.getTime() === today.getTime()
-const isSel      = (d: Date) => selected.value ? d.getTime() === selected.value.getTime() : false
-const isWeekend  = (d: Date) => d.getDay() === 0 || d.getDay() === 6
+const years = computed(() =>
+  Array.from({ length: 12 }, (_, i) => yearRangeStart.value + i)
+)
+
+// ─── Cell predicates ──────────────────────────────────────────────────────────
+
+const isDisabled  = (d: Date) => !!(minDate.value && d < minDate.value)
+const isToday     = (d: Date) => d.getTime() === today.getTime()
+const isSel       = (d: Date) => selected.value ? d.getTime() === selected.value.getTime() : false
+const isWeekend   = (d: Date) => d.getDay() === 0 || d.getDay() === 6
+
+const isSelMonth  = (i: number) =>
+  !!selected.value &&
+  selected.value.getFullYear() === cursor.value.getFullYear() &&
+  selected.value.getMonth() === i
+
+const isSelYear   = (y: number) =>
+  !!selected.value && selected.value.getFullYear() === y
+
+const isCurMonth  = (i: number) =>
+  today.getFullYear() === cursor.value.getFullYear() && today.getMonth() === i
+
+const isCurYear   = (y: number) => today.getFullYear() === y
 
 // ─── Smart positioning via Teleport ──────────────────────────────────────────
 
-const POPUP_H = 340 // приблизительная высота календаря
-const POPUP_W = 268 // ширина календаря (w-[268px])
-const MARGIN  = 8   // отступ от края экрана
+const POPUP_H = 340
+const POPUP_W = 268
+const MARGIN  = 8
 
 function computeAnchor() {
   const rect = root.value?.getBoundingClientRect()
@@ -102,32 +127,53 @@ function computeAnchor() {
   const spaceBelow = window.innerHeight - rect.bottom
   openUp.value = spaceBelow < POPUP_H + 8
 
-  // Выравниваем по левому краю триггера, но не даём вылезти за правый/левый край
   let left = rect.left
-  if (left + POPUP_W + MARGIN > window.innerWidth) {
-    left = window.innerWidth - POPUP_W - MARGIN
-  }
+  if (left + POPUP_W + MARGIN > window.innerWidth) left = window.innerWidth - POPUP_W - MARGIN
   if (left < MARGIN) left = MARGIN
 
-  if (openUp.value) {
-    anchorStyle.value = {
-      position: 'fixed',
-      bottom: `${window.innerHeight - rect.top + 6}px`,
-      left: `${left}px`,
-    }
-  } else {
-    anchorStyle.value = {
-      position: 'fixed',
-      top: `${rect.bottom + 6}px`,
-      left: `${left}px`,
-    }
-  }
+  anchorStyle.value = openUp.value
+    ? { position: 'fixed', bottom: `${window.innerHeight - rect.top + 6}px`, left: `${left}px` }
+    : { position: 'fixed', top: `${rect.bottom + 6}px`, left: `${left}px` }
+}
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
+
+function prev() {
+  if (viewMode.value === 'days')
+    cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() - 1, 1)
+  else if (viewMode.value === 'months')
+    cursor.value = new Date(cursor.value.getFullYear() - 1, cursor.value.getMonth(), 1)
+  else
+    cursor.value = new Date(cursor.value.getFullYear() - 12, cursor.value.getMonth(), 1)
+}
+
+function next() {
+  if (viewMode.value === 'days')
+    cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() + 1, 1)
+  else if (viewMode.value === 'months')
+    cursor.value = new Date(cursor.value.getFullYear() + 1, cursor.value.getMonth(), 1)
+  else
+    cursor.value = new Date(cursor.value.getFullYear() + 12, cursor.value.getMonth(), 1)
+}
+
+// Клик на заголовок — идём уровень вверх (дни → месяцы → годы)
+function drillUp() {
+  if (viewMode.value === 'days')   viewMode.value = 'months'
+  else if (viewMode.value === 'months') viewMode.value = 'years'
+  // в режиме years — дальше некуда, ничего не делаем
+}
+
+function selectMonth(i: number) {
+  cursor.value = new Date(cursor.value.getFullYear(), i, 1)
+  viewMode.value = 'days'
+}
+
+function selectYear(y: number) {
+  cursor.value = new Date(y, cursor.value.getMonth(), 1)
+  viewMode.value = 'months'
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
-
-function prevMonth() { cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() - 1, 1) }
-function nextMonth() { cursor.value = new Date(cursor.value.getFullYear(), cursor.value.getMonth() + 1, 1) }
 
 function selectDay(d: Date) {
   if (isDisabled(d)) return
@@ -144,7 +190,10 @@ function clearDate() {
 
 function toggle() {
   if (props.disabled) return
-  if (!open.value) computeAnchor()
+  if (!open.value) {
+    computeAnchor()
+    viewMode.value = 'days'
+  }
   open.value = !open.value
 }
 
@@ -163,7 +212,6 @@ function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') open.value = false
 }
 
-// Перепосчитать позицию при скролле / ресайзе
 function onScroll() { if (open.value) computeAnchor() }
 
 onMounted(() => {
@@ -193,6 +241,7 @@ defineExpose({
     anchorStyle.value = openUp.value
       ? { position: 'fixed', bottom: `${window.innerHeight - rect.top + 6}px`, left: `${left}px` }
       : { position: 'fixed', top: `${rect.bottom + 6}px`, left: `${left}px` }
+    viewMode.value = 'days'
     open.value = true
   },
 })
@@ -233,7 +282,7 @@ defineExpose({
       </span>
     </button>
 
-    <!-- ─── Popup via Teleport — выходит за пределы overflow контейнера ──────── -->
+    <!-- ─── Popup via Teleport ──────────────────────────────────────────────── -->
     <Teleport to="body">
       <Transition
         :enter-active-class="'transition duration-[160ms] ease-[cubic-bezier(.2,.8,.4,1)]'"
@@ -257,10 +306,10 @@ defineExpose({
           ]"
         >
 
-          <!-- Month nav -->
+          <!-- ─── Shared header: стрелки + кликабельный заголовок ──────────── -->
           <div class="flex items-center mb-3 gap-1">
             <button
-              type="button" @click="prevMonth"
+              type="button" @click="prev"
               class="w-8 h-8 flex items-center justify-center rounded-lg
                      text-gray-400 hover:text-gray-700 dark:hover:text-gray-200
                      hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -270,12 +319,22 @@ defineExpose({
               </svg>
             </button>
 
-            <span class="flex-1 text-center text-sm font-semibold text-gray-900 dark:text-white">
+            <!-- Клик → переход на уровень выше (дни→месяцы→годы) -->
+            <button
+              type="button"
+              @click="drillUp"
+              :class="[
+                'flex-1 text-center text-sm font-semibold rounded-lg py-1 transition-colors text-gray-900 dark:text-white',
+                viewMode !== 'years'
+                  ? 'hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer'
+                  : 'cursor-default',
+              ]"
+            >
               {{ headerLabel }}
-            </span>
+            </button>
 
             <button
-              type="button" @click="nextMonth"
+              type="button" @click="next"
               class="w-8 h-8 flex items-center justify-center rounded-lg
                      text-gray-400 hover:text-gray-700 dark:hover:text-gray-200
                      hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -286,62 +345,104 @@ defineExpose({
             </button>
           </div>
 
-          <!-- Day-of-week header -->
-          <div class="grid grid-cols-7 mb-0.5">
-            <div
-              v-for="(d, i) in DOW" :key="d"
-              :class="['text-center text-[11px] font-semibold py-1 tracking-wide',
-                i >= 5 ? 'text-red-400' : 'text-gray-400 dark:text-gray-600']"
-            >{{ d }}</div>
-          </div>
+          <!-- ─── Режим: Дни ─────────────────────────────────────────────── -->
+          <template v-if="viewMode === 'days'">
+            <div class="grid grid-cols-7 mb-0.5">
+              <div
+                v-for="(d, i) in DOW" :key="d"
+                :class="['text-center text-[11px] font-semibold py-1 tracking-wide',
+                  i >= 5 ? 'text-red-400' : 'text-gray-400 dark:text-gray-600']"
+              >{{ d }}</div>
+            </div>
 
-          <!-- Day cells -->
-          <div class="grid grid-cols-7 gap-y-0.5">
-            <div
-              v-for="(cell, i) in cells" :key="i"
-              class="flex items-center justify-center"
-            >
+            <div class="grid grid-cols-7 gap-y-0.5">
+              <div
+                v-for="(cell, i) in cells" :key="i"
+                class="flex items-center justify-center"
+              >
+                <button
+                  type="button"
+                  :disabled="isDisabled(cell.date)"
+                  @click="selectDay(cell.date)"
+                  :class="[
+                    'flex items-center justify-center rounded-full text-[13px] font-medium w-7 h-7 transition-all duration-100',
+                    !cell.cur ? 'text-gray-300 dark:text-gray-700' : '',
+                    isDisabled(cell.date) ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
+                    isSel(cell.date)
+                      ? 'bg-primary-600 text-white'
+                      : isToday(cell.date)
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-bold'
+                        : cell.cur && isWeekend(cell.date) && !isDisabled(cell.date)
+                          ? 'text-rose-500 dark:text-rose-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          : !isDisabled(cell.date)
+                            ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                            : '',
+                  ]"
+                >
+                  {{ cell.date.getDate() }}
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
               <button
                 type="button"
-                :disabled="isDisabled(cell.date)"
-                @click="selectDay(cell.date)"
+                v-if="modelValue" @click="clearDate"
+                class="text-xs font-medium text-rose-500 hover:text-rose-600 dark:text-rose-400 transition-colors px-1"
+              >Удалить</button>
+              <span v-else class="text-xs text-transparent">—</span>
+
+              <button
+                type="button"
+                @click="selectDay(today)"
+                :disabled="isDisabled(today)"
+                class="text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 transition-colors px-1
+                       disabled:opacity-30 disabled:cursor-not-allowed"
+              >Сегодня</button>
+            </div>
+          </template>
+
+          <!-- ─── Режим: Месяцы ──────────────────────────────────────────── -->
+          <template v-else-if="viewMode === 'months'">
+            <div class="grid grid-cols-3 gap-1">
+              <button
+                v-for="(_, i) in MONTH_FULL" :key="i"
+                type="button"
+                @click="selectMonth(i)"
                 :class="[
-                  'flex items-center justify-center rounded-full text-[13px] font-medium w-7 h-7 transition-all duration-100',
-                  !cell.cur ? 'text-gray-300 dark:text-gray-700' : '',
-                  isDisabled(cell.date) ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer',
-                  isSel(cell.date)
+                  'rounded-xl py-2.5 text-sm font-medium transition-colors',
+                  isSelMonth(i)
                     ? 'bg-primary-600 text-white'
-                    : isToday(cell.date)
+                    : isCurMonth(i)
                       ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-bold'
-                      : cell.cur && isWeekend(cell.date) && !isDisabled(cell.date)
-                        ? 'text-rose-500 dark:text-rose-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                        : !isDisabled(cell.date)
-                          ? 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                          : '',
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer',
                 ]"
               >
-                {{ cell.date.getDate() }}
+                {{ SHORT_MONTHS[i] }}
               </button>
             </div>
-          </div>
+          </template>
 
-          <!-- Footer -->
-          <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-            <button
-              type="button"
-              v-if="modelValue" @click="clearDate"
-              class="text-xs font-medium text-rose-500 hover:text-rose-600 dark:text-rose-400 transition-colors px-1"
-            >Удалить</button>
-            <span v-else class="text-xs text-transparent">—</span>
-
-            <button
-              type="button"
-              @click="selectDay(today)"
-              :disabled="isDisabled(today)"
-              class="text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 transition-colors px-1
-                     disabled:opacity-30 disabled:cursor-not-allowed"
-            >Сегодня</button>
-          </div>
+          <!-- ─── Режим: Годы ────────────────────────────────────────────── -->
+          <template v-else>
+            <div class="grid grid-cols-4 gap-1">
+              <button
+                v-for="y in years" :key="y"
+                type="button"
+                @click="selectYear(y)"
+                :class="[
+                  'rounded-xl py-2.5 text-sm font-medium transition-colors',
+                  isSelYear(y)
+                    ? 'bg-primary-600 text-white'
+                    : isCurYear(y)
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 font-bold'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer',
+                ]"
+              >
+                {{ y }}
+              </button>
+            </div>
+          </template>
 
         </div>
       </Transition>
