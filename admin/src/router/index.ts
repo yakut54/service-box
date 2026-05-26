@@ -168,6 +168,11 @@ const router = createRouter({
           name: 'master-schedule',
           component: () => import('@/views/master/MasterScheduleView.vue'),
         },
+        {
+          path: 'notifications',
+          name: 'master-notifications',
+          component: () => import('@/views/master/MasterNotificationsView.vue'),
+        },
       ],
     },
     {
