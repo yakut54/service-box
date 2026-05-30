@@ -202,7 +202,8 @@ class MaxController extends Controller
                         $cached['service_name']  ?? '—',
                         $cached['master_id']     ?? null,
                         $cached['score']         ?? 5,
-                        $text
+                        $text,
+                        $cached['id']            ?? null
                     );
                 } catch (\Throwable) {}
             }
@@ -296,6 +297,12 @@ class MaxController extends Controller
 
         if ($entityType === 'master_menu') {
             $this->handleMasterMenuCallback($callbackId, $action, $userId, $mid);
+            return;
+        }
+
+        if ($entityType === 'review_pub') {
+            // $action = reviewId, $entityId = '1' (publish) or '0' (hide)
+            $this->handleReviewPub($callbackId, $action, (bool)(int)$entityId, $userId, $mid);
             return;
         }
 
@@ -576,7 +583,7 @@ class MaxController extends Controller
             try {
                 MasterBotService::notifyAllOnReview(
                     $s, $booking->customer_name, $booking->service_name ?? '—',
-                    $booking->master_id, $score, null
+                    $booking->master_id, $score, null, $reviewId
                 );
             } catch (\Throwable) {}
 
@@ -705,6 +712,37 @@ class MaxController extends Controller
         MaxService::sendMasterMenu($userId, $responseText);
 
         Log::info('[MAX] master_menu callback handled', ['action' => $action, 'user_id' => $userId]);
+    }
+
+    private function handleReviewPub(string $callbackId, string $reviewId, bool $publish, int $userId, ?string $mid): void
+    {
+        $schemas = \DB::select("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'shop_%'");
+
+        foreach ($schemas as $row) {
+            $s = $this->safeSchema($row->schema_name);
+            $review = \DB::selectOne("SELECT id FROM {$s}.reviews WHERE id = ?", [$reviewId]);
+            if (!$review) continue;
+
+            \DB::statement("UPDATE {$s}.reviews SET is_published = ? WHERE id = ?", [$publish, $reviewId]);
+
+            MaxService::answerCallback($callbackId, $publish ? '✅ Опубликовано' : '🙈 Скрыто');
+
+            // Update MAX button in this message (cross-bot: same mid from callback)
+            if ($mid) {
+                MaxService::updateReviewButtons($userId, $mid, $reviewId, $publish);
+            }
+
+            // Cross-bot sync: update TG button
+            $tgCached = \Illuminate\Support\Facades\Cache::get("tg_owner_review:{$reviewId}");
+            if ($tgCached) {
+                TelegramService::editReviewButtons($tgCached['chat_id'], $tgCached['message_id'], $reviewId, $publish);
+            }
+
+            Log::info('[MAX] review_pub', ['review' => $reviewId, 'published' => $publish]);
+            return;
+        }
+
+        MaxService::answerCallback($callbackId, 'Отзыв не найден');
     }
 
     private function safeSchema(string $schema): string

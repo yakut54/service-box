@@ -729,7 +729,7 @@ class TelegramService
 
     // ── Review notifications ──────────────────────────────────────────────
 
-    public static function notifyOwnerReview(Shop $shop, string $customerName, string $serviceName, int $score, ?string $text): void
+    public static function notifyOwnerReview(Shop $shop, string $customerName, string $serviceName, int $score, ?string $text, ?string $reviewId = null): void
     {
         if (!$shop->telegram_chat_id || !$shop->telegram_bot_connected) return;
 
@@ -742,14 +742,52 @@ class TelegramService
         $msg  .= "💅 " . self::esc($serviceName);
         if ($text) $msg .= "\n💬 «" . self::esc($text) . "»";
 
+        $payload = [
+            'chat_id'    => $shop->telegram_chat_id,
+            'text'       => $msg,
+            'parse_mode' => 'HTML',
+        ];
+
+        if ($reviewId) {
+            $payload['reply_markup'] = json_encode(['inline_keyboard' => [[
+                ['text' => '✅ Опубликовать', 'callback_data' => "review_pub:{$reviewId}:1"],
+            ]]]);
+        }
+
         try {
-            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-                'chat_id'    => $shop->telegram_chat_id,
-                'text'       => $msg,
-                'parse_mode' => 'HTML',
-            ]);
+            $resp = Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+            if ($reviewId) {
+                $msgId = $resp->json('result.message_id');
+                if ($msgId) {
+                    \Illuminate\Support\Facades\Cache::put(
+                        "tg_owner_review:{$reviewId}",
+                        ['chat_id' => $shop->telegram_chat_id, 'message_id' => $msgId],
+                        now()->addDays(30)
+                    );
+                }
+            }
         } catch (\Throwable $e) {
             Log::warning('[TG] notifyOwnerReview failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public static function editReviewButtons(int $chatId, int $messageId, string $reviewId, bool $isPublished): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        $button = $isPublished
+            ? ['text' => '🙈 Скрыть',        'callback_data' => "review_pub:{$reviewId}:0"]
+            : ['text' => '✅ Опубликовать',   'callback_data' => "review_pub:{$reviewId}:1"];
+
+        try {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
+                'chat_id'      => $chatId,
+                'message_id'   => $messageId,
+                'reply_markup' => json_encode(['inline_keyboard' => [[$button]]]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[TG] editReviewButtons failed', ['error' => $e->getMessage()]);
         }
     }
 

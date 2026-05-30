@@ -569,7 +569,7 @@ class MaxService
 
     // ── Review notifications ──────────────────────────────────────────────
 
-    public static function notifyOwnerReview(Shop $shop, string $customerName, string $serviceName, int $score, ?string $text): void
+    public static function notifyOwnerReview(Shop $shop, string $customerName, string $serviceName, int $score, ?string $text, ?string $reviewId = null): void
     {
         if (!$shop->max_bot_connected || !$shop->max_chat_id) return;
 
@@ -579,10 +579,46 @@ class MaxService
         $msg  .= "💅 " . self::esc($serviceName);
         if ($text) $msg .= "\n💬 «" . self::esc($text) . "»";
 
+        $buttons = $reviewId ? [[
+            ['type' => 'callback', 'text' => '✅ Опубликовать', 'payload' => "review_pub:{$reviewId}:1"],
+        ]] : null;
+
         try {
-            self::sendRaw($shop->max_chat_id, $msg);
+            $mid = self::sendRaw($shop->max_chat_id, $msg, $buttons);
+            if ($reviewId && $mid) {
+                Cache::put(
+                    "max_owner_review:{$reviewId}",
+                    ['user_id' => $shop->max_chat_id, 'mid' => $mid],
+                    now()->addDays(30)
+                );
+            }
         } catch (\Throwable $e) {
             Log::warning('[MAX] notifyOwnerReview failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public static function updateReviewButtons(int $userId, ?string $mid, string $reviewId, bool $isPublished): void
+    {
+        if (!$mid) return;
+        $token = self::token();
+        if (!$token) return;
+
+        $button = $isPublished
+            ? ['type' => 'callback', 'text' => '🙈 Скрыть',       'payload' => "review_pub:{$reviewId}:0"]
+            : ['type' => 'callback', 'text' => '✅ Опубликовать', 'payload' => "review_pub:{$reviewId}:1"];
+
+        try {
+            Http::timeout(5)
+                ->withHeaders(['Authorization' => $token])
+                ->put(self::api() . '/messages?message_id=' . urlencode($mid), [
+                    'attachments' => [[
+                        'type'    => 'inline_keyboard',
+                        'payload' => ['buttons' => [[$button]]],
+                    ]],
+                    'notify' => false,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] updateReviewButtons failed', ['error' => $e->getMessage()]);
         }
     }
 

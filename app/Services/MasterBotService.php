@@ -201,13 +201,14 @@ class MasterBotService
         string $serviceName,
         ?string $masterId,
         int $score,
-        ?string $text
+        ?string $text,
+        ?string $reviewId = null
     ): void {
         $shop = Shop::where('schema_name', $schema)->first();
         if (!$shop) return;
 
-        try { TelegramService::notifyOwnerReview($shop, $customerName, $serviceName, $score, $text); } catch (\Throwable) {}
-        try { MaxService::notifyOwnerReview($shop, $customerName, $serviceName, $score, $text); } catch (\Throwable) {}
+        try { TelegramService::notifyOwnerReview($shop, $customerName, $serviceName, $score, $text, $reviewId); } catch (\Throwable) {}
+        try { MaxService::notifyOwnerReview($shop, $customerName, $serviceName, $score, $text, $reviewId); } catch (\Throwable) {}
 
         if (!$masterId) return;
 

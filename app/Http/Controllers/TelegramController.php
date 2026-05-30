@@ -202,7 +202,8 @@ class TelegramController extends Controller
                         $cached['service_name']  ?? '—',
                         $cached['master_id']     ?? null,
                         $cached['score']         ?? 5,
-                        $text
+                        $text,
+                        $cached['id']            ?? null
                     );
                 } catch (\Throwable) {}
             }
@@ -318,6 +319,12 @@ class TelegramController extends Controller
 
         if ($entityType === 'master_booking') {
             $this->handleMasterBookingAction($callbackId, $action, $entityId, $chatId, $messageId);
+            return;
+        }
+
+        if ($entityType === 'review_pub') {
+            // $action = reviewId, $entityId = '1' (publish) or '0' (hide)
+            $this->handleReviewPub($callbackId, $action, (bool)(int)$entityId, $chatId, $messageId);
             return;
         }
 
@@ -549,7 +556,7 @@ class TelegramController extends Controller
             try {
                 MasterBotService::notifyAllOnReview(
                     $s, $booking->customer_name, $booking->service_name ?? '—',
-                    $booking->master_id, $score, null
+                    $booking->master_id, $score, null, $reviewId
                 );
             } catch (\Throwable) {}
 
@@ -771,6 +778,37 @@ class TelegramController extends Controller
             'message_id'   => $messageId,
             'reply_markup' => ['inline_keyboard' => []],
         ]);
+    }
+
+    private function handleReviewPub(string $callbackId, string $reviewId, bool $publish, int $chatId, ?int $messageId): void
+    {
+        $schemas = \DB::select("SELECT schema_name FROM information_schema.schemata WHERE schema_name LIKE 'shop_%'");
+
+        foreach ($schemas as $row) {
+            $s = $this->safeSchema($row->schema_name);
+            $review = \DB::selectOne("SELECT id FROM {$s}.reviews WHERE id = ?", [$reviewId]);
+            if (!$review) continue;
+
+            \DB::statement("UPDATE {$s}.reviews SET is_published = ? WHERE id = ?", [$publish, $reviewId]);
+
+            $this->answerCallback($callbackId, $publish ? '✅ Опубликовано' : '🙈 Скрыто');
+
+            // Update TG button in this message
+            if ($messageId) {
+                TelegramService::editReviewButtons($chatId, $messageId, $reviewId, $publish);
+            }
+
+            // Cross-bot sync: update MAX button
+            $maxCached = \Illuminate\Support\Facades\Cache::get("max_owner_review:{$reviewId}");
+            if ($maxCached) {
+                MaxService::updateReviewButtons($maxCached['user_id'], $maxCached['mid'], $reviewId, $publish);
+            }
+
+            Log::info('[TG] review_pub', ['review' => $reviewId, 'published' => $publish]);
+            return;
+        }
+
+        $this->answerCallback($callbackId, 'Отзыв не найден');
     }
 
     private function safeSchema(string $schema): string
