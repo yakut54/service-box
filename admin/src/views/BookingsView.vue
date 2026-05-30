@@ -4,7 +4,8 @@ import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { RouterLink, useRouter } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
+import { useToast } from '@/composables/useToast'
 import { plural } from '@/lib/utils'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -19,6 +20,7 @@ import type { Booking, Product } from '@/types'
 
 const bookingsStore = useBookingsStore()
 const authStore = useAuthStore()
+const toast = useToast()
 const router = useRouter()
 
 const shopTz = computed(() => {
@@ -227,8 +229,13 @@ const updatingStatus = ref(false)
 
 async function changeStatus(id: string, status: string) {
   updatingStatus.value = true
-  try { await bookingsStore.updateStatus(id, status) } catch { /* ignore */ }
-  updatingStatus.value = false
+  try {
+    await bookingsStore.updateStatus(id, status)
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось изменить статус записи')
+  } finally {
+    updatingStatus.value = false
+  }
 }
 
 // ── Formatting helpers ──────────────────────────────────────

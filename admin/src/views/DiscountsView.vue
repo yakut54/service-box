@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
+import { useToast } from '@/composables/useToast'
 import { useCategoriesStore } from '@/stores/categories'
 import { useAuthStore } from '@/stores/auth'
 import CustomSelect from '@/components/CustomSelect.vue'
@@ -14,6 +15,7 @@ import { formatPrice } from '@/shared/lib/format'
 import type { Discount, DiscountScope } from '@/types'
 
 const authStore = useAuthStore()
+const toast = useToast()
 const currentPlan = ref(authStore.shop?.subscription_plan ?? '')
 const hasDiscounts = computed(() =>
   ['start', 'business', 'pro'].includes(currentPlan.value)
@@ -144,9 +146,11 @@ function openEdit(d: Discount) {
 function handleDiscountSaved(discount: Discount, mode: 'create' | 'edit') {
   if (mode === 'create') {
     discounts.value.unshift(discount)
+    toast.success('Промокод создан')
   } else {
     const idx = discounts.value.findIndex(d => d.id === discount.id)
     if (idx !== -1) discounts.value[idx] = discount
+    toast.success('Промокод обновлён')
   }
 }
 
@@ -156,7 +160,9 @@ async function toggleActive(d: Discount) {
     const res = await api.updateDiscount(d.id, { is_active: !d.is_active })
     const idx = discounts.value.findIndex(x => x.id === d.id)
     if (idx !== -1) discounts.value[idx] = res.data
-  } catch { /* silent */ }
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось изменить статус промокода')
+  }
 }
 
 // ── Delete ────────────────────────────────────────────────────

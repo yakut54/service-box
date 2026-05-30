@@ -58,7 +58,7 @@ function handleSaved(admin: StaffMember, mode: 'create' | 'edit') {
   } else {
     const idx = staff.value.findIndex(s => s.id === admin.id)
     if (idx !== -1) staff.value[idx] = admin
-    toast.success('Имя обновлено')
+    toast.success('Сохранено')
   }
 }
 
@@ -91,7 +91,7 @@ async function confirmDelete() {
     deleteTarget.value = null
     toast.success('Доступ отозван')
   } catch (e) {
-    toast.error(e instanceof ApiError ? e.message : 'Ошибка')
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось удалить администратора')
   } finally {
     deleting.value = false
   }

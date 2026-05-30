@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
+import { useToast } from '@/composables/useToast'
 import { parseApiError } from '@/lib/parseApiError'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
@@ -13,6 +14,7 @@ import UiModal from '@/shared/ui/UiModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 
 const categoriesStore = useCategoriesStore()
+const toast = useToast()
 
 // ── State ─────────────────────────────────────────────────────────────────
 const error    = ref('')
@@ -171,7 +173,9 @@ async function toggleVisible(cat: Category) {
   try {
     await api.updateCategory(cat.id, { is_visible: !cat.is_visible })
     await categoriesStore.fetchCategories()
-  } catch { /* silent */ } finally {
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось изменить видимость')
+  } finally {
     toggling.value = null
   }
 }

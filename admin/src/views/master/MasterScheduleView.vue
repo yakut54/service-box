@@ -114,7 +114,7 @@ async function changeStatus(booking: Booking, next: BookingStatus) {
     if (idx !== -1) bookings.value[idx] = res.data
     toast.success('Статус обновлён')
   } catch (e) {
-    toast.error(e instanceof ApiError ? e.message : 'Ошибка')
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось обновить статус')
   } finally {
     updatingId.value = null
   }

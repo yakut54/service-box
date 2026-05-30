@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import type { Master, Booking, Product } from '@/types'
@@ -30,8 +30,8 @@ async function saveSalary() {
       salary_rate: salaryRate.value,
     })
     toast.success('Ставка сохранена')
-  } catch {
-    toast.error('Ошибка сохранения')
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось сохранить ставку')
   } finally {
     salarySaving.value = false
   }
