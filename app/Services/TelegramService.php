@@ -726,4 +726,51 @@ class TelegramService
             ]);
         } catch (\Throwable) {}
     }
+
+    // ── Review notifications ──────────────────────────────────────────────
+
+    public static function notifyOwnerReview(Shop $shop, string $customerName, string $serviceName, int $score, ?string $text): void
+    {
+        if (!$shop->telegram_chat_id || !$shop->telegram_bot_connected) return;
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        $stars = str_repeat('⭐', $score);
+        $msg   = "{$stars} <b>Новый отзыв!</b>\n\n";
+        $msg  .= "👤 " . self::esc($customerName) . "\n";
+        $msg  .= "💅 " . self::esc($serviceName);
+        if ($text) $msg .= "\n💬 «" . self::esc($text) . "»";
+
+        try {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $shop->telegram_chat_id,
+                'text'       => $msg,
+                'parse_mode' => 'HTML',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[TG] notifyOwnerReview failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public static function notifyMasterReview(int $chatId, string $customerName, int $score, ?string $text): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        $stars = str_repeat('⭐', $score);
+        $msg   = "{$stars} <b>Клиент оценил ваш визит!</b>\n\n";
+        $msg  .= "👤 " . self::esc($customerName) . " поставил(а) {$score} ⭐";
+        if ($text) $msg .= "\n💬 «" . self::esc($text) . "»";
+
+        try {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $chatId,
+                'text'       => $msg,
+                'parse_mode' => 'HTML',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[TG] notifyMasterReview failed', ['error' => $e->getMessage()]);
+        }
+    }
 }

@@ -198,11 +198,11 @@ servicebox/
 
 | # | Что | Статус |
 |---|---|---|
-| Б1.1 | `TelegramService::notifyOwnerReview(Shop, booking, score, ?text)` — новый метод | 🔜 |
-| Б1.2 | `MaxService::notifyOwnerReview(Shop, booking, score, ?text)` — новый метод | 🔜 |
-| Б1.3 | `TelegramController::handleRatingCallback` после INSERT → вызвать **оба** метода (TG + MAX) независимо от того через какой бот пришла оценка | 🔜 |
-| Б1.4 | `MaxController::handleRatingCallback` после INSERT → вызвать **оба** метода (TG + MAX) | 🔜 |
-| Б1.5 | **Текстовый отзыв тоже триггерит уведомление**: в `handleReviewCallback` (TG + MAX) после сохранения текста → вызвать `notifyOwnerReview` с обновлённым текстом | 🔜 |
+| Б1.1 | `TelegramService::notifyOwnerReview(Shop, booking, score, ?text)` — новый метод | ✅ |
+| Б1.2 | `MaxService::notifyOwnerReview(Shop, booking, score, ?text)` — новый метод | ✅ |
+| Б1.3 | `TelegramController::handleRatingCallback` после INSERT → вызвать **оба** метода (TG + MAX) независимо от того через какой бот пришла оценка | ✅ |
+| Б1.4 | `MaxController::handleRatingCallback` после INSERT → вызвать **оба** метода (TG + MAX) | ✅ |
+| Б1.5 | **Текстовый отзыв тоже триггерит уведомление**: в `handleReviewCallback` (TG + MAX) после сохранения текста → вызвать `notifyOwnerReview` с обновлённым текстом | ✅ |
 
 **Формат сообщения шоперу:**
 ```
@@ -227,10 +227,10 @@ servicebox/
 
 | # | Что | Статус |
 |---|---|---|
-| Б2.1 | `TelegramService::notifyMasterReview(int chatId, int score, string customerName, ?string text)` | 🔜 |
-| Б2.2 | `MaxService::notifyMasterReview(int userId, int score, string customerName, ?string text)` | 🔜 |
-| Б2.3 | В `handleRatingCallback` (TG + MAX): найти `booking.master_id` → `ShopStaff` → взять `telegram_chat_id` **и** `max_user_id` → слать в **оба** | 🔜 |
-| Б2.4 | Если мастер без TG → пропустить TG. Без MAX → пропустить MAX. Без обоих → тихо. Не ломать flow | 🔜 |
+| Б2.1 | `TelegramService::notifyMasterReview(int chatId, int score, string customerName, ?string text)` | ✅ |
+| Б2.2 | `MaxService::notifyMasterReview(int userId, int score, string customerName, ?string text)` | ✅ |
+| Б2.3 | В `handleRatingCallback` (TG + MAX): найти `booking.master_id` → `ShopStaff` → взять `telegram_chat_id` **и** `max_user_id` → слать в **оба** | ✅ |
+| Б2.4 | Если мастер без TG → пропустить TG. Без MAX → пропустить MAX. Без обоих → тихо. Не ломать flow | ✅ |
 
 **Правило синхронизации Б:** оценка пришла через **любой** бот → уведомления шоперу и мастеру уходят во **все** их подключённые боты.
 

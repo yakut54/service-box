@@ -6,6 +6,8 @@ use App\Models\Shop;
 use App\Models\ShopStaff;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Services\TelegramService;
+use App\Services\MaxService;
 
 /**
  * Shared logic for master bot commands (Telegram + MAX).
@@ -187,6 +189,41 @@ class MasterBotService
     public static function esc(string $s): string
     {
         return htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Notify shopper (TG+MAX) and master (TG+MAX) about a new/updated review.
+     * Single entry point — called from both TelegramController and MaxController.
+     */
+    public static function notifyAllOnReview(
+        string $schema,
+        string $customerName,
+        string $serviceName,
+        ?string $masterId,
+        int $score,
+        ?string $text
+    ): void {
+        $shop = Shop::where('schema_name', $schema)->first();
+        if (!$shop) return;
+
+        try { TelegramService::notifyOwnerReview($shop, $customerName, $serviceName, $score, $text); } catch (\Throwable) {}
+        try { MaxService::notifyOwnerReview($shop, $customerName, $serviceName, $score, $text); } catch (\Throwable) {}
+
+        if (!$masterId) return;
+
+        $masterStaff = ShopStaff::where('master_id', $masterId)
+            ->where('shop_id', $shop->id)
+            ->whereNotNull('accepted_at')
+            ->first();
+
+        if (!$masterStaff) return;
+
+        if ($masterStaff->telegram_chat_id) {
+            try { TelegramService::notifyMasterReview($masterStaff->telegram_chat_id, $customerName, $score, $text); } catch (\Throwable) {}
+        }
+        if ($masterStaff->max_user_id) {
+            try { MaxService::notifyMasterReview($masterStaff->max_user_id, $customerName, $score, $text); } catch (\Throwable) {}
+        }
     }
 
     private static function pluralize(int $n): string

@@ -195,6 +195,16 @@ class MaxController extends Controller
                     [$text, $cached['id']]
                 );
                 Log::info('[MAX] review: text saved', ['booking' => $pendingBookingId]);
+                try {
+                    MasterBotService::notifyAllOnReview(
+                        $cached['schema'],
+                        $cached['customer_name'] ?? '—',
+                        $cached['service_name']  ?? '—',
+                        $cached['master_id']     ?? null,
+                        $cached['score']         ?? 5,
+                        $text
+                    );
+                } catch (\Throwable) {}
             }
             $reviewBtn = \Illuminate\Support\Facades\Cache::get("max_review_btn_mid:{$pendingBookingId}");
             if ($reviewBtn) MaxService::removeButtons((int) $reviewBtn['user_id'], $reviewBtn['mid']);
@@ -516,8 +526,11 @@ class MaxController extends Controller
             $s = $this->safeSchema($row->schema_name);
 
             $booking = \DB::selectOne("
-                SELECT id, service_id, customer_id, customer_name
-                FROM {$s}.bookings WHERE id = ?
+                SELECT b.id, b.service_id, b.customer_id, b.customer_name,
+                       b.master_id, p.name AS service_name
+                FROM {$s}.bookings b
+                LEFT JOIN {$s}.products p ON p.id = b.service_id
+                WHERE b.id = ?
             ", [$bookingId]);
 
             if (!$booking) continue;
@@ -551,7 +564,21 @@ class MaxController extends Controller
             }
 
             \Illuminate\Support\Facades\Cache::put("rated:{$bookingId}", true, now()->addDays(30));
-            \Illuminate\Support\Facades\Cache::put("review_id:{$bookingId}", ['schema' => $s, 'id' => $reviewId], now()->addDays(30));
+            \Illuminate\Support\Facades\Cache::put("review_id:{$bookingId}", [
+                'schema'        => $s,
+                'id'            => $reviewId,
+                'score'         => $score,
+                'customer_name' => $booking->customer_name,
+                'service_name'  => $booking->service_name ?? '—',
+                'master_id'     => $booking->master_id,
+            ], now()->addDays(30));
+
+            try {
+                MasterBotService::notifyAllOnReview(
+                    $s, $booking->customer_name, $booking->service_name ?? '—',
+                    $booking->master_id, $score, null
+                );
+            } catch (\Throwable) {}
 
             $cached = \Illuminate\Support\Facades\Cache::get("max_rating_mid:{$bookingId}");
             Log::info('[MAX] rating: mid cache', ['found' => (bool) $cached, 'mid' => $cached['mid'] ?? null]);

@@ -567,6 +567,39 @@ class MaxService
         } catch (\Throwable) {}
     }
 
+    // ── Review notifications ──────────────────────────────────────────────
+
+    public static function notifyOwnerReview(Shop $shop, string $customerName, string $serviceName, int $score, ?string $text): void
+    {
+        if (!$shop->max_bot_connected || !$shop->max_chat_id) return;
+
+        $stars = str_repeat('⭐', $score);
+        $msg   = "{$stars} <b>Новый отзыв!</b>\n\n";
+        $msg  .= "👤 " . self::esc($customerName) . "\n";
+        $msg  .= "💅 " . self::esc($serviceName);
+        if ($text) $msg .= "\n💬 «" . self::esc($text) . "»";
+
+        try {
+            self::sendRaw($shop->max_chat_id, $msg);
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] notifyOwnerReview failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    public static function notifyMasterReview(int $userId, string $customerName, int $score, ?string $text): void
+    {
+        $stars = str_repeat('⭐', $score);
+        $msg   = "{$stars} <b>Клиент оценил ваш визит!</b>\n\n";
+        $msg  .= "👤 " . self::esc($customerName) . " поставил(а) {$score} ⭐";
+        if ($text) $msg .= "\n💬 «" . self::esc($text) . "»";
+
+        try {
+            self::sendRaw($userId, $msg);
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] notifyMasterReview failed', ['error' => $e->getMessage()]);
+        }
+    }
+
     // ── Webhook registration ──────────────────────────────────────────────
 
     public static function registerWebhook(string $url): array
