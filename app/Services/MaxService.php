@@ -480,7 +480,7 @@ class MaxService
 
     /**
      * Send (or re-send) the master navigation menu with callback buttons.
-     * Old menu buttons must be removed by the caller before calling this.
+     * Caches the mid so the next call can remove the previous menu's buttons.
      */
     public static function sendMasterMenu(int $userId, string $intro = ''): void
     {
@@ -493,7 +493,10 @@ class MaxService
             ['type' => 'callback', 'text' => '📊 Статистика', 'payload' => 'master_menu:stats:0'],
         ]];
 
-        self::sendRaw($userId, $text, $buttons);
+        $mid = self::sendRaw($userId, $text, $buttons);
+        if ($mid) {
+            Cache::put("max_master_menu_mid:{$userId}", $mid, now()->addDays(30));
+        }
     }
 
     public static function notifyMasterNewBooking(int $userId, $booking, string $timezone, bool $hidePhone = false): void

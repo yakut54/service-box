@@ -673,7 +673,8 @@ class MaxController extends Controller
         }
 
         MaxService::answerCallback($cbId, '');
-        MaxService::removeButtons($userId, $mid);
+        $cachedMid = \Illuminate\Support\Facades\Cache::get("max_master_menu_mid:{$userId}");
+        MaxService::removeButtons($userId, $cachedMid ?? $mid);
         MaxService::sendMasterMenu($userId, $responseText);
 
         Log::info('[MAX] master_menu callback handled', ['action' => $action, 'user_id' => $userId]);
