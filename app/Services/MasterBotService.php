@@ -227,6 +227,46 @@ class MasterBotService
         }
     }
 
+    /**
+     * Edit the existing owner review message (already cached) to add the review text.
+     * Called when client writes a text review AFTER giving star rating.
+     * Edits in-place instead of sending a second message.
+     */
+    public static function updateOwnerReviewWithText(
+        string $reviewId,
+        string $schema,
+        string $customerName,
+        string $serviceName,
+        int $score,
+        string $text
+    ): void {
+        // Look up current is_published so button stays correct
+        $s = '"' . $schema . '"';
+        $review = DB::selectOne("SELECT is_published FROM {$s}.reviews WHERE id = ?", [$reviewId]);
+        $isPublished = (bool) ($review->is_published ?? false);
+
+        $tgCached  = \Illuminate\Support\Facades\Cache::get("tg_owner_review:{$reviewId}");
+        $maxCached = \Illuminate\Support\Facades\Cache::get("max_owner_review:{$reviewId}");
+
+        if ($tgCached) {
+            try {
+                TelegramService::editOwnerReviewWithText(
+                    $tgCached['chat_id'], $tgCached['message_id'],
+                    $customerName, $serviceName, $score, $text, $reviewId, $isPublished
+                );
+            } catch (\Throwable) {}
+        }
+
+        if ($maxCached) {
+            try {
+                MaxService::editOwnerReviewWithText(
+                    $maxCached['user_id'], $maxCached['mid'],
+                    $customerName, $serviceName, $score, $text, $reviewId, $isPublished
+                );
+            } catch (\Throwable) {}
+        }
+    }
+
     private static function pluralize(int $n): string
     {
         if ($n % 10 === 1 && $n % 100 !== 11) return 'запись';

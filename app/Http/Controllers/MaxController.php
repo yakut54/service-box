@@ -195,17 +195,18 @@ class MaxController extends Controller
                     [$text, $cached['id']]
                 );
                 Log::info('[MAX] review: text saved', ['booking' => $pendingBookingId]);
-                try {
-                    MasterBotService::notifyAllOnReview(
-                        $cached['schema'],
-                        $cached['customer_name'] ?? '—',
-                        $cached['service_name']  ?? '—',
-                        $cached['master_id']     ?? null,
-                        $cached['score']         ?? 5,
-                        $text,
-                        $cached['id']            ?? null
-                    );
-                } catch (\Throwable) {}
+                if (!empty($cached['id'])) {
+                    try {
+                        MasterBotService::updateOwnerReviewWithText(
+                            $cached['id'],
+                            $cached['schema'],
+                            $cached['customer_name'] ?? '—',
+                            $cached['service_name']  ?? '—',
+                            $cached['score']         ?? 5,
+                            $text
+                        );
+                    } catch (\Throwable) {}
+                }
             }
             $reviewBtn = \Illuminate\Support\Facades\Cache::get("max_review_btn_mid:{$pendingBookingId}");
             if ($reviewBtn) MaxService::removeButtons((int) $reviewBtn['user_id'], $reviewBtn['mid']);

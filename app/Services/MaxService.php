@@ -597,6 +597,38 @@ class MaxService
         }
     }
 
+    public static function editOwnerReviewWithText(int $userId, string $mid, string $customerName, string $serviceName, int $score, string $text, string $reviewId, bool $isPublished): void
+    {
+        $token = self::token();
+        if (!$token) return;
+
+        $stars  = str_repeat('⭐', $score);
+        $msg    = "{$stars} <b>Новый отзыв!</b>\n\n";
+        $msg   .= "👤 " . self::esc($customerName) . "\n";
+        $msg   .= "💅 " . self::esc($serviceName) . "\n";
+        $msg   .= "💬 «" . self::esc($text) . "»";
+
+        $btn = $isPublished
+            ? ['type' => 'callback', 'text' => '🙈 Скрыть',       'payload' => "review_pub:{$reviewId}:0"]
+            : ['type' => 'callback', 'text' => '✅ Опубликовать', 'payload' => "review_pub:{$reviewId}:1"];
+
+        try {
+            Http::timeout(5)
+                ->withHeaders(['Authorization' => $token])
+                ->put(self::api() . '/messages?message_id=' . urlencode($mid), [
+                    'text'        => $msg,
+                    'format'      => 'html',
+                    'attachments' => [[
+                        'type'    => 'inline_keyboard',
+                        'payload' => ['buttons' => [[$btn]]],
+                    ]],
+                    'notify' => false,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] editOwnerReviewWithText failed', ['error' => $e->getMessage()]);
+        }
+    }
+
     public static function updateReviewButtons(int $userId, ?string $mid, string $reviewId, bool $isPublished): void
     {
         if (!$mid) return;
