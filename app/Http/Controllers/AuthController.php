@@ -200,6 +200,7 @@ class AuthController extends Controller
             'max_chat_id'            => $shop->max_chat_id,
             'yookassa_shop_id'       => $shop->yookassa_shop_id,
             'legal_config'           => $shop->legal_config,
+            'hide_customer_phone'    => (bool) $shop->hide_customer_phone,
         ];
     }
 
