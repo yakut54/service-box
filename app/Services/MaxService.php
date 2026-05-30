@@ -625,7 +625,7 @@ class MaxService
     public static function notifyMasterReview(int $userId, string $customerName, int $score, ?string $text): void
     {
         $stars = str_repeat('⭐', $score);
-        $msg   = "{$stars} <b>Клиент оценил ваш визит!</b>\n\n";
+        $msg   = "{$stars} <b>Клиент оценил вашу работу!</b>\n\n";
         $msg  .= "👤 " . self::esc($customerName) . " поставил(а) {$score} ⭐";
         if ($text) $msg .= "\n💬 «" . self::esc($text) . "»";
 
