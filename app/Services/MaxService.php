@@ -479,19 +479,18 @@ class MaxService
     }
 
     /**
-     * Send (or re-send) the master navigation menu.
-     * Uses `message` type buttons — clicking sends text to bot (same behaviour as Telegram ReplyKeyboard).
-     * Attached to every reply so the menu is always visible after any interaction.
+     * Send (or re-send) the master navigation menu with callback buttons.
+     * Old menu buttons must be removed by the caller before calling this.
      */
     public static function sendMasterMenu(int $userId, string $intro = ''): void
     {
-        $text = $intro ?: '📋 Нажмите кнопку для навигации:';
+        $text = $intro ?: '📋 Выберите действие:';
 
         $buttons = [[
-            ['type' => 'message', 'text' => '📅 Сегодня', 'payload' => '📅 Сегодня'],
-            ['type' => 'message', 'text' => '📅 Неделя',  'payload' => '📅 Неделя'],
+            ['type' => 'callback', 'text' => '📅 Сегодня', 'payload' => 'master_menu:today:0'],
+            ['type' => 'callback', 'text' => '📅 Неделя',  'payload' => 'master_menu:week:0'],
         ],[
-            ['type' => 'message', 'text' => '📊 Статистика', 'payload' => '📊 Статистика'],
+            ['type' => 'callback', 'text' => '📊 Статистика', 'payload' => 'master_menu:stats:0'],
         ]];
 
         self::sendRaw($userId, $text, $buttons);

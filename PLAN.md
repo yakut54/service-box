@@ -153,7 +153,7 @@ servicebox/
 | МБ.2 | `MasterBotService` — общий построитель текста расписания/статистики для обоих ботов | ✅ |
 | МБ.3 | Telegram: `sendMasterWelcome` + постоянная ReplyKeyboard (кнопки снизу чата навсегда) | ✅ |
 | МБ.4 | MAX: `sendMasterMenu` с inline callback-кнопками (3 кнопки прикреплены к сообщению) | ✅ |
-| МБ.5 | MAX: заменить `callback` на `message`-кнопки — нажатие отправляет текст боту как в Telegram ReplyKeyboard | ✅ |
+| МБ.5 | MAX: кнопки меню `callback` + `removeButtons` при нажатии — старые кнопки исчезают, показывается одна активная менюшка | ✅ |
 
 ---
 

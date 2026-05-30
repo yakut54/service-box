@@ -157,11 +157,11 @@ class MaxController extends Controller
             return;
         }
 
-        // ── Master commands (slash-commands + message-button texts) ──────────
+        // ── Master slash commands ─────────────────────────────────────────
         $masterCmd = match(true) {
-            in_array($text, ['/today', 'today', '📅 Сегодня']) => 'today',
-            in_array($text, ['/week',  'week',  '📅 Неделя'])  => 'week',
-            in_array($text, ['/stats', 'stats', '📊 Статистика']) => 'stats',
+            in_array($text, ['/today', 'today']) => 'today',
+            in_array($text, ['/week',  'week'])  => 'week',
+            in_array($text, ['/stats', 'stats']) => 'stats',
             default => null,
         };
 
@@ -246,6 +246,7 @@ class MaxController extends Controller
         $callbackId = $update['callback']['callback_id'] ?? null;
         $payload    = $update['callback']['payload'] ?? '';
         $userId     = $update['callback']['user']['user_id'] ?? null;
+        $mid        = $update['callback']['message']['body']['mid'] ?? null;
 
         Log::info('[MAX] callback received', ['payload' => $payload, 'user_id' => $userId]);
 
@@ -284,7 +285,7 @@ class MaxController extends Controller
         }
 
         if ($entityType === 'master_menu') {
-            $this->handleMasterMenuCallback($callbackId, $action, $userId);
+            $this->handleMasterMenuCallback($callbackId, $action, $userId, $mid);
             return;
         }
 
@@ -650,7 +651,7 @@ class MaxController extends Controller
         }
     }
 
-    private function handleMasterMenuCallback(string $cbId, string $action, int $userId): void
+    private function handleMasterMenuCallback(string $cbId, string $action, int $userId, ?string $mid = null): void
     {
         $ctx = MasterBotService::findByMaxUserId($userId);
 
@@ -658,8 +659,6 @@ class MaxController extends Controller
             MaxService::answerCallback($cbId, 'Мастер не найден');
             return;
         }
-
-        MaxService::answerCallback($cbId, '');
 
         $responseText = match ($action) {
             'today' => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'today', $ctx['hide_phone']),
@@ -673,6 +672,8 @@ class MaxController extends Controller
             return;
         }
 
+        MaxService::answerCallback($cbId, '');
+        MaxService::removeButtons($userId, $mid);
         MaxService::sendMasterMenu($userId, $responseText);
 
         Log::info('[MAX] master_menu callback handled', ['action' => $action, 'user_id' => $userId]);
