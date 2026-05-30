@@ -115,10 +115,12 @@ function openEdit(master: Master) {
 function handleMasterSaved(master: Master, mode: 'create' | 'edit') {
   if (mode === 'create') {
     masters.value.unshift(master)
+    toast.success('Мастер добавлен')
   } else {
     const idx = masters.value.findIndex(m => m.id === master.id)
     if (idx !== -1) masters.value[idx] = master
     sortMasters()
+    toast.success('Сохранено')
   }
 }
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
+import { useToast } from '@/composables/useToast'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
@@ -11,6 +12,7 @@ import { formatDate } from '@/shared/lib/format'
 import type { Review } from '@/types'
 
 // ── State ────────────────────────────────────────────────────
+const toast    = useToast()
 const reviews  = ref<Review[]>([])
 const products = ref<{ id: string; name: string }[]>([])
 const loading  = ref(false)
@@ -90,7 +92,9 @@ async function togglePublish(r: Review) {
     const res = await api.updateReview(r.id, { is_published: !r.is_published })
     const idx = reviews.value.findIndex(x => x.id === r.id)
     if (idx !== -1) reviews.value[idx] = res.data
-  } catch { /* silent */ }
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось изменить статус отзыва')
+  }
 }
 
 // ── Delete ────────────────────────────────────────────────────

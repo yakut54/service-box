@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
+import { useToast } from '@/composables/useToast'
 import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/shared/lib/format'
@@ -14,6 +15,7 @@ const ordersStore = useOrdersStore()
 const authStore  = useAuthStore()
 const shopTz     = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
 
+const toast   = useToast()
 const order   = ref<Order | null>(null)
 const loading = ref(true)
 const updating = ref(false)
@@ -51,8 +53,11 @@ async function updateStatus(status: string) {
   try {
     const resp = await api.updateOrderStatus(order.value.id, status)
     order.value = resp.data
-  } catch { /* ignore */ }
-  updating.value = false
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось изменить статус заказа')
+  } finally {
+    updating.value = false
+  }
 }
 </script>
 
