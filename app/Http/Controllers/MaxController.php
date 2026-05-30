@@ -157,11 +157,11 @@ class MaxController extends Controller
             return;
         }
 
-        // ── Master slash commands ─────────────────────────────────────────
+        // ── Master commands (slash-commands + message-button texts) ──────────
         $masterCmd = match(true) {
-            in_array($text, ['/today', 'today'])   => 'today',
-            in_array($text, ['/week',  'week'])    => 'week',
-            in_array($text, ['/stats', 'stats'])   => 'stats',
+            in_array($text, ['/today', 'today', '📅 Сегодня']) => 'today',
+            in_array($text, ['/week',  'week',  '📅 Неделя'])  => 'week',
+            in_array($text, ['/stats', 'stats', '📊 Статистика']) => 'stats',
             default => null,
         };
 
