@@ -7,6 +7,7 @@ import 'data/shops_storage.dart';
 import 'state/shops_state.dart';
 import 'ui/onboarding_screen.dart';
 import 'ui/widgets/shop_avatar.dart';
+import 'ui/widgets/shop_switcher_sheet.dart';
 
 void main() {
   runApp(const MyApp());
@@ -61,6 +62,13 @@ class _HomeScreen extends StatelessWidget {
             Text(shop.name),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.swap_horiz_rounded),
+            tooltip: 'Сменить магазин',
+            onPressed: () => showShopSwitcher(context),
+          ),
+        ],
       ),
       body: Center(
         child: Text('Каталог магазина «${shop.name}» ещё не готов'),
