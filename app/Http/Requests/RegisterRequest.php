@@ -39,7 +39,12 @@ class RegisterRequest extends FormRequest
             'email.unique' => 'Пользователь с таким email уже существует',
             'password.required' => 'Укажите пароль',
             'password.confirmed' => 'Пароли не совпадают',
+            'password.min' => 'Пароль должен быть не короче 8 символов',
+            'password.letters' => 'Пароль должен содержать хотя бы одну букву',
+            'password.numbers' => 'Пароль должен содержать хотя бы одну цифру',
             'shop_name.required' => 'Укажите название магазина',
+            'shop_domain.url' => 'Укажите корректный адрес сайта',
+            'timezone.timezone' => 'Укажите корректный часовой пояс',
         ];
     }
 }
