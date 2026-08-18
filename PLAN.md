@@ -17,8 +17,8 @@
 
 - **Backend:** Laravel 11, PostgreSQL 16 (multi-tenant schemas), Redis, Sanctum
 - **Frontend:** Vue 3 + TypeScript, Tailwind CSS (admin), Pinia, Vite
-- **Infrastructure:** Docker, Nginx, GitHub Actions (deploy on push to `new-branch`)
-- **Server:** root@31.128.39.216, app `/var/www/servicebox/`, домен `https://yakut54.ru`
+- **Infrastructure:** Docker, Nginx, GitHub Actions (deploy on push to `flutter-app`)
+- **Server:** root@193.168.49.102, app `/var/www/servicebox/`, домен `https://yakut54.ru`
 - **Queue driver:** `sync` (нет async-очередей — все операции синхронные)
 
 ---
@@ -868,7 +868,7 @@ servicebox/
 
 ## Деплой
 
-1. Пуш в ветку `new-branch`
+1. Пуш в ветку `flutter-app`
 2. GitHub Actions → SSH на сервер → `git pull` + `composer install` + `php artisan migrate` + перезапуск контейнера
 3. Время деплоя: ~1 минута
 4. Фронт (admin/widget) деплоится отдельно при изменениях в `admin/` или `widget/`
