@@ -2,7 +2,7 @@
 set -e
 
 REPO_DIR="/var/www/servicebox"
-BRANCH="new-branch"
+BRANCH="flutter-app"
 
 cd "$REPO_DIR"
 
