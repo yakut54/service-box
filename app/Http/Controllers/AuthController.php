@@ -44,6 +44,7 @@ class AuthController extends Controller
                 'domain' => $request->shop_domain,
                 'schema_name' => $schemaName,
                 'subscription_plan' => 'micro',
+                'subscription_expires_at' => now()->addDays(14),
                 'timezone' => $request->timezone ?? 'Europe/Moscow',
             ]);
 
@@ -54,7 +55,7 @@ class AuthController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Registration successful',
+                'message' => 'Регистрация выполнена успешно',
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,

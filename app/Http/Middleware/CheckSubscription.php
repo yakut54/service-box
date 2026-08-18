@@ -14,7 +14,7 @@ class CheckSubscription
 
         if (!$shop) {
             return response()->json([
-                'error' => 'Shop not found',
+                'error' => 'Магазин не найден',
             ], 404);
         }
 
@@ -52,22 +52,19 @@ class CheckSubscription
 
             if ($method === $allowedMethod) {
                 if ($allowedPath === $path || $this->matchesWildcard($allowedPath, $path)) {
-                    $response = response()->json([
-                        'error' => 'Subscription expired',
-                        'message' => 'Your subscription has expired. You have read-only access. Please renew to continue using full features.',
-                        'days_expired' => abs($shop->getDaysUntilExpiration()),
-                        'subscription_expires_at' => $shop->subscription_expires_at,
-                    ], 402);
-
+                    // Разрешённый на чтение эндпоинт — пропускаем запрос дальше,
+                    // но помечаем ответ как read-only, чтобы фронт мог показать баннер
+                    $response = $next($request);
                     $response->headers->set('X-Subscription-Status', 'expired');
+                    $response->headers->set('X-Subscription-ReadOnly', '1');
                     return $response;
                 }
             }
         }
 
         return response()->json([
-            'error' => 'Subscription required',
-            'message' => 'Your subscription has expired. Please renew your subscription to access this feature.',
+            'error' => 'Требуется подписка',
+            'message' => 'Срок действия подписки истёк. Продлите подписку, чтобы пользоваться этой функцией.',
             'subscription_expires_at' => $shop->subscription_expires_at,
             'days_expired' => abs($shop->getDaysUntilExpiration()),
             'plan' => $shop->subscription_plan,
