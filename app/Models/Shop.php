@@ -215,15 +215,4 @@ class Shop extends Model
         $cfg = $this->legal_config ?? [];
         return !empty($cfg['public_offer_text']) || !empty($cfg['privacy_policy_text']);
     }
-
-    public function getPlanPrice(): int
-    {
-        return match($this->subscription_plan) {
-            'micro' => 50000,
-            'start' => 100000,
-            'business' => 150000,
-            'pro' => 300000,
-            default => 0,
-        };
-    }
 }
