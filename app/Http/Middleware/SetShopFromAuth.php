@@ -15,7 +15,7 @@ class SetShopFromAuth
         $user = $request->user();
 
         if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return response()->json(['message' => 'Не авторизован'], 401);
         }
 
         // Owner path: user owns a shop directly
@@ -38,7 +38,7 @@ class SetShopFromAuth
 
         // Return 401 (not 404) so the frontend unauthorized handler triggers logout
         if (!$staffRecord || !$staffRecord->shop) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return response()->json(['message' => 'Не авторизован'], 401);
         }
 
         $shop = $staffRecord->shop;

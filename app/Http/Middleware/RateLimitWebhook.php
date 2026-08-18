@@ -15,7 +15,7 @@ class RateLimitWebhook
 
         if (RateLimiter::tooManyAttempts($key, $this->getMaxAttempts($limiter))) {
             return response()->json([
-                'error' => 'Too many requests',
+                'error' => 'Слишком много запросов',
                 'retry_after' => RateLimiter::availableIn($key),
             ], 429);
         }

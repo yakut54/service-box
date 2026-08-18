@@ -15,7 +15,7 @@ class VerifyTelegramWebhook
             Log::warning('Telegram webhook blocked: invalid secret token', [
                 'ip' => $request->ip(),
             ]);
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json(['error' => 'Не авторизован'], 401);
         }
 
         return $next($request);

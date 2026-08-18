@@ -16,7 +16,7 @@ class VerifyYooKassaWebhook
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
-            return response()->json(['error' => 'Forbidden'], 403);
+            return response()->json(['error' => 'Доступ запрещён'], 403);
         }
 
         Log::info('YooKassa webhook verified', [

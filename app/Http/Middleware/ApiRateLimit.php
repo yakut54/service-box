@@ -18,8 +18,8 @@ class ApiRateLimit
 
         if (RateLimiter::tooManyAttempts($key, self::MAX_ATTEMPTS)) {
             return response()->json([
-                'error'       => 'Too Many Requests',
-                'message'     => 'Rate limit exceeded. Maximum 60 requests per minute.',
+                'error'       => 'Слишком много запросов',
+                'message'     => 'Превышен лимит запросов. Максимум 60 запросов в минуту.',
                 'retry_after' => RateLimiter::availableIn($key),
             ], 429);
         }

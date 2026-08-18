@@ -14,8 +14,8 @@ class ApiProPlan
 
         if (!$shop || !$shop->hasFeature('api_access')) {
             return response()->json([
-                'error'   => 'Forbidden',
-                'message' => 'API access is available on the Pro plan.',
+                'error'   => 'Доступ запрещён',
+                'message' => 'Доступ к API доступен только на тарифе Pro.',
             ], 403);
         }
 

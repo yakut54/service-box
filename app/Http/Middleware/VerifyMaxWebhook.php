@@ -13,11 +13,11 @@ class VerifyMaxWebhook
         $expected = config('services.max.webhook_secret');
 
         if (empty($expected)) {
-            return response()->json(['error' => 'Webhook not configured'], 503);
+            return response()->json(['error' => 'Webhook не настроен'], 503);
         }
 
         if (!hash_equals($expected, (string) $request->route('secret'))) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json(['error' => 'Не авторизован'], 401);
         }
 
         return $next($request);

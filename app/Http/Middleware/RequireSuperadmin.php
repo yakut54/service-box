@@ -10,7 +10,7 @@ class RequireSuperadmin
     public function handle(Request $request, Closure $next)
     {
         if (!$request->user()?->is_superadmin) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
         return $next($request);

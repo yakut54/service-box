@@ -15,8 +15,8 @@ class ApiKeyAuth
 
         if (!$apiKey) {
             return response()->json([
-                'error'   => 'Unauthorized',
-                'message' => 'API key required. Pass it in the X-API-Key header.',
+                'error'   => 'Не авторизован',
+                'message' => 'Требуется API-ключ. Передайте его в заголовке X-API-Key.',
             ], 401);
         }
 
@@ -25,8 +25,8 @@ class ApiKeyAuth
             $request->merge(['_shop' => $shop]);
         } catch (\Exception) {
             return response()->json([
-                'error'   => 'Unauthorized',
-                'message' => 'Invalid API key.',
+                'error'   => 'Не авторизован',
+                'message' => 'Неверный API-ключ.',
             ], 401);
         }
 

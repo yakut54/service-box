@@ -17,18 +17,18 @@ class TenantContext
 
         if (!$shopId) {
             return response()->json([
-                'error' => 'Shop ID required',
-                'message' => 'Provide shop_id in X-Shop-ID header or query parameter',
+                'error' => 'Не указан ID магазина',
+                'message' => 'Укажите shop_id в заголовке X-Shop-ID или в параметре запроса',
             ], 400);
         }
 
         try {
             $shop = TenantService::setContextByApiKey($shopId);
             $request->merge(['_shop' => $shop]);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return response()->json([
-                'error' => 'Invalid shop ID',
-                'message' => $e->getMessage(),
+                'error' => 'Неверный ID магазина',
+                'message' => 'Магазин с таким ID не найден',
             ], 401);
         }
 

@@ -21,8 +21,8 @@ class EnforceHttps
             ]);
 
             return response()->json([
-                'error' => 'Forbidden',
-                'message' => 'HTTPS required',
+                'error' => 'Доступ запрещён',
+                'message' => 'Требуется HTTPS-соединение',
             ], 403);
         }
 
