@@ -20,13 +20,14 @@
 
 ## Git
 
-- Коммит и пуш делает Claude в ветку `new-branch` на https://github.com/yakut54/service-box/tree/new-branch
-- После пуша автоматически срабатывает деплой (см. deploy.ssh)
+- Коммит и пуш делает Claude в ветку `flutter-app` на https://github.com/yakut54/service-box/tree/flutter-app
+- После пуша автоматически срабатывает деплой (см. deploy.sh)
+- Коммиты — только на английском (feat:, fix: и т.д.)
 
 ## Сервер (тестовый стенд)
 
-- SSH: `root@31.128.39.216`
-- Пароль: `GbfCn&Cw+D86`
+- SSH: `root@193.168.49.102`
+- Пароль: `M*5pFFR3ecTq`
 
 ## PLAN.md
 
