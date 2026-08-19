@@ -3,13 +3,21 @@ import 'package:provider/provider.dart';
 
 import '../core/app_exception.dart';
 import '../core/format.dart';
+import '../data/checkout_draft_store.dart';
 import '../data/order_repository.dart';
 import '../state/cart_state.dart';
 import 'order_confirmation_screen.dart';
+import 'widgets/form/email_field.dart';
+import 'widgets/form/name_field.dart';
+import 'widgets/form/phone_field.dart';
+import 'widgets/form/primary_submit_button.dart';
 
 /// Оформление заказа. MVP — только самовывоз, без выбора доставки
 /// (см. PLAN.md, Шаг E). Телефон не подтверждается кодом — это не
 /// требуется бэкендом для создания заказа, только для истории заказов.
+///
+/// Черновик формы сохраняется на каждое изменение и восстанавливается
+/// при повторном открытии — как в веб-виджете (см. CheckoutDraftStore).
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -22,9 +30,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
+  final _draftStore = CheckoutDraftStore();
 
   bool _submitting = false;
   AppException? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreDraft();
+    for (final controller in [
+      _nameController,
+      _phoneController,
+      _emailController,
+    ]) {
+      controller.addListener(_saveDraft);
+    }
+  }
 
   @override
   void dispose() {
@@ -32,6 +54,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDraft() async {
+    final draft = await _draftStore.load();
+    if (draft == null || !mounted) return;
+    _nameController.text = draft['name'] ?? '';
+    _phoneController.text = draft['phone'] ?? '';
+    _emailController.text = draft['email'] ?? '';
+  }
+
+  void _saveDraft() {
+    _draftStore.save(
+      name: _nameController.text,
+      phone: _phoneController.text,
+      email: _emailController.text,
+    );
   }
 
   Future<void> _submit() async {
@@ -51,6 +89,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         items: cart.items,
       );
       cart.clear();
+      await _draftStore.clear();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -81,41 +120,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Text('Контактные данные', style: theme.textTheme.titleMedium),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Имя'),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Укажите имя'
-                    : null,
-              ),
+              NameField(controller: _nameController),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Телефон',
-                  hintText: '+7 900 000-00-00',
-                ),
-                validator: (value) {
-                  final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-                  return digits.length < 10 ? 'Укажите телефон' : null;
-                },
-              ),
+              PhoneField(controller: _phoneController),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (value) {
-                  final trimmed = (value ?? '').trim();
-                  if (trimmed.isEmpty) return 'Укажите email';
-                  if (!trimmed.contains('@')) return 'Неверный формат email';
-                  return null;
-                },
-              ),
+              EmailField(controller: _emailController),
               const SizedBox(height: 24),
               Text('Заказ', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
@@ -142,15 +151,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ],
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _submitting ? null : _submit,
-                child: _submitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Оформить заказ'),
+              PrimarySubmitButton(
+                label: 'Оформить заказ',
+                loading: _submitting,
+                onPressed: _submit,
               ),
             ],
           ),
