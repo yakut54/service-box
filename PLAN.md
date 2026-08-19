@@ -732,14 +732,25 @@ servicebox/
 #### М2 — Сохранённые адреса клиента
 
 > Авторизованный клиент выбирает из сохранённых адресов вместо ввода с нуля каждый раз.
+> Роуты — под `/widget/*` (не `/mobile/*`, как было в исходном плане — тот префикс
+> остался от архитектуры до пивота 18.08, приложение везде ходит через `/widget/*`).
 
 | # | Что | Статус |
 |---|---|---|
-| М2.1 | Таблица `customer_addresses` (id, customer_id FK, label, address JSONB, is_default) | 🔜 |
-| М2.2 | `GET /mobile/addresses` — список адресов клиента (auth: phone token) | 🔜 |
-| М2.3 | `POST /mobile/addresses` — сохранить новый адрес | 🔜 |
-| М2.4 | `PUT /mobile/addresses/{id}/default` — сделать адресом по умолчанию | 🔜 |
-| М2.5 | `DELETE /mobile/addresses/{id}` — удалить адрес | 🔜 |
+| М2.0 | Таблица `customer_sessions` (долгий токен входа, 60 дней — отдельно от 30-минутного OTP-токена виджета) + `VerifyPhoneSession` middleware | ✅ |
+| М2.1 | Таблица `customer_addresses` (id, customer_id FK, label, city/street/building/apartment/postal_code, is_default) | ✅ |
+| М2.2 | `GET /widget/addresses` — список адресов клиента (auth: `X-Phone-Session`) | ✅ |
+| М2.3 | `POST /widget/addresses` — сохранить новый адрес (первый адрес автоматически становится default) | ✅ |
+| М2.4 | `PUT /widget/addresses/{id}/default` — сделать адресом по умолчанию | ✅ |
+| М2.5 | `DELETE /widget/addresses/{id}` — удалить адрес (если удалили default — назначается следующий по свежести) | ✅ |
+| М2.6 | Мобилка: экран входа по телефону (SMS-код, `pinput` + `sms_autofill`), сохранение `session_token` в `flutter_secure_storage` | 🔜 |
+| М2.7 | Мобилка: экран «Мои адреса» — список/добавление/выбор по умолчанию | 🔜 |
+| М2.8 | Подключение в чекаут: авторизован → выбор из сохранённых, иначе → как сейчас, ручной ввод | 🔜 |
+
+**Проверено curl'ом против реального сервера (2026-08-19):** request-code → verify
+(возвращает и 30-минутный `token`, и 60-дневный `session_token`) → создание адреса
+(первый = default) → список → удаление (default переезжает на следующий). Тестовые
+данные подчищены.
 
 ---
 
