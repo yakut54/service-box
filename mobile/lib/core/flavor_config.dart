@@ -9,7 +9,7 @@
 ///    (`android/app/build.gradle.kts`, `android/app/src/<flavor>/res`),
 ///    сюда не попадают — это не Dart-код.
 ///  - brand    — код и стартовое имя/цвет магазина (до первого ответа сервера).
-///  - runtime  — куда стучаться и нужны ли моки вместо бэкенда.
+///  - runtime  — куда стучаться (адрес бэкенда).
 class FlavorConfig {
   const FlavorConfig._();
 
@@ -20,7 +20,7 @@ class FlavorConfig {
   /// shops.api_key — то же значение уходит в заголовок X-Shop-ID.
   static const String shopApiKey = String.fromEnvironment('SHOP_API_KEY');
 
-  /// Имя магазина для показа, пока не пришёл ответ сервера (или в мок-режиме).
+  /// Имя магазина для показа, пока не пришёл ответ сервера.
   static const String shopName = String.fromEnvironment(
     'SHOP_NAME',
     defaultValue: 'Магазин',
@@ -36,13 +36,5 @@ class FlavorConfig {
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'https://yakut54.ru',
-  );
-
-  /// true — работаем на моковых данных (см. MockShopRepository).
-  /// Бэкенд для мобилки ещё не поднят, поэтому дефолт — true, пока
-  /// какой-то флейвор явно не передаст USE_MOCKS=false.
-  static const bool useMocks = bool.fromEnvironment(
-    'USE_MOCKS',
-    defaultValue: true,
   );
 }

@@ -1,8 +1,6 @@
-import '../core/flavor_config.dart';
 import '../models/category.dart';
 import '../models/product.dart';
 import 'api_catalog_repository.dart';
-import 'mock_catalog_repository.dart';
 
 /// Источник данных о категориях и товарах магазина этой сборки.
 abstract class CatalogRepository {
@@ -15,9 +13,5 @@ abstract class CatalogRepository {
   /// удалён/деактивирован между открытием каталога и переходом в карточку.
   Future<Product> fetchProduct(String id);
 
-  factory CatalogRepository.create() {
-    return FlavorConfig.useMocks
-        ? MockCatalogRepository()
-        : ApiCatalogRepository();
-  }
+  factory CatalogRepository.create() => ApiCatalogRepository();
 }

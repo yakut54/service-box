@@ -40,10 +40,6 @@ android {
             dimension = "shop"
             applicationId = "ru.yakut54.servicebox.barbariska"
         }
-        create("demo") {
-            dimension = "shop"
-            applicationId = "ru.yakut54.servicebox.demo"
-        }
     }
 
     buildTypes {

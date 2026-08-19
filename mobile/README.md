@@ -15,18 +15,19 @@
    (сейчас везде дефолтная иконка Flutter — реальные иконки шоперов
    добавляются сюда, когда будут готовы).
 2. **Brand/runtime** (`mobile/flavors/<flavor>.json`) — код магазина,
-   его `api_key`, имя, цвет темы по умолчанию, адрес бэкенда, включены
-   ли моки. Читается в Dart через `FlavorConfig` (`lib/core/flavor_config.dart`).
+   его `api_key`, имя, цвет темы по умолчанию, адрес бэкенда. Читается
+   в Dart через `FlavorConfig` (`lib/core/flavor_config.dart`).
 
-Сейчас заведено два флейвора:
+Сейчас заведён один флейвор:
 
 - **barbariska** — реальный тестовый магазин (`shop_xdirmgfxyd7u`)
-- **demo** — магазин на моках для локальной разработки без завязки на бэкенд
+
+Приложение всегда ходит на реальный бэкенд (`ApiShopRepository`,
+`ApiCatalogRepository`) — моков нет ни в одной сборке.
 
 ## Запуск
 
 ```bash
-flutter run --flavor demo --dart-define-from-file=flavors/demo.json
 flutter run --flavor barbariska --dart-define-from-file=flavors/barbariska.json
 ```
 
