@@ -38,11 +38,11 @@ class ProductController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ILIKE', "%{$search}%")
-                  ->orWhere('description', 'ILIKE', "%{$search}%");
-            });
+            // Только по названию — поиск по description раньше давал
+            // случайные совпадения на коротких запросах (например, «св»
+            // находил «Картофель молодой» из-за фразы «свежий урожай»
+            // в описании — ожидаемо только у «Морковь свежая»/«Свёкла»).
+            $query->where('name', 'ILIKE', '%'.$request->search.'%');
         }
 
         $query->orderBy('sort_order')->orderBy('name');
