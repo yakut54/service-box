@@ -127,6 +127,18 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     )
                 $sql$, p_schema_name, p_schema_name);
 
+                -- product_images
+                EXECUTE format($sql$
+                    CREATE TABLE %I.product_images (
+                        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        product_id UUID NOT NULL REFERENCES %I.products(id) ON DELETE CASCADE,
+                        url        TEXT NOT NULL,
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.product_images(product_id)', p_schema_name);
+
                 -- customers
                 EXECUTE format($sql$
                     CREATE TABLE %I.customers (
