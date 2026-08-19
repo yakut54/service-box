@@ -220,7 +220,7 @@ class OrderController extends Controller
         }
 
         return response()->json([
-            'message' => 'Order created successfully',
+            'message' => 'Заказ успешно создан',
             'data'    => $order,
         ], 201);
     }
