@@ -46,5 +46,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Открытие geo:-ссылок (адрес самовывоза → приложение карт).
+             Без этого объявления Android 11+ скрывает от нас, есть ли
+             вообще установленное приложение карт, даже когда оно есть. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="geo"/>
+        </intent>
     </queries>
 </manifest>
