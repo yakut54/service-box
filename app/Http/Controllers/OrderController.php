@@ -287,25 +287,55 @@ class OrderController extends Controller
             ->latest('created_at')
             ->limit(50)
             ->get()
-            ->map(function ($order) {
-                // Strip sensitive data for widget display
-                return [
-                    'id' => $order->id,
-                    'status' => $order->status,
-                    'total_price' => $order->total_price,
-                    'created_at' => $order->created_at,
-                    'items' => $order->items->map(fn ($item) => [
-                        'id' => $item->id,
-                        'product_name' => $item->product_name,
-                        'quantity' => $item->quantity,
-                        'price' => $item->price,
-                    ]),
-                ];
-            });
+            ->map(fn ($order) => $this->mapOrderForWidget($order));
 
         return response()->json([
             'data' => $orders,
         ]);
+    }
+
+    /**
+     * Widget: get orders for the logged-in mobile customer (60-day session,
+     * see VerifyPhoneSession) — unlike widgetOrdersByPhone above, which relies
+     * on the 30-min OTP token and is long expired by the time a returning
+     * user opens the app.
+     *
+     * GET /api/widget/orders/mine
+     */
+    public function widgetOrdersMine(Request $request): JsonResponse
+    {
+        $customer = $request->attributes->get('customer');
+
+        $orders = Order::with('items')
+            ->where('customer_id', $customer->id)
+            ->latest('created_at')
+            ->limit(50)
+            ->get()
+            ->map(fn ($order) => $this->mapOrderForWidget($order));
+
+        return response()->json([
+            'data' => $orders,
+        ]);
+    }
+
+    /**
+     * Strip sensitive data for widget/mobile display — shared by
+     * widgetOrdersByPhone and widgetOrdersMine.
+     */
+    private function mapOrderForWidget(Order $order): array
+    {
+        return [
+            'id' => $order->id,
+            'status' => $order->status,
+            'total_price' => $order->total_price,
+            'created_at' => $order->created_at,
+            'items' => $order->items->map(fn ($item) => [
+                'id' => $item->id,
+                'product_name' => $item->product_name,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+            ]),
+        ];
     }
 
     /**

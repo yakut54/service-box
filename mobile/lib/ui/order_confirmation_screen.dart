@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/format.dart';
-import '../core/order_status.dart';
 import '../models/order.dart';
+import 'widgets/order_status_badge.dart';
 
 /// Показывается сразу после успешного оформления заказа. Оплата (YooKassa)
 /// подключается отдельным шагом — сейчас заказ создаётся со статусом
@@ -52,7 +52,7 @@ class OrderConfirmationScreen extends StatelessWidget {
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                _StatusBadge(status: order.status),
+                OrderStatusBadge(status: order.status),
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: () =>
@@ -62,31 +62,6 @@ class OrderConfirmationScreen extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String status;
-
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = orderStatusColor(context, status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        orderStatusLabel(status),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );

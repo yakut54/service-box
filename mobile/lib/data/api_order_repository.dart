@@ -32,4 +32,16 @@ class ApiOrderRepository implements OrderRepository {
     if (data == null) throw AppException.badResponse();
     return Order.fromJson(data);
   }
+
+  @override
+  Future<List<Order>> listMine(String sessionToken) async {
+    final json = await _client.get(
+      '/widget/orders/mine',
+      headers: {'X-Phone-Session': sessionToken},
+    );
+    final list = json['data'] as List<dynamic>? ?? const [];
+    return list
+        .map((o) => Order.fromJson(o as Map<String, dynamic>))
+        .toList();
+  }
 }

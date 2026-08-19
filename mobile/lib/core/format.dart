@@ -15,3 +15,14 @@ String formatRubles(double rubles) {
   final formattedInt = buffer.toString();
   return parts.length > 1 ? '$formattedInt,${parts[1]} ₽' : '$formattedInt ₽';
 }
+
+/// Дата в формате "5 авг" / "5 авг 2025" (год — только если не текущий).
+String formatShortDate(DateTime date) {
+  const months = [
+    'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+    'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+  ];
+  final month = months[date.month - 1];
+  final year = date.year == DateTime.now().year ? '' : ' ${date.year}';
+  return '${date.day} $month$year';
+}

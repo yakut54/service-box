@@ -18,6 +18,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use App\Http\Controllers\CustomerAddressController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
 use App\Http\Controllers\MaxController;
 use App\Http\Controllers\DeliverySettingsController;
@@ -91,6 +92,10 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
 
     // Orders (widget can create orders)
     Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:20,1');
+    // Must be registered before /orders/{order} below — otherwise "mine" is
+    // captured as the {order} wildcard instead of matching this route.
+    Route::get('/orders/mine', [OrderController::class, 'widgetOrdersMine'])
+        ->middleware('verify.phone.session');
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/payment', [PaymentController::class, 'createOrderPayment'])->middleware('throttle:10,1');
 
@@ -131,6 +136,9 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
         Route::post('/addresses', [CustomerAddressController::class, 'store']);
         Route::put('/addresses/{address}/default', [CustomerAddressController::class, 'setDefault']);
         Route::delete('/addresses/{address}', [CustomerAddressController::class, 'destroy']);
+
+        Route::get('/profile', [ProfileController::class, 'show']);
+        Route::put('/profile', [ProfileController::class, 'update']);
     });
 });
 

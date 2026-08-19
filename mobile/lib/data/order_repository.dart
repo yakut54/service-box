@@ -15,5 +15,10 @@ abstract class OrderRepository {
     String? discountCode,
   });
 
+  /// История заказов авторизованного байера (см. GET /widget/orders/mine,
+  /// защищён 60-дневной сессией — не путать с 30-минутным OTP-токеном,
+  /// который используется вебом).
+  Future<List<Order>> listMine(String sessionToken);
+
   factory OrderRepository.create() => ApiOrderRepository();
 }
