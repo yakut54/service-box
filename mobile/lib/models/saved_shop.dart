@@ -54,48 +54,43 @@ class SavedShop {
   final ShopTheme theme;
   final String? timezone;
 
+  /// Адрес самовывоза — только если шопер включил этот способ доставки
+  /// и заполнил адрес в настройках (delivery_settings.pickup). null —
+  /// самовывоз либо выключен, либо адрес не указан; в этом случае
+  /// на экране оформления просто не показываем строку с адресом.
+  final String? pickupAddress;
+
   const SavedShop({
     required this.appCode,
     required this.shopId,
     required this.name,
     required this.theme,
     this.timezone,
+    this.pickupAddress,
   });
 
-  /// Разбор ответа MockShopRepository — там api_key присутствует в теле
-  /// ответа, потому что мок повторяет старый (уже отменённый) контракт
-  /// "поиска магазина по коду". Настоящий бэкенд так не отвечает — см. fromWidgetShop.
-  factory SavedShop.fromApi(String appCode, Map<String, dynamic> json) {
-    final id = (json['api_key'] ?? json['shop_id']) as String?;
-    if (id == null || id.isEmpty) {
-      throw StateError('Мок-ответ не содержит api_key магазина');
-    }
-    final name = (json['name'] as String?)?.trim();
-    return SavedShop(
-      appCode: appCode,
-      shopId: id,
-      name: (name == null || name.isEmpty) ? 'Магазин' : name,
-      theme: ShopTheme.fromJson(json['widget_config'] as Map<String, dynamic>?),
-      timezone: json['timezone'] as String?,
-    );
-  }
-
-  /// Разбор настоящего ответа GET /widget/shop. В отличие от мока, здесь
-  /// нет api_key в теле ответа — X-Shop-ID уже известен из FlavorConfig
-  /// (им же авторизован сам этот запрос), поэтому shopId передаётся явно,
-  /// а не парсится из JSON.
+  /// Разбор настоящего ответа GET /widget/shop. Здесь нет api_key в теле
+  /// ответа — X-Shop-ID уже известен из FlavorConfig (им же авторизован
+  /// сам этот запрос), поэтому shopId передаётся явно, а не парсится из JSON.
   factory SavedShop.fromWidgetShop(
     String appCode,
     String shopId,
     Map<String, dynamic> json,
   ) {
     final name = (json['name'] as String?)?.trim();
+    final deliverySettings = json['delivery_settings'] as Map<String, dynamic>?;
+    final pickup = deliverySettings?['pickup'] as Map<String, dynamic>?;
+    final pickupAddress = (pickup?['address'] as String?)?.trim();
+
     return SavedShop(
       appCode: appCode,
       shopId: shopId,
       name: (name == null || name.isEmpty) ? 'Магазин' : name,
       theme: ShopTheme.fromJson(json['widget_config'] as Map<String, dynamic>?),
       timezone: json['timezone'] as String?,
+      pickupAddress: (pickupAddress != null && pickupAddress.isNotEmpty)
+          ? pickupAddress
+          : null,
     );
   }
 
@@ -105,6 +100,7 @@ class SavedShop {
     name: json['name'] as String,
     theme: ShopTheme.fromJson(json['theme'] as Map<String, dynamic>?),
     timezone: json['timezone'] as String?,
+    pickupAddress: json['pickup_address'] as String?,
   );
 
   Map<String, dynamic> toJson() => {
@@ -113,5 +109,6 @@ class SavedShop {
     'name': name,
     'theme': theme.toJson(),
     'timezone': timezone,
+    'pickup_address': pickupAddress,
   };
 }

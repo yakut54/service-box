@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../data/checkout_draft_store.dart';
 import '../data/order_repository.dart';
 import '../state/cart_state.dart';
+import '../state/shop_state.dart';
 import 'order_confirmation_screen.dart';
 import 'widgets/form/email_field.dart';
 import 'widgets/form/name_field.dart';
@@ -108,6 +109,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartState>();
+    final pickupAddress = context.watch<ShopState>().shop?.pickupAddress;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -141,6 +143,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              if (pickupAddress != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Забрать по адресу: $pickupAddress',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Text(
