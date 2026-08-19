@@ -22,7 +22,6 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late Future<Product> _future;
-  int _quantity = 1;
 
   @override
   void initState() {
@@ -59,11 +58,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             );
           }
 
-          return _ProductDetailBody(
-            product: snapshot.data!,
-            quantity: _quantity,
-            onQuantityChanged: (value) => setState(() => _quantity = value),
-          );
+          return _ProductDetailBody(product: snapshot.data!);
         },
       ),
     );
@@ -72,14 +67,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
 class _ProductDetailBody extends StatelessWidget {
   final Product product;
-  final int quantity;
-  final ValueChanged<int> onQuantityChanged;
 
-  const _ProductDetailBody({
-    required this.product,
-    required this.quantity,
-    required this.onQuantityChanged,
-  });
+  const _ProductDetailBody({required this.product});
 
   int? get _maxQuantity {
     final physical = product.physical;
@@ -93,6 +82,7 @@ class _ProductDetailBody extends StatelessWidget {
     final imageUrl = product.imageUrl;
     final maxQuantity = _maxQuantity;
     final inStock = product.inStock;
+    final inCartQuantity = context.watch<CartState>().quantityOf(product.id);
 
     return Column(
       children: [
@@ -161,34 +151,25 @@ class _ProductDetailBody extends StatelessWidget {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Row(
-              children: [
-                if (inStock) ...[
-                  _QuantityStepper(
-                    quantity: quantity,
-                    maxQuantity: maxQuantity,
-                    onChanged: onQuantityChanged,
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: FilledButton(
-                    onPressed: inStock
-                        ? () {
-                            context.read<CartState>().add(product, quantity);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Добавлено в корзину: $quantity шт.',
-                                ),
-                              ),
-                            );
-                          }
-                        : null,
-                    child: Text(inStock ? 'В корзину' : 'Нет в наличии'),
-                  ),
-                ),
-              ],
+            child: SizedBox(
+              width: double.infinity,
+              child: !inStock
+                  ? const FilledButton(
+                      onPressed: null,
+                      child: Text('Нет в наличии'),
+                    )
+                  : inCartQuantity == 0
+                  ? FilledButton.icon(
+                      onPressed: () =>
+                          context.read<CartState>().add(product, 1),
+                      icon: const Icon(Icons.add_shopping_cart_rounded),
+                      label: const Text('В корзину'),
+                    )
+                  : _InCartStepper(
+                      product: product,
+                      quantity: inCartQuantity,
+                      maxQuantity: maxQuantity,
+                    ),
             ),
           ),
         ),
@@ -249,43 +230,58 @@ class _CharacteristicsList extends StatelessWidget {
   }
 }
 
-class _QuantityStepper extends StatelessWidget {
+/// Заменяет кнопку «В корзину», как только в корзине уже есть этот товар —
+/// +/- сразу пишут в CartState, второй раз тапать «В корзину» не нужно.
+/// «−» на количестве 1 удаляет позицию (та же семантика, что и в корзине).
+class _InCartStepper extends StatelessWidget {
+  final Product product;
   final int quantity;
   final int? maxQuantity;
-  final ValueChanged<int> onChanged;
 
-  const _QuantityStepper({
+  const _InCartStepper({
+    required this.product,
     required this.quantity,
     required this.maxQuantity,
-    required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final canIncrease = maxQuantity == null || quantity < maxQuantity!;
 
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        color: theme.colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            onPressed: quantity > 1 ? () => onChanged(quantity - 1) : null,
-            icon: const Icon(Icons.remove_rounded),
+            onPressed: () =>
+                context.read<CartState>().setQuantity(product, quantity - 1),
+            icon: Icon(
+              quantity == 1
+                  ? Icons.delete_outline_rounded
+                  : Icons.remove_rounded,
+            ),
           ),
-          SizedBox(
-            width: 28,
+          Expanded(
             child: Text(
-              '$quantity',
+              'В корзине: $quantity шт.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           IconButton(
-            onPressed: canIncrease ? () => onChanged(quantity + 1) : null,
+            onPressed: canIncrease
+                ? () => context.read<CartState>().setQuantity(
+                    product,
+                    quantity + 1,
+                  )
+                : null,
             icon: const Icon(Icons.add_rounded),
           ),
         ],
