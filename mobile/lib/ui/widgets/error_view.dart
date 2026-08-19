@@ -24,6 +24,8 @@ class ErrorView extends StatelessWidget {
     switch (error.kind) {
       case AppErrorKind.shopNotFound:
         return Icons.storefront_outlined;
+      case AppErrorKind.notFound:
+        return Icons.search_off_rounded;
       case AppErrorKind.network:
       case AppErrorKind.server:
         return Icons.wifi_off_rounded;
@@ -51,8 +53,8 @@ class ErrorView extends StatelessWidget {
             error.hint!,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
         if (onRetry != null) ...[

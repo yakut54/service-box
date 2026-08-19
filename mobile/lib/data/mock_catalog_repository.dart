@@ -1,3 +1,4 @@
+import '../core/app_exception.dart';
 import '../models/category.dart';
 import '../models/product.dart';
 import 'catalog_repository.dart';
@@ -43,7 +44,10 @@ class MockCatalogRepository implements CatalogRepository {
   }
 
   @override
-  Future<List<Product>> fetchProducts({String? categoryId, String? search}) async {
+  Future<List<Product>> fetchProducts({
+    String? categoryId,
+    String? search,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     return _products.where((p) {
       if (categoryId != null && p.categoryId != categoryId) return false;
@@ -54,5 +58,14 @@ class MockCatalogRepository implements CatalogRepository {
       }
       return true;
     }).toList();
+  }
+
+  @override
+  Future<Product> fetchProduct(String id) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    for (final product in _products) {
+      if (product.id == id) return product;
+    }
+    throw AppException.notFound();
   }
 }

@@ -31,13 +31,13 @@ class ShopTheme {
   }
 
   Map<String, dynamic> toJson() => {
-        'primary_color': primaryColor,
-        'bg_color': bgColor,
-        'text_color': textColor,
-        'logo_url': logoUrl,
-        'preset': preset,
-        'border_radius': borderRadius,
-      };
+    'primary_color': primaryColor,
+    'bg_color': bgColor,
+    'text_color': textColor,
+    'logo_url': logoUrl,
+    'preset': preset,
+    'border_radius': borderRadius,
+  };
 }
 
 /// Магазин, зашитый в эту сборку приложения (один APK = один шопер).
@@ -84,7 +84,11 @@ class SavedShop {
   /// нет api_key в теле ответа — X-Shop-ID уже известен из FlavorConfig
   /// (им же авторизован сам этот запрос), поэтому shopId передаётся явно,
   /// а не парсится из JSON.
-  factory SavedShop.fromWidgetShop(String appCode, String shopId, Map<String, dynamic> json) {
+  factory SavedShop.fromWidgetShop(
+    String appCode,
+    String shopId,
+    Map<String, dynamic> json,
+  ) {
     final name = (json['name'] as String?)?.trim();
     return SavedShop(
       appCode: appCode,
@@ -96,18 +100,18 @@ class SavedShop {
   }
 
   factory SavedShop.fromJson(Map<String, dynamic> json) => SavedShop(
-        appCode: json['app_code'] as String,
-        shopId: json['shop_id'] as String,
-        name: json['name'] as String,
-        theme: ShopTheme.fromJson(json['theme'] as Map<String, dynamic>?),
-        timezone: json['timezone'] as String?,
-      );
+    appCode: json['app_code'] as String,
+    shopId: json['shop_id'] as String,
+    name: json['name'] as String,
+    theme: ShopTheme.fromJson(json['theme'] as Map<String, dynamic>?),
+    timezone: json['timezone'] as String?,
+  );
 
   Map<String, dynamic> toJson() => {
-        'app_code': appCode,
-        'shop_id': shopId,
-        'name': name,
-        'theme': theme.toJson(),
-        'timezone': timezone,
-      };
+    'app_code': appCode,
+    'shop_id': shopId,
+    'name': name,
+    'theme': theme.toJson(),
+    'timezone': timezone,
+  };
 }

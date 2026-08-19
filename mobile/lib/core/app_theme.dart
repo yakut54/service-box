@@ -24,7 +24,8 @@ Color? parseHexColor(String? hex) {
 /// из FlavorConfig (зашит на этапе сборки), чтобы не мигать нейтральной темой.
 ThemeData buildAppTheme(SavedShop? shop) {
   final theme = shop?.theme;
-  final seedColor = parseHexColor(theme?.primaryColor) ??
+  final seedColor =
+      parseHexColor(theme?.primaryColor) ??
       parseHexColor(FlavorConfig.shopPrimaryColor) ??
       const Color(0xFF2563EB);
   final isDark = theme?.preset == 'dark';
@@ -38,12 +39,16 @@ ThemeData buildAppTheme(SavedShop? shop) {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+        ),
         minimumSize: const Size.fromHeight(52),
       ),
     ),
     cardTheme: CardThemeData(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(radius)),

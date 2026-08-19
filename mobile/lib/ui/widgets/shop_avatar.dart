@@ -13,7 +13,8 @@ class ShopAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = parseHexColor(shop.theme.primaryColor) ??
+    final color =
+        parseHexColor(shop.theme.primaryColor) ??
         Theme.of(context).colorScheme.primary;
     final logoUrl = shop.theme.logoUrl;
 

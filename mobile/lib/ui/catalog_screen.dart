@@ -55,10 +55,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 prefixIcon: const Icon(Icons.search_rounded),
                 isDense: true,
               ),
-              onSubmitted: (value) => context.read<CatalogState>().search(value),
+              onSubmitted: (value) =>
+                  context.read<CatalogState>().search(value),
             ),
           ),
-          if (state.categories.isNotEmpty) _CategoryChips(categories: state.categories),
+          if (state.categories.isNotEmpty)
+            _CategoryChips(categories: state.categories),
           const SizedBox(height: 4),
           Expanded(child: _buildBody(context, state)),
         ],
@@ -106,7 +108,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
           childAspectRatio: 0.68,
         ),
         itemCount: state.products.length,
-        itemBuilder: (context, index) => ProductCard(product: state.products[index]),
+        itemBuilder: (context, index) =>
+            ProductCard(product: state.products[index]),
       ),
     );
   }
@@ -127,15 +130,21 @@ class _CategoryChips extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          _chip(context, label: 'Все', selected: state.selectedCategoryId == null, onTap: () {
-            context.read<CatalogState>().selectCategory(null);
-          }),
+          _chip(
+            context,
+            label: 'Все',
+            selected: state.selectedCategoryId == null,
+            onTap: () {
+              context.read<CatalogState>().selectCategory(null);
+            },
+          ),
           for (final category in categories)
             _chip(
               context,
               label: category.name,
               selected: state.selectedCategoryId == category.id,
-              onTap: () => context.read<CatalogState>().selectCategory(category.id),
+              onTap: () =>
+                  context.read<CatalogState>().selectCategory(category.id),
             ),
         ],
       ),

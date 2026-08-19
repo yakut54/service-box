@@ -15,13 +15,14 @@ class Category {
   });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        slug: json['slug'] as String,
-        sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
-        children: (json['children'] as List<dynamic>?)
-                ?.map((c) => Category.fromJson(c as Map<String, dynamic>))
-                .toList() ??
-            const [],
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    slug: json['slug'] as String,
+    sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
+    children:
+        (json['children'] as List<dynamic>?)
+            ?.map((c) => Category.fromJson(c as Map<String, dynamic>))
+            .toList() ??
+        const [],
+  );
 }

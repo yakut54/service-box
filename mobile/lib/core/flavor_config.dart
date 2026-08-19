@@ -21,18 +21,28 @@ class FlavorConfig {
   static const String shopApiKey = String.fromEnvironment('SHOP_API_KEY');
 
   /// Имя магазина для показа, пока не пришёл ответ сервера (или в мок-режиме).
-  static const String shopName = String.fromEnvironment('SHOP_NAME', defaultValue: 'Магазин');
+  static const String shopName = String.fromEnvironment(
+    'SHOP_NAME',
+    defaultValue: 'Магазин',
+  );
 
   /// HEX-цвет темы по умолчанию — до первой загрузки реального widget_config.
-  static const String shopPrimaryColor =
-      String.fromEnvironment('SHOP_PRIMARY_COLOR', defaultValue: '#2563EB');
+  static const String shopPrimaryColor = String.fromEnvironment(
+    'SHOP_PRIMARY_COLOR',
+    defaultValue: '#2563EB',
+  );
 
   /// Базовый адрес бэкенда.
-  static const String apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://yakut54.ru');
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://yakut54.ru',
+  );
 
   /// true — работаем на моковых данных (см. MockShopRepository).
   /// Бэкенд для мобилки ещё не поднят, поэтому дефолт — true, пока
   /// какой-то флейвор явно не передаст USE_MOCKS=false.
-  static const bool useMocks = bool.fromEnvironment('USE_MOCKS', defaultValue: true);
+  static const bool useMocks = bool.fromEnvironment(
+    'USE_MOCKS',
+    defaultValue: true,
+  );
 }

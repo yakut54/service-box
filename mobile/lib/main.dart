@@ -6,6 +6,7 @@ import 'core/flavor_config.dart';
 import 'data/catalog_repository.dart';
 import 'data/shop_cache.dart';
 import 'data/shop_repository.dart';
+import 'state/cart_state.dart';
 import 'state/catalog_state.dart';
 import 'state/shop_state.dart';
 import 'ui/catalog_screen.dart';
@@ -23,11 +24,13 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => ShopState(ShopRepository.create(), ShopCache())..load(),
+          create: (_) =>
+              ShopState(ShopRepository.create(), ShopCache())..load(),
         ),
         ChangeNotifierProvider(
           create: (_) => CatalogState(CatalogRepository.create())..load(),
         ),
+        ChangeNotifierProvider(create: (_) => CartState()),
       ],
       child: const _App(),
     );

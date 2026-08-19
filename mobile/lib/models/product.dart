@@ -20,7 +20,8 @@ class ProductPhysical {
   /// принимать заказы даже при нулевом остатке (allow_backorder).
   bool get inStock => stockQuantity > 0 || allowBackorder;
 
-  factory ProductPhysical.fromJson(Map<String, dynamic> json) => ProductPhysical(
+  factory ProductPhysical.fromJson(Map<String, dynamic> json) =>
+      ProductPhysical(
         sku: json['sku'] as String?,
         stockQuantity: (json['stock_quantity'] as num?)?.toInt() ?? 0,
         allowBackorder: json['allow_backorder'] as bool? ?? false,
@@ -60,14 +61,14 @@ class Product {
   bool get inStock => physical?.inStock ?? true;
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        description: json['description'] as String?,
-        priceKopecks: (json['price'] as num).toInt(),
-        imageUrl: json['image_url'] as String?,
-        categoryId: json['category_id'] as String?,
-        physical: json['physical'] != null
-            ? ProductPhysical.fromJson(json['physical'] as Map<String, dynamic>)
-            : null,
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    description: json['description'] as String?,
+    priceKopecks: (json['price'] as num).toInt(),
+    imageUrl: json['image_url'] as String?,
+    categoryId: json['category_id'] as String?,
+    physical: json['physical'] != null
+        ? ProductPhysical.fromJson(json['physical'] as Map<String, dynamic>)
+        : null,
+  );
 }

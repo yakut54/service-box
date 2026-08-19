@@ -2,6 +2,7 @@
 /// По этому значению UI решает, какую иконку и кнопку показать.
 enum AppErrorKind {
   shopNotFound,
+  notFound,
   network,
   server,
   badResponse,
@@ -18,32 +19,41 @@ class AppException implements Exception {
   const AppException(this.kind, this.message, {this.hint});
 
   factory AppException.shopNotFound() => const AppException(
-        AppErrorKind.shopNotFound,
-        'Магазин не найден',
-        hint: 'Сообщите об этом магазину — возможно, приложение настроено неправильно',
-      );
+    AppErrorKind.shopNotFound,
+    'Магазин не найден',
+    hint:
+        'Сообщите об этом магазину — возможно, приложение настроено неправильно',
+  );
+
+  /// Generic 404 из ApiClient — конкретный репозиторий сам решает, нужно ли
+  /// перевести это в более точную ошибку (см. ApiShopRepository.shopNotFound).
+  factory AppException.notFound() => const AppException(
+    AppErrorKind.notFound,
+    'Не найдено',
+    hint: 'Возможно, это больше не актуально',
+  );
 
   factory AppException.network() => const AppException(
-        AppErrorKind.network,
-        'Нет связи с сервером',
-        hint: 'Проверьте интернет-соединение и попробуйте ещё раз',
-      );
+    AppErrorKind.network,
+    'Нет связи с сервером',
+    hint: 'Проверьте интернет-соединение и попробуйте ещё раз',
+  );
 
   factory AppException.server() => const AppException(
-        AppErrorKind.server,
-        'Сервер магазина не отвечает',
-        hint: 'Попробуйте немного позже',
-      );
+    AppErrorKind.server,
+    'Сервер магазина не отвечает',
+    hint: 'Попробуйте немного позже',
+  );
 
   factory AppException.badResponse() => const AppException(
-        AppErrorKind.badResponse,
-        'Магазин настроен неправильно',
-        hint: 'Сообщите об этом магазину',
-      );
+    AppErrorKind.badResponse,
+    'Магазин настроен неправильно',
+    hint: 'Сообщите об этом магазину',
+  );
 
   factory AppException.unknown() => const AppException(
-        AppErrorKind.unknown,
-        'Что-то пошло не так',
-        hint: 'Попробуйте ещё раз',
-      );
+    AppErrorKind.unknown,
+    'Что-то пошло не так',
+    hint: 'Попробуйте ещё раз',
+  );
 }
