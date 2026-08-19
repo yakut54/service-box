@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
 import 'core/flavor_config.dart';
+import 'data/auth_token_store.dart';
 import 'data/catalog_repository.dart';
 import 'data/shop_cache.dart';
 import 'data/shop_repository.dart';
+import 'state/auth_state.dart';
 import 'state/cart_state.dart';
 import 'state/catalog_state.dart';
 import 'state/shop_state.dart';
@@ -31,6 +33,9 @@ class MyApp extends StatelessWidget {
           create: (_) => CatalogState(CatalogRepository.create())..load(),
         ),
         ChangeNotifierProvider(create: (_) => CartState()),
+        ChangeNotifierProvider(
+          create: (_) => AuthState(AuthTokenStore())..load(),
+        ),
       ],
       child: const _App(),
     );

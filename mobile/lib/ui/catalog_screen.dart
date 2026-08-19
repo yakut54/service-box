@@ -5,6 +5,7 @@ import '../models/category.dart';
 import '../models/saved_shop.dart';
 import '../state/cart_state.dart';
 import '../state/catalog_state.dart';
+import 'widgets/account_button.dart';
 import 'widgets/cart_button.dart';
 import 'widgets/error_view.dart';
 import 'widgets/mini_cart_bar.dart';
@@ -45,7 +46,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             Text(widget.shop.name),
           ],
         ),
-        actions: const [CartButton()],
+        actions: const [AccountButton(), CartButton()],
       ),
       body: Stack(
         children: [
