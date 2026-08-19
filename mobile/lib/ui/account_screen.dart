@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../state/auth_state.dart';
+import 'addresses_screen.dart';
 
-/// Минимальный экран «Вы вошли» — показывает номер и даёт выйти.
-/// Список сохранённых адресов — отдельный следующий шаг (М2.7).
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
 
@@ -39,6 +38,16 @@ class AccountScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.location_on_outlined),
+                title: const Text('Мои адреса'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AddressesScreen()),
+                ),
+              ),
+              const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () async {
                   await context.read<AuthState>().logout();

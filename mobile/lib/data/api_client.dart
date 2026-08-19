@@ -27,13 +27,50 @@ class ApiClient {
     'X-Shop-ID': FlavorConfig.shopApiKey,
   };
 
-  Future<Map<String, dynamic>> get(String path, {Map<String, String>? query}) {
-    return _send(() => http.get(_uri(path, query), headers: _headers));
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, String>? query,
+    Map<String, String>? headers,
+  }) {
+    return _send(
+      () => http.get(_uri(path, query), headers: {..._headers, ...?headers}),
+    );
   }
 
-  Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body) {
+  Future<Map<String, dynamic>> post(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String>? headers,
+  }) {
     return _send(
-      () => http.post(_uri(path), headers: _headers, body: jsonEncode(body)),
+      () => http.post(
+        _uri(path),
+        headers: {..._headers, ...?headers},
+        body: jsonEncode(body),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> put(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String>? headers,
+  }) {
+    return _send(
+      () => http.put(
+        _uri(path),
+        headers: {..._headers, ...?headers},
+        body: jsonEncode(body),
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Map<String, String>? headers,
+  }) {
+    return _send(
+      () => http.delete(_uri(path), headers: {..._headers, ...?headers}),
     );
   }
 

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../core/app_exception.dart';
 import '../data/auth_repository.dart';
 import '../state/auth_state.dart';
+import 'widgets/success_flash.dart';
 
 /// Второй шаг входа: ввод 4-значного кода из SMS. Автосабмит при вводе
 /// последней цифры, таймер повторной отправки — 30 сек (совпадает с лимитом
@@ -88,6 +89,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
       );
       if (!mounted) return;
       await context.read<AuthState>().setSession(session);
+      if (!mounted) return;
+      setState(() => _verifying = false);
+      await showSuccessFlash(context, message: 'Вход выполнен');
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
     } on AppException catch (e) {
