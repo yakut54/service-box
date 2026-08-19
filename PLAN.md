@@ -690,7 +690,7 @@ servicebox/
 | # | Что | Статус |
 |---|---|---|
 | МФ1 | Удалить онбординг/сканер/switcher (таблица выше); главный экран сразу открывает каталог | ✅ |
-| МФ2 | Flutter flavors: конфиг на слои (identity/brand/runtime) на флейвор — `applicationId`, имя, иконка, `api_key` магазина. Заведён `barbariska` (реальный тестовый магазин). Иконки — пока дефолтные, реальные добавляются в `android/app/src/<flavor>/res/mipmap-*/` когда будут. Моков нет ни в одной сборке — приложение всегда ходит на реальный бэкенд (убраны после подтверждения шагов A/B/C). См. `mobile/README.md` | ✅ |
+| МФ2 | Flutter flavors: конфиг на слои (identity/brand/runtime) на флейвор — `applicationId`, имя, иконка, `api_key` магазина. Заведён `barbariska` (реальный тестовый магазин). Иконка — реальная (2026-08-19): исходник `mobile/assets/icon/barbariska_app_icon.png`, генерируется `dart run flutter_launcher_icons` → раскладывается вручную по `android/app/src/barbariska/res/mipmap-*/` (не в `main/`, чтобы у следующего флейвора не было чужой иконки как дефолта). Моков нет ни в одной сборке — приложение всегда ходит на реальный бэкенд (убраны после подтверждения шагов A/B/C). См. `mobile/README.md` | ✅ |
 | МФ3 | Миграция: таблица `shop_features (shop_id, feature_key, enabled)` + запись в `pgsql-schema.sql` | 🔜 |
 | МФ4 | Бэкенд: middleware/хелпер проверки флага перед отдачей booking/digital-goods данных | 🔜 |
 | МФ5 | Мастер-админка: раздел с чекбоксами фич по каждому шоперу (CRUD над `shop_features`) | 🔜 |

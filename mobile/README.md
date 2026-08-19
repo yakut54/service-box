@@ -11,9 +11,14 @@
 1. **Identity** (Android Gradle, `android/app/build.gradle.kts`) —
    свой `applicationId`, чтобы APK разных шоперов ставились на телефон
    бок о бок. Имя приложения — в `android/app/src/<flavor>/res/values/strings.xml`.
-   Иконка — `android/app/src/<flavor>/res/mipmap-*/ic_launcher.png`
-   (сейчас везде дефолтная иконка Flutter — реальные иконки шоперов
-   добавляются сюда, когда будут готовы).
+   Иконка — `android/app/src/<flavor>/res/mipmap-*/ic_launcher.png`.
+   Генерируется из одного PNG через `flutter_launcher_icons`: положить
+   исходник в `assets/icon/`, указать его в `flutter_launcher_icons:`
+   (pubspec.yaml) → `dart run flutter_launcher_icons` → результат
+   появляется в `android/app/src/main/res/mipmap-*/` → руками скопировать
+   в `android/app/src/<flavor>/res/mipmap-*/` и вернуть `main/` обратно
+   (`git checkout`), чтобы у следующего флейвора не было чужой иконки
+   как дефолта.
 2. **Brand/runtime** (`mobile/flavors/<flavor>.json`) — код магазина,
    его `api_key`, имя, цвет темы по умолчанию, адрес бэкенда. Читается
    в Dart через `FlavorConfig` (`lib/core/flavor_config.dart`).

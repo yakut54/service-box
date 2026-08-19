@@ -56,6 +56,21 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  # Генерирует иконки приложения под все плотности экрана из одного PNG
+  # (см. flutter_launcher_icons: ниже) — используется разово через
+  # `dart run flutter_launcher_icons`, не нужен в рантайме.
+  flutter_launcher_icons: ^0.14.3
+
+# Источник для иконки флейвора barbariska — генерируется командой
+# `dart run flutter_launcher_icons` и вручную раскладывается по
+# android/app/src/barbariska/res/mipmap-*/ (см. mobile/README.md).
+# Когда появится следующий шопер — поменять image_path на его иконку
+# и повторить для его флейвора.
+flutter_launcher_icons:
+  image_path: "assets/icon/barbariska_app_icon.png"
+  android: "ic_launcher"
+  min_sdk_android: 21
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
