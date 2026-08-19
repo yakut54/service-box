@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../models/category.dart';
 import '../models/saved_shop.dart';
+import '../state/cart_state.dart';
 import '../state/catalog_state.dart';
 import 'widgets/cart_button.dart';
 import 'widgets/error_view.dart';
+import 'widgets/mini_cart_bar.dart';
 import 'widgets/product_card.dart';
 import 'widgets/shop_avatar.dart';
 
@@ -45,26 +47,31 @@ class _CatalogScreenState extends State<CatalogScreen> {
         ),
         actions: const [CartButton()],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Поиск по товарам',
-                prefixIcon: const Icon(Icons.search_rounded),
-                isDense: true,
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Поиск по товарам',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    isDense: true,
+                  ),
+                  onSubmitted: (value) =>
+                      context.read<CatalogState>().search(value),
+                ),
               ),
-              onSubmitted: (value) =>
-                  context.read<CatalogState>().search(value),
-            ),
+              if (state.categories.isNotEmpty)
+                _CategoryChips(categories: state.categories),
+              const SizedBox(height: 4),
+              Expanded(child: _buildBody(context, state)),
+            ],
           ),
-          if (state.categories.isNotEmpty)
-            _CategoryChips(categories: state.categories),
-          const SizedBox(height: 4),
-          Expanded(child: _buildBody(context, state)),
+          const Positioned(left: 0, right: 0, bottom: 0, child: MiniCartBar()),
         ],
       ),
     );
@@ -99,10 +106,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
       );
     }
 
+    final cartHasItems = context.watch<CartState>().itemCount > 0;
+
     return RefreshIndicator(
       onRefresh: () => context.read<CatalogState>().load(),
       child: GridView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.fromLTRB(
+          12,
+          12,
+          12,
+          cartHasItems ? miniCartBarReservedHeight : 12,
+        ),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
