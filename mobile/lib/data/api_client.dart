@@ -53,7 +53,12 @@ class ApiClient {
 
     if (response.statusCode == 404) throw AppException.notFound();
     if (response.statusCode >= 500) throw AppException.server();
-    if (response.statusCode >= 400) throw AppException.badResponse();
+    if (response.statusCode >= 400) {
+      // Бэкенд часто кладёт конкретный текст на русском в 'message'
+      // (например "Товар «X» закончился на складе") — показываем его
+      // как есть вместо общего "магазин настроен неправильно".
+      throw AppException.badResponse(_tryExtractMessage(response));
+    }
 
     if (response.body.isEmpty) return {};
     try {
@@ -62,5 +67,19 @@ class ApiClient {
     } catch (_) {
       throw AppException.badResponse();
     }
+  }
+
+  String? _tryExtractMessage(http.Response response) {
+    if (response.body.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      if (decoded is Map<String, dynamic>) {
+        final message = decoded['message'];
+        if (message is String && message.isNotEmpty) return message;
+      }
+    } catch (_) {
+      // тело не JSON — просто нет уточняющего текста
+    }
+    return null;
   }
 }

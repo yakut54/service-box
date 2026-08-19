@@ -43,4 +43,11 @@ class CartState extends ChangeNotifier {
     _items.remove(productId);
     notifyListeners();
   }
+
+  /// Вызывается после успешного оформления заказа — товар куплен,
+  /// в корзине его больше быть не должно.
+  void clear() {
+    _items.clear();
+    notifyListeners();
+  }
 }

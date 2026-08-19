@@ -1,0 +1,32 @@
+import '../core/app_exception.dart';
+import '../models/cart_item.dart';
+import '../models/order.dart';
+import 'api_client.dart';
+import 'order_repository.dart';
+
+class ApiOrderRepository implements OrderRepository {
+  final ApiClient _client = ApiClient();
+
+  @override
+  Future<Order> createOrder({
+    required String name,
+    required String email,
+    required String phone,
+    required List<CartItem> items,
+  }) async {
+    final json = await _client.post('/widget/orders', {
+      'items': items
+          .map(
+            (item) => {
+              'product_id': item.product.id,
+              'quantity': item.quantity,
+            },
+          )
+          .toList(),
+      'customer': {'name': name, 'email': email, 'phone': phone},
+    });
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return Order.fromJson(data);
+  }
+}

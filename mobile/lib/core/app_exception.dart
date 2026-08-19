@@ -45,10 +45,12 @@ class AppException implements Exception {
     hint: 'Попробуйте немного позже',
   );
 
-  factory AppException.badResponse() => const AppException(
+  /// [message] — если сервер прислал конкретный текст ошибки (см.
+  /// ApiClient._tryExtractMessage), показываем его вместо общей фразы.
+  factory AppException.badResponse([String? message]) => AppException(
     AppErrorKind.badResponse,
-    'Магазин настроен неправильно',
-    hint: 'Сообщите об этом магазину',
+    message ?? 'Магазин настроен неправильно',
+    hint: message == null ? 'Сообщите об этом магазину' : null,
   );
 
   factory AppException.unknown() => const AppException(

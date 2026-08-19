@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/format.dart';
 import '../models/cart_item.dart';
 import '../state/cart_state.dart';
+import 'checkout_screen.dart';
 
 /// Корзина: список добавленных позиций, изменение количества, сумма.
 /// «−» на количестве 1 удаляет позицию целиком (см. _CartQuantityStepper).
@@ -79,15 +80,29 @@ class _CartBody extends StatelessWidget {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Row(
+            child: Column(
               children: [
-                Text('Итого', style: theme.textTheme.titleMedium),
-                const Spacer(),
-                Text(
-                  formatRubles(cart.totalRubles),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Text('Итого', style: theme.textTheme.titleMedium),
+                    const Spacer(),
+                    Text(
+                      formatRubles(cart.totalRubles),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+                    ),
+                    child: const Text('Оформить заказ'),
                   ),
                 ),
               ],
