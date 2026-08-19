@@ -1,13 +1,10 @@
-/// Виды ошибок, которые могут случиться при поиске магазина.
-/// По этому значению UI решает, какую кнопку показать (повторить/ввести код вручную).
+/// Виды ошибок, которые могут случиться при загрузке магазина этой сборки.
+/// По этому значению UI решает, какую иконку и кнопку показать.
 enum AppErrorKind {
-  invalidCode,
   shopNotFound,
   network,
   server,
   badResponse,
-  cameraPermission,
-  cameraUnavailable,
   unknown,
 }
 
@@ -20,16 +17,10 @@ class AppException implements Exception {
 
   const AppException(this.kind, this.message, {this.hint});
 
-  factory AppException.invalidCode() => const AppException(
-        AppErrorKind.invalidCode,
-        'Не похоже на код магазина',
-        hint: 'Код состоит из букв и цифр, например FRUIT7',
-      );
-
   factory AppException.shopNotFound() => const AppException(
         AppErrorKind.shopNotFound,
-        'Магазин с таким кодом не найден',
-        hint: 'Проверьте код или попросите у магазина новый QR-код',
+        'Магазин не найден',
+        hint: 'Сообщите об этом магазину — возможно, приложение настроено неправильно',
       );
 
   factory AppException.network() => const AppException(
@@ -48,18 +39,6 @@ class AppException implements Exception {
         AppErrorKind.badResponse,
         'Магазин настроен неправильно',
         hint: 'Сообщите об этом магазину',
-      );
-
-  factory AppException.cameraPermission() => const AppException(
-        AppErrorKind.cameraPermission,
-        'Нужен доступ к камере, чтобы сканировать QR-код',
-        hint: 'Разрешите доступ в настройках телефона',
-      );
-
-  factory AppException.cameraUnavailable() => const AppException(
-        AppErrorKind.cameraUnavailable,
-        'Камера недоступна на этом устройстве',
-        hint: 'Введите код магазина вручную',
       );
 
   factory AppException.unknown() => const AppException(

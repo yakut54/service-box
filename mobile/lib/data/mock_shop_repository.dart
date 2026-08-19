@@ -10,6 +10,19 @@ import 'shop_repository.dart';
 /// должен отдавать данные в такой же форме.
 class MockShopRepository implements ShopRepository {
   static final Map<String, Map<String, dynamic>> _shops = {
+    // Реальный тестовый магазин (см. shop_xdirmgfxyd7u) — используется
+    // флейвором barbariska, пока GET /app/{code} на бэкенде не поднят.
+    'BARBARISKA': {
+      'app_code': 'BARBARISKA',
+      'api_key': '57c4cd24-923e-4362-9e13-0e1c7d2c4c14',
+      'name': 'Барбариска',
+      'widget_config': {
+        'preset': 'light',
+        'primary_color': '#16A34A',
+        'border_radius': 12,
+      },
+      'timezone': 'Asia/Novosibirsk',
+    },
     'FRUIT7': {
       'app_code': 'FRUIT7',
       'api_key': '11111111-1111-4111-8111-111111111111',

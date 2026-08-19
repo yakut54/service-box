@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/saved_shop.dart';
-import 'config.dart';
+import 'flavor_config.dart';
 
 /// Разбирает HEX-цвет в форматах '#16A34A', '16A34A', '#0F0' (короткая запись).
 /// На любой мусор возвращает null — тогда используется цвет по умолчанию.
@@ -19,12 +19,14 @@ Color? parseHexColor(String? hex) {
   return parsed == null ? null : Color(parsed);
 }
 
-/// Строит тему приложения по цвету активного магазина.
-/// Если магазин ещё не выбран (экран онбординга) — используется
-/// нейтральный цвет по умолчанию.
+/// Строит тему приложения по цвету магазина этой сборки.
+/// Пока магазин ещё не загрузился — используется его цвет по умолчанию
+/// из FlavorConfig (зашит на этапе сборки), чтобы не мигать нейтральной темой.
 ThemeData buildAppTheme(SavedShop? shop) {
   final theme = shop?.theme;
-  final seedColor = parseHexColor(theme?.primaryColor) ?? const Color(AppConfig.defaultColor);
+  final seedColor = parseHexColor(theme?.primaryColor) ??
+      parseHexColor(FlavorConfig.shopPrimaryColor) ??
+      const Color(0xFF2563EB);
   final isDark = theme?.preset == 'dark';
   final radius = (theme?.borderRadius ?? 8).toDouble();
 

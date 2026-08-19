@@ -3,14 +3,9 @@
          сходить ни в один запрос (в debug/profile сборках доступ есть по умолчанию,
          поэтому проблема проявляется только в реальном APK). -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Камера нужна для сканера QR-кода магазина. -->
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <!-- Приложение можно ставить и на телефон без камеры — код магазина
-         тогда вводится вручную. -->
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
     <application
-        android:label="ServiceBox"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

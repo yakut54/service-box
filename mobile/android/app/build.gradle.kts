@@ -20,14 +20,30 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.mobile"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // Базовый applicationId — реально не используется: каждый флейвор
+        // ниже полностью переопределяет свой, чтобы APK разных шоперов
+        // ставились на телефон бок о бок, не затирая друг друга.
+        applicationId = "ru.yakut54.servicebox"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // Один флейвор = один шопер (см. PLAN.md, МФ2). У каждого свой
+    // applicationId и имя (res/values/strings.xml в src/<flavor>/), а код
+    // магазина/api_key/цвет передаются отдельно через
+    // --dart-define-from-file=flavors/<flavor>.json — см. mobile/README.md.
+    flavorDimensions += "shop"
+    productFlavors {
+        create("barbariska") {
+            dimension = "shop"
+            applicationId = "ru.yakut54.servicebox.barbariska"
+        }
+        create("demo") {
+            dimension = "shop"
+            applicationId = "ru.yakut54.servicebox.demo"
+        }
     }
 
     buildTypes {

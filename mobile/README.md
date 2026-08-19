@@ -1,16 +1,44 @@
-# mobile
+# ServiceBox Mobile
 
-A new Flutter project.
+Один APK = один шопер. Приложение с рождения знает, чей оно — байер ничего
+не выбирает и не сканирует. Какой именно магазин зашивается в сборку,
+определяет **flavor** (флейвор), см. `PLAN.md` → «Флот Шоперов».
 
-## Getting Started
+## Флейворы
 
-This project is a starting point for a Flutter application.
+Каждый флейвор — это связка:
 
-A few resources to get you started if this is your first Flutter project:
+1. **Identity** (Android Gradle, `android/app/build.gradle.kts`) —
+   свой `applicationId`, чтобы APK разных шоперов ставились на телефон
+   бок о бок. Имя приложения — в `android/app/src/<flavor>/res/values/strings.xml`.
+   Иконка — `android/app/src/<flavor>/res/mipmap-*/ic_launcher.png`
+   (сейчас везде дефолтная иконка Flutter — реальные иконки шоперов
+   добавляются сюда, когда будут готовы).
+2. **Brand/runtime** (`mobile/flavors/<flavor>.json`) — код магазина,
+   его `api_key`, имя, цвет темы по умолчанию, адрес бэкенда, включены
+   ли моки. Читается в Dart через `FlavorConfig` (`lib/core/flavor_config.dart`).
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Сейчас заведено два флейвора:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **barbariska** — реальный тестовый магазин (`shop_xdirmgfxyd7u`)
+- **demo** — магазин на моках для локальной разработки без завязки на бэкенд
+
+## Запуск
+
+```bash
+flutter run --flavor demo --dart-define-from-file=flavors/demo.json
+flutter run --flavor barbariska --dart-define-from-file=flavors/barbariska.json
+```
+
+## Сборка APK
+
+```bash
+flutter build apk --flavor barbariska --dart-define-from-file=flavors/barbariska.json
+```
+
+## Новый шопер — что заводить
+
+1. `android/app/build.gradle.kts` → новый `create("shop_code")` во `productFlavors` со своим `applicationId`
+2. `android/app/src/<shop_code>/res/values/strings.xml` → имя приложения
+3. `android/app/src/<shop_code>/res/mipmap-*/ic_launcher.png` → иконка (когда будет)
+4. `mobile/flavors/<shop_code>.json` → `SHOP_CODE`, `SHOP_API_KEY` (из `shops.api_key`), `SHOP_NAME`, `SHOP_PRIMARY_COLOR`
