@@ -40,9 +40,9 @@ class ShopTheme {
       };
 }
 
-/// Один магазин, сохранённый в телефоне байера.
+/// Магазин, зашитый в эту сборку приложения (один APK = один шопер).
 class SavedShop {
-  /// Короткий код из QR/ссылки, например 'FRUIT7'.
+  /// Код магазина, зашитый на этапе сборки (см. FlavorConfig.shopCode).
   final String appCode;
 
   /// shops.api_key на бэкенде — именно это значение уходит в заголовок
@@ -54,28 +54,21 @@ class SavedShop {
   final ShopTheme theme;
   final String? timezone;
 
-  /// Когда магазин впервые добавлен — для сортировки списка.
-  final DateTime addedAt;
-
-  /// Когда магазин последний раз открывали — активный магазин показываем сверху.
-  final DateTime? lastOpenedAt;
-
   const SavedShop({
     required this.appCode,
     required this.shopId,
     required this.name,
     required this.theme,
-    required this.addedAt,
     this.timezone,
-    this.lastOpenedAt,
   });
 
-  /// Разбор ответа GET /app/{code} (сейчас — мокового, потом — настоящего).
+  /// Разбор ответа MockShopRepository — там api_key присутствует в теле
+  /// ответа, потому что мок повторяет старый (уже отменённый) контракт
+  /// "поиска магазина по коду". Настоящий бэкенд так не отвечает — см. fromWidgetShop.
   factory SavedShop.fromApi(String appCode, Map<String, dynamic> json) {
-    // Важно: X-Shop-ID это shops.api_key, а не shops.id — эти поля разные.
     final id = (json['api_key'] ?? json['shop_id']) as String?;
     if (id == null || id.isEmpty) {
-      throw StateError('Ответ сервера не содержит api_key магазина');
+      throw StateError('Мок-ответ не содержит api_key магазина');
     }
     final name = (json['name'] as String?)?.trim();
     return SavedShop(
@@ -84,7 +77,21 @@ class SavedShop {
       name: (name == null || name.isEmpty) ? 'Магазин' : name,
       theme: ShopTheme.fromJson(json['widget_config'] as Map<String, dynamic>?),
       timezone: json['timezone'] as String?,
-      addedAt: DateTime.now(),
+    );
+  }
+
+  /// Разбор настоящего ответа GET /widget/shop. В отличие от мока, здесь
+  /// нет api_key в теле ответа — X-Shop-ID уже известен из FlavorConfig
+  /// (им же авторизован сам этот запрос), поэтому shopId передаётся явно,
+  /// а не парсится из JSON.
+  factory SavedShop.fromWidgetShop(String appCode, String shopId, Map<String, dynamic> json) {
+    final name = (json['name'] as String?)?.trim();
+    return SavedShop(
+      appCode: appCode,
+      shopId: shopId,
+      name: (name == null || name.isEmpty) ? 'Магазин' : name,
+      theme: ShopTheme.fromJson(json['widget_config'] as Map<String, dynamic>?),
+      timezone: json['timezone'] as String?,
     );
   }
 
@@ -94,10 +101,6 @@ class SavedShop {
         name: json['name'] as String,
         theme: ShopTheme.fromJson(json['theme'] as Map<String, dynamic>?),
         timezone: json['timezone'] as String?,
-        addedAt: DateTime.tryParse(json['added_at'] as String? ?? '') ?? DateTime.now(),
-        lastOpenedAt: json['last_opened_at'] != null
-            ? DateTime.tryParse(json['last_opened_at'] as String)
-            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -106,17 +109,5 @@ class SavedShop {
         'name': name,
         'theme': theme.toJson(),
         'timezone': timezone,
-        'added_at': addedAt.toIso8601String(),
-        'last_opened_at': lastOpenedAt?.toIso8601String(),
       };
-
-  SavedShop copyWith({DateTime? addedAt, DateTime? lastOpenedAt}) => SavedShop(
-        appCode: appCode,
-        shopId: shopId,
-        name: name,
-        theme: theme,
-        timezone: timezone,
-        addedAt: addedAt ?? this.addedAt,
-        lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
-      );
 }

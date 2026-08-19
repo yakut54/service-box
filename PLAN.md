@@ -675,20 +675,22 @@ servicebox/
 
 | Файл | Судьба |
 |---|---|
-| `mobile/lib/ui/onboarding_screen.dart` | ❌ удалить — магазин не выбирается в рантайме |
-| `mobile/lib/ui/scanner_screen.dart` | ❌ удалить — сканер QR был нужен только для выбора магазина |
-| `mobile/lib/ui/widgets/shop_switcher_sheet.dart` | ❌ удалить — один APK = один магазин, переключать нечего |
-| `mobile/lib/state/shops_state.dart` | ❌ удалить/сильно упростить — списка из нескольких магазинов больше нет |
-| `mobile/lib/core/shop_code.dart` | ⚠️ возможно пригодится валидация кода на этапе конфигурации flavor'а |
-| `mobile/lib/data/mock_shop_repository.dart`, `shop_repository.dart` | ✅ остаются как основа под реальный API-клиент |
-| `mobile/lib/core/app_theme.dart` | ✅ остаётся без изменений — тема по-прежнему из конфига магазина |
+| `mobile/lib/ui/onboarding_screen.dart` | ✅ удалён — магазин не выбирается в рантайме |
+| `mobile/lib/ui/scanner_screen.dart` | ✅ удалён (вместе с зависимостью `mobile_scanner` из `pubspec.yaml`) |
+| `mobile/lib/ui/widgets/shop_switcher_sheet.dart` | ✅ удалён — один APK = один магазин, переключать нечего |
+| `mobile/lib/state/shops_state.dart` | ✅ заменён на `mobile/lib/state/shop_state.dart` — один магазин вместо списка |
+| `mobile/lib/data/shops_storage.dart` | ✅ заменён на `mobile/lib/data/shop_cache.dart` — кэш одного магазина, не списка |
+| `mobile/lib/core/shop_code.dart` | ✅ удалён — код магазина больше не вводится и не сканируется, зашит в flavor |
+| `mobile/lib/core/config.dart` | ✅ удалён — слился с `mobile/lib/core/flavor_config.dart` |
+| `mobile/lib/data/mock_shop_repository.dart`, `shop_repository.dart` | ✅ остались как основа под реальный API-клиент (добавлен код `BARBARISKA`) |
+| `mobile/lib/core/app_theme.dart` | ✅ читает цвет по умолчанию из `FlavorConfig` вместо удалённого `AppConfig` |
 
 ### МФ — Флот: сборка и дистрибуция
 
 | # | Что | Статус |
 |---|---|---|
-| МФ1 | Удалить онбординг/сканер/switcher (таблица выше); главный экран сразу открывает каталог | 🔜 |
-| МФ2 | Flutter flavors: конфиг на слои (identity/brand/features/runtime) на флейвор — `applicationId`, имя, иконка, `api_key` магазина | 🔜 |
+| МФ1 | Удалить онбординг/сканер/switcher (таблица выше); главный экран сразу открывает каталог | ✅ |
+| МФ2 | Flutter flavors: конфиг на слои (identity/brand/runtime) на флейвор — `applicationId`, имя, иконка, `api_key` магазина. Заведены `barbariska` (реальный тестовый магазин) и `demo` (на моках). Иконки — пока дефолтные, реальные добавляются в `android/app/src/<flavor>/res/mipmap-*/` когда будут. См. `mobile/README.md` | ✅ |
 | МФ3 | Миграция: таблица `shop_features (shop_id, feature_key, enabled)` + запись в `pgsql-schema.sql` | 🔜 |
 | МФ4 | Бэкенд: middleware/хелпер проверки флага перед отдачей booking/digital-goods данных | 🔜 |
 | МФ5 | Мастер-админка: раздел с чекбоксами фич по каждому шоперу (CRUD над `shop_features`) | 🔜 |
@@ -857,9 +859,11 @@ servicebox/
 
 ### Порядок реализации (рекомендую)
 
-1. **МФ1+МФ2** Выбросить онбординг/сканер/switcher, поднять flavors — Flutter-код готов под «один APK = один шопер»
+1. **МФ1+МФ2** ✅ Выбросить онбординг/сканер/switcher, поднять flavors — Flutter-код готов под «один APK = один шопер»
 2. **МФ3+МФ4** Таблица `shop_features` + проверка флага на бэкенде — фундамент entitlements
 3. **Каталог + корзина + checkout без доставки** (виджет API, физ-товары) — на первом флейворе
+   - Шаг A ✅ — `ApiClient` (X-Shop-ID из зашитого api_key) + `ApiShopRepository` (GET /widget/shop). Проверено живьём на эмуляторе против реального сервера — смена цвета в БД (`primary_color`) сразу отражается в приложении после перезапуска
+   - Шаг B 🔜 — каталог: категории + список товаров
 4. **МФ5+МФ6+МФ7** RuStore + CI/CD — довести первый флейвор до реального шопера
 5. **М1** Галерея фото — небольшая, даёт мгновенный wow-эффект в приложении
 6. **М2+М3** Адреса + профиль — нужны для нормального UX checkout
