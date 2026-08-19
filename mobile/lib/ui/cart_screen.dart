@@ -2,14 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/format.dart';
+import '../data/discount_repository.dart';
 import '../models/cart_item.dart';
 import '../state/cart_state.dart';
 import 'checkout_screen.dart';
+import 'widgets/promo_code_field.dart';
 
-/// Корзина: список добавленных позиций, изменение количества, сумма.
+/// Корзина: список добавленных позиций, изменение количества, промокод, сумма.
 /// «−» на количестве 1 удаляет позицию целиком (см. _CartQuantityStepper).
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Автоскидка (без промокода) проверяется при каждом открытии корзины —
+    // не перетирает вручную введённый промокод (см. _checkAutoDiscount).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAutoDiscount());
+  }
+
+  Future<void> _checkAutoDiscount() async {
+    if (!mounted) return;
+    final cart = context.read<CartState>();
+    if (cart.discount != null || cart.items.isEmpty) return;
+
+    try {
+      final found = await DiscountRepository.create().autoApply(
+        cart.totalKopecks,
+      );
+      if (found != null && mounted) {
+        context.read<CartState>().setDiscount(found);
+      }
+    } catch (_) {
+      // автоскидка — необязательное удобство, тихо игнорируем сбой
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,16 +96,21 @@ class _CartBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final discount = cart.discount;
 
     return Column(
       children: [
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.all(12),
-            itemCount: cart.items.length,
+            itemCount: cart.items.length + 1,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) =>
-                _CartLineTile(item: cart.items[index]),
+            itemBuilder: (context, index) {
+              if (index == cart.items.length) {
+                return const PromoCodeField();
+              }
+              return _CartLineTile(item: cart.items[index]);
+            },
           ),
         ),
         SafeArea(
@@ -82,12 +119,43 @@ class _CartBody extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Column(
               children: [
+                if (discount != null) ...[
+                  Row(
+                    children: [
+                      Text('Товары', style: theme.textTheme.bodyMedium),
+                      const Spacer(),
+                      Text(
+                        formatRubles(cart.totalRubles),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        discount.name,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '−${formatRubles(discount.amountRubles)}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 Row(
                   children: [
                     Text('Итого', style: theme.textTheme.titleMedium),
                     const Spacer(),
                     Text(
-                      formatRubles(cart.totalRubles),
+                      formatRubles(cart.totalAfterDiscountRubles),
                       style: theme.textTheme.titleLarge?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.bold,

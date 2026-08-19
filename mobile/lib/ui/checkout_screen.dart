@@ -89,6 +89,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
         items: cart.items,
+        discountCode: cart.discount?.code,
       );
       cart.clear();
       await _draftStore.clear();
@@ -137,6 +138,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              if (cart.discount != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '${cart.discount!.name}: −${formatRubles(cart.discount!.amountRubles)}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'К оплате: ${formatRubles(cart.totalAfterDiscountRubles)}',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ],
               const SizedBox(height: 4),
               Text(
                 'Самовывоз',

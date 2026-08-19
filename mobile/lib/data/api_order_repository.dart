@@ -13,6 +13,7 @@ class ApiOrderRepository implements OrderRepository {
     required String email,
     required String phone,
     required List<CartItem> items,
+    String? discountCode,
   }) async {
     final json = await _client.post('/widget/orders', {
       'items': items
@@ -24,6 +25,8 @@ class ApiOrderRepository implements OrderRepository {
           )
           .toList(),
       'customer': {'name': name, 'email': email, 'phone': phone},
+      if (discountCode != null && discountCode.isNotEmpty)
+        'discount_code': discountCode,
     });
     final data = json['data'] as Map<String, dynamic>?;
     if (data == null) throw AppException.badResponse();

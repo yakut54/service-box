@@ -12,6 +12,7 @@ abstract class OrderRepository {
     required String email,
     required String phone,
     required List<CartItem> items,
+    String? discountCode,
   });
 
   factory OrderRepository.create() => ApiOrderRepository();
