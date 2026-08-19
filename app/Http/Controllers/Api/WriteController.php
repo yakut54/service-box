@@ -32,7 +32,7 @@ class WriteController extends Controller
         $service = Product::with('service')->findOrFail($request->service_id);
 
         if ($service->type !== 'service') {
-            return response()->json(['error' => 'This product is not a service'], 400);
+            return response()->json(['error' => 'Этот товар не является услугой'], 400);
         }
 
         $startTime     = Carbon::parse($request->start_time)->utc();
@@ -53,7 +53,7 @@ class WriteController extends Controller
 
                     if (!$conflict) { $masterId = $master->id; break; }
                 }
-                if (!$masterId) { abort(409, 'No available masters for this time slot'); }
+                if (!$masterId) { abort(409, 'Нет свободных мастеров на это время'); }
             } else {
                 Master::findOrFail($masterId);
                 $conflict = Booking::whereNotIn('status', ['cancelled', 'no_show'])
@@ -61,7 +61,7 @@ class WriteController extends Controller
                     ->where('start_time', '<', $endTime)
                     ->where('end_time', '>', $startTime)
                     ->lockForUpdate()->exists();
-                if ($conflict) { abort(409, 'This time slot is already taken'); }
+                if ($conflict) { abort(409, 'Это время уже занято'); }
             }
 
             $customer = Customer::findOrCreateByPhone($customerPhone, [
@@ -95,7 +95,7 @@ class WriteController extends Controller
             try { \App\Services\MaxService::notifyNewBooking($shop, $booking); } catch (\Throwable) {}
         }
 
-        return response()->json(['message' => 'Booking created successfully', 'data' => $booking], 201);
+        return response()->json(['message' => 'Запись создана', 'data' => $booking], 201);
     }
 
     public function updateBookingStatus(Request $request, string $id): JsonResponse
@@ -109,8 +109,8 @@ class WriteController extends Controller
 
         if (!isset($allowed[$booking->status]) || !in_array($newStatus, $allowed[$booking->status])) {
             return response()->json([
-                'error'   => 'Invalid status transition',
-                'message' => "Cannot change '{$booking->status}' → '{$newStatus}'. Allowed: pending→confirmed, confirmed→completed",
+                'error'   => 'Недопустимый переход статуса',
+                'message' => "Нельзя изменить статус с «{$booking->status}» на «{$newStatus}». Разрешено: pending→confirmed, confirmed→completed",
             ], 422);
         }
 
@@ -123,7 +123,7 @@ class WriteController extends Controller
             try { \App\Services\MaxService::notifyCustomerStatus($booking->id, $newStatus, $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
         }
 
-        return response()->json(['message' => "Booking status updated to {$newStatus}", 'data' => $booking]);
+        return response()->json(['message' => "Статус записи изменён на {$newStatus}", 'data' => $booking]);
     }
 
     public function cancelBooking(string $id): JsonResponse
@@ -132,8 +132,8 @@ class WriteController extends Controller
 
         if (!in_array($booking->status, ['pending', 'confirmed'])) {
             return response()->json([
-                'error'   => 'Cannot cancel this booking',
-                'message' => 'Only pending or confirmed bookings can be cancelled (current: ' . $booking->status . ')',
+                'error'   => 'Эту запись нельзя отменить',
+                'message' => 'Отменить можно только запись со статусом «ожидает» или «подтверждена» (сейчас: ' . $booking->status . ')',
             ], 422);
         }
 
@@ -146,7 +146,7 @@ class WriteController extends Controller
             try { \App\Services\MaxService::notifyCustomerStatus($booking->id, 'cancelled', $booking, $shop->timezone ?? 'Europe/Moscow'); } catch (\Throwable) {}
         }
 
-        return response()->json(['message' => 'Booking cancelled', 'data' => $booking]);
+        return response()->json(['message' => 'Запись отменена', 'data' => $booking]);
     }
 
     // ── Orders ───────────────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ class WriteController extends Controller
                     ->whereMonth('created_at', now()->month)
                     ->count();
                 if ($count >= $limits['max_orders_per_month']) {
-                    return response()->json(['error' => 'Monthly order limit reached'], 403);
+                    return response()->json(['error' => 'Достигнут месячный лимит заказов'], 403);
                 }
             }
         }
@@ -231,7 +231,7 @@ class WriteController extends Controller
                 $promoDiscount = $result['discount'];
                 $promoAmount   = $result['amount'];
             } catch (\Illuminate\Validation\ValidationException $e) {
-                return response()->json(['error' => $e->errors()['discount_code'][0] ?? 'Invalid discount code', 'errors' => $e->errors()], 422);
+                return response()->json(['error' => $e->errors()['discount_code'][0] ?? 'Недействительный промокод', 'errors' => $e->errors()], 422);
             }
         }
 
@@ -270,7 +270,7 @@ class WriteController extends Controller
             try { \App\Services\MaxService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
         }
 
-        return response()->json(['message' => 'Order created successfully', 'data' => $order], 201);
+        return response()->json(['message' => 'Заказ создан', 'data' => $order], 201);
     }
 
     public function updateOrderStatus(Request $request, string $id): JsonResponse
@@ -293,7 +293,7 @@ class WriteController extends Controller
 
         $order->load(['items', 'customer']);
 
-        return response()->json(['message' => "Order status updated to {$newStatus}", 'data' => $order]);
+        return response()->json(['message' => "Статус заказа изменён на {$newStatus}", 'data' => $order]);
     }
 
     // ── Masters ──────────────────────────────────────────────────────────────
@@ -304,7 +304,7 @@ class WriteController extends Controller
         if ($shop) {
             $limits = $shop->getPlanLimits();
             if ($limits['max_masters'] !== null && Master::count() >= $limits['max_masters']) {
-                return response()->json(['error' => 'Masters limit reached for your plan'], 403);
+                return response()->json(['error' => 'Достигнут лимит мастеров для вашего тарифа'], 403);
             }
         }
 
@@ -321,7 +321,7 @@ class WriteController extends Controller
         $master = Master::create($data);
         $master->load('services:id,name');
 
-        return response()->json(['message' => 'Master created', 'data' => $master], 201);
+        return response()->json(['message' => 'Мастер добавлен', 'data' => $master], 201);
     }
 
     public function updateMaster(Request $request, string $id): JsonResponse
@@ -333,7 +333,7 @@ class WriteController extends Controller
             $limits = $shop->getPlanLimits();
             $max    = $limits['max_masters'];
             if ($max !== null && Master::where('is_active', true)->count() >= $max) {
-                return response()->json(['error' => 'Active masters limit reached for your plan'], 403);
+                return response()->json(['error' => 'Достигнут лимит активных мастеров для вашего тарифа'], 403);
             }
         }
 
@@ -366,7 +366,7 @@ class WriteController extends Controller
         }
 
         $master->load('services:id,name');
-        return response()->json(['message' => 'Master updated', 'data' => $master]);
+        return response()->json(['message' => 'Мастер обновлён', 'data' => $master]);
     }
 
     public function deleteMaster(string $id): JsonResponse
@@ -376,7 +376,7 @@ class WriteController extends Controller
         $master->delete();
         StorageService::deleteByUrl($avatarUrl);
 
-        return response()->json(['message' => 'Master deleted']);
+        return response()->json(['message' => 'Мастер удалён']);
     }
 
     // ── Clients ──────────────────────────────────────────────────────────────
@@ -393,7 +393,7 @@ class WriteController extends Controller
         $phone = Customer::normalizePhone($data['phone']);
 
         if (Customer::where('phone', $phone)->exists()) {
-            return response()->json(['error' => 'Client with this phone already exists'], 409);
+            return response()->json(['error' => 'Клиент с таким телефоном уже существует'], 409);
         }
 
         $customer = Customer::create([
@@ -403,6 +403,6 @@ class WriteController extends Controller
             'notes' => $data['notes'] ?? null,
         ]);
 
-        return response()->json(['message' => 'Client created', 'data' => $customer], 201);
+        return response()->json(['message' => 'Клиент создан', 'data' => $customer], 201);
     }
 }

@@ -267,7 +267,7 @@ class OrderController extends Controller
         $order->load(['items', 'customer']);
 
         return response()->json([
-            'message' => 'Order status updated',
+            'message' => 'Статус заказа обновлён',
             'data' => $order,
         ]);
     }

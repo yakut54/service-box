@@ -88,7 +88,7 @@ class ProductController extends Controller
         $product->loadDetails();
 
         return response()->json([
-            'message' => 'Product created successfully',
+            'message' => 'Товар создан',
             'data'    => $product,
         ], 201);
     }
@@ -145,7 +145,7 @@ class ProductController extends Controller
         $product->refresh()->load('category:id,name,slug')->loadDetails();
 
         return response()->json([
-            'message' => 'Product updated successfully',
+            'message' => 'Товар обновлён',
             'data'    => $product,
         ]);
     }
@@ -166,7 +166,7 @@ class ProductController extends Controller
         $galleryUrls->each(fn ($url) => StorageService::deleteByUrl($url));
 
         return response()->json([
-            'message' => 'Product deleted successfully',
+            'message' => 'Товар удалён',
         ]);
     }
 

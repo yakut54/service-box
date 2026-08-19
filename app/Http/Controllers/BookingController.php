@@ -78,7 +78,7 @@ class BookingController extends Controller
 
         if ($service->type !== 'service') {
             return response()->json([
-                'error' => 'This product is not a service',
+                'error' => 'Этот товар не является услугой',
             ], 400);
         }
 
@@ -214,7 +214,7 @@ class BookingController extends Controller
         $bookingData['max_code']      = $maxCode;
 
         return response()->json([
-            'message' => 'Booking created successfully',
+            'message' => 'Запись создана',
             'data'    => $bookingData,
         ], 201);
     }
@@ -280,7 +280,7 @@ class BookingController extends Controller
         }
 
         return response()->json([
-            'message' => 'Booking status updated',
+            'message' => 'Статус записи обновлён',
             'data' => $booking,
         ]);
     }
@@ -318,7 +318,7 @@ class BookingController extends Controller
         if ($masters->isEmpty()) {
             return response()->json([
                 'slots' => [],
-                'message' => 'No available masters',
+                'message' => 'Нет свободных мастеров',
             ]);
         }
 
@@ -452,7 +452,7 @@ class BookingController extends Controller
 
         // Ensure booking belongs to this phone
         if ($booking->customer_phone !== $phone) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => 'Доступ запрещён'], 403);
         }
 
         if (!in_array($booking->status, ['pending', 'confirmed'])) {

@@ -56,7 +56,7 @@ class MaxController extends Controller
             'max_bot_connected' => false,
         ]);
 
-        return response()->json(['message' => 'MAX disconnected']);
+        return response()->json(['message' => 'MAX отключён']);
     }
 
     // ── Webhook ───────────────────────────────────────────────────────────

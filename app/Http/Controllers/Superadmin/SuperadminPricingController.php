@@ -48,6 +48,6 @@ class SuperadminPricingController extends Controller
             ]);
         }
 
-        return response()->json(['message' => 'Pricing updated']);
+        return response()->json(['message' => 'Тарифы обновлены']);
     }
 }

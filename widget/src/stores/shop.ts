@@ -68,7 +68,7 @@ export const useShopStore = defineStore('sb-shop', () => {
 
   async function loadConfig() {
     if (!shopId.value) {
-      error.value = 'Shop ID is not set'
+      error.value = 'Не указан ID магазина'
       return
     }
     loading.value = true
@@ -76,7 +76,7 @@ export const useShopStore = defineStore('sb-shop', () => {
     try {
       shop.value = await getApi().getShop()
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : 'Failed to load shop'
+      error.value = e instanceof Error ? e.message : 'Не удалось загрузить магазин'
     }
     loading.value = false
   }

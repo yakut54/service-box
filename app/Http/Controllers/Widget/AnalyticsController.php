@@ -26,7 +26,7 @@ class AnalyticsController extends Controller
         $shop = Shop::where('api_key', $shopId)->first();
 
         if (!$shop) {
-            return response()->json(['error' => 'Shop not found'], 404);
+            return response()->json(['error' => 'Магазин не найден'], 404);
         }
 
         $validated = $request->validate([
@@ -60,7 +60,7 @@ class AnalyticsController extends Controller
         $shop = $request->attributes->get('shop');
 
         if (!$shop) {
-            return response()->json(['error' => 'Shop not found'], 404);
+            return response()->json(['error' => 'Магазин не найден'], 404);
         }
 
         if (!$shop->hasFeature('widget_analytics')) {
@@ -110,7 +110,7 @@ class AnalyticsController extends Controller
     private function safeSchema(string $schema): string
     {
         if (!preg_match('/^shop_[a-z0-9_]+$/', $schema)) {
-            abort(500, 'Invalid schema name');
+            abort(500, 'Некорректное имя схемы');
         }
         return $schema;
     }

@@ -35,7 +35,7 @@ class ShopController extends Controller
 
         if (!$shop) {
             return response()->json([
-                'error' => 'Shop not found',
+                'error' => 'Магазин не найден',
             ], 404);
         }
 
@@ -74,7 +74,7 @@ class ShopController extends Controller
 
         if (!$shop) {
             return response()->json([
-                'error' => 'Shop not found',
+                'error' => 'Магазин не найден',
             ], 404);
         }
 
@@ -92,7 +92,7 @@ class ShopController extends Controller
 
         if (!$shop) {
             return response()->json([
-                'error' => 'Shop not found',
+                'error' => 'Магазин не найден',
             ], 404);
         }
 
@@ -215,7 +215,7 @@ class ShopController extends Controller
         $shop = $request->attributes->get('shop');
 
         if (!$shop->hasFeature('api_access')) {
-            return response()->json(['message' => 'API access is available on the Pro plan.'], 403);
+            return response()->json(['message' => 'Доступ к API доступен на тарифе Pro.'], 403);
         }
 
         $shop->api_key = Str::uuid()->toString();

@@ -79,7 +79,7 @@ class SuperadminShopController extends Controller
         $shop->enforceMasterLimit();
 
         return response()->json([
-            'message' => 'Plan updated',
+            'message' => 'Тариф обновлён',
             'shop'    => [
                 'id'                   => $shop->id,
                 'name'                 => $shop->name,

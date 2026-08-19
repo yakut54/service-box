@@ -44,17 +44,17 @@ export class WidgetApi {
       })
 
       if (!response.ok) {
-        const body = await response.json().catch(() => ({ message: 'Request failed' }))
-        throw new WidgetApiError(response.status, body.message || `HTTP ${response.status}`)
+        const body = await response.json().catch(() => ({ message: 'Ошибка запроса' }))
+        throw new WidgetApiError(response.status, body.message || `Ошибка сервера (${response.status})`)
       }
 
       return response.json()
     } catch (e) {
       if (e instanceof WidgetApiError) throw e
       if ((e as Error).name === 'AbortError') {
-        throw new WidgetApiError(0, 'Request timed out')
+        throw new WidgetApiError(0, 'Превышено время ожидания запроса')
       }
-      throw new WidgetApiError(0, (e as Error).message || 'Network error')
+      throw new WidgetApiError(0, (e as Error).message || 'Ошибка сети')
     } finally {
       clearTimeout(timeout)
     }

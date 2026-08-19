@@ -72,7 +72,7 @@ class TelegramController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Telegram disconnected successfully',
+            'message' => 'Telegram отключён',
         ]);
     }
 

@@ -123,7 +123,7 @@ onMounted(async () => {
     if (productsResp.status === 'fulfilled') {
       products.value = productsResp.value.data || []
     } else {
-      error.value = (productsResp.reason as Error)?.message || 'Failed to load products'
+      error.value = (productsResp.reason as Error)?.message || 'Не удалось загрузить товары'
     }
     if (categoriesResp.status === 'fulfilled') {
       // Flatten: родители + дочерние
@@ -137,7 +137,7 @@ onMounted(async () => {
       apiCategories.value = flat
     }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load products'
+    error.value = e instanceof Error ? e.message : 'Не удалось загрузить товары'
   }
   loading.value = false
 })
