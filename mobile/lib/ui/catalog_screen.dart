@@ -3,9 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../models/category.dart';
 import '../models/saved_shop.dart';
-import '../state/cart_state.dart';
 import '../state/catalog_state.dart';
-import 'cart_screen.dart';
+import 'widgets/cart_button.dart';
 import 'widgets/error_view.dart';
 import 'widgets/product_card.dart';
 import 'widgets/shop_avatar.dart';
@@ -44,7 +43,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             Text(widget.shop.name),
           ],
         ),
-        actions: const [_CartButton()],
+        actions: const [CartButton()],
       ),
       body: Column(
         children: [
@@ -167,45 +166,6 @@ class _CategoryChips extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onTap(),
       ),
-    );
-  }
-}
-
-class _CartButton extends StatelessWidget {
-  const _CartButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final itemCount = context.watch<CartState>().itemCount;
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.shopping_cart_outlined),
-          onPressed: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const CartScreen())),
-        ),
-        if (itemCount > 0)
-          Positioned(
-            right: 6,
-            top: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$itemCount',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onError,
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

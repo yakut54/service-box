@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../data/catalog_repository.dart';
 import '../models/product.dart';
 import '../state/cart_state.dart';
+import 'widgets/cart_button.dart';
 import 'widgets/error_view.dart';
 
 /// Карточка товара: GET /widget/products/{id}. Открывается тапом по
@@ -38,7 +39,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(actions: const [CartButton()]),
       body: FutureBuilder<Product>(
         future: _future,
         builder: (context, snapshot) {
