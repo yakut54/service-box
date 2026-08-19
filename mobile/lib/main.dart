@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
 import 'core/flavor_config.dart';
+import 'data/catalog_repository.dart';
 import 'data/shop_cache.dart';
 import 'data/shop_repository.dart';
+import 'state/catalog_state.dart';
 import 'state/shop_state.dart';
+import 'ui/catalog_screen.dart';
 import 'ui/widgets/error_view.dart';
-import 'ui/widgets/shop_avatar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,8 +20,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ShopState(ShopRepository.create(), ShopCache())..load(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => ShopState(ShopRepository.create(), ShopCache())..load(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CatalogState(CatalogRepository.create())..load(),
+        ),
+      ],
       child: const _App(),
     );
   }
@@ -71,41 +80,6 @@ class _BootScreen extends StatelessWidget {
       );
     }
 
-    return const _CatalogScreen();
-  }
-}
-
-/// Временная заглушка вместо каталога (М1+) — подтверждает, что магазин
-/// загрузился и его тема применилась. Экран со списком товаров ещё не начат.
-class _CatalogScreen extends StatelessWidget {
-  const _CatalogScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<ShopState>();
-    final shop = state.shop!;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            ShopAvatar(shop: shop, size: 28),
-            const SizedBox(width: 12),
-            Text(shop.name),
-          ],
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => context.read<ShopState>().refresh(),
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            Center(
-              child: Text('Каталог магазина «${shop.name}» ещё не готов'),
-            ),
-          ],
-        ),
-      ),
-    );
+    return CatalogScreen(shop: state.shop!);
   }
 }
