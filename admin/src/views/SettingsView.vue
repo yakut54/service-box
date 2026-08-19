@@ -13,6 +13,7 @@ import SettingsYookassa         from '@/components/settings/SettingsYookassa.vue
 import SettingsWidgetAppearance from '@/components/settings/SettingsWidgetAppearance.vue'
 import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalytics.vue'
 import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue'
+import SettingsYandexDelivery   from '@/components/settings/SettingsYandexDelivery.vue'
 import SettingsApiAccess        from '@/components/settings/SettingsApiAccess.vue'
 import SettingsMasters          from '@/components/settings/SettingsMasters.vue'
 
@@ -102,8 +103,9 @@ function setTab(id: TabId) {
     </div>
 
     <!-- Доставка -->
-    <div v-show="activeTab === 'delivery'" class="max-w-xl">
+    <div v-show="activeTab === 'delivery'" class="max-w-xl space-y-6">
       <SettingsDelivery />
+      <SettingsYandexDelivery />
     </div>
 
     <!-- Интеграция -->
