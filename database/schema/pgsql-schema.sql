@@ -147,6 +147,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         email            TEXT,
                         phone            TEXT NOT NULL,
                         notes            TEXT,
+                        avatar_url       TEXT,
                         total_orders     INTEGER DEFAULT 0,
                         total_spent      INTEGER DEFAULT 0,
                         telegram_chat_id BIGINT DEFAULT NULL,
