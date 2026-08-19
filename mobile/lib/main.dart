@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
@@ -16,6 +17,12 @@ import 'ui/splash_intro_screen.dart';
 import 'ui/widgets/error_view.dart';
 
 void main() {
+  // Замораживаем нативный сплэш прямо тут — без этого Android сам решает,
+  // когда его убрать, и может держать его поверх уже тикающей анимации
+  // SplashIntroScreen (см. FlutterNativeSplash.remove() там же). Убираем
+  // синхронно с началом анимации, а не когда захочет ОС.
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(const MyApp());
 }
 
@@ -79,7 +86,7 @@ class _BootScreenState extends State<_BootScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1600), () {
+    Future.delayed(const Duration(milliseconds: 4000), () {
       if (mounted) setState(() => _introDone = true);
     });
   }

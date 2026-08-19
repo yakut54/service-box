@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'widgets/aurora_background.dart';
 
-/// Анимированное интро при запуске (~1.6с) — играет поверх переливающегося
+/// Анимированное интро при запуске (~4с) — играет поверх переливающегося
 /// фона (AuroraBackground), пока в фоне грузится магазин (см. _BootScreen
 /// в main.dart). Фантик «разворачивается», открывая конфету, которая мягко
 /// проявляется по центру.
@@ -22,8 +23,21 @@ class _SplashIntroScreenState extends State<SplashIntroScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1600),
-  )..forward();
+    duration: const Duration(milliseconds: 4000),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // Первый кадр (t=0 — фантик и искры ещё не видны, только фон) рисуем
+    // ДО того, как убираем нативный сплэш — иначе между ними мелькнёт пустой
+    // кадр. Стартуем анимацию в тот же момент, синхронно с исчезновением
+    // сплэша, а не когда Android сам решит его убрать.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+      _controller.forward();
+    });
+  }
 
   @override
   void dispose() {
