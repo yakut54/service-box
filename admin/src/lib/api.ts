@@ -2,6 +2,7 @@ import type {
   User, Shop,
   Category,
   Product,
+  ProductImage,
   Order, OrderStats, OrderChartPoint,
   Customer,
   Booking, BookingStats, AvailableSlotsResponse,
@@ -254,6 +255,26 @@ class ApiClient {
 
   async deleteProduct(id: string) {
     return this.request<{ message: string }>(`/admin/products/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async attachProductImage(productId: string, url: string) {
+    return this.request<{ data: ProductImage }>(`/admin/products/${productId}/images`, {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    })
+  }
+
+  async reorderProductImages(productId: string, items: { id: string; sort_order: number }[]) {
+    return this.request<{ message: string }>(`/admin/products/${productId}/images/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ items }),
+    })
+  }
+
+  async deleteProductImage(productId: string, imageId: string) {
+    return this.request<{ message: string }>(`/admin/products/${productId}/images/${imageId}`, {
       method: 'DELETE',
     })
   }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import imageCompression from 'browser-image-compression'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
+import { compressIfNeeded } from '@/composables/useImageCompression'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
 const props = withDefaults(defineProps<{
@@ -13,6 +13,8 @@ const props = withDefaults(defineProps<{
   withUrlInput?: boolean
   hint?: string
   confirmText?: string
+  maxSizeMB?: number
+  maxWidthOrHeight?: number
 }>(), {
   shape: 'square',
   size: 'md',
@@ -20,6 +22,8 @@ const props = withDefaults(defineProps<{
   withUrlInput: false,
   hint: 'JPG, PNG, WEBP · сжатие до 1 МБ',
   confirmText: 'Изображение будет удалено. Это действие нельзя отменить.',
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
 })
 
 const emit = defineEmits<{
@@ -89,9 +93,10 @@ async function handleFile(file: File) {
   setUploading(true)
 
   try {
-    const toUpload = file.size > 1024 * 1024
-      ? await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true }) as File
-      : file
+    const toUpload = await compressIfNeeded(file, {
+      maxSizeMB: props.maxSizeMB,
+      maxWidthOrHeight: props.maxWidthOrHeight,
+    })
     const result = await api.uploadImage(toUpload)
     URL.revokeObjectURL(previewUrl)
     sessionUploadedUrl.value = result.url

@@ -5,6 +5,8 @@ import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
+import ProductImageGallery from '@/components/ProductImageGallery.vue'
+import type { ProductImage } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -78,6 +80,7 @@ const ep = (fallback: string) => isEditing.value ? 'не указано' : fallb
 
 // ── Image upload ─────────────────────────────────────────────
 const uploading = ref(false)
+const productImages = ref<ProductImage[]>([])
 
 // ── Data loading ────────────────────────────────────────────
 onMounted(async () => {
@@ -96,6 +99,7 @@ onMounted(async () => {
         is_active: p.is_active,
         image_url: p.image_url || ''
       }
+      productImages.value = p.images || []
       if (p.physical) {
         physicalDetails.value = {
           sku: p.physical.sku || '',
@@ -251,6 +255,18 @@ async function handleSubmit() {
               confirmText="Фото товара будет удалено. Это действие нельзя отменить."
             />
           </div>
+
+          <!-- Галерея доп. фото — только у уже сохранённого товара, -->
+          <!-- т.к. для прикрепления фото нужен его id -->
+          <div v-if="isEditing">
+            <ProductImageGallery
+              :product-id="route.params.id as string"
+              v-model:images="productImages"
+            />
+          </div>
+          <p v-else class="text-xs text-gray-400 dark:text-gray-500">
+            Дополнительные фото галереи можно будет добавить после сохранения товара
+          </p>
 
           <!-- Активность -->
           <label class="flex items-center gap-3 cursor-pointer select-none">

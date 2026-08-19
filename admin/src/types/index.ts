@@ -172,6 +172,13 @@ export interface ProductService {
 
 export type ProductType = 'physical' | 'digital' | 'service'
 
+export interface ProductImage {
+  id: string
+  product_id: string
+  url: string
+  sort_order: number
+}
+
 export interface Product {
   id: string
   type: ProductType
@@ -189,6 +196,7 @@ export interface Product {
   physical?: ProductPhysical | null
   digital?: ProductDigital | null
   service?: ProductService | null
+  images?: ProductImage[]
   created_at: string
   updated_at: string
 }

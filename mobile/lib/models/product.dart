@@ -46,6 +46,11 @@ class Product {
   final String? categoryId;
   final ProductPhysical? physical;
 
+  /// Доп. фото галереи (не включает обложку — см. imageUrl). Пусто для
+  /// товаров без галереи (М1) — карточка тогда показывает одну обложку,
+  /// как раньше.
+  final List<String> images;
+
   const Product({
     required this.id,
     required this.name,
@@ -54,11 +59,19 @@ class Product {
     this.imageUrl,
     this.categoryId,
     this.physical,
+    this.images = const [],
   });
 
   double get priceRubles => priceKopecks / 100;
 
   bool get inStock => physical?.inStock ?? true;
+
+  /// Обложка первой, затем доп. фото — то, что реально листает галерея
+  /// на карточке товара.
+  List<String> get galleryImages => [
+    if (imageUrl != null && imageUrl!.isNotEmpty) imageUrl!,
+    ...images,
+  ];
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
     id: json['id'] as String,
@@ -70,5 +83,8 @@ class Product {
     physical: json['physical'] != null
         ? ProductPhysical.fromJson(json['physical'] as Map<String, dynamic>)
         : null,
+    images: (json['images'] as List<dynamic>? ?? const [])
+        .map((img) => (img as Map<String, dynamic>)['url'] as String)
+        .toList(),
   );
 }

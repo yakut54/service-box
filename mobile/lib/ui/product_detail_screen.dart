@@ -79,7 +79,6 @@ class _ProductDetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final imageUrl = product.imageUrl;
     final maxQuantity = _maxQuantity;
     final inStock = product.inStock;
     final inCartQuantity = context.watch<CartState>().quantityOf(product.id);
@@ -90,23 +89,7 @@ class _ProductDetailBody extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: (imageUrl != null && imageUrl.isNotEmpty)
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _placeholderIcon(theme),
-                        )
-                      : _placeholderIcon(theme),
-                ),
-              ),
+              _ProductGallery(images: product.galleryImages),
               const SizedBox(height: 16),
               Text(product.name, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
@@ -176,12 +159,93 @@ class _ProductDetailBody extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Обложка + доп. фото (М1). Одно фото — статичная картинка, как раньше;
+/// несколько — свайп через PageView с точками-индикатором снизу.
+class _ProductGallery extends StatefulWidget {
+  final List<String> images;
+
+  const _ProductGallery({required this.images});
+
+  @override
+  State<_ProductGallery> createState() => _ProductGalleryState();
+}
+
+class _ProductGalleryState extends State<_ProductGallery> {
+  final _pageController = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   Widget _placeholderIcon(ThemeData theme) => Icon(
     Icons.image_outlined,
     size: 48,
     color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
   );
+
+  Widget _photo(String url, ThemeData theme) => Image.network(
+    url,
+    fit: BoxFit.cover,
+    errorBuilder: (_, _, _) => _placeholderIcon(theme),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final images = widget.images;
+
+    return AspectRatio(
+      aspectRatio: 1,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: images.isEmpty
+            ? _placeholderIcon(theme)
+            : images.length == 1
+            ? _photo(images.first, theme)
+            : Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  PageView.builder(
+                    controller: _pageController,
+                    itemCount: images.length,
+                    onPageChanged: (i) => setState(() => _page = i),
+                    itemBuilder: (_, i) => _photo(images[i], theme),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < images.length; i++)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: i == _page ? 16 : 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: i == _page
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
 }
 
 class _CharacteristicsList extends StatelessWidget {

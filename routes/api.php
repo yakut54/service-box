@@ -6,6 +6,7 @@ use App\Http\Controllers\Superadmin\SuperadminRevenueController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\BookingController;
@@ -163,6 +164,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription',
 
     // Products
     Route::apiResource('products', ProductController::class);
+    Route::post('/products/{product}/images', [ProductImageController::class, 'store']);
+    Route::patch('/products/{product}/images/reorder', [ProductImageController::class, 'reorder']);
+    Route::delete('/products/{product}/images/{image}', [ProductImageController::class, 'destroy']);
 
     // Orders
     Route::get('/orders/stats', [OrderController::class, 'stats']);

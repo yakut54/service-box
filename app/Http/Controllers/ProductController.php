@@ -100,7 +100,7 @@ class ProductController extends Controller
      */
     public function show(string $product): JsonResponse
     {
-        $product = Product::with('category:id,name,slug')
+        $product = Product::with(['category:id,name,slug', 'images:id,product_id,url,sort_order'])
                           ->withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
                           ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)])
                           ->findOrFail($product);
@@ -157,11 +157,13 @@ class ProductController extends Controller
      */
     public function destroy(string $product): JsonResponse
     {
-        $product = Product::findOrFail($product);
+        $product = Product::with('images')->findOrFail($product);
 
         $imageUrl = $product->image_url;
+        $galleryUrls = $product->images->pluck('url');
         $product->delete();
         StorageService::deleteByUrl($imageUrl);
+        $galleryUrls->each(fn ($url) => StorageService::deleteByUrl($url));
 
         return response()->json([
             'message' => 'Product deleted successfully',

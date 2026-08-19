@@ -60,6 +60,14 @@ class Product extends Model
         return $this->hasMany(Review::class, 'product_id');
     }
 
+    /**
+     * Доп. фото галереи (не включает обложку — см. image_url).
+     */
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
