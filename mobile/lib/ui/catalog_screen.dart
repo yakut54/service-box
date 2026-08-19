@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,11 +28,31 @@ class CatalogScreen extends StatefulWidget {
 
 class _CatalogScreenState extends State<CatalogScreen> {
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    // Живой поиск по мере ввода — без задержки дёргали бы сервер на каждую
+    // букву; 400мс достаточно, чтобы не бить лишними запросами, и не
+    // ощущается как задержка при обычном темпе печати.
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      context.read<CatalogState>().search(value);
+    });
+    setState(() {}); // обновить видимость кнопки очистки
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    context.read<CatalogState>().search('');
+    setState(() {});
   }
 
   @override
@@ -60,10 +82,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   decoration: InputDecoration(
                     hintText: 'Поиск по товарам',
                     prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: _clearSearch,
+                            tooltip: 'Очистить',
+                          ),
                     isDense: true,
                   ),
-                  onSubmitted: (value) =>
-                      context.read<CatalogState>().search(value),
+                  onChanged: _onSearchChanged,
+                  onSubmitted: (value) {
+                    _searchDebounce?.cancel();
+                    context.read<CatalogState>().search(value);
+                  },
                 ),
               ),
               if (state.categories.isNotEmpty)
