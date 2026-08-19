@@ -334,6 +334,37 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE INDEX ON %I.widget_analytics(session_id)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.widget_analytics(event, created_at)', p_schema_name);
 
+                -- customer_addresses
+                EXECUTE format($sql$
+                    CREATE TABLE %I.customer_addresses (
+                        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        customer_id UUID NOT NULL REFERENCES %I.customers(id) ON DELETE CASCADE,
+                        label       TEXT,
+                        city        TEXT NOT NULL,
+                        street      TEXT NOT NULL,
+                        building    TEXT NOT NULL,
+                        apartment   TEXT,
+                        postal_code TEXT,
+                        is_default  BOOLEAN NOT NULL DEFAULT FALSE,
+                        created_at  TIMESTAMPTZ DEFAULT NOW(),
+                        updated_at  TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.customer_addresses(customer_id)', p_schema_name);
+
+                -- customer_sessions
+                EXECUTE format($sql$
+                    CREATE TABLE %I.customer_sessions (
+                        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        customer_id UUID NOT NULL REFERENCES %I.customers(id) ON DELETE CASCADE,
+                        token       TEXT NOT NULL,
+                        expires_at  TIMESTAMPTZ NOT NULL,
+                        created_at  TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE UNIQUE INDEX ON %I.customer_sessions(token)', p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.customer_sessions(customer_id)', p_schema_name);
+
             END;
             $_$;
 

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
+use App\Models\CustomerSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -123,7 +125,8 @@ class WidgetPhoneVerificationController extends Controller
         // Code is correct — clean up and issue token
         Cache::forget($cacheKey);
 
-        // Create a temporary access token (valid 30 min)
+        // Create a temporary access token (valid 30 min) — историческое поведение
+        // веб-виджета, разовая проверка "посмотреть мои заказы в этом сеансе".
         $token = bin2hex(random_bytes(32));
         $tokenKey = "phone-token:{$shopId}:{$token}";
         Cache::put($tokenKey, [
@@ -131,10 +134,29 @@ class WidgetPhoneVerificationController extends Controller
             'ip' => $request->ip(),
         ], 1800); // 30 min
 
+        // Долгая сессия для мобильного приложения (60 дней) — "запомнить меня",
+        // выдаётся поверх той же SMS-проверки, не заменяет 30-минутный токен выше.
+        //
+        // Не используем Customer::findOrCreateByPhone() напрямую: при заходе
+        // без единого заказа у клиента ещё нет имени, а customers.name — NOT
+        // NULL. Передать туда заглушку тоже нельзя — findOrCreateByPhone молча
+        // перезапишет ею настоящее имя, если клиент уже когда-то заказывал.
+        $normalizedPhone = Customer::normalizePhone($phone);
+        $customer = Customer::where('phone', $normalizedPhone)->first();
+        if (!$customer) {
+            $customer = Customer::create([
+                'phone' => $normalizedPhone,
+                'name' => 'Покупатель',
+            ]);
+        }
+        $session = CustomerSession::issueFor($customer);
+
         return response()->json([
             'message' => 'Телефон подтверждён',
             'token' => $token,
             'expires_in' => 1800,
+            'session_token' => $session->token,
+            'session_expires_in' => (int) now()->diffInSeconds($session->expires_at),
         ]);
     }
 }

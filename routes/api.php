@@ -17,6 +17,7 @@ use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
+use App\Http\Controllers\CustomerAddressController;
 use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
 use App\Http\Controllers\MaxController;
 use App\Http\Controllers\DeliverySettingsController;
@@ -121,6 +122,15 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
         Route::get('/orders', [OrderController::class, 'widgetOrdersByPhone']);
         Route::get('/bookings', [BookingController::class, 'widgetBookingsByPhone']);
         Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'widgetCancel']);
+    });
+
+    // Saved addresses (mobile app "stay logged in" session — 60 days,
+    // separate from the 30-min verify.phone token used above)
+    Route::middleware('verify.phone.session')->group(function () {
+        Route::get('/addresses', [CustomerAddressController::class, 'index']);
+        Route::post('/addresses', [CustomerAddressController::class, 'store']);
+        Route::put('/addresses/{address}/default', [CustomerAddressController::class, 'setDefault']);
+        Route::delete('/addresses/{address}', [CustomerAddressController::class, 'destroy']);
     });
 });
 

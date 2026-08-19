@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'enforce.https' => \App\Http\Middleware\EnforceHttps::class,
             'rate.phone' => \App\Http\Middleware\RateLimitPhoneLookup::class,
             'verify.phone'   => \App\Http\Middleware\VerifyPhoneToken::class,
+            'verify.phone.session' => \App\Http\Middleware\VerifyPhoneSession::class,
             'superadmin'     => \App\Http\Middleware\RequireSuperadmin::class,
             'widget.subscription' => \App\Http\Middleware\CheckWidgetSubscription::class,
             'force.json'     => \App\Http\Middleware\ForceJson::class,
