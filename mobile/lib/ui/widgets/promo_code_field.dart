@@ -124,8 +124,7 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(
-              width: 110,
+            IntrinsicWidth(
               child: FilledButton(
                 onPressed: _applying ? null : _apply,
                 child: _applying
