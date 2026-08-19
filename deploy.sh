@@ -218,6 +218,11 @@ grep -q "MAX_BOT_TOKEN" .env 2>/dev/null || echo 'MAX_BOT_TOKEN=f9LHodD0cOItzTlv
 grep -q "MAX_BOT_USERNAME" .env 2>/dev/null || echo 'MAX_BOT_USERNAME=id143302395207_bot' >> .env
 grep -q "MAX_WEBHOOK_SECRET" .env 2>/dev/null || echo 'MAX_WEBHOOK_SECRET=sbmaxhook2024' >> .env
 
+# ── 6.3.а. Русская локаль — дефолтные сообщения валидации Laravel
+# (required/email/max/...) переведены в lang/ru/validation.php, но без
+# APP_LOCALE=ru фреймворк их не подхватывает и молча отдаёт английский.
+grep -q "^APP_LOCALE=" .env 2>/dev/null || echo 'APP_LOCALE=ru' >> .env
+
 # ── 6.3.1. Register MAX webhook ───────────────────────────────────
 MAX_TOKEN=$(grep '^MAX_BOT_TOKEN=' .env | cut -d'=' -f2-)
 if [ -n "$MAX_TOKEN" ]; then
