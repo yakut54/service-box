@@ -63,6 +63,12 @@ dev_dependencies:
   # `dart run flutter_launcher_icons`, не нужен в рантайме.
   flutter_launcher_icons: ^0.14.3
 
+  # Нативный splash-экран (см. flutter_native_splash: ниже) — разово через
+  # `dart run flutter_native_splash:create`, не нужен в рантайме. Без него
+  # Android 12+ показывает свой дефолтный сплэш — просто иконка, случайно
+  # прилипшая к белому фону, без единого элемента бренда.
+  flutter_native_splash: ^2.4.6
+
 # Источник для иконки флейвора barbariska — генерируется командой
 # `dart run flutter_launcher_icons` и вручную раскладывается по
 # android/app/src/barbariska/res/mipmap-*/ (см. mobile/README.md).
@@ -72,6 +78,21 @@ flutter_launcher_icons:
   image_path: "assets/icon/barbariska_app_icon.png"
   android: "ic_launcher"
   min_sdk_android: 21
+
+# Splash-экран флейвора barbariska: сплошной фон цвета самой иконки
+# (#FFCB39 — взят пипеткой с фона assets/icon/barbariska_app_icon.png),
+# поэтому скруглённая карточка иконки визуально растворяется в фоне —
+# не «иконка в рамке», а часть экрана. Генерируется командой
+# `dart run flutter_native_splash:create`, результат руками переносится
+# в android/app/src/barbariska/res/ (тот же приём, что и с иконкой —
+# см. mobile/README.md), чтобы у следующего флейвора не было чужого
+# фирменного цвета по умолчанию.
+flutter_native_splash:
+  color: "#FFCB39"
+  image: "assets/icon/barbariska_app_icon.png"
+  android_12:
+    color: "#FFCB39"
+    image: "assets/icon/barbariska_app_icon.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

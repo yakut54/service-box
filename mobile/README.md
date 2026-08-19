@@ -19,6 +19,16 @@
    в `android/app/src/<flavor>/res/mipmap-*/` и вернуть `main/` обратно
    (`git checkout`), чтобы у следующего флейвора не было чужой иконки
    как дефолта.
+   Splash-экран (первый экран при запуске, до отрисовки Flutter) — та же
+   иконка на сплошном фоне её собственного цвета (пипеткой с PNG, см.
+   `flutter_native_splash:` в pubspec.yaml), а не дефолтный
+   белый-экран-с-иконкой от Android 12+. Генерируется через
+   `dart run flutter_native_splash:create` → результат в
+   `android/app/src/main/res/drawable*`, `values-v31`, `values-night-v31`
+   → руками перенести в `android/app/src/<flavor>/res/...` и вернуть
+   `main/` (те же файлы, что и с иконкой) — `values/styles.xml` и
+   `values-night/styles.xml` трогать не нужно, там нет цвета, только
+   структурные флаги, общие для всех флейворов.
 2. **Brand/runtime** (`mobile/flavors/<flavor>.json`) — код магазина,
    его `api_key`, имя, цвет темы по умолчанию, адрес бэкенда. Читается
    в Dart через `FlavorConfig` (`lib/core/flavor_config.dart`).
