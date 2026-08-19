@@ -141,6 +141,8 @@ class ShopController extends Controller
             'legal_config.requisites'                       => 'nullable|string|max:5000',
             'legal_config.contact_email'                    => 'nullable|email|max:255',
             'legal_config.contact_phone'                    => 'nullable|string|max:30',
+        ], [
+            'widget_config.font_family.in' => 'Недопустимый шрифт',
         ]);
 
         // widget_config — только для Business и выше
