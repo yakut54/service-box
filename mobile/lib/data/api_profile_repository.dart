@@ -30,4 +30,33 @@ class ApiProfileRepository implements ProfileRepository {
     if (data == null) throw AppException.badResponse();
     return Profile.fromJson(data);
   }
+
+  @override
+  Future<Profile> uploadAvatar(
+    String sessionToken,
+    List<int> bytes,
+    String filename,
+  ) async {
+    final json = await _client.uploadBytes(
+      '/widget/profile/avatar',
+      'avatar',
+      bytes,
+      filename,
+      headers: _authHeaders(sessionToken),
+    );
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return Profile.fromJson(data);
+  }
+
+  @override
+  Future<Profile> deleteAvatar(String sessionToken) async {
+    final json = await _client.delete(
+      '/widget/profile/avatar',
+      headers: _authHeaders(sessionToken),
+    );
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return Profile.fromJson(data);
+  }
 }

@@ -3,6 +3,11 @@
          сходить ни в один запрос (в debug/profile сборках доступ есть по умолчанию,
          поэтому проблема проявляется только в реальном APK). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Съёмка фото для аватарки профиля. Без required=false приложение
+         не поставится на устройства без камеры — доступ к галерее всё
+         равно остаётся. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
     <application
         android:label="@string/app_name"

@@ -8,6 +8,8 @@ import '../models/profile.dart';
 import '../state/auth_state.dart';
 import 'addresses_screen.dart';
 import 'orders_screen.dart';
+import 'widgets/app_dialog.dart';
+import 'widgets/editable_avatar.dart';
 import 'widgets/error_view.dart';
 import 'widgets/form/name_field.dart';
 import 'widgets/form/primary_submit_button.dart';
@@ -100,14 +102,21 @@ class _AccountScreenState extends State<AccountScreen> {
       children: [
         Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Icon(
-                Icons.person_rounded,
-                color: theme.colorScheme.primary,
+            if (profile != null && auth.session != null)
+              EditableAvatar(
+                avatarUrl: profile.avatarUrl,
+                sessionToken: auth.session!.sessionToken,
+                onChanged: (updated) => setState(() => _profile = updated),
+              )
+            else
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: theme.colorScheme.primaryContainer,
+                child: Icon(
+                  Icons.person_rounded,
+                  color: theme.colorScheme.primary,
+                ),
               ),
-            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -292,9 +301,23 @@ class _EditNameDialogState extends State<_EditNameDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AlertDialog(
-      title: const Text('Изменить имя'),
-      content: Form(
+    return AppDialog(
+      title: 'Изменить имя',
+      actions: [
+        TextButton(
+          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        SizedBox(
+          width: 120,
+          child: PrimarySubmitButton(
+            label: 'Сохранить',
+            loading: _submitting,
+            onPressed: _submit,
+          ),
+        ),
+      ],
+      child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -315,20 +338,6 @@ class _EditNameDialogState extends State<_EditNameDialog> {
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _submitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
-        ),
-        SizedBox(
-          width: 120,
-          child: PrimarySubmitButton(
-            label: 'Сохранить',
-            loading: _submitting,
-            onPressed: _submit,
-          ),
-        ),
-      ],
     );
   }
 }

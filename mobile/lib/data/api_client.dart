@@ -74,6 +74,30 @@ class ApiClient {
     );
   }
 
+  /// Загрузка файла (multipart/form-data) — для JSON-эндпоинтов используй
+  /// post()/put(), этот метод только для байтов файла (например, аватарки).
+  Future<Map<String, dynamic>> uploadBytes(
+    String path,
+    String fieldName,
+    List<int> bytes,
+    String filename, {
+    Map<String, String>? headers,
+  }) {
+    return _send(() async {
+      // Content-Type идёт своим — MultipartRequest сам проставляет
+      // multipart/form-data с boundary, наш JSON-дефолт тут только помешает.
+      final requestHeaders = {..._headers, ...?headers}
+        ..remove('Content-Type');
+      final request = http.MultipartRequest('POST', _uri(path))
+        ..headers.addAll(requestHeaders)
+        ..files.add(
+          http.MultipartFile.fromBytes(fieldName, bytes, filename: filename),
+        );
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    });
+  }
+
   Future<Map<String, dynamic>> _send(
     Future<http.Response> Function() request,
   ) async {

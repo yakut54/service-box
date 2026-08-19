@@ -19,6 +19,7 @@ class Customer extends Model
         'email',
         'phone',
         'notes',
+        'avatar_url',
         'total_orders',
         'total_spent',
         'last_order_at',

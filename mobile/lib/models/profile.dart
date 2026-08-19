@@ -2,6 +2,7 @@
 class Profile {
   final String name;
   final String phone;
+  final String? avatarUrl;
   final int totalOrders;
   final int totalSpentKopecks;
   final int bonusBalance;
@@ -9,6 +10,7 @@ class Profile {
   const Profile({
     required this.name,
     required this.phone,
+    this.avatarUrl,
     required this.totalOrders,
     required this.totalSpentKopecks,
     required this.bonusBalance,
@@ -19,6 +21,7 @@ class Profile {
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
     name: json['name'] as String? ?? '',
     phone: json['phone'] as String,
+    avatarUrl: json['avatar_url'] as String?,
     totalOrders: (json['total_orders'] as num?)?.toInt() ?? 0,
     totalSpentKopecks: (json['total_spent'] as num?)?.toInt() ?? 0,
     bonusBalance: (json['bonus_balance'] as num?)?.toInt() ?? 0,

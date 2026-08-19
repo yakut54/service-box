@@ -8,5 +8,13 @@ abstract class ProfileRepository {
 
   Future<Profile> updateName(String sessionToken, String name);
 
+  Future<Profile> uploadAvatar(
+    String sessionToken,
+    List<int> bytes,
+    String filename,
+  );
+
+  Future<Profile> deleteAvatar(String sessionToken);
+
   factory ProfileRepository.create() => ApiProfileRepository();
 }
