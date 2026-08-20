@@ -42,7 +42,7 @@ class PaymentController extends Controller
         try {
             $yooKassa = new YooKassaService($shop->yookassa_shop_id, $shop->yookassa_secret_key);
             $payment  = $yooKassa->createPayment(
-                $order->total_price,
+                $order->total_price / 100,
                 "Заказ #{$order->id}",
                 $returnUrl,
                 [
@@ -111,7 +111,7 @@ class PaymentController extends Controller
         try {
             $yooKassa = new YooKassaService($shop->yookassa_shop_id, $shop->yookassa_secret_key);
             $payment  = $yooKassa->createPayment(
-                $amount,
+                $amount / 100,
                 "Предоплата: {$booking->service?->name}",
                 $returnUrl,
                 [

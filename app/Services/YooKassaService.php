@@ -24,14 +24,14 @@ class YooKassaService
     /**
      * Создать платёж в ЮКасса.
      *
-     * @param  int    $amount      Сумма в рублях
-     * @param  string $description Описание для пользователя
-     * @param  string $returnUrl   Куда редиректить после оплаты
-     * @param  array  $metadata    Произвольные данные (shop_id, order_id и т.д.)
+     * @param  int|float $amount      Сумма в рублях (вызывающий код сам делит копейки на 100)
+     * @param  string    $description Описание для пользователя
+     * @param  string    $returnUrl   Куда редиректить после оплаты
+     * @param  array     $metadata    Произвольные данные (shop_id, order_id и т.д.)
      * @return array{payment_id: string, payment_url: string, status: string}
      */
     public function createPayment(
-        int    $amount,
+        int|float $amount,
         string $description,
         string $returnUrl,
         array  $metadata = []

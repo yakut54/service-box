@@ -23,7 +23,7 @@ onMounted(async () => {
       enabled.value         = !!y.enabled
       hasToken.value        = !!y.api_token
       warehouseAddress.value = y.warehouse_address ?? ''
-      freeFrom.value         = y.free_from != null ? String(y.free_from) : ''
+      freeFrom.value         = y.free_from != null ? String(y.free_from / 100) : ''
     }
   } catch (e: unknown) {
     error.value = parseApiError(e, 'Не удалось загрузить настройки')
@@ -40,7 +40,7 @@ async function save() {
     const payload: Record<string, unknown> = {
       enabled,
       warehouse_address: warehouseAddress.value.trim() || null,
-      free_from: freeFrom.value ? Math.round(parseFloat(freeFrom.value) || 0) : null,
+      free_from: freeFrom.value ? Math.round((parseFloat(freeFrom.value) || 0) * 100) : null,
     }
     // Не перезаписываем сохранённый токен пустым — только если ввели новый.
     if (apiToken.value) payload.api_token = apiToken.value

@@ -1,10 +1,11 @@
-export function formatPrice(rubles: number): string {
+/** Все денежные поля в API — копейки (integer). Делим на 100 перед показом. */
+export function formatPrice(kopecks: number): string {
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(Math.round(rubles))
+  }).format(Math.round(kopecks / 100))
 }
 
 /** "2024-01-15T10:30:00" → "15 янв, 10:30". Передай timeZone для отображения в timezone магазина. */

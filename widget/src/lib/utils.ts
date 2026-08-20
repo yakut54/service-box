@@ -60,12 +60,13 @@ export function isPostalCodeValid(value: string): boolean {
   return /^\d{6}$/.test(value.trim())
 }
 
-export function formatPrice(rubles: number): string {
+/** Все денежные поля в API — копейки (integer). Делим на 100 перед показом. */
+export function formatPrice(kopecks: number): string {
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',
     minimumFractionDigits: 0,
-  }).format(rubles)
+  }).format(Math.round(kopecks / 100))
 }
 
 export function formatDateTime(iso: string, timezone = 'Europe/Moscow'): string {

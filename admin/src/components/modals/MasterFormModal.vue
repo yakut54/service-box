@@ -228,7 +228,7 @@ async function save() {
                   selectedServiceIds.includes(svc.id) ? 'translate-x-6' : 'translate-x-1']" />
               </span>
               <span class="text-sm text-gray-700 dark:text-gray-300">{{ svc.name }}</span>
-              <span class="ml-auto text-xs text-gray-400">{{ svc.price.toLocaleString('ru-RU') }} ₽</span>
+              <span class="ml-auto text-xs text-gray-400">{{ Math.round(svc.price / 100).toLocaleString('ru-RU') }} ₽</span>
             </label>
           </template>
         </div>

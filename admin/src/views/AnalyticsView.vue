@@ -64,11 +64,12 @@ async function loadAll() {
 watch(period, loadAll)
 onMounted(loadAll)
 
-function formatPriceFull(rubles: number) {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(rubles)
+function formatPriceFull(kopecks: number) {
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(Math.round(kopecks / 100))
 }
 
-function formatPrice(rubles: number) {
+function formatPrice(kopecks: number) {
+  const rubles = kopecks / 100
   if (rubles >= 1_000_000) return (rubles / 1_000_000).toFixed(1) + 'M ₽'
   if (rubles >= 1_000)     return Math.round(rubles / 1_000) + 'K ₽'
   return Math.round(rubles) + ' ₽'

@@ -13,14 +13,15 @@ const width = ref(600)
 
 const hasData = computed(() => props.data.some(d => d.revenue > 0))
 
-function fmt(rubles: number) {
+function fmt(kopecks: number) {
+  const rubles = kopecks / 100
   if (rubles >= 1_000_000) return (rubles / 1_000_000).toFixed(1) + 'M ₽'
   if (rubles >= 1_000)     return Math.round(rubles / 1_000) + 'K ₽'
   return Math.round(rubles) + ' ₽'
 }
 
-function fmtFull(rubles: number) {
-  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(rubles)
+function fmtFull(kopecks: number) {
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(Math.round(kopecks / 100))
 }
 
 const points = computed(() => {

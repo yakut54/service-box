@@ -18,7 +18,7 @@ const error             = ref('')
 onMounted(() => {
   shopId.value            = authStore.shop?.yookassa_shop_id || ''
   prepaymentEnabled.value = authStore.shop?.prepayment_enabled ?? false
-  prepaymentAmount.value  = authStore.shop?.prepayment_amount ?? 0
+  prepaymentAmount.value  = (authStore.shop?.prepayment_amount ?? 0) / 100
 })
 
 async function save() {
@@ -30,7 +30,7 @@ async function save() {
     const payload: Record<string, unknown> = {
       yookassa_shop_id:   shopId.value,
       prepayment_enabled: prepaymentEnabled.value,
-      prepayment_amount:  prepaymentEnabled.value ? (prepaymentAmount.value || 0) : 0,
+      prepayment_amount:  prepaymentEnabled.value ? Math.round((prepaymentAmount.value || 0) * 100) : 0,
     }
     if (secretKey.value) payload.yookassa_secret_key = secretKey.value
     const updated = await api.updateShop(payload)
