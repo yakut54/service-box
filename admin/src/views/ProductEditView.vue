@@ -77,10 +77,17 @@ const currentTypeConfig = computed(() => typeConfig[form.value.type as keyof typ
 
 // Цифровые товары и услуги пока скрыты из создания нового товара — только
 // физический. Уже существующие digital/service товары остаются видимыми
-// и редактируемыми как есть.
-const pickableTypeConfig = computed(() =>
-  isEditing.value ? typeConfig : { physical: typeConfig.physical }
-)
+// и редактируемыми как есть (полный выбор типа). Но физический товар —
+// хоть новый, хоть уже существующий — на digital/service переключить
+// нельзя: с 2026-08-20 бэкенд прячет эти типы из виджета/приложения по
+// умолчанию (см. МФ4 в PLAN.md), случайный клик по «Услуга» на реальном
+// физическом товаре сделал бы его невидимым в приложении без предупреждения.
+const pickableTypeConfig = computed(() => {
+  if (!isEditing.value) return { physical: typeConfig.physical }
+  return form.value.type === 'physical'
+    ? { physical: typeConfig.physical }
+    : typeConfig
+})
 
 // При редактировании необязательные поля показывают "не указано" вместо примеров
 const ep = (fallback: string) => isEditing.value ? 'не указано' : fallback
