@@ -6,6 +6,7 @@ import '../data/catalog_repository.dart';
 import '../models/product.dart';
 import 'widgets/add_to_cart_control.dart';
 import 'widgets/cart_button.dart';
+import 'widgets/discount_badge.dart';
 import 'widgets/error_view.dart';
 
 /// Карточка товара: GET /widget/products/{id}. Открывается тапом по
@@ -73,6 +74,9 @@ class _ProductDetailBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final inStock = product.inStock;
+    final showOldPrice =
+        product.comparePriceKopecks != null &&
+        product.comparePriceKopecks! > product.priceKopecks;
 
     return Column(
       children: [
@@ -84,12 +88,31 @@ class _ProductDetailBody extends StatelessWidget {
               const SizedBox(height: 16),
               Text(product.name, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
-              Text(
-                formatRubles(product.priceRubles),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    formatRubles(product.priceRubles),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (showOldPrice) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      formatRubles(product.comparePriceKopecks! / 100),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ],
+                  if (product.hasDiscount) ...[
+                    const SizedBox(width: 8),
+                    DiscountBadge(percent: product.discountPercent!),
+                  ],
+                ],
               ),
               const SizedBox(height: 8),
               if (!inStock)
@@ -357,25 +380,36 @@ class _RelatedProductCard extends StatelessWidget {
             children: [
               AspectRatio(
                 aspectRatio: 1,
-                child: Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: (imageUrl != null && imageUrl.isNotEmpty)
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Icon(
-                            Icons.image_outlined,
-                            size: 28,
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.4),
-                          ),
-                        )
-                      : Icon(
-                          Icons.image_outlined,
-                          size: 28,
-                          color: theme.colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.4),
-                        ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      child: (imageUrl != null && imageUrl.isNotEmpty)
+                          ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Icon(
+                                Icons.image_outlined,
+                                size: 28,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.4),
+                              ),
+                            )
+                          : Icon(
+                              Icons.image_outlined,
+                              size: 28,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.4),
+                            ),
+                    ),
+                    if (product.hasDiscount)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: DiscountBadge(percent: product.discountPercent!),
+                      ),
+                  ],
                 ),
               ),
               Padding(

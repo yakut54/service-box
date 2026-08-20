@@ -4,6 +4,7 @@ import '../../core/format.dart';
 import '../../models/product.dart';
 import '../product_detail_screen.dart';
 import 'add_to_cart_control.dart';
+import 'discount_badge.dart';
 
 /// Карточка товара в сетке каталога: фото, название, цена, бейдж наличия.
 /// Тап открывает карточку товара (ProductDetailScreen).
@@ -76,32 +77,7 @@ class ProductCard extends StatelessWidget {
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.error,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          '-${product.discountPercent}%',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onError,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                            height: 1.1,
-                          ),
-                        ),
-                      ),
+                      child: DiscountBadge(percent: product.discountPercent!),
                     ),
                 ],
               ),
