@@ -199,7 +199,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         payment_id              TEXT,
                         payment_url             TEXT,
                         customer_name           TEXT NOT NULL,
-                        customer_email          TEXT NOT NULL,
+                        customer_email          TEXT,
                         customer_phone          TEXT NOT NULL,
                         shipping_address        JSONB,
                         delivery_method         TEXT,
