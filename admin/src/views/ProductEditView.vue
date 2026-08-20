@@ -75,6 +75,13 @@ const typeConfig = {
 
 const currentTypeConfig = computed(() => typeConfig[form.value.type as keyof typeof typeConfig] || typeConfig.physical)
 
+// Цифровые товары и услуги пока скрыты из создания нового товара — только
+// физический. Уже существующие digital/service товары остаются видимыми
+// и редактируемыми как есть.
+const pickableTypeConfig = computed(() =>
+  isEditing.value ? typeConfig : { physical: typeConfig.physical }
+)
+
 // При редактировании необязательные поля показывают "не указано" вместо примеров
 const ep = (fallback: string) => isEditing.value ? 'не указано' : fallback
 
@@ -191,7 +198,7 @@ async function handleSubmit() {
             <p class="label">Тип товара</p>
             <div class="grid grid-cols-3 gap-3">
               <button
-                v-for="(cfg, key) in typeConfig"
+                v-for="(cfg, key) in pickableTypeConfig"
                 :key="key"
                 type="button"
                 @click="form.type = key"

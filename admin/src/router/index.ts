@@ -77,11 +77,13 @@ const router = createRouter({
           path: 'bookings',
           name: 'bookings',
           component: () => import('@/views/BookingsView.vue'),
+          meta: { hidden: true },
         },
         {
           path: 'bookings/:id',
           name: 'booking-detail',
           component: () => import('@/views/BookingDetailView.vue'),
+          meta: { hidden: true },
         },
         {
           path: 'customers',
@@ -97,11 +99,13 @@ const router = createRouter({
           path: 'masters',
           name: 'masters',
           component: () => import('@/views/MastersView.vue'),
+          meta: { hidden: true },
         },
         {
           path: 'masters/:id',
           name: 'master-detail',
           component: () => import('@/views/MasterDetailView.vue'),
+          meta: { hidden: true },
         },
         {
           path: 'discounts',
@@ -117,7 +121,7 @@ const router = createRouter({
           path: 'staff',
           name: 'staff',
           component: () => import('@/views/StaffView.vue'),
-          meta: { requiresOwner: true },
+          meta: { requiresOwner: true, hidden: true },
         },
         {
           path: 'legal',
@@ -220,6 +224,12 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   if (to.meta.requiresOwner && authStore.isAuthenticated && !authStore.isOwner) {
+    next({ name: 'dashboard' })
+    return
+  }
+
+  // Раздел временно скрыт из навигации — прямой переход по URL тоже не пускаем
+  if (to.meta.hidden) {
     next({ name: 'dashboard' })
     return
   }

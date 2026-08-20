@@ -5,7 +5,7 @@ import { plural } from '@/lib/utils'
 import KpiCard from '@/components/KpiCard.vue'
 import RevenueChart from '@/components/RevenueChart.vue'
 import StatusBreakdown from '@/components/StatusBreakdown.vue'
-import type { OrderStats, BookingStats, Customer } from '@/types'
+import type { OrderStats, Customer } from '@/types'
 
 type Period = '7d' | '30d'
 const period = ref<Period>('30d')
@@ -14,7 +14,6 @@ const periodToStats: Record<Period, string> = { '7d': 'week', '30d': 'month' }
 const periodToDays:  Record<Period, number>  = { '7d': 7, '30d': 30 }
 
 const stats         = ref<Partial<OrderStats>>({})
-const bookingStats  = ref<Partial<BookingStats>>({})
 const chartData     = ref<Array<{ date: string; orders: number; revenue: number }>>([])
 const topProducts   = ref<Array<{ name: string; revenue: number; count: number }>>([])
 const topCustomers  = ref<Customer[]>([])
@@ -28,17 +27,15 @@ async function loadAll() {
   loadingChart.value = true
   loadingTops.value  = true
 
-  const [statsRes, chartRes, bookingRes, customersRes, ordersRes] = await Promise.allSettled([
+  const [statsRes, chartRes, customersRes, ordersRes] = await Promise.allSettled([
     api.getOrderStats({ period: periodToStats[period.value] }),
     api.getOrderChart(periodToDays[period.value]),
-    api.getBookingStats(),
     api.getCustomers(),
     api.getOrders(),
   ])
 
   if (statsRes.status    === 'fulfilled') stats.value       = statsRes.value
   if (chartRes.status    === 'fulfilled') chartData.value   = chartRes.value.data
-  if (bookingRes.status  === 'fulfilled') bookingStats.value = bookingRes.value
 
   if (customersRes.status === 'fulfilled') {
     topCustomers.value = [...(customersRes.value.data ?? [])]
@@ -95,16 +92,6 @@ const orderBreakdown = computed(() => {
   ]
 })
 
-const bookingBreakdown = computed(() => {
-  const t = bookingStats.value.total_bookings || 1
-  return [
-    { label: 'Ожидают',      color: 'bg-yellow-400', count: bookingStats.value.pending_bookings   ?? 0, pct: Math.round((bookingStats.value.pending_bookings   ?? 0) / t * 100) },
-    { label: 'Подтверждены', color: 'bg-blue-500',   count: bookingStats.value.confirmed_bookings ?? 0, pct: Math.round((bookingStats.value.confirmed_bookings ?? 0) / t * 100) },
-    { label: 'Завершены',    color: 'bg-green-500',  count: bookingStats.value.completed_bookings ?? 0, pct: Math.round((bookingStats.value.completed_bookings ?? 0) / t * 100) },
-    { label: 'Отменены',     color: 'bg-red-400',    count: bookingStats.value.cancelled_bookings ?? 0, pct: Math.round((bookingStats.value.cancelled_bookings ?? 0) / t * 100) },
-    { label: 'Неявка',       color: 'bg-gray-400',   count: bookingStats.value.no_show_bookings   ?? 0, pct: Math.round((bookingStats.value.no_show_bookings   ?? 0) / t * 100) },
-  ]
-})
 </script>
 
 <template>
@@ -126,7 +113,7 @@ const bookingBreakdown = computed(() => {
     </div>
 
     <!-- KPIs -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
       <KpiCard
         title="Выручка"
         :value="formatPriceFull(stats.total_revenue ?? 0)"
@@ -149,13 +136,6 @@ const bookingBreakdown = computed(() => {
         subtitle="без отменённых"
         :loading="loadingStats"
         color="purple" icon="avg"
-      />
-      <KpiCard
-        title="Записей"
-        :value="String(bookingStats.total_bookings ?? 0)"
-        subtitle="за всё время"
-        :loading="loadingStats"
-        color="violet" icon="bookings"
       />
     </div>
 
@@ -217,16 +197,10 @@ const bookingBreakdown = computed(() => {
       </div>
     </div>
 
-    <!-- Status breakdowns -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="card">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Статусы заказов</h2>
-        <StatusBreakdown :items="orderBreakdown" :total="stats.total_orders ?? 0" :loading="loadingStats" empty-text="Нет заказов за период"/>
-      </div>
-      <div class="card">
-        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Статусы записей</h2>
-        <StatusBreakdown :items="bookingBreakdown" :total="bookingStats.total_bookings ?? 0" :loading="loadingStats" empty-text="Нет записей"/>
-      </div>
+    <!-- Status breakdown -->
+    <div class="card">
+      <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Статусы заказов</h2>
+      <StatusBreakdown :items="orderBreakdown" :total="stats.total_orders ?? 0" :loading="loadingStats" empty-text="Нет заказов за период"/>
     </div>
 
   </div>

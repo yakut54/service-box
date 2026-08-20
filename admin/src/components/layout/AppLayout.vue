@@ -56,15 +56,11 @@ const navigation = [
   { name: 'Главная',    href: '/',            icon: 'home' },
   { name: 'Аналитика', href: '/analytics',    icon: 'analytics' },
   // Работа
-  { name: 'Записи',    href: '/bookings',     icon: 'calendar' },
   { name: 'Заказы',    href: '/orders',       icon: 'shopping-cart' },
   { name: 'Клиенты',   href: '/customers',    icon: 'users' },
   // Каталог
   { name: 'Товары',    href: '/products',     icon: 'package' },
   { name: 'Категории', href: '/categories',   icon: 'categories' },
-  // Команда
-  { name: 'Мастера',   href: '/masters',      icon: 'master' },
-  { name: 'Администраторы', href: '/staff',   icon: 'staff',        ownerOnly: true },
   // Маркетинг
   { name: 'Скидки',    href: '/discounts',    icon: 'discount' },
   { name: 'Отзывы',    href: '/reviews',      icon: 'reviews' },
@@ -119,23 +115,13 @@ async function handleLogout() {
         </RouterLink>
       </div>
 
-      <!-- Shop name → opens booking page in new tab -->
-      <a
-        :href="authStore.shop?.api_key ? `/book/${authStore.shop.api_key}` : '#'"
-        target="_blank"
-        rel="noopener"
-        class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0 flex items-center justify-between group hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors"
-      >
-        <div class="min-w-0">
-          <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Интернет-Магазин</p>
-          <p class="font-medium text-gray-900 dark:text-white truncate">
-            {{ authStore.shop?.name || 'Загрузка...' }}
-          </p>
-        </div>
-        <svg v-if="authStore.shop?.id" class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-        </svg>
-      </a>
+      <!-- Shop name -->
+      <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Интернет-Магазин</p>
+        <p class="font-medium text-gray-900 dark:text-white truncate">
+          {{ authStore.shop?.name || 'Загрузка...' }}
+        </p>
+      </div>
 
       <!-- Navigation -->
       <nav class="p-4 space-y-1 flex-1 overflow-y-auto">

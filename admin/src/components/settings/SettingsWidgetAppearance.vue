@@ -52,11 +52,6 @@ const previewUrl = computed(() => {
   if (!key) return null
   return `${_API_BASE || window.location.origin}/book/${key}?preview=1`
 })
-const fullPreviewUrl = computed(() => {
-  const key = authStore.shop?.api_key
-  if (!key) return null
-  return `${_API_BASE || window.location.origin}/book/${key}`
-})
 
 onMounted(() => {
   // Load Google Fonts for preview buttons
@@ -429,17 +424,6 @@ async function saveConfig() {
     >
       <div class="flex items-center justify-between mb-2">
         <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Предпросмотр</span>
-        <a
-          :href="fullPreviewUrl ?? '#'"
-          target="_blank"
-          rel="noopener"
-          class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-          Смотреть как клиент
-        </a>
       </div>
       <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700" style="height:600px;">
         <iframe
