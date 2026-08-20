@@ -4,13 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
+use App\Models\Discount;
 use App\Models\Product;
+use App\Services\DiscountService;
 use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
+    public function __construct(private readonly DiscountService $discountService) {}
+
+    /**
+     * Проставить badge-скидку (auto-apply, см. DiscountService::bestBadgePercent)
+     * каждому товару в коллекции — только для /widget/*, админке это не нужно.
+     * Одна выборка активных скидок на всю коллекцию, а не по одной на товар.
+     */
+    private function attachBadges(iterable $products): void
+    {
+        $activeAutoDiscounts = Discount::active()->whereNull('code')->orderByDesc('priority')->get();
+        if ($activeAutoDiscounts->isEmpty()) return;
+
+        foreach ($products as $product) {
+            $product->discount_percent = $this->discountService->bestBadgePercent($product, $activeAutoDiscounts);
+        }
+    }
+
     /**
      * Get list of products
      *
@@ -64,6 +83,10 @@ class ProductController extends Controller
             $product->rating = $product->rating !== null ? (float) $product->rating : null;
             return $product;
         });
+
+        if ($request->get('_shop')) {
+            $this->attachBadges($products);
+        }
 
         return response()->json([
             'data'  => $products,
@@ -122,6 +145,10 @@ class ProductController extends Controller
 
         $product->loadDetails();
         $product->rating = $product->rating !== null ? (float) $product->rating : null;
+
+        if ($request->get('_shop')) {
+            $this->attachBadges([$product]);
+        }
 
         return response()->json([
             'data' => $product,

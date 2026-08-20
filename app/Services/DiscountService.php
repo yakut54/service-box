@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Discount;
 use App\Models\DiscountUse;
 use App\Models\Order;
+use App\Models\Product;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 class DiscountService
@@ -128,6 +130,57 @@ class DiscountService
         }
 
         return 0;
+    }
+
+    /**
+     * Лучший auto-apply % скидки на конкретный товар — для бейджа в каталоге
+     * (см. ProductController). Не одно и то же с assertUsable(): здесь нет
+     * контекста конкретной корзины/клиента, поэтому min_order_amount и
+     * per_user_limit сознательно не проверяются (это лимиты уровня корзины/
+     * клиента, а бейдж — это «на этот товар вообще есть акция», не гарантия
+     * применимости прямо сейчас). usage_limit проверяется — если акция
+     * исчерпана полностью, бейджу нечего обещать.
+     *
+     * @param  Collection<int, Discount>  $activeAutoDiscounts  см. Discount::active()->whereNull('code')
+     */
+    public function bestBadgePercent(Product $product, Collection $activeAutoDiscounts): ?int
+    {
+        $cartItems = [[
+            'product_id'  => $product->id,
+            'category_id' => $product->category_id,
+            'quantity'    => 1,
+            'price'       => $product->price,
+        ]];
+
+        $best         = null;
+        $bestAmount   = 0;
+        $bestPriority = null;
+
+        foreach ($activeAutoDiscounts as $discount) {
+            if ($bestPriority !== null && $discount->priority < $bestPriority) {
+                break;
+            }
+
+            if ($discount->scope_value) {
+                if ($discount->scope === 'product' && $discount->scope_value !== $product->id) continue;
+                if ($discount->scope === 'category' && $discount->scope_value !== $product->category_id) continue;
+            }
+
+            if ($discount->usage_limit !== null && $discount->usage_count >= $discount->usage_limit) {
+                continue;
+            }
+
+            $amount = $this->calculate($discount, $product->price, $cartItems);
+            if ($amount > $bestAmount) {
+                $bestAmount   = $amount;
+                $best         = $discount;
+                $bestPriority = $discount->priority;
+            }
+        }
+
+        if (!$best || $bestAmount <= 0) return null;
+
+        return (int) round($bestAmount / $product->price * 100);
     }
 
     /**
