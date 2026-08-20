@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Discount;
+use App\Models\Product;
 use App\Services\DiscountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -115,14 +116,51 @@ class DiscountController extends Controller
         return response()->json(['message' => 'Скидка удалена']);
     }
 
+    /**
+     * Собрать cartItems в формате, который ждёт DiscountService, из присланных
+     * клиентом product_id/quantity — цену и category_id берём из БД, а не
+     * доверяем клиенту (то же самое уже делает OrderController::store при
+     * реальном создании заказа; здесь тот же принцип для превью скидки).
+     * Без этого product/category-scoped скидки в assertUsable()/calculate()
+     * тихо считались как cart-scoped — скидка «на конкретный товар» реально
+     * применялась ко всей корзине (баг, найден 2026-08-20).
+     */
+    private function resolveCartItems(Request $request): ?array
+    {
+        $items = $request->input('items');
+        if (!is_array($items) || empty($items)) return null;
+
+        $productIds = collect($items)->pluck('product_id')->filter()->unique()->values();
+        if ($productIds->isEmpty()) return null;
+
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        $cartItems = [];
+        foreach ($items as $item) {
+            $product = $products->get($item['product_id'] ?? null);
+            if (!$product) continue;
+            $cartItems[] = [
+                'product_id'  => $product->id,
+                'category_id' => $product->category_id,
+                'quantity'    => max(1, (int) ($item['quantity'] ?? 1)),
+                'price'       => $product->price,
+            ];
+        }
+
+        return $cartItems ?: null;
+    }
+
     // POST /widget/discount/validate
     // Used by the widget to validate a promo code in real time (before order creation)
     public function widgetValidate(Request $request): JsonResponse
     {
         $request->validate([
-            'code'            => 'required|string',
-            'cart_amount'     => 'required|integer|min:1',
-            'customer_phone'  => 'nullable|string',
+            'code'                  => 'required|string',
+            'cart_amount'           => 'required|integer|min:1',
+            'customer_phone'        => 'nullable|string',
+            'items'                 => 'nullable|array',
+            'items.*.product_id'    => 'nullable|uuid',
+            'items.*.quantity'      => 'nullable|integer|min:1',
         ]);
 
         try {
@@ -130,6 +168,7 @@ class DiscountController extends Controller
                 $request->code,
                 $request->cart_amount,
                 $request->customer_phone,
+                $this->resolveCartItems($request),
             );
 
             $d = $result['discount'];
@@ -153,20 +192,26 @@ class DiscountController extends Controller
     public function widgetAutoApply(Request $request): JsonResponse
     {
         $request->validate([
-            'cart_amount'    => 'required|integer|min:1',
-            'customer_phone' => 'nullable|string',
+            'cart_amount'         => 'required|integer|min:1',
+            'customer_phone'      => 'nullable|string',
+            'items'               => 'nullable|array',
+            'items.*.product_id'  => 'nullable|uuid',
+            'items.*.quantity'    => 'nullable|integer|min:1',
         ]);
+
+        $cartItems = $this->resolveCartItems($request);
 
         $discount = $this->discountService->findAutoApply(
             $request->cart_amount,
             $request->customer_phone,
+            $cartItems,
         );
 
         if (!$discount) {
             return response()->json(['found' => false]);
         }
 
-        $amount = $this->discountService->calculate($discount, $request->cart_amount);
+        $amount = $this->discountService->calculate($discount, $request->cart_amount, $cartItems);
 
         return response()->json([
             'found'          => true,
