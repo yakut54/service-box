@@ -16,6 +16,14 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final imageUrl = product.imageUrl;
+    // Зачёркнутая старая цена показывается только если она реально задана
+    // (compare_price) — для скидок из раздела «Скидки» её просто нет:
+    // это скидка от текущей цены, а не «было/стало», и подделывать «было»
+    // обратным счётом от процента значит рисковать несовпадением с суммой,
+    // которая реально спишется (ровно то, из-за чего искали этот баг).
+    final showOldPrice =
+        product.comparePriceKopecks != null &&
+        product.comparePriceKopecks! > product.priceKopecks;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -123,7 +131,7 @@ class ProductCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (product.hasDiscount) ...[
+                      if (showOldPrice) ...[
                         const SizedBox(width: 6),
                         Text(
                           formatRubles(product.comparePriceKopecks! / 100),

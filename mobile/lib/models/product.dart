@@ -42,9 +42,17 @@ class Product {
   /// core/format.dart → formatRubles(priceRubles).
   final int priceKopecks;
 
-  /// Старая цена «для показа скидки» (админка) — null, если скидку
-  /// показывать не нужно. Скидка есть только если она больше price.
+  /// Старая цена «для показа скидки» (админка, ручное поле) — запасной
+  /// источник бейджа, если для товара нет активной скидки из раздела
+  /// «Скидки» (см. discountPercentFromDiscounts).
   final int? comparePriceKopecks;
+
+  /// % лучшей активной auto-apply скидки (см. Discount, DiscountService::
+  /// bestBadgePercent на бэкенде) — null, если на товар сейчас нет скидки.
+  /// Это ОСНОВНОЙ источник бейджа: реальные скидки настраиваются в разделе
+  /// «Скидки» админки, а не через compare_price, который почти никогда не
+  /// заполнен.
+  final int? discountPercentFromDiscounts;
 
   final String? imageUrl;
   final String? categoryId;
@@ -61,6 +69,7 @@ class Product {
     this.description,
     required this.priceKopecks,
     this.comparePriceKopecks,
+    this.discountPercentFromDiscounts,
     this.imageUrl,
     this.categoryId,
     this.physical,
@@ -71,14 +80,17 @@ class Product {
 
   bool get inStock => physical?.inStock ?? true;
 
-  bool get hasDiscount =>
-      comparePriceKopecks != null && comparePriceKopecks! > priceKopecks;
+  bool get hasDiscount => discountPercent != null;
 
-  /// Округлённый процент скидки для бейджа на карточке — null, если
-  /// скидки нет (см. hasDiscount).
+  /// Процент скидки для бейджа на карточке — null, если скидки нет.
+  /// Приоритет: реальная скидка из раздела «Скидки» (discountPercentFromDiscounts),
+  /// иначе ручное поле compare_price, если оно больше текущей цены.
   int? get discountPercent {
-    if (!hasDiscount) return null;
-    return (100 - (priceKopecks / comparePriceKopecks! * 100)).round();
+    if (discountPercentFromDiscounts != null) return discountPercentFromDiscounts;
+    if (comparePriceKopecks != null && comparePriceKopecks! > priceKopecks) {
+      return (100 - (priceKopecks / comparePriceKopecks! * 100)).round();
+    }
+    return null;
   }
 
   /// Обложка первой, затем доп. фото — то, что реально листает галерея
@@ -94,6 +106,7 @@ class Product {
     description: json['description'] as String?,
     priceKopecks: (json['price'] as num).toInt(),
     comparePriceKopecks: (json['compare_price'] as num?)?.toInt(),
+    discountPercentFromDiscounts: (json['discount_percent'] as num?)?.toInt(),
     imageUrl: json['image_url'] as String?,
     categoryId: json['category_id'] as String?,
     physical: json['physical'] != null
