@@ -12,7 +12,6 @@ import SettingsWidgetAppearance from '@/components/settings/SettingsWidgetAppear
 import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalytics.vue'
 import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue'
 import SettingsYandexDelivery   from '@/components/settings/SettingsYandexDelivery.vue'
-import SettingsApiAccess        from '@/components/settings/SettingsApiAccess.vue'
 import SettingsMasters          from '@/components/settings/SettingsMasters.vue'
 
 const route     = useRoute()
@@ -24,7 +23,6 @@ const tabs = [
   { id: 'notifications', label: 'Уведомления' },
   { id: 'payments',      label: 'Платежи' },
   { id: 'delivery',      label: 'Доставка' },
-  { id: 'integration',   label: 'Интеграция' },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']
@@ -96,11 +94,6 @@ function setTab(id: TabId) {
     <div v-show="activeTab === 'delivery'" class="max-w-xl space-y-6">
       <SettingsDelivery />
       <SettingsYandexDelivery />
-    </div>
-
-    <!-- Интеграция -->
-    <div v-show="activeTab === 'integration'" class="max-w-xl">
-      <SettingsApiAccess />
     </div>
   </div>
 </template>
