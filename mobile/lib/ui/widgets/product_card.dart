@@ -64,6 +64,37 @@ class ProductCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (product.hasDiscount)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.error,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '-${product.discountPercent}%',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onError,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -74,25 +105,41 @@ class ProductCard extends StatelessWidget {
                 children: [
                   Text(
                     product.name,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    formatRubles(product.priceRubles),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        formatRubles(product.priceRubles),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (product.hasDiscount) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          formatRubles(product.comparePriceKopecks! / 100),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: const EdgeInsets.fromLTRB(6, 14, 6, 10),
               child: AddToCartControl(product: product, compact: true),
             ),
           ],

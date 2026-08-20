@@ -42,6 +42,10 @@ class Product {
   /// core/format.dart → formatRubles(priceRubles).
   final int priceKopecks;
 
+  /// Старая цена «для показа скидки» (админка) — null, если скидку
+  /// показывать не нужно. Скидка есть только если она больше price.
+  final int? comparePriceKopecks;
+
   final String? imageUrl;
   final String? categoryId;
   final ProductPhysical? physical;
@@ -56,6 +60,7 @@ class Product {
     required this.name,
     this.description,
     required this.priceKopecks,
+    this.comparePriceKopecks,
     this.imageUrl,
     this.categoryId,
     this.physical,
@@ -65,6 +70,16 @@ class Product {
   double get priceRubles => priceKopecks / 100;
 
   bool get inStock => physical?.inStock ?? true;
+
+  bool get hasDiscount =>
+      comparePriceKopecks != null && comparePriceKopecks! > priceKopecks;
+
+  /// Округлённый процент скидки для бейджа на карточке — null, если
+  /// скидки нет (см. hasDiscount).
+  int? get discountPercent {
+    if (!hasDiscount) return null;
+    return (100 - (priceKopecks / comparePriceKopecks! * 100)).round();
+  }
 
   /// Обложка первой, затем доп. фото — то, что реально листает галерея
   /// на карточке товара.
@@ -78,6 +93,7 @@ class Product {
     name: json['name'] as String,
     description: json['description'] as String?,
     priceKopecks: (json['price'] as num).toInt(),
+    comparePriceKopecks: (json['compare_price'] as num?)?.toInt(),
     imageUrl: json['image_url'] as String?,
     categoryId: json['category_id'] as String?,
     physical: json['physical'] != null

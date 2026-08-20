@@ -36,7 +36,7 @@ class AppException implements Exception {
   factory AppException.network() => const AppException(
     AppErrorKind.network,
     'Нет связи с сервером',
-    hint: 'Проверьте интернет-соединение и попробуйте ещё раз',
+    hint: 'Проверьте интернет-соединение\nи попробуйте ещё раз',
   );
 
   factory AppException.server() => const AppException(

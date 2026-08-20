@@ -5,6 +5,7 @@ import '../core/format.dart';
 import '../data/discount_repository.dart';
 import '../models/cart_item.dart';
 import '../state/cart_state.dart';
+import '../state/shop_state.dart';
 import 'checkout_screen.dart';
 import 'widgets/promo_code_field.dart';
 
@@ -46,10 +47,57 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartState>();
+    final minOrderKopecks = context.watch<ShopState>().shop?.minOrderAmountKopecks ?? 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Корзина')),
-      body: cart.items.isEmpty ? const _EmptyCart() : _CartBody(cart: cart),
+      body: cart.items.isEmpty
+          ? const _EmptyCart()
+          : _CartBody(cart: cart, minOrderKopecks: minOrderKopecks),
+    );
+  }
+}
+
+/// Показывается, пока сумма корзины (до скидки) не дотягивает до
+/// минимума заказа — предупреждает заранее, а не после нажатия
+/// «Оформить заказ» на экране чекаута.
+class _MinOrderHint extends StatelessWidget {
+  final double missingRubles;
+
+  const _MinOrderHint({required this.missingRubles});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.tertiaryContainer.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18,
+            color: scheme.onTertiaryContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Добавьте товаров ещё на ${formatRubles(missingRubles)} '
+              'до минимальной суммы заказа',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onTertiaryContainer,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -90,13 +138,18 @@ class _EmptyCart extends StatelessWidget {
 
 class _CartBody extends StatelessWidget {
   final CartState cart;
+  final int minOrderKopecks;
 
-  const _CartBody({required this.cart});
+  const _CartBody({required this.cart, required this.minOrderKopecks});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final discount = cart.discount;
+    // Проверяем сумму ДО скидки — так же, как это делает бэкенд
+    // (OrderController::store считает минимум по корзине до скидки).
+    final missingKopecks = minOrderKopecks - cart.totalKopecks;
+    final belowMinimum = missingKopecks > 0;
 
     return Column(
       children: [
@@ -163,13 +216,21 @@ class _CartBody extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (belowMinimum) ...[
+                  const SizedBox(height: 10),
+                  _MinOrderHint(missingRubles: missingKopecks / 100),
+                ],
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CheckoutScreen()),
-                    ),
+                    onPressed: belowMinimum
+                        ? null
+                        : () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const CheckoutScreen(),
+                            ),
+                          ),
                     child: const Text('Оформить заказ'),
                   ),
                 ),

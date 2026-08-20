@@ -60,6 +60,11 @@ class SavedShop {
   /// на экране оформления просто не показываем строку с адресом.
   final String? pickupAddress;
 
+  /// Минимальная сумма заказа — платформенная константа, одна на всех
+  /// шоперов (см. config/platform.php на бэкенде, «как в пиццериях»).
+  /// Приходит с сервера, а не зашита в приложении, чтобы не рассинхронизироваться.
+  final int minOrderAmountKopecks;
+
   const SavedShop({
     required this.appCode,
     required this.shopId,
@@ -67,6 +72,7 @@ class SavedShop {
     required this.theme,
     this.timezone,
     this.pickupAddress,
+    this.minOrderAmountKopecks = 0,
   });
 
   /// Разбор настоящего ответа GET /widget/shop. Здесь нет api_key в теле
@@ -91,6 +97,8 @@ class SavedShop {
       pickupAddress: (pickupAddress != null && pickupAddress.isNotEmpty)
           ? pickupAddress
           : null,
+      minOrderAmountKopecks:
+          (json['min_order_amount_kopecks'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -101,6 +109,8 @@ class SavedShop {
     theme: ShopTheme.fromJson(json['theme'] as Map<String, dynamic>?),
     timezone: json['timezone'] as String?,
     pickupAddress: json['pickup_address'] as String?,
+    minOrderAmountKopecks:
+        (json['min_order_amount_kopecks'] as num?)?.toInt() ?? 0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -110,5 +120,6 @@ class SavedShop {
     'theme': theme.toJson(),
     'timezone': timezone,
     'pickup_address': pickupAddress,
+    'min_order_amount_kopecks': minOrderAmountKopecks,
   };
 }

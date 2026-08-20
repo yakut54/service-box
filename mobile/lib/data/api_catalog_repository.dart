@@ -27,7 +27,7 @@ class ApiCatalogRepository implements CatalogRepository {
         'active': 'true',
         // MVP мобильного приложения — только физические товары.
         'type': 'physical',
-        if (categoryId != null) 'category_id': categoryId,
+        'category_id': ?categoryId,
         if (search != null && search.isNotEmpty) 'search': search,
       },
     );
