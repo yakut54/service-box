@@ -35,6 +35,7 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final found = await DiscountRepository.create().autoApply(
         cart.totalKopecks,
+        cart.items,
       );
       if (found != null && mounted) {
         context.read<CartState>().setDiscount(found);

@@ -43,6 +43,7 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
       final discount = await DiscountRepository.create().validate(
         code,
         cart.totalKopecks,
+        cart.items,
       );
       if (!mounted) return;
       cart.setDiscount(discount);
