@@ -93,9 +93,11 @@ async function save() {
     </div>
 
     <template v-else>
+      <!-- Курьер и Почта/СДЭК скрыты (2026-08-20) — пока в фокусе самовывоз и
+           Яндекс.Доставка; их состояние никуда не делось и сохраняется на save() как есть. -->
       <div class="flex flex-col gap-4">
         <div
-          v-for="key in ['pickup', 'courier', 'postal']"
+          v-for="key in ['pickup']"
           :key="key"
           class="rounded-lg border transition-colors"
           :class="methods[key].enabled

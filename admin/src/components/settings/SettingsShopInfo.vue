@@ -44,18 +44,10 @@ async function save() {
         <input v-model="shopName" type="text" class="input" placeholder="Название магазина" />
       </div>
       <div>
-        <p class="label">Сайт магазина <span class="text-gray-400 font-normal">(используется в Telegram-уведомлениях)</span></p>
-        <input v-model="shopDomain" type="url" class="input" placeholder="https://example.com" />
-      </div>
-      <div>
         <button @click="save" :disabled="saving" class="btn-primary">
           {{ saving ? 'Сохраняем…' : success ? 'Сохранено!' : 'Сохранить' }}
         </button>
         <p v-if="error" class="text-red-500 text-xs mt-1">{{ error }}</p>
-      </div>
-      <div>
-        <p class="label">API ключ</p>
-        <input type="text" :value="authStore.shop?.api_key" class="input font-mono text-sm" disabled />
       </div>
     </div>
   </div>

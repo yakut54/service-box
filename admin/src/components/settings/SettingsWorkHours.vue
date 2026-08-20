@@ -18,27 +18,6 @@ const saving       = ref(false)
 const success      = ref(false)
 const error        = ref('')
 
-const noticeOptions = [
-  { value: '0',    label: 'Без ограничений' },
-  { value: '30',   label: '30 минут' },
-  { value: '60',   label: '1 час' },
-  { value: '120',  label: '2 часа' },
-  { value: '180',  label: '3 часа' },
-  { value: '360',  label: '6 часов' },
-  { value: '720',  label: '12 часов' },
-  { value: '1440', label: '24 часа' },
-  { value: '2880', label: '48 часов' },
-]
-
-const slotOptions = [
-  { value: '10', label: '10 минут' },
-  { value: '15', label: '15 минут' },
-  { value: '20', label: '20 минут' },
-  { value: '30', label: '30 минут' },
-  { value: '45', label: '45 минут' },
-  { value: '60', label: '1 час' },
-]
-
 onMounted(() => {
   if (authStore.shop) {
     workStart.value    = authStore.shop.work_start    || '09:00'
@@ -85,7 +64,7 @@ async function save() {
 <template>
   <div class="card">
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Рабочие часы</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Время работы и шаг слотов для записи</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Время работы магазина</p>
 
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
@@ -96,17 +75,6 @@ async function save() {
         <p class="label">Конец рабочего дня</p>
         <TimeInput v-model="workEnd" />
       </div>
-    </div>
-
-    <div class="mb-4">
-      <p class="label">Шаг слота (интервал записи)</p>
-      <CustomSelect v-model="slotDuration" :options="slotOptions" placeholder="Выберите интервал" />
-    </div>
-
-    <div class="mb-4">
-      <p class="label">Минимальное время до записи онлайн</p>
-      <CustomSelect v-model="minBookingNotice" :options="noticeOptions" placeholder="Выберите ограничение" />
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Слоты ближе этого времени не будут показаны в виджете</p>
     </div>
 
     <div class="mb-4">
