@@ -52,6 +52,7 @@ class ShopController extends Controller
             'prepayment_enabled'  => (bool) $shop->prepayment_enabled,
             'prepayment_amount'   => (int) $shop->prepayment_amount,
             'delivery_settings'   => $enabledMethods ?: null,
+            'min_order_amount_kopecks' => (int) config('platform.min_order_amount_kopecks'),
             'legal'             => [
                 'has_docs'          => $shop->hasLegalDocs(),
                 'offer_url'         => route('legal.document', [$shop->api_key, 'offer']),
