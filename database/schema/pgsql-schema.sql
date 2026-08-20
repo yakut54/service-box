@@ -191,6 +191,8 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         customer_id             UUID REFERENCES %I.customers(id) ON DELETE SET NULL,
                         status                  TEXT DEFAULT 'pending',
                         total_price             INTEGER DEFAULT 0,
+                        commission_amount       INTEGER NOT NULL DEFAULT 0,
+                        payout_status           TEXT NOT NULL DEFAULT 'pending' CHECK (payout_status IN ('pending','transferred','failed')),
                         discount_id             UUID REFERENCES %I.discounts(id) ON DELETE SET NULL,
                         discount_code           TEXT,
                         discount_amount         INTEGER NOT NULL DEFAULT 0,
@@ -488,22 +490,6 @@ ALTER SEQUENCE public.personal_access_tokens_id_seq OWNED BY public.personal_acc
 
 
 --
--- Name: plan_pricing; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE IF NOT EXISTS public.plan_pricing (
-    plan character varying(255) NOT NULL,
-    price_kopecks integer NOT NULL,
-    created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone,
-    max_orders_per_month integer,
-    max_masters integer,
-    features jsonb DEFAULT '[]'::jsonb NOT NULL,
-    capabilities jsonb DEFAULT '[]'::jsonb NOT NULL
-);
-
-
---
 -- Name: shop_staff; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -549,8 +535,6 @@ CREATE TABLE IF NOT EXISTS public.shops (
     robokassa_login character varying(255),
     robokassa_password1 character varying(255),
     robokassa_password2 character varying(255),
-    subscription_plan character varying(255) DEFAULT 'micro'::character varying NOT NULL,
-    subscription_expires_at timestamp(0) without time zone,
     widget_config json NOT NULL,
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
@@ -566,48 +550,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     prepayment_enabled boolean DEFAULT false NOT NULL,
     prepayment_amount integer DEFAULT 0 NOT NULL,
     hide_customer_phone boolean DEFAULT false NOT NULL,
-    CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[]))),
-    CONSTRAINT shops_subscription_plan_check CHECK (((subscription_plan)::text = ANY ((ARRAY['micro'::character varying, 'start'::character varying, 'business'::character varying, 'pro'::character varying])::text[])))
-);
-
-
---
--- Name: subscription_payments; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE IF NOT EXISTS public.subscription_payments (
-    id uuid NOT NULL,
-    shop_id uuid NOT NULL,
-    payment_id character varying(255) NOT NULL,
-    plan character varying(255) NOT NULL,
-    amount integer NOT NULL,
-    currency character varying(255) DEFAULT 'RUB'::character varying NOT NULL,
-    status character varying(255) DEFAULT 'pending'::character varying NOT NULL,
-    period_start timestamp(0) without time zone,
-    period_end timestamp(0) without time zone,
-    metadata json,
-    paid_at timestamp(0) without time zone,
-    created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone,
-    CONSTRAINT subscription_payments_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'succeeded'::character varying, 'canceled'::character varying, 'failed'::character varying])::text[])))
-);
-
-
---
--- Name: subscriptions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE IF NOT EXISTS public.subscriptions (
-    id uuid NOT NULL,
-    shop_id uuid NOT NULL,
-    plan character varying(255) NOT NULL,
-    amount_kopecks integer NOT NULL,
-    payment_id character varying(255),
-    payment_provider character varying(255),
-    paid_at timestamp(0) without time zone,
-    expires_at timestamp(0) without time zone NOT NULL,
-    created_at timestamp(0) without time zone,
-    updated_at timestamp(0) without time zone
+    CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
 
 
@@ -649,7 +592,7 @@ CREATE TABLE IF NOT EXISTS public.telegram_messages (
     retry_count integer DEFAULT 0 NOT NULL,
     last_retry_at timestamp(0) without time zone,
     CONSTRAINT telegram_messages_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'sent'::character varying, 'failed'::character varying, 'delivered'::character varying])::text[]))),
-    CONSTRAINT telegram_messages_type_check CHECK (((type)::text = ANY ((ARRAY['order_notification'::character varying, 'booking_notification'::character varying, 'booking_reminder'::character varying, 'subscription_expiring'::character varying, 'subscription_expired'::character varying, 'payment_success'::character varying, 'system_notification'::character varying])::text[])))
+    CONSTRAINT telegram_messages_type_check CHECK (((type)::text = ANY ((ARRAY['order_notification'::character varying, 'booking_notification'::character varying, 'booking_reminder'::character varying, 'payment_success'::character varying, 'system_notification'::character varying])::text[])))
 );
 
 
@@ -727,14 +670,6 @@ ALTER TABLE ONLY public.personal_access_tokens
 
 
 --
--- Name: plan_pricing plan_pricing_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.plan_pricing
-    ADD CONSTRAINT plan_pricing_pkey PRIMARY KEY (plan);
-
-
---
 -- Name: shop_staff shop_staff_invite_token_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -780,30 +715,6 @@ ALTER TABLE ONLY public.shops
 
 ALTER TABLE ONLY public.shops
     ADD CONSTRAINT shops_schema_name_unique UNIQUE (schema_name);
-
-
---
--- Name: subscription_payments subscription_payments_payment_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscription_payments
-    ADD CONSTRAINT subscription_payments_payment_id_unique UNIQUE (payment_id);
-
-
---
--- Name: subscription_payments subscription_payments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscription_payments
-    ADD CONSTRAINT subscription_payments_pkey PRIMARY KEY (id);
-
-
---
--- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscriptions
-    ADD CONSTRAINT subscriptions_pkey PRIMARY KEY (id);
 
 
 --
@@ -881,47 +792,6 @@ CREATE INDEX shop_staff_messenger_link_token_index ON public.shop_staff USING bt
 CREATE INDEX shops_user_id_index ON public.shops USING btree (user_id);
 
 
---
--- Name: subscription_payments_payment_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscription_payments_payment_id_index ON public.subscription_payments USING btree (payment_id);
-
-
---
--- Name: subscription_payments_shop_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscription_payments_shop_id_index ON public.subscription_payments USING btree (shop_id);
-
-
---
--- Name: subscription_payments_shop_id_status_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscription_payments_shop_id_status_index ON public.subscription_payments USING btree (shop_id, status);
-
-
---
--- Name: subscription_payments_status_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscription_payments_status_index ON public.subscription_payments USING btree (status);
-
-
---
--- Name: subscriptions_expires_at_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscriptions_expires_at_index ON public.subscriptions USING btree (expires_at);
-
-
---
--- Name: subscriptions_shop_id_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX subscriptions_shop_id_index ON public.subscriptions USING btree (shop_id);
-
 
 --
 -- Name: telegram_codes_code_used_index; Type: INDEX; Schema: public; Owner: -
@@ -993,22 +863,6 @@ ALTER TABLE ONLY public.shop_staff
 
 ALTER TABLE ONLY public.shop_staff
     ADD CONSTRAINT shop_staff_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
-
-
---
--- Name: subscription_payments subscription_payments_shop_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscription_payments
-    ADD CONSTRAINT subscription_payments_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
-
-
---
--- Name: subscriptions subscriptions_shop_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.subscriptions
-    ADD CONSTRAINT subscriptions_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
 
 
 --
