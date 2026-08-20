@@ -19,7 +19,7 @@ class StoreOrderRequest extends FormRequest
             'items.*.quantity' => 'required|integer|min:1|max:999',
 
             'customer.name' => 'required|string|max:255',
-            'customer.email' => 'required|email|max:255',
+            'customer.email' => 'nullable|email|max:255',
             'customer.phone' => 'required|string|max:20',
 
             'shipping_address' => 'nullable|array',
@@ -54,7 +54,6 @@ class StoreOrderRequest extends FormRequest
 
             'customer.name.required' => 'Укажите имя',
             'customer.name.max' => 'Имя не должно превышать 255 символов',
-            'customer.email.required' => 'Укажите email',
             'customer.email.email' => 'Неверный формат email',
             'customer.email.max' => 'Email не должен превышать 255 символов',
             'customer.phone.required' => 'Укажите телефон',

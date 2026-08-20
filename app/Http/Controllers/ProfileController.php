@@ -103,6 +103,7 @@ class ProfileController extends Controller
         return [
             'name' => $customer->name,
             'phone' => $customer->phone,
+            'email' => $customer->email,
             'avatar_url' => $customer->avatar_url,
             'total_orders' => $customer->total_orders,
             'total_spent' => $customer->total_spent,
