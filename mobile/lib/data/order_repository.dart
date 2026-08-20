@@ -9,7 +9,7 @@ import 'api_order_repository.dart';
 abstract class OrderRepository {
   Future<Order> createOrder({
     required String name,
-    required String email,
+    String? email,
     required String phone,
     required List<CartItem> items,
     String? discountCode,

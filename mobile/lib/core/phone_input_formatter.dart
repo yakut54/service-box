@@ -31,7 +31,7 @@ class RussianPhoneInputFormatter extends TextInputFormatter {
       digitsBeforeCursor = digits;
     }
 
-    final formatted = _format(digits);
+    final formatted = format(digits);
     final cursor = _cursorForDigitCount(formatted, digitsBeforeCursor.length);
 
     return TextEditingValue(
@@ -43,7 +43,10 @@ class RussianPhoneInputFormatter extends TextInputFormatter {
   static String _digitsOnly(String value) =>
       value.replaceAll(RegExp(r'\D'), '');
 
-  static String _format(String digits) {
+  /// Публичный доступ к маске — нужен, чтобы форматировать телефон при
+  /// автозаполнении из профиля (уже нормализованный "+7XXXXXXXXXX" с
+  /// бэкенда), не только на вводе через сам форматтер.
+  static String format(String digits) {
     if (digits.isEmpty) return '';
     final buffer = StringBuffer('+7');
     if (digits.length <= 1) return buffer.toString();

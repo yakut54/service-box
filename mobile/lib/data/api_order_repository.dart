@@ -10,7 +10,7 @@ class ApiOrderRepository implements OrderRepository {
   @override
   Future<Order> createOrder({
     required String name,
-    required String email,
+    String? email,
     required String phone,
     required List<CartItem> items,
     String? discountCode,
@@ -24,7 +24,11 @@ class ApiOrderRepository implements OrderRepository {
             },
           )
           .toList(),
-      'customer': {'name': name, 'email': email, 'phone': phone},
+      'customer': {
+        'name': name,
+        'email': (email == null || email.trim().isEmpty) ? null : email,
+        'phone': phone,
+      },
       if (discountCode != null && discountCode.isNotEmpty)
         'discount_code': discountCode,
     });

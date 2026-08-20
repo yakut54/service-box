@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../models/product.dart';
 import '../product_detail_screen.dart';
+import 'add_to_cart_control.dart';
 
 /// Карточка товара в сетке каталога: фото, название, цена, бейдж наличия.
 /// Тап открывает карточку товара (ProductDetailScreen).
@@ -67,7 +68,7 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -89,6 +90,10 @@ class ProductCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: AddToCartControl(product: product, compact: true),
             ),
           ],
         ),

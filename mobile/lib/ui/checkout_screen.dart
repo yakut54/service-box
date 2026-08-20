@@ -3,14 +3,18 @@ import 'package:provider/provider.dart';
 
 import '../core/app_exception.dart';
 import '../core/format.dart';
+import '../core/phone_input_formatter.dart';
 import '../data/checkout_draft_store.dart';
 import '../data/order_repository.dart';
+import '../data/profile_repository.dart';
+import '../state/auth_state.dart';
 import '../state/cart_state.dart';
 import '../state/shop_state.dart';
 import 'order_confirmation_screen.dart';
 import 'widgets/form/email_field.dart';
 import 'widgets/form/name_field.dart';
 import 'widgets/form/phone_field.dart';
+import 'widgets/delivery_method_selector.dart';
 import 'widgets/form/primary_submit_button.dart';
 import 'widgets/pickup_address_card.dart';
 
@@ -36,6 +40,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   bool _submitting = false;
   AppException? _error;
+  DeliveryMethod _delivery = DeliveryMethod.pickup;
 
   @override
   void initState() {
@@ -60,10 +65,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _restoreDraft() async {
     final draft = await _draftStore.load();
-    if (draft == null || !mounted) return;
-    _nameController.text = draft['name'] ?? '';
-    _phoneController.text = draft['phone'] ?? '';
-    _emailController.text = draft['email'] ?? '';
+    if (!mounted) return;
+    _nameController.text = draft?['name'] ?? '';
+    _phoneController.text = draft?['phone'] ?? '';
+    _emailController.text = draft?['email'] ?? '';
+    await _prefillFromProfile();
+  }
+
+  /// Авторизованный покупатель не должен набирать то, что мы и так знаем.
+  /// Черновик формы (если есть) имеет приоритет — это его недавний ручной
+  /// ввод. Тихо игнорируем ошибку сети: профиль — это только удобство,
+  /// не блокер оформления заказа.
+  Future<void> _prefillFromProfile() async {
+    if (!mounted) return;
+    final token = context.read<AuthState>().session?.sessionToken;
+    if (token == null) return;
+
+    try {
+      final profile = await ProfileRepository.create().fetch(token);
+      if (!mounted) return;
+      if (_nameController.text.trim().isEmpty) {
+        _nameController.text = profile.name;
+      }
+      if (_phoneController.text.trim().isEmpty) {
+        final digits = profile.phone.replaceAll(RegExp(r'\D'), '');
+        _phoneController.text = RussianPhoneInputFormatter.format(digits);
+      }
+      if (_emailController.text.trim().isEmpty && profile.email != null) {
+        _emailController.text = profile.email!;
+      }
+    } catch (_) {
+      // офлайн/ошибка сети — просто не автозаполнили, ничего критичного
+    }
   }
 
   void _saveDraft() {
@@ -75,6 +108,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _submit() async {
+    if (_delivery == DeliveryMethod.yandex) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -152,17 +186,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: theme.textTheme.titleMedium,
                 ),
               ],
-              const SizedBox(height: 4),
-              Text(
-                'Самовывоз',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              const SizedBox(height: 12),
+              DeliveryMethodSelector(
+                value: _delivery,
+                onChanged: (method) => setState(() => _delivery = method),
               ),
-              if (pickupAddress != null) ...[
-                const SizedBox(height: 10),
-                PickupAddressCard(address: pickupAddress),
-              ],
+              const SizedBox(height: 12),
+              if (_delivery == DeliveryMethod.pickup && pickupAddress != null)
+                PickupAddressCard(address: pickupAddress)
+              else if (_delivery == DeliveryMethod.yandex)
+                const YandexDeliveryComingSoon(),
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -176,7 +209,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               PrimarySubmitButton(
                 label: 'Оформить заказ',
                 loading: _submitting,
-                onPressed: _submit,
+                onPressed: _delivery == DeliveryMethod.yandex ? null : _submit,
               ),
             ],
           ),

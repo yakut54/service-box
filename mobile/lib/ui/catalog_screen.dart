@@ -154,7 +154,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 0.68,
+          // Ниже, чем раньше (было 0.68) — карточка теперь несёт кнопку
+          // «В корзину»/степпер снизу, нужно место под них.
+          childAspectRatio: 0.58,
         ),
         itemCount: state.products.length,
         itemBuilder: (context, index) =>

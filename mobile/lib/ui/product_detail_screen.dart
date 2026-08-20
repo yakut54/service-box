@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../core/app_exception.dart';
 import '../core/format.dart';
 import '../data/catalog_repository.dart';
 import '../models/product.dart';
-import '../state/cart_state.dart';
+import 'widgets/add_to_cart_control.dart';
 import 'widgets/cart_button.dart';
 import 'widgets/error_view.dart';
 
@@ -70,18 +69,10 @@ class _ProductDetailBody extends StatelessWidget {
 
   const _ProductDetailBody({required this.product});
 
-  int? get _maxQuantity {
-    final physical = product.physical;
-    if (physical == null || physical.allowBackorder) return null;
-    return physical.stockQuantity;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final maxQuantity = _maxQuantity;
     final inStock = product.inStock;
-    final inCartQuantity = context.watch<CartState>().quantityOf(product.id);
 
     return Column(
       children: [
@@ -134,26 +125,7 @@ class _ProductDetailBody extends StatelessWidget {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: !inStock
-                  ? const FilledButton(
-                      onPressed: null,
-                      child: Text('Нет в наличии'),
-                    )
-                  : inCartQuantity == 0
-                  ? FilledButton.icon(
-                      onPressed: () =>
-                          context.read<CartState>().add(product, 1),
-                      icon: const Icon(Icons.add_shopping_cart_rounded),
-                      label: const Text('В корзину'),
-                    )
-                  : _InCartStepper(
-                      product: product,
-                      quantity: inCartQuantity,
-                      maxQuantity: maxQuantity,
-                    ),
-            ),
+            child: AddToCartControl(product: product),
           ),
         ),
       ],
@@ -290,66 +262,6 @@ class _CharacteristicsList extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// Заменяет кнопку «В корзину», как только в корзине уже есть этот товар —
-/// +/- сразу пишут в CartState, второй раз тапать «В корзину» не нужно.
-/// «−» на количестве 1 удаляет позицию (та же семантика, что и в корзине).
-class _InCartStepper extends StatelessWidget {
-  final Product product;
-  final int quantity;
-  final int? maxQuantity;
-
-  const _InCartStepper({
-    required this.product,
-    required this.quantity,
-    required this.maxQuantity,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final canIncrease = maxQuantity == null || quantity < maxQuantity!;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () =>
-                context.read<CartState>().setQuantity(product, quantity - 1),
-            icon: Icon(
-              quantity == 1
-                  ? Icons.delete_outline_rounded
-                  : Icons.remove_rounded,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'В корзине: $quantity шт.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: canIncrease
-                ? () => context.read<CartState>().setQuantity(
-                    product,
-                    quantity + 1,
-                  )
-                : null,
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
-      ),
     );
   }
 }
