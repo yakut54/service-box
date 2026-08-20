@@ -24,13 +24,18 @@ function handleQuantityChange(itemId: string, delta: number) {
   cartStore.updateQuantity(itemId, current + delta)
 }
 
+// Бэкенду нужен состав корзины, чтобы проверить scope у product/category-скидок.
+function discountItemsPayload() {
+  return cartStore.items.map(i => ({ product_id: i.id, quantity: i.quantity }))
+}
+
 async function applyPromo() {
   const code = promoInput.value.trim().toUpperCase()
   if (!code) return
   promoLoading.value = true
   promoError.value = ''
   try {
-    const res = await shopStore.getApi().validateDiscount(code, cartStore.total)
+    const res = await shopStore.getApi().validateDiscount(code, cartStore.total, discountItemsPayload())
     cartStore.setDiscount({ code, name: res.name, amount: res.discount_amount })
     promoExpanded.value = false
     promoInput.value = ''
@@ -54,7 +59,7 @@ async function checkAutoDiscount() {
     return
   }
   try {
-    const res = await shopStore.getApi().autoApplyDiscount(cartStore.total)
+    const res = await shopStore.getApi().autoApplyDiscount(cartStore.total, discountItemsPayload())
     if (res.found && res.name && res.discount_amount) {
       cartStore.setDiscount({ code: '', name: res.name, amount: res.discount_amount })
     } else if (!cartStore.discount?.code) {

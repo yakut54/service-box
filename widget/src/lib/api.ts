@@ -9,6 +9,11 @@ import type {
   ReviewStats,
 } from '@/types'
 
+export interface DiscountCartItem {
+  product_id: string
+  quantity: number
+}
+
 export class WidgetApiError extends Error {
   constructor(public status: number, message: string) {
     super(message)
@@ -175,7 +180,10 @@ export class WidgetApi {
   }
 
   // Discounts
-  async validateDiscount(code: string, cartAmount: number) {
+  // items — товары в корзине, нужны бэкенду чтобы проверить scope у
+  // product/category-скидок (иначе скидка на один товар молча считается
+  // от всей корзины — баг, найден 2026-08-20, см. тот же фикс в mobile).
+  async validateDiscount(code: string, cartAmount: number, items: DiscountCartItem[]) {
     return this.request<{
       valid: boolean
       discount_id: string
@@ -185,11 +193,11 @@ export class WidgetApi {
       discount_amount: number
     }>('/widget/discount/validate', {
       method: 'POST',
-      body: JSON.stringify({ code, cart_amount: cartAmount }),
+      body: JSON.stringify({ code, cart_amount: cartAmount, items }),
     })
   }
 
-  async autoApplyDiscount(cartAmount: number, customerPhone?: string) {
+  async autoApplyDiscount(cartAmount: number, items: DiscountCartItem[], customerPhone?: string) {
     return this.request<{
       found: boolean
       discount_id?: string
@@ -199,7 +207,7 @@ export class WidgetApi {
       discount_amount?: number
     }>('/widget/discount/auto-apply', {
       method: 'POST',
-      body: JSON.stringify({ cart_amount: cartAmount, customer_phone: customerPhone ?? null }),
+      body: JSON.stringify({ cart_amount: cartAmount, items, customer_phone: customerPhone ?? null }),
     })
   }
 }
