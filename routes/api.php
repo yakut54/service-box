@@ -7,6 +7,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\MasterController;
@@ -165,6 +166,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])-
     Route::post('/products/{product}/images', [ProductImageController::class, 'store']);
     Route::patch('/products/{product}/images/reorder', [ProductImageController::class, 'reorder']);
     Route::delete('/products/{product}/images/{image}', [ProductImageController::class, 'destroy']);
+
+    // Commission
+    Route::get('/commission', [CommissionController::class, 'index']);
 
     // Orders
     Route::get('/orders/stats', [OrderController::class, 'stats']);

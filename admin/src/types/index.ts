@@ -12,6 +12,28 @@ export interface User {
 }
 
 // ==========================================
+// COMMISSION
+// ==========================================
+
+export interface Commission {
+  commission_percent: number
+  min_order_amount_kopecks: number
+  commission_total_kopecks: number
+  commission_total_rubles: number
+  commission_last_30d_kopecks: number
+  commission_last_30d_rubles: number
+  commission_month_kopecks: number
+  commission_month_rubles: number
+  recent_orders: Array<{
+    id: string
+    total_price: number
+    commission_amount: number
+    status: string
+    created_at: string
+  }>
+}
+
+// ==========================================
 // SUPERADMIN
 // ==========================================
 

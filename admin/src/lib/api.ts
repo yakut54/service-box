@@ -14,6 +14,7 @@ import type {
   PaginatedResponse,
   SuperadminShop,
   SuperadminRevenue,
+  Commission,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -454,6 +455,14 @@ class ApiClient {
     return this.request<{ message: string }>(`/admin/discounts/${id}`, {
       method: 'DELETE',
     })
+  }
+
+  // ==========================================
+  // COMMISSION
+  // ==========================================
+
+  async getCommission() {
+    return this.request<Commission>('/admin/commission')
   }
 
   // ==========================================

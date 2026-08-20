@@ -25,6 +25,7 @@ const CRUMBS: Record<string, CrumbDef> = {
   'master-detail':   { label: 'Мастер',                               parent: 'masters'   },
   'discounts':       { label: 'Скидки',          to: '/discounts',    parent: 'dashboard' },
   'reviews':         { label: 'Отзывы',          to: '/reviews',      parent: 'dashboard' },
+  'commission':      { label: 'Комиссия',        to: '/commission',   parent: 'dashboard' },
   'settings':        { label: 'Настройки',       to: '/settings',     parent: 'dashboard' },
 }
 

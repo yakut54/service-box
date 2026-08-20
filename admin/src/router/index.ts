@@ -124,6 +124,12 @@ const router = createRouter({
           meta: { requiresOwner: true, hidden: true },
         },
         {
+          path: 'commission',
+          name: 'commission',
+          component: () => import('@/views/CommissionView.vue'),
+          meta: { requiresOwner: true },
+        },
+        {
           path: 'legal',
           name: 'legal',
           component: () => import('@/views/LegalView.vue'),
