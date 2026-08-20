@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SettingsShopInfo         from '@/components/settings/SettingsShopInfo.vue'
+import SettingsBrand            from '@/components/settings/SettingsBrand.vue'
 import SettingsEmbedCode        from '@/components/settings/SettingsEmbedCode.vue'
 import SettingsPassword         from '@/components/settings/SettingsPassword.vue'
 import SettingsTelegram         from '@/components/settings/SettingsTelegram.vue'
@@ -17,9 +18,12 @@ import SettingsMasters          from '@/components/settings/SettingsMasters.vue'
 const route     = useRoute()
 const router    = useRouter()
 
+// 'widget' скрыта из таб-бара (2026-08-20) — цвет+лого переехали в SettingsBrand
+// на вкладке "Основное", остальное (тема/шрифт/embed/аналитика) пока не в фокусе
+// (см. PLAN.md). Компонент и вкладка остаются в коде, просто недоступны из UI.
 const tabs = [
   { id: 'main',          label: 'Основное' },
-  { id: 'widget',        label: 'Виджет' },
+  { id: 'widget',        label: 'Виджет', hidden: true },
   { id: 'notifications', label: 'Уведомления' },
   { id: 'payments',      label: 'Платежи' },
   { id: 'delivery',      label: 'Доставка' },
@@ -27,9 +31,13 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]['id']
 
+const visibleTabs = computed(() => tabs.filter(tab => !('hidden' in tab && tab.hidden)))
+
 const activeTab = computed<TabId>(() => {
   const t = route.query.tab as string | undefined
-  return (tabs.some(tab => tab.id === t) ? t : 'main') as TabId
+  const match = tabs.find(tab => tab.id === t)
+  if (!match || ('hidden' in match && match.hidden)) return 'main'
+  return match.id
 })
 
 function setTab(id: TabId) {
@@ -47,7 +55,7 @@ function setTab(id: TabId) {
     <!-- Tab bar -->
     <div class="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6 overflow-x-auto">
       <button
-        v-for="tab in tabs"
+        v-for="tab in visibleTabs"
         :key="tab.id"
         type="button"
         @click="setTab(tab.id)"
@@ -62,6 +70,7 @@ function setTab(id: TabId) {
     <div v-show="activeTab === 'main'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div class="flex flex-col gap-6">
         <SettingsShopInfo />
+        <SettingsBrand />
         <SettingsPassword />
       </div>
       <div class="flex flex-col gap-6">
