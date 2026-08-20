@@ -141,22 +141,35 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     final cartHasItems = context.watch<CartState>().itemCount > 0;
 
+    // childAspectRatio задаёт единое отношение ширина/высота на всю
+    // ячейку, а у карточки высота — это картинка-квадрат (растёт вместе
+    // с шириной экрана) ПЛЮС подпись с кнопкой снизу (высота которых от
+    // ширины экрана не зависит). Один фиксированный ratio не может
+    // описать сумму «переменное + постоянное» сразу для всех устройств —
+    // на широких экранах картинка растёт быстрее, чем нужно, и под
+    // кнопкой остаётся пустое место (см. скрин с эмулятора). Поэтому
+    // считаем высоту ячейки явно: ширина колонки (= высота картинки) +
+    // фиксированная высота футера (имя + цена + кнопка, см. ProductCard).
+    const gridPadding = 12.0;
+    const crossAxisSpacing = 12.0;
+    const cardFooterHeight = 130.0;
+    final columnWidth =
+        (MediaQuery.sizeOf(context).width - gridPadding * 2 - crossAxisSpacing) / 2;
+
     return RefreshIndicator(
       onRefresh: () => context.read<CatalogState>().load(),
       child: GridView.builder(
         padding: EdgeInsets.fromLTRB(
-          12,
-          12,
-          12,
-          cartHasItems ? miniCartBarReservedHeight : 12,
+          gridPadding,
+          gridPadding,
+          gridPadding,
+          cartHasItems ? miniCartBarReservedHeight : gridPadding,
         ),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          // Ниже, чем раньше (было 0.68) — карточка теперь несёт кнопку
-          // «В корзину»/степпер снизу, нужно место под них.
-          childAspectRatio: 0.58,
+          crossAxisSpacing: crossAxisSpacing,
+          mainAxisExtent: columnWidth + cardFooterHeight,
         ),
         itemCount: state.products.length,
         itemBuilder: (context, index) =>
