@@ -24,6 +24,15 @@ class ProductController extends Controller
             $query->ofType($request->type);
         }
 
+        // Entitlements (только для /widget/*, не для админки) — см. МФ4 в PLAN.md.
+        // Физические товары всегда доступны, digital/service гейтятся по флагу.
+        if ($shop = $request->get('_shop')) {
+            $hiddenTypes = [];
+            if (!$shop->hasFeature('digital_goods')) $hiddenTypes[] = 'digital';
+            if (!$shop->hasFeature('booking'))        $hiddenTypes[] = 'service';
+            if ($hiddenTypes) $query->whereNotIn('type', $hiddenTypes);
+        }
+
         if ($request->has('active')) {
             $active = filter_var($request->active, FILTER_VALIDATE_BOOLEAN);
             if ($active) {
@@ -98,12 +107,19 @@ class ProductController extends Controller
      *
      * GET /api/admin/products/{product}
      */
-    public function show(string $product): JsonResponse
+    public function show(Request $request, string $product): JsonResponse
     {
         $product = Product::with(['category:id,name,slug', 'images:id,product_id,url,sort_order'])
                           ->withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
                           ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)])
                           ->findOrFail($product);
+
+        // Entitlements (только для /widget/*) — прячем товар, как будто его нет.
+        if ($shop = $request->get('_shop')) {
+            if ($product->type === 'digital' && !$shop->hasFeature('digital_goods')) abort(404);
+            if ($product->type === 'service' && !$shop->hasFeature('booking')) abort(404);
+        }
+
         $product->loadDetails();
         $product->rating = $product->rating !== null ? (float) $product->rating : null;
 

@@ -97,11 +97,13 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/payment', [PaymentController::class, 'createOrderPayment'])->middleware('throttle:10,1');
 
-    // Bookings (widget can create bookings)
-    Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
-    Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:20,1');
-    Route::get('/bookings/{booking}', [BookingController::class, 'show']);
-    Route::post('/bookings/{booking}/payment', [PaymentController::class, 'createBookingPayment'])->middleware('throttle:10,1');
+    // Bookings (widget can create bookings) — гейт entitlements, см. МФ4 в PLAN.md
+    Route::middleware('feature:booking')->group(function () {
+        Route::get('/bookings/available-slots', [BookingController::class, 'availableSlots']);
+        Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:20,1');
+        Route::get('/bookings/{booking}', [BookingController::class, 'show']);
+        Route::post('/bookings/{booking}/payment', [PaymentController::class, 'createBookingPayment'])->middleware('throttle:10,1');
+    });
 
     // Discount / promo code validation (widget)
     Route::post('/discount/validate', [DiscountController::class, 'widgetValidate'])->middleware('throttle:30,1');
@@ -123,8 +125,8 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
     // Phone-protected lookups (require verified phone token)
     Route::middleware('verify.phone')->group(function () {
         Route::get('/orders', [OrderController::class, 'widgetOrdersByPhone']);
-        Route::get('/bookings', [BookingController::class, 'widgetBookingsByPhone']);
-        Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'widgetCancel']);
+        Route::get('/bookings', [BookingController::class, 'widgetBookingsByPhone'])->middleware('feature:booking');
+        Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'widgetCancel'])->middleware('feature:booking');
     });
 
     // Saved addresses (mobile app "stay logged in" session — 60 days,

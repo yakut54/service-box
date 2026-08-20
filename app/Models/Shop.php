@@ -101,6 +101,21 @@ class Shop extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function features()
+    {
+        return $this->hasMany(ShopFeature::class);
+    }
+
+    /**
+     * Entitlement для «Флота Шоперов» (booking/digital_goods и т.п.) — НЕ имеет
+     * отношения к снесённым тарифам. Отсутствие строки = выключено. Физические
+     * товары сюда не входят — это база, доступна всем без флага.
+     */
+    public function hasFeature(string $key): bool
+    {
+        return $this->features()->where('feature_key', $key)->where('enabled', true)->exists();
+    }
+
     public function hasLegalDocs(): bool
     {
         $cfg = $this->legal_config ?? [];
