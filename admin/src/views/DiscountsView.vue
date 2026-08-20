@@ -6,6 +6,7 @@ import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import DiscountFormModal from '@/components/modals/DiscountFormModal.vue'
+import DiscountGuideModal from '@/components/modals/DiscountGuideModal.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
@@ -25,6 +26,7 @@ const error     = ref('')
 // ── Modal ────────────────────────────────────────────────────
 const showModal       = ref(false)
 const editingDiscount = ref<Discount | null>(null)
+const showGuide        = ref(false)
 
 // ── Delete ────────────────────────────────────────────────────
 const deleteTarget = ref<Discount | null>(null)
@@ -175,6 +177,12 @@ async function doDelete() {
       title="Скидки и промокоды"
       :subtitle="`${discounts.length} ${discounts.length === 1 ? 'акция' : discounts.length < 5 ? 'акции' : 'акций'}, ${activeCount} активных`"
     >
+      <button @click="showGuide = true" class="btn-ghost shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="hidden sm:inline">Как это работает?</span>
+      </button>
       <button @click="openCreate" class="btn-primary shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -308,6 +316,7 @@ async function doDelete() {
     </div>
 
     <DiscountFormModal v-model="showModal" :discount="editingDiscount" :products="products" @saved="handleDiscountSaved" />
+    <DiscountGuideModal v-model="showGuide" />
 
     <!-- ── Delete Confirm ─────────────────────────────────────── -->
     <UiConfirmDialog

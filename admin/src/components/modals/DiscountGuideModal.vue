@@ -1,0 +1,98 @@
+<script setup lang="ts">
+import UiModal from '@/shared/ui/UiModal.vue'
+
+defineProps<{ modelValue: boolean }>()
+const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
+</script>
+
+<template>
+  <UiModal :modelValue="modelValue" @update:modelValue="emit('update:modelValue', $event)" maxWidth="max-w-2xl">
+    <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Как работают скидки</h2>
+      <button @click="emit('update:modelValue', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="p-5 space-y-6 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+
+      <section>
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-1.5">Промокод или авто-скидка</h3>
+        <p>Если поле «Промокод» заполнено — покупатель должен ввести его сам в корзине.
+          Если оставить пустым — скидка применяется <strong>сама</strong>, как только
+          покупатель кладёт в корзину подходящий товар, ничего вводить не нужно.</p>
+      </section>
+
+      <section>
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-1.5">Применять к: корзина / товар / категория</h3>
+        <ul class="list-disc pl-5 space-y-1">
+          <li><strong>Вся корзина</strong> — скидка считается от суммы всего заказа.</li>
+          <li><strong>Конкретный товар</strong> — скидка считается только от суммы этого
+            товара в корзине. Если его там нет — скидка не сработает вообще, даже если
+            в корзине много другого.</li>
+          <li><strong>Категория</strong> — то же самое, но от суммы всех товаров
+            выбранной категории в корзине.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-1.5">Если подходит сразу несколько скидок</h3>
+        <p class="mb-1.5">Клиенту всегда даётся только одна, самая выгодная для него скидка —
+          они не складываются между собой. Выбор идёт в два шага:</p>
+        <ol class="list-decimal pl-5 space-y-1">
+          <li>Сначала сравниваются <strong>приоритеты</strong> (число в форме скидки —
+            чем больше, тем важнее). Из скидок с самым высоким приоритетом система
+            вообще не смотрит на те, что ниже.</li>
+          <li>Если у нескольких подходящих скидок приоритет одинаковый — побеждает та,
+            что даёт больше денег в рублях для этой конкретной корзины (а не та,
+            у которой процент больше — 10% от дорогого товара может быть выгоднее,
+            чем 15% от дешёвого).</li>
+        </ol>
+        <p class="mt-1.5 text-xs text-gray-400">Если промокод и авто-скидка подходят
+          одновременно — при равной выгоде побеждает промокод: раз покупатель ввёл
+          его сам, это его осознанный выбор.</p>
+      </section>
+
+      <section>
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-1.5">Даты действия</h3>
+        <p>Если не указать «С» и «По» — скидка действует бессрочно, пока не выключите
+          её вручную. Если указать — скидка сама включается и выключается по датам,
+          трогать ничего не нужно.</p>
+      </section>
+
+      <section>
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-1.5">Лимиты</h3>
+        <ul class="list-disc pl-5 space-y-1">
+          <li><strong>Минимальная сумма заказа</strong> — скидка не сработает, пока
+            корзина не наберёт эту сумму.</li>
+          <li><strong>Максимальная скидка</strong> — потолок в рублях, полезно для
+            процентных скидок на дорогие товары («−20%, но не больше 500 ₽»).</li>
+          <li><strong>Лимит использований</strong> — сколько раз скидку вообще можно
+            применить (на все заказы всех покупателей вместе).</li>
+          <li><strong>Лимит на покупателя</strong> — сколько раз один и тот же
+            покупатель (по номеру телефона) может её использовать.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-1.5">Бейдж «−N%» на карточке товара в приложении</h3>
+        <p>Это отдельная вещь от поля «Старая цена» у товара. Бейдж считается по
+          скидкам из этого раздела — берётся самая выгодная авто-скидка (без
+          промокода) на конкретный товар, по той же логике приоритета/суммы, что
+          выше. Промокоды на бейдже не показываются — они по определению не «сами
+          применяются», их нужно узнать и ввести.</p>
+      </section>
+
+      <section>
+        <h3 class="font-semibold text-gray-900 dark:text-white mb-1.5">Чем «Старая цена» у товара отличается от скидок</h3>
+        <p>В карточке товара есть отдельное поле «Старая цена» — это просто
+          зачёркнутая цена рядом с текущей, без дат, лимитов и статистики
+          использования. Подходит для постоянного снижения цены. Для акций
+          с датами, лимитами или скидкой на категорию — используйте этот раздел.</p>
+      </section>
+
+    </div>
+  </UiModal>
+</template>

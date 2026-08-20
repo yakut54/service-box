@@ -249,6 +249,10 @@ async function handleSubmit() {
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
               </div>
               <p v-if="form.compare_price && form.compare_price <= form.price" class="text-xs text-amber-600 dark:text-amber-400 mt-1">Старая цена должна быть больше текущей</p>
+              <p v-else class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Просто зачёркнутая цена, без сроков и лимитов. Для акций с датами,
+                скидкой на категорию и т.п. — раздел «Скидки».
+              </p>
             </div>
           </div>
 
