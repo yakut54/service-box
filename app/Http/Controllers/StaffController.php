@@ -20,13 +20,6 @@ class StaffController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        if (!$shop->hasFeature('staff_management')) {
-            return response()->json([
-                'message'          => 'Управление командой недоступно на вашем тарифе. Перейдите на Business или Pro.',
-                'upgrade_required' => true,
-            ], 403);
-        }
-
         $staff = ShopStaff::where('shop_id', $shop->id)
             ->with('user:id,name,email')
             ->orderBy('created_at', 'desc')
@@ -60,13 +53,6 @@ class StaffController extends Controller
     public function store(Request $request): JsonResponse
     {
         $shop = $request->attributes->get('shop');
-
-        if (!$shop->hasFeature('staff_management')) {
-            return response()->json([
-                'message'          => 'Управление командой недоступно на вашем тарифе. Перейдите на Business или Pro.',
-                'upgrade_required' => true,
-            ], 403);
-        }
 
         $data = $request->validate([
             'name'      => 'required_if:role,admin|nullable|string|max:255',

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Superadmin\SuperadminShopController;
-use App\Http\Controllers\Superadmin\SuperadminPricingController;
 use App\Http\Controllers\Superadmin\SuperadminRevenueController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ShopController;
@@ -55,9 +54,6 @@ Route::get('/health', function () {
 // Список магазинов для демо-страницы (публичный)
 Route::get('/shops', [ShopController::class, 'index']);
 
-// Публичные тарифы (для страницы подписки)
-Route::get('/pricing', [SuperadminPricingController::class, 'index']);
-
 // ============================================================================
 // AUTH API
 // ============================================================================
@@ -80,7 +76,7 @@ Route::prefix('auth')->group(function () {
 // ============================================================================
 // WIDGET API (Public, X-Shop-ID header, no auth)
 // ============================================================================
-Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(function () {
+Route::prefix('widget')->middleware(['tenant'])->group(function () {
     // Shop info
     Route::get('/shop', [ShopController::class, 'getPublicInfo']);
 
@@ -146,9 +142,9 @@ Route::prefix('widget')->middleware(['tenant', 'widget.subscription'])->group(fu
 });
 
 // ============================================================================
-// ADMIN API (Bearer token + Shop context + Subscription check)
+// ADMIN API (Bearer token + Shop context)
 // ============================================================================
-Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription', 'not.master'])->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])->group(function () {
     // Shop (owner only)
     Route::get('/shop', [ShopController::class, 'show']);
     Route::put('/shop', [ShopController::class, 'update'])->middleware('owner');
@@ -221,13 +217,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'subscription',
 
 });
 
-// Subscription & Telegram (no subscription check — accessible even when expired)
 Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])->group(function () {
-    // Subscription (owner only)
-    Route::get('/subscription',                [PaymentController::class, 'getSubscriptionInfo'])->middleware('owner');
-    Route::get('/subscription/payments',       [PaymentController::class, 'getPaymentHistory'])->middleware('owner');
-    Route::post('/subscription/create-payment',[PaymentController::class, 'createSubscriptionPayment'])->middleware('owner');
-
     // Telegram (owner only)
     Route::post('/telegram/generate-code', [TelegramController::class, 'generateCode'])->middleware('owner');
     Route::get('/telegram/status',         [TelegramController::class, 'status'])->middleware('owner');
@@ -242,7 +232,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])-
 // ============================================================================
 // MASTER PORTAL (master role only — own messenger connection)
 // ============================================================================
-Route::prefix('master')->middleware(['auth:sanctum', 'auth.shop', 'subscription'])->group(function () {
+Route::prefix('master')->middleware(['auth:sanctum', 'auth.shop'])->group(function () {
     Route::get('/messenger-status',  [MasterPortalController::class, 'messengerStatus']);
     Route::get('/telegram-link',     [MasterPortalController::class, 'generateTelegramLink']);
     Route::post('/max-code',         [MasterPortalController::class, 'generateMaxCode']);
@@ -268,7 +258,7 @@ Route::prefix('v1')->middleware('api.cors')->group(function () {
     Route::options('{any}', fn () => response('', 200))->where('any', '.*');
 });
 
-Route::prefix('v1')->middleware(['api.cors', 'force.json', 'api.auth', 'api.ratelimit', 'api.pro'])->group(function () {
+Route::prefix('v1')->middleware(['api.cors', 'force.json', 'api.auth', 'api.ratelimit'])->group(function () {
     Route::get('/ping', [\App\Http\Controllers\Api\PingController::class, 'ping']);
 
     // Bookings
@@ -328,13 +318,8 @@ Route::prefix('superadmin')->middleware(['auth:sanctum', 'superadmin'])->group(f
     // Shops
     Route::get('/shops',              [SuperadminShopController::class, 'index']);
     Route::get('/shops/{id}',         [SuperadminShopController::class, 'show']);
-    Route::patch('/shops/{id}/plan',  [SuperadminShopController::class, 'updatePlan']);
     Route::get('/shops/{id}/cascade-debug', [SuperadminShopController::class, 'cascadeDebug']);
 
     // Revenue
     Route::get('/revenue',            [SuperadminRevenueController::class, 'index']);
-
-    // Pricing
-    Route::get('/pricing',            [SuperadminPricingController::class, 'index']);
-    Route::put('/pricing',            [SuperadminPricingController::class, 'update']);
 });

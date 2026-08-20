@@ -15,7 +15,6 @@ class PingController extends Controller
         return response()->json([
             'ok'      => true,
             'shop'    => $shop->name,
-            'plan'    => $shop->subscription_plan,
             'version' => '1',
         ]);
     }

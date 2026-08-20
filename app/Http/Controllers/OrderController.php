@@ -69,20 +69,6 @@ class OrderController extends Controller
         $shop = $request->attributes->get('shop')
             ?? Shop::find(TenantService::getCurrentShopId());
 
-        if ($shop) {
-            $limits = $shop->getPlanLimits();
-            if ($limits['max_orders_per_month'] !== null) {
-                $monthlyCount = Order::whereYear('created_at', now()->year)
-                    ->whereMonth('created_at', now()->month)
-                    ->count();
-                if ($monthlyCount >= $limits['max_orders_per_month']) {
-                    return response()->json([
-                        'message' => "Магазин достиг лимита заказов за текущий месяц ({$limits['max_orders_per_month']}). Обратитесь к продавцу.",
-                    ], 403);
-                }
-            }
-        }
-
         $customer = Customer::findOrCreateByPhone(
             $request->input('customer.phone'),
             [
@@ -139,6 +125,11 @@ class OrderController extends Controller
             }
 
             $order->calculateTotal();
+
+            $minOrder = config('platform.min_order_amount_kopecks');
+            if ($order->total_price < $minOrder) {
+                abort(422, 'Минимальная сумма заказа — ' . number_format($minOrder / 100, 0, ',', ' ') . ' ₽');
+            }
 
             return [$order, $cartItems];
         });
@@ -246,21 +237,36 @@ class OrderController extends Controller
     {
         $order = Order::with('items.product')->findOrFail($order);
         $request->validate([
-            'status' => 'required|in:pending,paid,processing,completed,cancelled',
+            // 'paid' сюда сознательно не входит — этот статус проставляет
+            // только вебхук ЮKassa (Order::markAsPaid), после реальной
+            // оплаты через шлюз. Иначе шопер мог бы щёлкнуть «оплачено»
+            // без единого рубля и не заплатить комиссию (см. PLAN.md).
+            'status' => 'required|in:processing,completed,cancelled',
         ]);
+
+        $newStatus = $request->status;
+
+        if ($newStatus === 'completed' && !$order->paid_at) {
+            return response()->json([
+                'message' => 'Нельзя завершить неоплаченный заказ — оплата проходит только через ЮKassa',
+            ], 422);
+        }
 
         $oldStatus = $order->status;
 
-        $order->update([
-            'status' => $request->status,
-        ]);
+        $order->update(['status' => $newStatus]);
 
-        // Если отменяем — возвращаем товары на склад
-        if ($request->status === 'cancelled' && $oldStatus !== 'cancelled') {
+        if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+            // Возвращаем товары на склад
             foreach ($order->items as $item) {
                 if ($item->product && $item->product->type === 'physical') {
                     $item->product->physical?->increment('stock_quantity', $item->quantity);
                 }
+            }
+
+            // Комиссия возвращается вместе с заказом — без исключений
+            if ($order->commission_amount > 0) {
+                $order->update(['commission_amount' => 0]);
             }
         }
 

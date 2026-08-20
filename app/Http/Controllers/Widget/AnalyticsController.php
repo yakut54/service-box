@@ -63,10 +63,6 @@ class AnalyticsController extends Controller
             return response()->json(['error' => 'Магазин не найден'], 404);
         }
 
-        if (!$shop->hasFeature('widget_analytics')) {
-            return response()->json(['error' => 'plan_gate', 'message' => 'Аналитика виджета доступна на тарифе Pro.'], 403);
-        }
-
         $days = (int) $request->query('days', 30);
         $days = in_array($days, [7, 30, 90]) ? $days : 30;
 

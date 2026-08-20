@@ -34,20 +34,6 @@ class MasterController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
-        if ($shop) {
-            $limits = $shop->getPlanLimits();
-            if ($limits['max_masters'] !== null) {
-                $current = Master::count();
-                if ($current >= $limits['max_masters']) {
-                    $word = $limits['max_masters'] === 1 ? 'мастера' : 'мастеров';
-                    return response()->json([
-                        'message' => "Ваш тариф позволяет не более {$limits['max_masters']} {$word}. Обновите план для снятия ограничения.",
-                    ], 403);
-                }
-            }
-        }
-
         $data = $request->validate([
             'name'           => 'required|string|max:255',
             'phone'          => 'nullable|string|max:20',
@@ -122,20 +108,6 @@ class MasterController extends Controller
             'salary_type'    => 'sometimes|in:fixed,percent',
             'salary_rate'    => 'sometimes|numeric|min:0|max:99999',
         ]);
-
-        if (isset($data['is_active']) && $data['is_active'] && !$master->is_active) {
-            $shop = $request->attributes->get('shop');
-            if ($shop) {
-                $limits = $shop->getPlanLimits();
-                $max    = $limits['max_masters'];
-                if ($max !== null && Master::where('is_active', true)->count() >= $max) {
-                    $word = $max === 1 ? 'активного мастера' : 'активных мастеров';
-                    return response()->json([
-                        'message' => "Ваш тариф позволяет не более {$max} {$word}.",
-                    ], 403);
-                }
-            }
-        }
 
         $oldAvatarUrl = $master->avatar_url;
         $wasActive    = $master->is_active;

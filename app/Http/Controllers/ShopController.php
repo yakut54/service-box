@@ -145,22 +145,7 @@ class ShopController extends Controller
             'widget_config.font_family.in' => 'Недопустимый шрифт',
         ]);
 
-        // widget_config — только для Business и выше
         $wc = $validated['widget_config'] ?? [];
-        if (!empty($wc) && !$shop->hasFeature('widget_customization')) {
-            return response()->json([
-                'error'   => 'plan_gate',
-                'message' => 'Кастомизация виджета доступна на тарифе Business и выше.',
-            ], 403);
-        }
-
-        // custom_css / white_label — только для Pro
-        if ((isset($wc['custom_css']) || isset($wc['white_label'])) && !$shop->hasFeature('custom_css')) {
-            return response()->json([
-                'error'   => 'plan_gate',
-                'message' => 'Custom CSS и white label доступны на тарифе Pro.',
-            ], 403);
-        }
 
         // Защита от CSS-инъекции: запрещаем закрывающий тег </style> и javascript:
         if (isset($wc['custom_css'])) {
@@ -213,10 +198,6 @@ class ShopController extends Controller
     public function regenerateApiKey(Request $request): JsonResponse
     {
         $shop = $request->attributes->get('shop');
-
-        if (!$shop->hasFeature('api_access')) {
-            return response()->json(['message' => 'Доступ к API доступен на тарифе Pro.'], 403);
-        }
 
         $shop->api_key = Str::uuid()->toString();
         $shop->save();

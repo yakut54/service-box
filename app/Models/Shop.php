@@ -29,8 +29,6 @@ class Shop extends Model
         'robokassa_login',
         'robokassa_password1',
         'robokassa_password2',
-        'subscription_plan',
-        'subscription_expires_at',
         'widget_config',
         'legal_config',
         'delivery_settings',
@@ -48,7 +46,6 @@ class Shop extends Model
         'telegram_bot_connected' => 'boolean',
         'max_bot_connected'      => 'boolean',
         'max_chat_id'            => 'integer',
-        'subscription_expires_at' => 'datetime',
         'widget_config'     => 'array',
         'legal_config'      => 'array',
         'delivery_settings' => 'array',
@@ -102,112 +99,6 @@ class Shop extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function subscriptions()
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
-    public function activeSubscription()
-    {
-        return $this->hasOne(Subscription::class)
-            ->where('expires_at', '>', now())
-            ->latest('expires_at');
-    }
-
-    public function hasActiveSubscription(): bool
-    {
-        return $this->subscription_expires_at && $this->subscription_expires_at->isFuture();
-    }
-
-    public function subscriptionPayments()
-    {
-        return $this->hasMany(SubscriptionPayment::class);
-    }
-
-    public function isSubscriptionExpiringSoon(): bool
-    {
-        if (!$this->subscription_expires_at) {
-            return false;
-        }
-
-        $daysLeft = now()->diffInDays($this->subscription_expires_at, false);
-        return $daysLeft <= 7 && $daysLeft > 0;
-    }
-
-    public function getDaysUntilExpiration(): int
-    {
-        if (!$this->subscription_expires_at) {
-            return 0;
-        }
-
-        return max(0, now()->diffInDays($this->subscription_expires_at, false));
-    }
-
-    public function getPlanLimits(): array
-    {
-        $expired = ['max_orders_per_month' => 0, 'max_masters' => 0, 'features' => [], 'capabilities' => []];
-
-        if (!$this->subscription_plan) {
-            return $expired;
-        }
-
-        if (!$this->hasActiveSubscription()) {
-            return $expired;
-        }
-
-        $pricing = PlanPricing::where('plan', $this->subscription_plan)->first();
-
-        if (!$pricing) {
-            return $expired;
-        }
-
-        return [
-            'max_orders_per_month' => $pricing->max_orders_per_month,
-            'max_masters'          => $pricing->max_masters,
-            'features'             => $pricing->features      ?? [],
-            'capabilities'         => $pricing->capabilities  ?? [],
-        ];
-    }
-
-    public function enforceMasterLimit(): void
-    {
-        $limits = $this->getPlanLimits();
-        $max    = $limits['max_masters'];
-
-        if ($max === null) {
-            return;
-        }
-
-        \App\Services\TenantService::inContext($this, function () use ($max) {
-            $activeIds = \App\Models\Master::where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('created_at')
-                ->pluck('id');
-
-            if ($activeIds->count() <= $max) {
-                return;
-            }
-
-            $toDeactivate = $activeIds->slice($max)->values();
-            \App\Models\Master::whereIn('id', $toDeactivate)->update(['is_active' => false]);
-
-            $schema     = $this->schema_name;
-            $allHidden  = [];
-            foreach ($toDeactivate as $masterId) {
-                $hidden = \App\Services\MasterCascadeService::handleDeactivation($masterId, $schema, $this);
-                $allHidden = array_merge($allHidden, $hidden);
-            }
-            \App\Services\MasterCascadeService::notifyDeactivation($this, array_unique($allHidden));
-        });
-    }
-
-    public function hasFeature(string $feature): bool
-    {
-        $limits = $this->getPlanLimits();
-        $caps   = $limits['capabilities'];
-        return in_array($feature, $caps) || in_array('all_features', $caps);
     }
 
     public function hasLegalDocs(): bool

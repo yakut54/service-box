@@ -21,13 +21,6 @@ class MaxController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        if (!in_array($shop->subscription_plan, ['start', 'business', 'pro'])) {
-            return response()->json([
-                'error'   => 'plan_gate',
-                'message' => 'MAX-уведомления доступны на тарифах Start и выше.',
-            ], 403);
-        }
-
         $code = MaxService::generateConnectionCode($shop);
 
         return response()->json([

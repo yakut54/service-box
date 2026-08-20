@@ -155,18 +155,6 @@ class WriteController extends Controller
     {
         $shop = $request->get('_shop');
 
-        if ($shop) {
-            $limits = $shop->getPlanLimits();
-            if ($limits['max_orders_per_month'] !== null) {
-                $count = Order::whereYear('created_at', now()->year)
-                    ->whereMonth('created_at', now()->month)
-                    ->count();
-                if ($count >= $limits['max_orders_per_month']) {
-                    return response()->json(['error' => 'Достигнут месячный лимит заказов'], 403);
-                }
-            }
-        }
-
         $customer = Customer::findOrCreateByPhone(
             $request->input('customer.phone'),
             ['name' => $request->input('customer.name'), 'email' => $request->input('customer.email')]
@@ -218,6 +206,12 @@ class WriteController extends Controller
             }
 
             $order->calculateTotal();
+
+            $minOrder = config('platform.min_order_amount_kopecks');
+            if ($order->total_price < $minOrder) {
+                abort(422, 'Минимальная сумма заказа — ' . number_format($minOrder / 100, 0, ',', ' ') . ' ₽');
+            }
+
             return [$order, $cartItems];
         });
 
@@ -275,11 +269,19 @@ class WriteController extends Controller
 
     public function updateOrderStatus(Request $request, string $id): JsonResponse
     {
-        $request->validate(['status' => 'required|in:pending,paid,processing,completed,cancelled']);
+        // 'paid' сознательно не входит — см. OrderController::updateStatus,
+        // тот же вопрос комиссии актуален и для внешнего API.
+        $request->validate(['status' => 'required|in:processing,completed,cancelled']);
 
         $order     = Order::with('items.product')->findOrFail($id);
         $oldStatus = $order->status;
         $newStatus = $request->status;
+
+        if ($newStatus === 'completed' && !$order->paid_at) {
+            return response()->json([
+                'message' => 'Нельзя завершить неоплаченный заказ — оплата проходит только через ЮKassa',
+            ], 422);
+        }
 
         $order->update(['status' => $newStatus]);
 
@@ -288,6 +290,10 @@ class WriteController extends Controller
                 if ($item->product && $item->product->type === 'physical') {
                     $item->product->physical?->increment('stock_quantity', $item->quantity);
                 }
+            }
+
+            if ($order->commission_amount > 0) {
+                $order->update(['commission_amount' => 0]);
             }
         }
 
@@ -301,12 +307,6 @@ class WriteController extends Controller
     public function storeMaster(Request $request): JsonResponse
     {
         $shop = $request->get('_shop');
-        if ($shop) {
-            $limits = $shop->getPlanLimits();
-            if ($limits['max_masters'] !== null && Master::count() >= $limits['max_masters']) {
-                return response()->json(['error' => 'Достигнут лимит мастеров для вашего тарифа'], 403);
-            }
-        }
 
         $data = $request->validate([
             'name'           => 'required|string|max:255',
@@ -328,14 +328,6 @@ class WriteController extends Controller
     {
         $master = Master::findOrFail($id);
         $shop   = $request->get('_shop');
-
-        if ($shop && $request->input('is_active') && !$master->is_active) {
-            $limits = $shop->getPlanLimits();
-            $max    = $limits['max_masters'];
-            if ($max !== null && Master::where('is_active', true)->count() >= $max) {
-                return response()->json(['error' => 'Достигнут лимит активных мастеров для вашего тарифа'], 403);
-            }
-        }
 
         $data = $request->validate([
             'name'           => 'sometimes|required|string|max:255',

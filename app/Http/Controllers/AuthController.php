@@ -43,8 +43,6 @@ class AuthController extends Controller
                 'name' => $request->shop_name,
                 'domain' => $request->shop_domain,
                 'schema_name' => $schemaName,
-                'subscription_plan' => 'micro',
-                'subscription_expires_at' => now()->addDays(14),
                 'timezone' => $request->timezone ?? 'Europe/Moscow',
             ]);
 
@@ -65,7 +63,6 @@ class AuthController extends Controller
                     'id' => $shop->id,
                     'name' => $shop->name,
                     'api_key' => $shop->api_key,
-                    'subscription_plan' => $shop->subscription_plan,
                     'timezone' => $shop->timezone,
                 ],
                 'token' => $token,
@@ -189,8 +186,6 @@ class AuthController extends Controller
             'id'                     => $shop->id,
             'name'                   => $shop->name,
             'api_key'                => $shop->api_key,
-            'subscription_plan'      => $shop->subscription_plan,
-            'subscription_expires_at'=> $shop->subscription_expires_at,
             'widget_config'          => $shop->widget_config,
             'work_start'             => $shop->work_start,
             'work_end'               => $shop->work_end,

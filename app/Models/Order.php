@@ -16,6 +16,8 @@ class Order extends Model
         'customer_id',
         'status',
         'total_price',
+        'commission_amount',
+        'payout_status',
         'discount_id',
         'discount_code',
         'discount_amount',
@@ -38,6 +40,7 @@ class Order extends Model
 
     protected $casts = [
         'total_price'              => 'integer',
+        'commission_amount'        => 'integer',
         'discount_amount'          => 'integer',
         'delivery_price'           => 'integer',
         'shipping_address'         => 'array',
@@ -91,10 +94,21 @@ class Order extends Model
             'status' => 'paid',
             'payment_id' => $paymentId,
             'paid_at' => now(),
+            'commission_amount' => $this->calculateCommission(),
         ]);
 
         if ($this->customer) {
             $this->customer->updateStats();
         }
+    }
+
+    /**
+     * 20% от суммы заказа (см. config/platform.php). Снапшот на момент
+     * оплаты — не пересчитывается задним числом при смене ставки.
+     */
+    public function calculateCommission(): int
+    {
+        $percent = config('platform.commission_percent');
+        return (int) round($this->total_price * $percent / 100);
     }
 }

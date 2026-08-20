@@ -4,59 +4,70 @@ namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shop;
-use App\Models\PlanPricing;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Выручка платформы = сумма комиссии (20%, см. PLAN.md) со всех заказов
+ * всех магазинов. orders живёт в тенантной схеме каждого шопера, не в
+ * public — считаем циклом по схемам (тот же приём, что и в cascadeDebug
+ * этого же неймспейса). При росте числа шоперов можно будет оптимизировать
+ * до одного UNION-запроса, сейчас магазинов мало — цикл дешевле по коду.
+ */
 class SuperadminRevenueController extends Controller
 {
     // GET /api/superadmin/revenue
     public function index()
     {
-        $pricing = PlanPricing::allAsMap(); // ['micro' => 150000, ...]
+        $shops = Shop::select('id', 'name', 'schema_name', 'created_at')->get();
 
-        // Shops by plan (avoid reserved word 'count' as alias)
-        $byPlan = Shop::query()
-            ->select('subscription_plan as plan', DB::raw('count(*) as shop_count'))
-            ->whereNotNull('subscription_plan')
-            ->groupBy('subscription_plan')
-            ->pluck('shop_count', 'plan')
-            ->toArray();
+        $totalKopecks   = 0;
+        $last30dKopecks = 0;
+        $recentOrders   = collect();
 
-        // MRR: sum of price_kopecks per active plan
-        $mrrKopecks = 0;
-        foreach ($byPlan as $plan => $cnt) {
-            $mrrKopecks += ($pricing[$plan] ?? 0) * $cnt;
+        foreach ($shops as $shop) {
+            $schema = $shop->schema_name;
+
+            $totals = DB::selectOne('
+                SELECT
+                    COALESCE(SUM(commission_amount), 0) AS total,
+                    COALESCE(SUM(commission_amount) FILTER (WHERE created_at >= ?), 0) AS last_30d
+                FROM "'.$schema.'".orders
+                WHERE status NOT IN (\'pending\', \'cancelled\')
+            ', [now()->subDays(30)]);
+
+            $totalKopecks   += (int) $totals->total;
+            $last30dKopecks += (int) $totals->last_30d;
+
+            $orders = DB::select('
+                SELECT id, commission_amount, total_price, status, created_at
+                FROM "'.$schema.'".orders
+                WHERE commission_amount > 0
+                ORDER BY created_at DESC
+                LIMIT 5
+            ');
+
+            foreach ($orders as $o) {
+                $recentOrders->push([
+                    'shop_name'          => $shop->name,
+                    'order_id'           => $o->id,
+                    'commission_kopecks' => (int) $o->commission_amount,
+                    'total_kopecks'      => (int) $o->total_price,
+                    'status'             => $o->status,
+                    'created_at'         => $o->created_at,
+                ]);
+            }
         }
 
-        // Total shops
-        $totalShops = Shop::count();
-
-        // New shops last 30 days
-        $newShops30d = Shop::where('created_at', '>=', now()->subDays(30))->count();
-
-        // Recent payments from subscription_payments table
-        $recentPayments = DB::table('subscription_payments')
-            ->join('shops', 'subscription_payments.shop_id', '=', 'shops.id')
-            ->select(
-                'subscription_payments.id',
-                DB::raw('subscription_payments.amount * 100 as amount_kopecks'),
-                'subscription_payments.status',
-                'subscription_payments.created_at',
-                'shops.name as shop_name',
-                'subscription_payments.plan as plan'
-            )
-            ->where('subscription_payments.status', 'succeeded')
-            ->orderByDesc('subscription_payments.created_at')
-            ->limit(20)
-            ->get();
+        $recentOrders = $recentOrders->sortByDesc('created_at')->take(20)->values();
 
         return response()->json([
-            'mrr_kopecks'     => $mrrKopecks,
-            'mrr_rubles'      => round($mrrKopecks / 100, 2),
-            'total_shops'     => $totalShops,
-            'new_shops_30d'   => $newShops30d,
-            'shops_by_plan'   => $byPlan,
-            'recent_payments' => $recentPayments,
+            'commission_total_kopecks'    => $totalKopecks,
+            'commission_total_rubles'     => round($totalKopecks / 100, 2),
+            'commission_last_30d_kopecks' => $last30dKopecks,
+            'commission_last_30d_rubles'  => round($last30dKopecks / 100, 2),
+            'total_shops'                 => $shops->count(),
+            'new_shops_30d'               => $shops->where('created_at', '>=', now()->subDays(30))->count(),
+            'recent_orders'               => $recentOrders,
         ]);
     }
 }

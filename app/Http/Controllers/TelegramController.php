@@ -25,13 +25,6 @@ class TelegramController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        if (!in_array($shop->subscription_plan, ['start', 'business', 'pro'])) {
-            return response()->json([
-                'error'   => 'plan_gate',
-                'message' => 'Telegram-уведомления доступны на тарифах Start и выше.',
-            ], 403);
-        }
-
         $code = TelegramService::generateConnectionCode($shop);
 
         return response()->json([
