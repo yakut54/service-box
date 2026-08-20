@@ -120,12 +120,6 @@ const router = createRouter({
           meta: { requiresOwner: true },
         },
         {
-          path: 'subscription',
-          name: 'subscription',
-          component: () => import('@/views/SubscriptionView.vue'),
-          meta: { requiresOwner: true },
-        },
-        {
           path: 'legal',
           name: 'legal',
           component: () => import('@/views/LegalView.vue'),
@@ -148,12 +142,6 @@ const router = createRouter({
           path: 'superadmin/revenue',
           name: 'superadmin-revenue',
           component: () => import('@/views/superadmin/RevenueView.vue'),
-          meta: { requiresSuperadmin: true },
-        },
-        {
-          path: 'superadmin/pricing',
-          name: 'superadmin-pricing',
-          component: () => import('@/views/superadmin/PricingView.vue'),
           meta: { requiresSuperadmin: true },
         },
       ],

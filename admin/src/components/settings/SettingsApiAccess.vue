@@ -7,7 +7,6 @@ import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
 const authStore = useAuthStore()
 
-const isPro    = computed(() => authStore.shop?.subscription_plan === 'pro')
 const apiKey   = computed(() => authStore.shop?.api_key ?? '')
 const apiBase  = computed(() => (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '/api'))
 
@@ -54,13 +53,6 @@ async function regenerate() {
       Ваш ключ для подключения внешних систем: CRM, боты, скрипты
     </p>
 
-    <!-- Not Pro -->
-    <div v-if="!isPro" class="rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 p-4 text-sm text-indigo-700 dark:text-indigo-300">
-      Доступно на тарифе <strong>Pro</strong>. Перейдите в раздел «Подписка» для смены тарифа.
-    </div>
-
-    <!-- Pro -->
-    <template v-else>
       <!-- Key display -->
       <div class="mb-4">
         <p class="label mb-1">Ваш API-ключ</p>
@@ -106,7 +98,6 @@ async function regenerate() {
           Передавайте ключ в заголовке <code class="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">X-API-Key</code> каждого запроса
         </p>
       </div>
-    </template>
 
     <UiConfirmDialog
       v-model="showConfirm"

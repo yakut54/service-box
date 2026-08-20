@@ -18,13 +18,6 @@ const FONT_OPTIONS: { id: FontFamily; label: string; css: string }[] = [
 
 const authStore = useAuthStore()
 
-const hasFeature = computed(() =>
-  ['business', 'pro'].includes(authStore.shop?.subscription_plan ?? '')
-)
-const hasProFeature = computed(() =>
-  authStore.shop?.subscription_plan === 'pro'
-)
-
 const preset         = ref<'light' | 'dark' | 'minimal'>('light')
 const color          = ref('#6366f1')
 const font           = ref<FontFamily>('inter')
@@ -172,17 +165,7 @@ async function saveConfig() {
       <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Внешний вид виджета</h2>
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Цвет, логотип и отображение элементов</p>
 
-    <div v-if="!hasFeature" class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-      <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6a4 4 0 100-8 4 4 0 000 8z" />
-      </svg>
-      <div>
-        <div class="font-medium text-gray-700 dark:text-gray-300 text-sm">Недоступно на текущем тарифе</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Кастомизация виджета доступна на тарифе <span class="font-medium">Business и выше</span>.</div>
-      </div>
-    </div>
-
-    <div v-else class="space-y-5">
+    <div class="space-y-5">
 
       <!-- Preset themes -->
       <div>
@@ -301,8 +284,8 @@ async function saveConfig() {
           </div>
         </div>
 
-        <!-- Right: Pro section -->
-        <div v-if="hasProFeature" class="space-y-4">
+        <!-- Right: white label + custom CSS -->
+        <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Убрать «Powered by ServiceBox»</div>
@@ -323,9 +306,6 @@ async function saveConfig() {
             <textarea v-model="customCss" class="input font-mono text-xs" rows="6" placeholder=".sb-catalog-card { border-radius: 12px; }" />
             <p class="text-xs text-gray-400 mt-1">CSS применяется внутри Shadow DOM виджета</p>
           </div>
-        </div>
-        <div v-else class="flex items-center">
-          <p class="text-xs text-gray-400">White label и Custom CSS доступны на тарифе <span class="font-medium">Pro</span></p>
         </div>
       </div>
 
@@ -443,7 +423,7 @@ async function saveConfig() {
 
     <!-- Preview column -->
     <div
-      v-if="hasFeature && previewUrl"
+      v-if="previewUrl"
       class="xl:w-[360px] w-full shrink-0 xl:sticky xl:top-4 xl:self-start"
       :class="previewVisible ? 'block' : 'hidden xl:block'"
     >

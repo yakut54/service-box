@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
 import SettingsShopInfo         from '@/components/settings/SettingsShopInfo.vue'
 import SettingsEmbedCode        from '@/components/settings/SettingsEmbedCode.vue'
 import SettingsPassword         from '@/components/settings/SettingsPassword.vue'
@@ -19,14 +17,6 @@ import SettingsMasters          from '@/components/settings/SettingsMasters.vue'
 
 const route     = useRoute()
 const router    = useRouter()
-const authStore = useAuthStore()
-
-onMounted(async () => {
-  try {
-    const sub = await api.getSubscription()
-    if (authStore.shop && sub.plan) authStore.shop.subscription_plan = sub.plan
-  } catch {}
-})
 
 const tabs = [
   { id: 'main',          label: 'Основное' },

@@ -3,10 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
 import { useCategoriesStore } from '@/stores/categories'
-import { useAuthStore } from '@/stores/auth'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import PlanGate from '@/components/PlanGate.vue'
 import DiscountFormModal from '@/components/modals/DiscountFormModal.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
@@ -14,12 +12,7 @@ import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { formatPrice } from '@/shared/lib/format'
 import type { Discount, DiscountScope } from '@/types'
 
-const authStore = useAuthStore()
 const toast = useToast()
-const currentPlan = ref(authStore.shop?.subscription_plan ?? '')
-const hasDiscounts = computed(() =>
-  ['start', 'business', 'pro'].includes(currentPlan.value)
-)
 
 const categoriesStore = useCategoriesStore()
 
@@ -123,14 +116,7 @@ async function load() {
   }
 }
 
-onMounted(async () => {
-  try {
-    const sub = await api.getSubscription()
-    currentPlan.value = sub.plan ?? ''
-    if (authStore.shop) authStore.shop.subscription_plan = sub.plan ?? null
-  } catch {}
-  load()
-})
+onMounted(load)
 
 // ── Modal open ────────────────────────────────────────────────
 function openCreate() {
@@ -183,10 +169,6 @@ async function doDelete() {
 
 <template>
   <div class="space-y-6">
-
-    <PlanGate v-if="!hasDiscounts" required-plan="Start" feature="Промокоды и скидки"/>
-
-    <template v-else>
 
     <!-- Header -->
     <PageHeader
@@ -337,8 +319,6 @@ async function doDelete() {
     >
       Акция <strong>{{ deleteTarget?.name }}</strong> будет удалена. История использований сохранится в заказах.
     </UiConfirmDialog>
-
-  </template><!-- v-else -->
 
   </div>
 </template>

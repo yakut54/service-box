@@ -57,19 +57,6 @@ async function save() {
         <p class="label">API ключ</p>
         <input type="text" :value="authStore.shop?.api_key" class="input font-mono text-sm" disabled />
       </div>
-      <div>
-        <p class="label">Тарифный план</p>
-        <div class="flex items-center gap-3">
-          <span class="badge bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 text-sm px-3 py-1">
-            {{ authStore.shop?.subscription_plan?.toUpperCase() || 'MICRO' }}
-          </span>
-          <span class="text-sm text-gray-500 dark:text-gray-400">
-            Действует до: {{ authStore.shop?.subscription_expires_at
-              ? new Date(authStore.shop.subscription_expires_at).toLocaleDateString('ru-RU')
-              : 'бессрочно' }}
-          </span>
-        </div>
-      </div>
     </div>
   </div>
 </template>

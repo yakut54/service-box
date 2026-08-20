@@ -10,13 +10,10 @@ import type {
   Discount,
   Review,
   StaffMember,
-  SubscriptionStatus,
-  SubscriptionPayment,
   TelegramStatus,
   PaginatedResponse,
   SuperadminShop,
   SuperadminRevenue,
-  SuperadminPricing,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -460,25 +457,6 @@ class ApiClient {
   }
 
   // ==========================================
-  // SUBSCRIPTION
-  // ==========================================
-
-  async getSubscription() {
-    return this.request<SubscriptionStatus>('/admin/subscription')
-  }
-
-  async getSubscriptionPayments() {
-    return this.request<SubscriptionPayment[]>('/admin/subscription/payments')
-  }
-
-  async createSubscriptionPayment(data: { plan: string; period_months?: number }) {
-    return this.request<{ payment_url: string; payment_id: string }>('/admin/subscription/create-payment', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  // ==========================================
   // TELEGRAM
   // ==========================================
 
@@ -652,30 +630,8 @@ class ApiClient {
     return this.request<SuperadminShop>(`/superadmin/shops/${id}`)
   }
 
-  async superadminUpdatePlan(id: string, data: { plan: string; subscription_ends_at?: string | null }) {
-    return this.request<{ message: string; shop: SuperadminShop & { subscription_ends_at: string | null } }>(`/superadmin/shops/${id}/plan`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    })
-  }
-
   async superadminGetRevenue() {
     return this.request<SuperadminRevenue>('/superadmin/revenue')
-  }
-
-  async getPricing() {
-    return this.request<Record<string, SuperadminPricing>>('/pricing')
-  }
-
-  async superadminGetPricing() {
-    return this.request<Record<string, SuperadminPricing>>('/superadmin/pricing')
-  }
-
-  async superadminUpdatePricing(items: Array<{ plan: string; price_kopecks: number; max_orders_per_month: number | null; max_masters: number | null; features: string[] }>) {
-    return this.request<{ message: string }>('/superadmin/pricing', {
-      method: 'PUT',
-      body: JSON.stringify(items),
-    })
   }
 
   async getWidgetAnalytics(days: 7 | 30 | 90 = 30) {

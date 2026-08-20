@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import PageHeader from '@/components/PageHeader.vue'
-import PlanGate from '@/components/PlanGate.vue'
 import AdminFormModal from '@/components/modals/AdminFormModal.vue'
 import { UiConfirmDialog, UiEmptyState, UiSpinner, UiTooltip } from '@/shared/ui'
 import type { StaffMember } from '@/types'
 
-const authStore = useAuthStore()
 const toast = useToast()
 
 const staff   = ref<StaffMember[]>([])
@@ -22,11 +19,6 @@ const editingAdmin = ref<StaffMember | null>(null)
 const deleteTarget  = ref<StaffMember | null>(null)
 const deleting      = ref(false)
 const resendingId   = ref<string | null>(null)
-
-const hasFeature = computed(() => {
-  const plan = authStore.shop?.subscription_plan
-  return plan === 'business' || plan === 'pro'
-})
 
 async function load() {
   loading.value = true
@@ -140,17 +132,13 @@ onMounted(load)
   <div class="space-y-6">
 
     <PageHeader title="Администраторы" subtitle="Люди с доступом к панели управления">
-      <button v-if="hasFeature" @click="openCreate" class="btn-primary shrink-0">
+      <button @click="openCreate" class="btn-primary shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
         <span class="hidden sm:inline">Добавить администратора</span>
       </button>
     </PageHeader>
-
-    <PlanGate v-if="!hasFeature" required-plan="Business" feature="Управление администраторами" />
-
-    <template v-else>
 
       <div v-if="loading" class="card flex items-center justify-center py-16">
         <UiSpinner />
@@ -263,8 +251,6 @@ onMounted(load)
           </div>
         </div>
       </div>
-
-    </template>
 
     <AdminFormModal
       v-model="showModal"

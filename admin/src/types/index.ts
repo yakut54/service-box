@@ -19,36 +19,25 @@ export interface SuperadminShop {
   id: string
   name: string
   domain: string | null
-  plan: string | null
-  subscription_ends_at: string | null
   created_at: string
   user?: { id: string; name: string; email: string; created_at: string } | null
 }
 
 export interface SuperadminRevenue {
-  mrr_kopecks: number
-  mrr_rubles: number
+  commission_total_kopecks: number
+  commission_total_rubles: number
+  commission_last_30d_kopecks: number
+  commission_last_30d_rubles: number
   total_shops: number
   new_shops_30d: number
-  shops_by_plan: Record<string, number>
-  recent_payments: Array<{
-    id: string
-    amount_kopecks: number
+  recent_orders: Array<{
+    shop_name: string
+    order_id: string
+    commission_kopecks: number
+    total_kopecks: number
     status: string
     created_at: string
-    shop_name: string
-    plan: string
   }>
-}
-
-export interface SuperadminPricing {
-  plan: string
-  price_kopecks: number
-  price_rubles: number
-  max_orders_per_month: number | null
-  max_masters: number | null
-  features: string[]
-  capabilities: string[]
 }
 
 export interface WidgetConfig {
@@ -96,8 +85,6 @@ export interface Shop {
   payment_provider: string | null
   yookassa_shop_id: string | null
   robokassa_login: string | null
-  subscription_plan: string | null
-  subscription_expires_at: string | null
   widget_config: WidgetConfig | null
   legal_config: LegalConfig | null
   work_start: string | null
@@ -405,47 +392,6 @@ export interface Review {
   text: string | null
   is_published: boolean
   created_at: string | null
-}
-
-// ==========================================
-// SUBSCRIPTION
-// ==========================================
-
-export interface SubscriptionLimits {
-  max_orders_per_month: number | null
-  max_masters: number | null
-}
-
-export interface SubscriptionStatus {
-  plan: string
-  is_active: boolean
-  is_expiring_soon: boolean
-  days_until_expiration: number
-  expires_at: string | null
-  limits: SubscriptionLimits | null
-}
-
-export interface SubscriptionPayment {
-  id: string
-  plan: string
-  amount: number
-  status: string
-  period_start: string | null
-  period_end: string | null
-  created_at: string
-}
-
-export interface SubscriptionInfo {
-  id: string
-  shop_id: string
-  plan: string
-  amount_kopecks: number
-  payment_id: string | null
-  payment_provider: string | null
-  paid_at: string | null
-  expires_at: string | null
-  created_at: string
-  updated_at: string
 }
 
 // ==========================================

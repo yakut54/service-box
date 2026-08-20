@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
@@ -15,10 +15,6 @@ const showConfirm   = ref(false)
 const maxCode       = ref('')
 const botUrl        = ref('')
 const codeCopied    = ref(false)
-
-const hasFeature = computed(() =>
-  ['start', 'business', 'pro'].includes(authStore.shop?.subscription_plan ?? '')
-)
 
 async function connect() {
   connecting.value = true
@@ -76,19 +72,8 @@ async function disconnect() {
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">MAX уведомления</h2>
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Мгновенные уведомления о новых записях и заказах.</p>
 
-    <!-- Plan gate -->
-    <div v-if="!hasFeature" class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-      <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-6a4 4 0 100-8 4 4 0 000 8z" />
-      </svg>
-      <div>
-        <div class="font-medium text-gray-700 dark:text-gray-300 text-sm">Недоступно на тарифе Micro</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Доступно на тарифах <span class="font-medium">Start и выше</span>.</div>
-      </div>
-    </div>
-
     <!-- Connected -->
-    <div v-else-if="authStore.shop?.max_bot_connected" class="space-y-3">
+    <div v-if="authStore.shop?.max_bot_connected" class="space-y-3">
       <div class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
         <svg class="w-6 h-6 text-green-600 dark:text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
