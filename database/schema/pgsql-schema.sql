@@ -490,6 +490,20 @@ ALTER SEQUENCE public.personal_access_tokens_id_seq OWNED BY public.personal_acc
 
 
 --
+-- Name: shop_features; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.shop_features (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    shop_id uuid NOT NULL,
+    feature_key character varying(255) NOT NULL,
+    enabled boolean DEFAULT false NOT NULL,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
 -- Name: shop_staff; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -670,6 +684,22 @@ ALTER TABLE ONLY public.personal_access_tokens
 
 
 --
+-- Name: shop_features shop_features_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_features
+    ADD CONSTRAINT shop_features_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shop_features shop_features_shop_id_feature_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_features
+    ADD CONSTRAINT shop_features_shop_id_feature_key_unique UNIQUE (shop_id, feature_key);
+
+
+--
 -- Name: shop_staff shop_staff_invite_token_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -772,6 +802,13 @@ CREATE INDEX personal_access_tokens_tokenable_type_tokenable_id_index ON public.
 
 
 --
+-- Name: shop_features_shop_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shop_features_shop_id_index ON public.shop_features USING btree (shop_id);
+
+
+--
 -- Name: shop_staff_invite_token_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -847,6 +884,14 @@ CREATE INDEX telegram_messages_telegram_chat_id_index ON public.telegram_message
 --
 
 CREATE INDEX telegram_messages_type_index ON public.telegram_messages USING btree (type);
+
+
+--
+-- Name: shop_features shop_features_shop_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_features
+    ADD CONSTRAINT shop_features_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
 
 
 --
