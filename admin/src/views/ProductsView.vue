@@ -14,7 +14,6 @@ const route = useRoute()
 const productsStore = useProductsStore()
 const categoriesStore = useCategoriesStore()
 const deleteConfirm = ref<string | null>(null)
-const filterType = ref('')
 const filterSearch = ref('')
 const filterCategory = ref('')
 const sortBy = ref('')
@@ -46,13 +45,6 @@ const categoryOptions = computed(() => [
 
 const typeLabels: Record<string, string> = { physical: 'Физический', digital: 'Цифровой', service: 'Услуга' }
 
-const typeOptions = [
-  { value: '', label: 'Все типы' },
-  { value: 'physical', label: 'Физические' },
-  { value: 'digital', label: 'Цифровые' },
-  { value: 'service', label: 'Услуги' },
-]
-
 onMounted(async () => {
   if (route.query.category_id) filterCategory.value = route.query.category_id as string
   const params: Record<string, string> = {}
@@ -65,7 +57,6 @@ onMounted(async () => {
 
 async function applyFilters() {
   const params: Record<string, string> = {}
-  if (filterType.value) params.type = filterType.value
   if (filterSearch.value) params.search = filterSearch.value
   if (filterCategory.value) params.category_id = filterCategory.value
   await productsStore.fetchProducts(params)
@@ -89,7 +80,7 @@ function getStockBadge(product: any) {
   <div>
     <PageHeader
       class="mb-6"
-      title="Товары и услуги"
+      title="Товары"
       :subtitle="`${productsStore.products.length} ${plural(productsStore.products.length, 'позиция', 'позиции', 'позиций')}`"
     >
       <RouterLink to="/products/new" class="btn-primary shrink-0">
@@ -110,7 +101,6 @@ function getStockBadge(product: any) {
           v-model="filterCategory" @change="applyFilters"
           :options="categoryOptions" class="w-full sm:w-64" searchable
         />
-        <CustomSelect v-model="filterType" @change="applyFilters" :options="typeOptions" class="w-full sm:w-48" />
         <CustomSelect v-model="sortBy" :options="sortOptions" class="w-full sm:w-48" />
       </div>
     </div>
