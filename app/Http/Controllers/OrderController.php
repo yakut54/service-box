@@ -451,7 +451,7 @@ class OrderController extends Controller
 
     public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $query = Order::query()->with('items');
+        $query = Order::query()->with(['items', 'customer']);
 
         if ($request->filled('status')) {
             $query->withStatus($request->status);
@@ -501,7 +501,7 @@ class OrderController extends Controller
                 fputcsv($out, [
                     $order->created_at->format('d.m.Y H:i'),
                     strtoupper(substr($order->id, 0, 8)),
-                    $order->customer_name,
+                    $order->customer?->name ?? $order->customer_name,
                     $order->customer_phone,
                     $order->customer_email,
                     $items,

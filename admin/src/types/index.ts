@@ -254,6 +254,7 @@ export interface Order {
   notes: string | null
   paid_at: string | null
   items?: OrderItem[]
+  customer?: Customer | null
   created_at: string
   updated_at: string
 }

@@ -208,14 +208,14 @@ async function updateStatus(status: string) {
             <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Клиент</div>
             <div class="flex items-center gap-3 mb-4">
               <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold text-sm flex-shrink-0 select-none">
-                {{ order.customer_name?.charAt(0)?.toUpperCase() || '?' }}
+                {{ (order.customer?.name ?? order.customer_name)?.charAt(0)?.toUpperCase() || '?' }}
               </div>
               <div class="min-w-0">
                 <RouterLink
                   v-if="order.customer_id"
                   :to="`/customers/${order.customer_id}`"
                   class="font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors truncate block"
-                >{{ order.customer_name }}</RouterLink>
+                >{{ order.customer?.name ?? order.customer_name }}</RouterLink>
                 <div v-else class="font-semibold text-gray-900 dark:text-white truncate">{{ order.customer_name }}</div>
               </div>
             </div>

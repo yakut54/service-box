@@ -173,7 +173,7 @@ onMounted(() => Promise.all([
           <div>
             <div class="text-sm font-medium text-primary-600 dark:text-primary-400 tabular-nums">#{{ order.id.slice(0,
               8) }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ order.customer_name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ order.customer?.name ?? order.customer_name }}</div>
           </div>
           <div class="text-right">
             <div class="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{{

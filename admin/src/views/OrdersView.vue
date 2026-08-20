@@ -134,7 +134,7 @@ async function doExport() {
               <tr v-for="order in ordersStore.orders" :key="order.id">
                 <td><RouterLink :to="`/orders/${order.id}`" class="text-primary-600 hover:text-primary-700 font-medium">#{{ order.id.slice(0, 8) }}</RouterLink></td>
                 <td>
-                  <RouterLink v-if="order.customer_id" :to="`/customers/${order.customer_id}`" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ order.customer_name }}</RouterLink>
+                  <RouterLink v-if="order.customer_id" :to="`/customers/${order.customer_id}`" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ order.customer?.name ?? order.customer_name }}</RouterLink>
                   <div v-else class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer_name }}</div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">{{ order.customer_phone }}</div>
                 </td>
@@ -182,7 +182,7 @@ async function doExport() {
               <span class="text-primary-600 font-medium text-sm">#{{ order.id.slice(0, 8) }}</span>
               <span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
             </div>
-            <div class="text-sm text-gray-900 dark:text-gray-100 truncate">{{ order.customer_name }}</div>
+            <div class="text-sm text-gray-900 dark:text-gray-100 truncate">{{ order.customer?.name ?? order.customer_name }}</div>
             <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDateTime(order.created_at) }} · {{ order.items?.length || 0 }} поз.</div>
           </RouterLink>
           <div class="flex items-center gap-2 shrink-0">
