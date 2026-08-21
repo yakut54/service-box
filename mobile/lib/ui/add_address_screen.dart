@@ -28,6 +28,11 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   bool _submitting = false;
   AppException? _error;
 
+  /// Тикает перед `Form.validate()`, чтобы LiveValidatedField показал своё
+  /// состояние сразу, даже если по нему ещё не печатали, а просто нажали
+  /// «Сохранить» на пустой форме.
+  final _touchedSignal = ValueNotifier<int>(0);
+
   @override
   void dispose() {
     _labelController.dispose();
@@ -36,10 +41,12 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     _buildingController.dispose();
     _apartmentController.dispose();
     _postalCodeController.dispose();
+    _touchedSignal.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    _touchedSignal.value++;
     if (!_formKey.currentState!.validate()) return;
 
     final sessionToken = context.read<AuthState>().session?.sessionToken;
@@ -97,6 +104,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                 emptyMessage: 'Укажите город',
                 minLength: 2,
                 shortMessage: 'Не менее 2 символов',
+                touchedSignal: _touchedSignal,
               ),
               const SizedBox(height: 12),
               LiveValidatedField(
@@ -105,6 +113,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                 emptyMessage: 'Укажите улицу',
                 minLength: 2,
                 shortMessage: 'Не менее 2 символов',
+                touchedSignal: _touchedSignal,
               ),
               const SizedBox(height: 12),
               Row(
@@ -114,6 +123,11 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                       controller: _buildingController,
                       label: 'Дом',
                       emptyMessage: 'Укажите дом',
+                      // "5А", "12к2" — буквы в номере дома это нормально,
+                      // но одна цифра быть обязана (иначе это не номер дома).
+                      extraCheck: (v) => v.contains(RegExp(r'[0-9]')),
+                      invalidMessage: 'В номере дома должна быть цифра',
+                      touchedSignal: _touchedSignal,
                     ),
                   ),
                   const SizedBox(width: 12),
