@@ -98,26 +98,28 @@ onMounted(load)
         </div>
 
         <div v-else class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Заказ</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Сумма заказа</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Комиссия</th>
-                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Дата</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-              <tr v-for="o in data.recent_orders" :key="o.id">
-                <td class="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">#{{ o.id.slice(0, 8) }}</td>
-                <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ statusLabels[o.status] || o.status }}</td>
-                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{{ formatKop(o.total_price) }}</td>
-                <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">{{ formatKop(o.commission_amount) }}</td>
-                <td class="px-4 py-3 text-right text-gray-400 text-xs">{{ formatDate(o.created_at) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Заказ</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Статус</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Сумма заказа</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Комиссия</th>
+                  <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Дата</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                <tr v-for="o in data.recent_orders" :key="o.id">
+                  <td class="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">#{{ o.id.slice(0, 8) }}</td>
+                  <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ statusLabels[o.status] || o.status }}</td>
+                  <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">{{ formatKop(o.total_price) }}</td>
+                  <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">{{ formatKop(o.commission_amount) }}</td>
+                  <td class="px-4 py-3 text-right text-gray-400 text-xs">{{ formatDate(o.created_at) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </template>

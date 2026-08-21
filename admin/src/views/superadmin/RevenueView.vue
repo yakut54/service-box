@@ -86,29 +86,31 @@ onMounted(load)
         <div class="p-5 border-b border-gray-100 dark:border-gray-800">
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">Последние заказы с комиссией</h2>
         </div>
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-gray-100 dark:border-gray-800">
-              <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Магазин</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Статус</th>
-              <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Сумма заказа</th>
-              <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Комиссия</th>
-              <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Дата</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <tr v-if="data.recent_orders.length === 0">
-              <td colspan="5" class="py-8 text-center text-gray-400">Заказов с комиссией ещё нет</td>
-            </tr>
-            <tr v-for="o in data.recent_orders" :key="o.order_id" class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-              <td class="py-3 px-4 text-gray-900 dark:text-white">{{ o.shop_name }}</td>
-              <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ statusLabels[o.status] || o.status }}</td>
-              <td class="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{{ formatKop(o.total_kopecks) }}</td>
-              <td class="py-3 px-4 text-right font-medium text-gray-900 dark:text-white">{{ formatKop(o.commission_kopecks) }}</td>
-              <td class="py-3 px-4 text-right text-gray-400 text-xs">{{ formatDate(o.created_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-100 dark:border-gray-800">
+                <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Магазин</th>
+                <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Статус</th>
+                <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Сумма заказа</th>
+                <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Комиссия</th>
+                <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Дата</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+              <tr v-if="data.recent_orders.length === 0">
+                <td colspan="5" class="py-8 text-center text-gray-400">Заказов с комиссией ещё нет</td>
+              </tr>
+              <tr v-for="o in data.recent_orders" :key="o.order_id" class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                <td class="py-3 px-4 text-gray-900 dark:text-white">{{ o.shop_name }}</td>
+                <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ statusLabels[o.status] || o.status }}</td>
+                <td class="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{{ formatKop(o.total_kopecks) }}</td>
+                <td class="py-3 px-4 text-right font-medium text-gray-900 dark:text-white">{{ formatKop(o.commission_kopecks) }}</td>
+                <td class="py-3 px-4 text-right text-gray-400 text-xs">{{ formatDate(o.created_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </template>
   </div>
