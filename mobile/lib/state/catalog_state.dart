@@ -26,13 +26,21 @@ class CatalogState extends ChangeNotifier {
   bool get loading => _loading;
   AppException? get error => _error;
 
+  /// Полная загрузка каталога — стартовое открытие экрана и pull-to-refresh
+  /// (см. RefreshIndicator в catalog_screen.dart). Уважает текущий фильтр
+  /// категории/поиск: раньше запрашивала товары без categoryId/search,
+  /// поэтому потяни-обновить сбрасывало список на «Все», хотя чип категории
+  /// в шапке продолжал показывать выбранную категорию (баг найден 2026-08-21).
   Future<void> load() async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
       final categories = await _repository.fetchCategories();
-      final products = await _repository.fetchProducts();
+      final products = await _repository.fetchProducts(
+        categoryId: _selectedCategoryId,
+        search: _search,
+      );
       _categories = categories;
       _products = products;
     } on AppException catch (e) {
