@@ -170,6 +170,14 @@ class _AccountScreenState extends State<AccountScreen> {
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: () async {
+            final confirmed = await showConfirmDialog(
+              context,
+              title: 'Выйти из аккаунта?',
+              message: 'Понадобится снова войти по номеру телефона.',
+              confirmLabel: 'Выйти',
+            );
+            if (!confirmed || !context.mounted) return;
+
             await context.read<AuthState>().logout();
             if (context.mounted) Navigator.of(context).pop();
           },
