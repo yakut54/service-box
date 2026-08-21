@@ -66,13 +66,26 @@ class StorageCleanup extends Command
             ->pluck('logo_url')
             ->each(function (string $url) use (&$urls) { $urls[] = $url; });
 
+        // shop_staff живёт в public-схеме, не в тенантной — отдельный запрос
+        DB::table('shop_staff')
+            ->whereNotNull('avatar_url')
+            ->pluck('avatar_url')
+            ->each(function (string $url) use (&$urls) { $urls[] = $url; });
+
         // Per-shop tenant schemas
         $schemas = DB::table('shops')->pluck('schema_name');
 
+        // ВНИМАНИЕ: любая колонка с URL картинки на диске public, которой нет
+        // в этом списке, будет считаться «осиротевшей» и удалена через час —
+        // отсюда пропали доп. фото товаров (product_images.url) и аватары
+        // покупателей (customers.avatar_url), их тут не было (баг найден
+        // 2026-08-22, удалялись каждую ночь по расписанию 03:00).
         $columns = [
-            'products'   => 'image_url',
-            'masters'    => 'avatar_url',
-            'categories' => 'image_url',
+            'products'       => 'image_url',
+            'product_images' => 'url',
+            'masters'        => 'avatar_url',
+            'categories'     => 'image_url',
+            'customers'      => 'avatar_url',
         ];
 
         foreach ($schemas as $schema) {
