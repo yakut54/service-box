@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../core/format.dart';
 import '../../models/product.dart';
 import '../product_detail_screen.dart';
 import 'add_to_cart_control.dart';
 import 'discount_badge.dart';
+import 'product_price_row.dart';
 
 /// Карточка товара в сетке каталога: фото, название, цена, бейдж наличия.
 /// Тап открывает карточку товара (ProductDetailScreen).
@@ -17,14 +17,6 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final imageUrl = product.imageUrl;
-    // Зачёркнутая старая цена показывается только если она реально задана
-    // (compare_price) — для скидок из раздела «Скидки» её просто нет:
-    // это скидка от текущей цены, а не «было/стало», и подделывать «было»
-    // обратным счётом от процента значит рисковать несовпадением с суммой,
-    // которая реально спишется (ровно то, из-за чего искали этот баг).
-    final showOldPrice =
-        product.comparePriceKopecks != null &&
-        product.comparePriceKopecks! > product.priceKopecks;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -96,29 +88,7 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        formatRubles(product.priceRubles),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (showOldPrice) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          formatRubles(product.comparePriceKopecks! / 100),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                  ProductPriceRow(product: product),
                 ],
               ),
             ),

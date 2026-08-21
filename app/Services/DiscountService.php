@@ -133,17 +133,23 @@ class DiscountService
     }
 
     /**
-     * Лучший auto-apply % скидки на конкретный товар — для бейджа в каталоге
-     * (см. ProductController). Не одно и то же с assertUsable(): здесь нет
-     * контекста конкретной корзины/клиента, поэтому min_order_amount и
-     * per_user_limit сознательно не проверяются (это лимиты уровня корзины/
-     * клиента, а бейдж — это «на этот товар вообще есть акция», не гарантия
-     * применимости прямо сейчас). usage_limit проверяется — если акция
-     * исчерпана полностью, бейджу нечего обещать.
+     * Лучшая auto-apply скидка на конкретный товар — для бейджа и зачёркнутой
+     * цены в каталоге (см. ProductController). Не одно и то же с
+     * assertUsable(): здесь нет контекста конкретной корзины/клиента, поэтому
+     * min_order_amount и per_user_limit сознательно не проверяются (это лимиты
+     * уровня корзины/клиента, а бейдж — это «на этот товар вообще есть акция»,
+     * не гарантия применимости прямо сейчас). usage_limit проверяется — если
+     * акция исчерпана полностью, бейджу нечего обещать.
+     *
+     * Отдаём percent И amount из одного и того же $bestAmount, а не только
+     * процент — если бы фронтенд сам пересчитывал «старую цену» обратным
+     * счётом от округлённого процента, сумма могла бы разъехаться на
+     * копейку с реальной (тот же класс бага, что чинили в М10/М11).
      *
      * @param  Collection<int, Discount>  $activeAutoDiscounts  см. Discount::active()->whereNull('code')
+     * @return array{percent: int, amount: int, ends_at: string|null}|null
      */
-    public function bestBadgePercent(Product $product, Collection $activeAutoDiscounts): ?int
+    public function bestBadge(Product $product, Collection $activeAutoDiscounts): ?array
     {
         $cartItems = [[
             'product_id'  => $product->id,
@@ -180,7 +186,11 @@ class DiscountService
 
         if (!$best || $bestAmount <= 0) return null;
 
-        return (int) round($bestAmount / $product->price * 100);
+        return [
+            'percent' => (int) round($bestAmount / $product->price * 100),
+            'amount'  => $bestAmount,
+            'ends_at' => $best->ends_at?->toIso8601String(),
+        ];
     }
 
     /**

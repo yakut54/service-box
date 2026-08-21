@@ -48,11 +48,23 @@ class Product {
   final int? comparePriceKopecks;
 
   /// % лучшей активной auto-apply скидки (см. Discount, DiscountService::
-  /// bestBadgePercent на бэкенде) — null, если на товар сейчас нет скидки.
+  /// bestBadge на бэкенде) — null, если на товар сейчас нет скидки.
   /// Это ОСНОВНОЙ источник бейджа: реальные скидки настраиваются в разделе
   /// «Скидки» админки, а не через compare_price, который почти никогда не
   /// заполнен.
   final int? discountPercentFromDiscounts;
+
+  /// Цена ПОСЛЕ discountPercentFromDiscounts, в копейках — считается на
+  /// бэкенде из той же суммы скидки, что и процент (DiscountService::
+  /// bestBadge), а не пересчитывается на клиенте обратным счётом от
+  /// округлённого процента (риск разъехаться с реальной суммой списания —
+  /// тот же класс бага, что в М10/М11). Есть только когда есть
+  /// discountPercentFromDiscounts.
+  final int? discountPriceKopecks;
+
+  /// Когда discountPercentFromDiscounts перестанет действовать — null,
+  /// если скидка бессрочная (см. Discount.ends_at на бэкенде).
+  final DateTime? discountEndsAt;
 
   final String? imageUrl;
   final String? categoryId;
@@ -70,6 +82,8 @@ class Product {
     required this.priceKopecks,
     this.comparePriceKopecks,
     this.discountPercentFromDiscounts,
+    this.discountPriceKopecks,
+    this.discountEndsAt,
     this.imageUrl,
     this.categoryId,
     this.physical,
@@ -93,6 +107,25 @@ class Product {
     return null;
   }
 
+  /// Цена жирным — при скидке из «Скидки» это discountPriceKopecks с
+  /// бэкенда, иначе обычная priceKopecks (compare_price саму price не
+  /// трогает, она только источник зачёркнутой цены).
+  int get displayPriceKopecks =>
+      discountPercentFromDiscounts != null && discountPriceKopecks != null
+      ? discountPriceKopecks!
+      : priceKopecks;
+
+  /// Зачёркнутая цена рядом с displayPriceKopecks — null, если показывать
+  /// нечего. Тот же приоритет, что и в discountPercent: реальная скидка
+  /// сначала, ручной compare_price — запасной вариант.
+  int? get oldPriceKopecks {
+    if (discountPercentFromDiscounts != null) return priceKopecks;
+    if (comparePriceKopecks != null && comparePriceKopecks! > priceKopecks) {
+      return comparePriceKopecks;
+    }
+    return null;
+  }
+
   /// Обложка первой, затем доп. фото — то, что реально листает галерея
   /// на карточке товара.
   List<String> get galleryImages => [
@@ -107,6 +140,10 @@ class Product {
     priceKopecks: (json['price'] as num).toInt(),
     comparePriceKopecks: (json['compare_price'] as num?)?.toInt(),
     discountPercentFromDiscounts: (json['discount_percent'] as num?)?.toInt(),
+    discountPriceKopecks: (json['discount_price'] as num?)?.toInt(),
+    discountEndsAt: json['discount_ends_at'] != null
+        ? DateTime.tryParse(json['discount_ends_at'] as String)
+        : null,
     imageUrl: json['image_url'] as String?,
     categoryId: json['category_id'] as String?,
     physical: json['physical'] != null

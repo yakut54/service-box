@@ -8,6 +8,7 @@ import 'widgets/add_to_cart_control.dart';
 import 'widgets/cart_button.dart';
 import 'widgets/discount_badge.dart';
 import 'widgets/error_view.dart';
+import 'widgets/product_price_row.dart';
 
 /// Карточка товара: GET /widget/products/{id}. Открывается тапом по
 /// карточке в каталоге (см. ProductCard).
@@ -74,9 +75,7 @@ class _ProductDetailBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final inStock = product.inStock;
-    final showOldPrice =
-        product.comparePriceKopecks != null &&
-        product.comparePriceKopecks! > product.priceKopecks;
+    final discountEndsAt = product.discountEndsAt;
 
     return Column(
       children: [
@@ -91,29 +90,28 @@ class _ProductDetailBody extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    formatRubles(product.priceRubles),
-                    style: theme.textTheme.titleLarge?.copyWith(
+                  ProductPriceRow(
+                    product: product,
+                    priceStyle: theme.textTheme.titleLarge?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (showOldPrice) ...[
-                    const SizedBox(width: 8),
-                    Text(
-                      formatRubles(product.comparePriceKopecks! / 100),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                  ],
                   if (product.hasDiscount) ...[
                     const SizedBox(width: 8),
                     DiscountBadge(percent: product.discountPercent!),
                   ],
                 ],
               ),
+              if (discountEndsAt != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Акция до ${formatShortDate(discountEndsAt)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               if (!inStock)
                 Container(
@@ -426,11 +424,15 @@ class _RelatedProductCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      formatRubles(product.priceRubles),
-                      style: theme.textTheme.bodySmall?.copyWith(
+                    ProductPriceRow(
+                      product: product,
+                      priceStyle: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.bold,
+                      ),
+                      oldPriceStyle: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        decoration: TextDecoration.lineThrough,
                       ),
                     ),
                   ],

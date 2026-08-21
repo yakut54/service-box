@@ -16,9 +16,13 @@ class ProductController extends Controller
     public function __construct(private readonly DiscountService $discountService) {}
 
     /**
-     * Проставить badge-скидку (auto-apply, см. DiscountService::bestBadgePercent)
+     * Проставить badge-скидку (auto-apply, см. DiscountService::bestBadge)
      * каждому товару в коллекции — только для /widget/*, админке это не нужно.
      * Одна выборка активных скидок на всю коллекцию, а не по одной на товар.
+     * discount_price — цена ПОСЛЕ этой скидки, для зачёркнутой старой цены
+     * на клиенте (старая цена = обычная product.price). discount_ends_at —
+     * когда скидка перестанет действовать (null — бессрочно), чтобы было
+     * видно в приложении, что акция ограничена по времени.
      */
     private function attachBadges(iterable $products): void
     {
@@ -26,7 +30,10 @@ class ProductController extends Controller
         if ($activeAutoDiscounts->isEmpty()) return;
 
         foreach ($products as $product) {
-            $product->discount_percent = $this->discountService->bestBadgePercent($product, $activeAutoDiscounts);
+            $badge = $this->discountService->bestBadge($product, $activeAutoDiscounts);
+            $product->discount_percent  = $badge['percent'] ?? null;
+            $product->discount_price    = $badge ? $product->price - $badge['amount'] : null;
+            $product->discount_ends_at  = $badge['ends_at'] ?? null;
         }
     }
 
