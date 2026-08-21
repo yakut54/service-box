@@ -25,6 +25,23 @@ class ProductPriceRow extends StatelessWidget {
     final theme = Theme.of(context);
     final oldPriceKopecks = product.oldPriceKopecks;
 
+    // +10% к размеру шрифта актуальной цены — так же на карточке в сетке,
+    // на карточке товара и в «Похожих товарах», раз стиль ни один из вызовов
+    // сам не увеличивает.
+    final basePriceStyle =
+        priceStyle ??
+        theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        );
+
+    // Крупные цены (5-6 цифр) в узкой карточке («Похожие товары», 130px)
+    // не помещаются вместе со старой ценой — mainAxisSize.min тут не спасает
+    // (он лишь про то, каким Row сообщает СВОЙ размер родителю, а не про то,
+    // сколько места у него самого есть под детей). Актуальная цена — то,
+    // что реально спишется, — не сокращается никогда; старая цена, если
+    // не помещается, уходит в многоточие первой (Flexible), а не роняет
+    // разметку с оранжево-чёрной полосой overflow.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
@@ -32,23 +49,26 @@ class ProductPriceRow extends StatelessWidget {
       children: [
         Text(
           formatRubles(product.displayPriceKopecks / 100),
-          style:
-              priceStyle ??
-              theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: basePriceStyle?.copyWith(
+            fontSize: (basePriceStyle.fontSize ?? 14) * 1.1,
+          ),
         ),
         if (oldPriceKopecks != null) ...[
           const SizedBox(width: 6),
-          Text(
-            formatRubles(oldPriceKopecks / 100),
-            style:
-                oldPriceStyle ??
-                theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  decoration: TextDecoration.lineThrough,
-                ),
+          Flexible(
+            child: Text(
+              formatRubles(oldPriceKopecks / 100),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  oldPriceStyle ??
+                  theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    decoration: TextDecoration.lineThrough,
+                  ),
+            ),
           ),
         ],
       ],
