@@ -100,6 +100,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ),
               if (state.categories.isNotEmpty)
                 _CategoryChips(categories: state.categories),
+              // Тонкая полоса загрузки при переключении фильтра/поиске —
+              // товары уже на экране (пусть и старые), просто заменять их
+              // на спиннер/пустой экран не нужно, но и полное молчание при
+              // ощутимой задержке запроса выглядит как зависание интерфейса.
+              SizedBox(
+                height: 2,
+                child: state.loading && state.products.isNotEmpty
+                    ? const LinearProgressIndicator(minHeight: 2)
+                    : null,
+              ),
               const SizedBox(height: 4),
               Expanded(child: _buildBody(context, state)),
             ],
