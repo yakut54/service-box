@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/app_exception.dart';
 import '../data/address_repository.dart';
 import '../state/auth_state.dart';
+import 'widgets/form/live_validated_field.dart';
 import 'widgets/form/primary_submit_button.dart';
 
 /// Форма добавления адреса. При успехе возвращает true через Navigator.pop,
@@ -70,9 +71,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     }
   }
 
-  String? _requiredValidator(String? value, String message) =>
-      (value == null || value.trim().isEmpty) ? message : null;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -93,25 +91,29 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              LiveValidatedField(
                 controller: _cityController,
-                decoration: const InputDecoration(labelText: 'Город'),
-                validator: (v) => _requiredValidator(v, 'Укажите город'),
+                label: 'Город',
+                emptyMessage: 'Укажите город',
+                minLength: 2,
+                shortMessage: 'Не менее 2 символов',
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              LiveValidatedField(
                 controller: _streetController,
-                decoration: const InputDecoration(labelText: 'Улица'),
-                validator: (v) => _requiredValidator(v, 'Укажите улицу'),
+                label: 'Улица',
+                emptyMessage: 'Укажите улицу',
+                minLength: 2,
+                shortMessage: 'Не менее 2 символов',
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
+                    child: LiveValidatedField(
                       controller: _buildingController,
-                      decoration: const InputDecoration(labelText: 'Дом'),
-                      validator: (v) => _requiredValidator(v, 'Укажите дом'),
+                      label: 'Дом',
+                      emptyMessage: 'Укажите дом',
                     ),
                   ),
                   const SizedBox(width: 12),
