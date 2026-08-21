@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/format.dart';
-import '../data/discount_repository.dart';
 import '../models/cart_item.dart';
 import '../state/cart_state.dart';
 import '../state/shop_state.dart';
@@ -11,39 +10,11 @@ import 'widgets/promo_code_field.dart';
 
 /// Корзина: список добавленных позиций, изменение количества, промокод, сумма.
 /// «−» на количестве 1 удаляет позицию целиком (см. _CartQuantityStepper).
-class CartScreen extends StatefulWidget {
+/// Промокод/автоскидка пересчитываются в CartState на каждое изменение
+/// корзины (см. CartState._scheduleDiscountRefresh) — этому экрану о них
+/// заботиться не нужно.
+class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
-
-  @override
-  State<CartScreen> createState() => _CartScreenState();
-}
-
-class _CartScreenState extends State<CartScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Автоскидка (без промокода) проверяется при каждом открытии корзины —
-    // не перетирает вручную введённый промокод (см. _checkAutoDiscount).
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAutoDiscount());
-  }
-
-  Future<void> _checkAutoDiscount() async {
-    if (!mounted) return;
-    final cart = context.read<CartState>();
-    if (cart.discount != null || cart.items.isEmpty) return;
-
-    try {
-      final found = await DiscountRepository.create().autoApply(
-        cart.totalKopecks,
-        cart.items,
-      );
-      if (found != null && mounted) {
-        context.read<CartState>().setDiscount(found);
-      }
-    } catch (_) {
-      // автоскидка — необязательное удобство, тихо игнорируем сбой
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
+import '../data/discount_repository.dart';
 import '../models/applied_discount.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
@@ -7,8 +10,14 @@ import '../models/product.dart';
 /// Корзина живёт только в памяти телефона до оформления заказа — на сервер
 /// ничего не уходит, пока байер не нажмёт «Оформить заказ» (см. Шаг E).
 class CartState extends ChangeNotifier {
+  CartState({DiscountRepository? discountRepository})
+    : _discountRepository = discountRepository ?? DiscountRepository.create();
+
+  final DiscountRepository _discountRepository;
   final Map<String, CartItem> _items = {};
   AppliedDiscount? _discount;
+  Timer? _discountDebounce;
+  int _discountRequestId = 0;
 
   List<CartItem> get items => _items.values.toList(growable: false);
 
@@ -41,6 +50,7 @@ class CartState extends ChangeNotifier {
       quantity: current + quantity,
     );
     notifyListeners();
+    _scheduleDiscountRefresh();
   }
 
   void setQuantity(Product product, int quantity) {
@@ -50,23 +60,90 @@ class CartState extends ChangeNotifier {
       _items[product.id] = CartItem(product: product, quantity: quantity);
     }
     notifyListeners();
+    _scheduleDiscountRefresh();
   }
 
   void remove(String productId) {
     _items.remove(productId);
     notifyListeners();
+    _scheduleDiscountRefresh();
   }
 
+  /// [discount] == null (промокод сняли крестиком) — сразу перепроверяем,
+  /// не найдётся ли теперь авто-скидка. Новый промокод/автоскидку сюда
+  /// пишет только _refreshDiscount() и PromoCodeField — доп. перепроверка
+  /// в этой ветке не нужна.
   void setDiscount(AppliedDiscount? discount) {
     _discount = discount;
     notifyListeners();
+    if (discount == null) _scheduleDiscountRefresh();
   }
 
   /// Вызывается после успешного оформления заказа — товар куплен,
   /// в корзине его больше быть не должно.
   void clear() {
+    _discountDebounce?.cancel();
     _items.clear();
     _discount = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _discountDebounce?.cancel();
+    super.dispose();
+  }
+
+  /// Пересчитывает скидку после любого изменения состава корзины.
+  ///
+  /// Раньше автоскидка проверялась один раз при открытии экрана корзины
+  /// (CartScreen.initState) и потом «замораживалась» — при последующем
+  /// добавлении/удалении товаров баннер продолжал показывать скидку от
+  /// старого состава корзины, вплоть до несуществующей (например, скидка
+  /// «на все конфеты» оставалась в корзине из одних бананов). Деньги при
+  /// оформлении заказа считались верно (сервер пересчитывает заново), но
+  /// покупатель видел неправильную цифру на экране. Баг найден 2026-08-21.
+  ///
+  /// Дебаунс на 400мс — чтобы не долбить API на каждый тап степпера.
+  void _scheduleDiscountRefresh() {
+    _discountDebounce?.cancel();
+
+    if (_items.isEmpty) {
+      _discount = null;
+      notifyListeners();
+      return;
+    }
+
+    _discountDebounce = Timer(
+      const Duration(milliseconds: 400),
+      _refreshDiscount,
+    );
+  }
+
+  Future<void> _refreshDiscount() async {
+    final requestId = ++_discountRequestId;
+    final code = _discount?.code;
+
+    try {
+      final result = code != null
+          ? await _discountRepository.validate(code, totalKopecks, items)
+          : await _discountRepository.autoApply(totalKopecks, items);
+
+      if (requestId != _discountRequestId) return; // корзина уже другая
+
+      _discount = result;
+      notifyListeners();
+    } catch (_) {
+      if (requestId != _discountRequestId) return;
+
+      // Промокод перестал подходить (например, товар убрали из корзины) —
+      // снимаем. Для авто-скидки сбой сети/сервера тихо игнорируем и
+      // оставляем как было — это необязательное удобство, не повод мигать
+      // баннером; попробуем снова на следующем изменении корзины.
+      if (code != null) {
+        _discount = null;
+        notifyListeners();
+      }
+    }
   }
 }
