@@ -126,7 +126,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                       // "5А", "12к2" — буквы в номере дома это нормально,
                       // но одна цифра быть обязана (иначе это не номер дома).
                       extraCheck: (v) => v.contains(RegExp(r'[0-9]')),
-                      invalidMessage: 'Нужна цифра',
+                      invalidMessage: 'Только число',
                       touchedSignal: _touchedSignal,
                     ),
                   ),

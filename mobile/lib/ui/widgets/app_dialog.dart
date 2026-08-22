@@ -41,18 +41,23 @@ class AppDialog extends StatelessWidget {
               const SizedBox(height: 16),
               child,
               const SizedBox(height: 24),
-              // Wrap, не Row — на узком диалоге с крупным системным шрифтом
-              // (увеличенный масштаб текста в настройках телефона) две кнопки
-              // в ряд не помещались, и вторая (например «Выйти») молча
-              // обрезалась за пределы экрана без предупреждения об overflow
-              // (в release-сборке Flutter не показывает жёлто-чёрную полосу
-              // ошибки — просто теряет то, что не влезло). Wrap вместо этого
-              // переносит кнопку на новую строку.
-              Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 8,
-                runSpacing: 8,
-                children: actions,
+              // Row, кнопки остаются в один ряд (перенос на вторую строку не
+              // нужен). При этом каждая обёрнута в Flexible — на узком диалоге
+              // с крупным системным шрифтом (увеличенный масштаб текста в
+              // настройках телефона) кнопки могли не поместиться, и вторая
+              // (например «Выйти») молча обрезалась за пределы экрана без
+              // предупреждения об overflow (в release-сборке Flutter не
+              // показывает жёлто-чёрную полосу ошибки — просто теряет то, что
+              // не влезло). Flexible вместо этого ужимает текст с многоточием,
+              // но сама кнопка остаётся видимой и нажимаемой.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < actions.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    Flexible(child: actions[i]),
+                  ],
+                ],
               ),
             ],
           ),
@@ -82,7 +87,7 @@ Future<bool> showConfirmDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(cancelLabel),
+            child: Text(cancelLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
           FilledButton(
             style: destructive
@@ -92,7 +97,7 @@ Future<bool> showConfirmDialog(
                   )
                 : null,
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(confirmLabel),
+            child: Text(confirmLabel, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ],
         child: Text(message, style: theme.textTheme.bodyMedium),
