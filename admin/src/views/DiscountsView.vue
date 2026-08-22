@@ -132,13 +132,18 @@ function openEdit(d: Discount) {
 }
 
 function handleDiscountSaved(discount: Discount, mode: 'create' | 'edit') {
+  // "Скидка" или "Промокод" — по тому, что реально сохранили, а не всегда
+  // "Промокод": у скидки без кода (auto-apply — большинство случаев) такое
+  // сообщение сбивало с толку (баг найден 2026-08-22 — изменили именно
+  // размер скидки, но подсказка про промокод, хотя код никто не трогал).
+  const label = discount.code ? 'Промокод' : 'Скидка'
   if (mode === 'create') {
     discounts.value.unshift(discount)
-    toast.success('Промокод создан')
+    toast.success(`${label} создан${discount.code ? '' : 'а'}`)
   } else {
     const idx = discounts.value.findIndex(d => d.id === discount.id)
     if (idx !== -1) discounts.value[idx] = discount
-    toast.success('Промокод обновлён')
+    toast.success(`${label} обновлен${discount.code ? '' : 'а'}`)
   }
 }
 
