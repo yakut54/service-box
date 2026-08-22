@@ -51,8 +51,23 @@ class WidgetPhoneVerificationController extends Controller
         }
         RateLimiter::hit($ipKey, 600);
 
-        // TODO: заменить на реальную отправку SMS перед продом
-        $code = '1111';
+        // TODO: подключить реальную отправку SMS — сейчас код никуда не
+        // уходит, кроме _dev_code в ответе (и то только вне production).
+        //
+        // КРИТИЧНО: раньше здесь был захардкожен код '1111' одинаковый для
+        // всех телефонов на ЛЮБОМ окружении, включая боевой сервер
+        // (APP_ENV=production), и отдавался в ответе всем подряд через
+        // _dev_code. Это позволяло захватить аккаунт ЛЮБОГО покупателя,
+        // зная только его номер телефона: запросить код, ввести "1111",
+        // получить 60-дневный session_token — доступ к профилю, адресам
+        // (включая квартиру), истории заказов. Проверено вживую на
+        // shop_xdirmgfxyd7u 2026-08-22: получен полный профиль и оба
+        // сохранённых адреса реального тестового покупателя без единого
+        // SMS. Пока нет реальной отправки SMS, единственный безопасный
+        // вариант — код случайный и НЕ раскрывается в проде: значит вход
+        // по телефону в проде сейчас не работает по-настоящему, но это
+        // лучше, чем работающий вход, который ломает любой аккаунт.
+        $code = (string) random_int(1000, 9999);
 
         // Store in cache for 5 minutes
         $cacheKey = "otp:{$shopId}:{$phone}";
@@ -68,12 +83,12 @@ class WidgetPhoneVerificationController extends Controller
             ? substr($digits, 0, 4) . str_repeat('*', max(0, strlen($digits) - 6)) . substr($digits, -2)
             : $phone;
 
-        return response()->json([
+        return response()->json(array_filter([
             'message' => 'Код подтверждения отправлен',
             'masked_phone' => $masked,
             'expires_in' => 300,
-            '_dev_code' => $code,
-        ]);
+            '_dev_code' => app()->environment('production') ? null : $code,
+        ], fn ($v) => $v !== null));
     }
 
     /**
