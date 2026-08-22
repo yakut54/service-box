@@ -41,9 +41,17 @@ class AppDialog extends StatelessWidget {
               const SizedBox(height: 16),
               child,
               const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              // Wrap, не Row — на узком диалоге с крупным системным шрифтом
+              // (увеличенный масштаб текста в настройках телефона) две кнопки
+              // в ряд не помещались, и вторая (например «Выйти») молча
+              // обрезалась за пределы экрана без предупреждения об overflow
+              // (в release-сборке Flutter не показывает жёлто-чёрную полосу
+              // ошибки — просто теряет то, что не влезло). Wrap вместо этого
+              // переносит кнопку на новую строку.
+              Wrap(
+                alignment: WrapAlignment.end,
                 spacing: 8,
+                runSpacing: 8,
                 children: actions,
               ),
             ],

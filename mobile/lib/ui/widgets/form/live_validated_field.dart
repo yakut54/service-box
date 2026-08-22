@@ -124,6 +124,7 @@ class _LiveValidatedFieldState extends State<LiveValidatedField> {
       decoration: InputDecoration(
         labelText: widget.label,
         helperText: helperText,
+        helperMaxLines: 2,
         helperStyle: TextStyle(color: theme.colorScheme.error),
         enabledBorder: enabledBorder,
         focusedBorder: focusedBorder,
