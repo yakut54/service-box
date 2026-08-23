@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\Customer;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -217,29 +218,30 @@ class ChatController extends Controller
      *
      * Без gif (П21, §1.1) — ни browser-image-compression (админка), ни
      * flutter_image_compress (мобильное) не умеют сжимать gif с сохранением
-     * анимации, а честно сжать до 100 КБ, чтобы не гонять исходники с
-     * телефона, больше нечем — раз сжать нельзя, не принимаем совсем.
+     * анимации, а честно сжать до 100 КБ больше нечем — раз сжать нельзя,
+     * не принимаем совсем.
      *
-     * max:150 (150 КБ), не 2048 (П20, §1.1) — клиент (веб и мобильное) сам
-     * сжимает фото до 100 КБ ДО отправки сюда; серверный лимит — не зеркало
-     * клиентской цели, а защита от прямого запроса к API в обход сжатия
-     * (с небольшим запасом на случай, если сжатие на клиенте чуть
-     * промахнулось мимо цели).
+     * НЕТ проверки на максимальный размер файла и никакого сообщения
+     * пользователю про размер (распоряжение 2026-08-23) — каким бы огромным
+     * ни был исходник, сервер сам гарантированно сжимает его до ≤100 КБ
+     * через ImageCompressionService, а не отклоняет с ошибкой. Единственный
+     * потолок — общий лимит PHP на входящий запрос (upload_max_filesize в
+     * Dockerfile, 25 МБ) — это инфраструктурная защита от откровенного
+     * DoS, а не бизнес-правило, которое видит пользователь.
      */
     public function uploadImage(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|file|mimes:jpeg,png,webp|max:150',
+            'image' => 'required|file|mimes:jpeg,png,webp',
         ], [
             'image.mimes' => 'Файл должен быть изображением (JPEG, PNG или WebP)',
-            'image.max'   => 'Максимальный размер файла — 150 КБ',
         ]);
 
-        $file     = $request->file('image');
-        $ext      = $file->guessExtension() ?? 'jpg';
-        $filename = Str::uuid() . '.' . $ext;
-        $path     = $file->storeAs('uploads', $filename, 'public');
-        $url      = Storage::disk('public')->url($path);
+        $compressed = ImageCompressionService::compressToJpeg($request->file('image'));
+
+        $filename = Str::uuid() . '.jpg';
+        Storage::disk('public')->put('uploads/' . $filename, $compressed);
+        $url = Storage::disk('public')->url('uploads/' . $filename);
 
         return response()->json(['url' => $url]);
     }
