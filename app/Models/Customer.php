@@ -47,6 +47,11 @@ class Customer extends Model
         return $this->hasMany(CustomerAddress::class);
     }
 
+    public function chatThread()
+    {
+        return $this->hasOne(ChatThread::class);
+    }
+
     public function getTotalSpentRublesAttribute(): float
     {
         return $this->total_spent / 100;

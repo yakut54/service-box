@@ -20,6 +20,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use App\Http\Controllers\CustomerAddressController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
 use App\Http\Controllers\MaxController;
 use App\Http\Controllers\DeliverySettingsController;
@@ -141,6 +142,15 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
         Route::put('/profile', [ProfileController::class, 'update']);
         Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1');
         Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar']);
+
+        // Чат с магазином — только мобильное приложение (60-дневная сессия),
+        // см. PLAN-CHAT.md §3.1. Throttle — именованные лимитеры по токену
+        // сессии, не по IP (см. PLAN-CHAT.md §3.3 / AppServiceProvider).
+        Route::get('/chat', [ChatController::class, 'index'])->middleware('throttle:chat-read');
+        Route::post('/chat/messages', [ChatController::class, 'store'])->middleware('throttle:chat-write');
+        Route::post('/chat/read', [ChatController::class, 'markRead'])->middleware('throttle:chat-read');
+        Route::get('/chat/poll', [ChatController::class, 'poll'])->middleware('throttle:chat-read');
+        Route::post('/chat/image', [ChatController::class, 'uploadImage'])->middleware('throttle:chat-image');
     });
 });
 

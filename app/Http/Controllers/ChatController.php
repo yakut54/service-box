@@ -1,0 +1,244 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ChatMessage;
+use App\Models\ChatThread;
+use App\Models\Customer;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+/**
+ * Чат покупателя с магазином — один диалог на покупателя (PLAN-CHAT.md §2),
+ * только мобильное приложение в v1 (§3.1). Владелец/администраторы отвечают
+ * через отдельный ChatController в admin-неймспейсе (Ч3).
+ */
+class ChatController extends Controller
+{
+    private const PAGE_SIZE = 30;
+
+    /**
+     * GET /api/widget/chat
+     *
+     * Курсор ?before=<message_id> резолвится в (created_at, id) на сервере —
+     * id это gen_random_uuid(), пагинация по нему напрямую бессмысленна
+     * (см. PLAN-CHAT.md §3.4).
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $request->validate(['before' => 'nullable|uuid']);
+
+        $customer = $this->customer($request);
+        $thread   = $customer->chatThread;
+
+        if (!$thread) {
+            return response()->json(['data' => [], 'thread' => null]);
+        }
+
+        $query = ChatMessage::where('thread_id', $thread->id);
+
+        if ($request->filled('before')) {
+            $cursor = $this->resolveCursor($thread, $request->input('before'));
+            if ($cursor) {
+                $query->where(function ($q) use ($cursor) {
+                    $q->where('created_at', '<', $cursor->created_at)
+                      ->orWhere(function ($q2) use ($cursor) {
+                          $q2->where('created_at', '=', $cursor->created_at)
+                             ->where('id', '<', $cursor->id);
+                      });
+                });
+            }
+        }
+
+        $messages = $query->orderByDesc('created_at')->orderByDesc('id')
+            ->limit(self::PAGE_SIZE)
+            ->get();
+
+        return response()->json([
+            'data'   => $messages,
+            'thread' => [
+                'is_blocked_by_shop' => $thread->is_blocked_by_shop,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/widget/chat/messages
+     *
+     * Тред создаётся под капотом при первом сообщении (PLAN-CHAT.md §2) —
+     * через INSERT ... ON CONFLICT, а не firstOrCreate(), чтобы не словить
+     * гонку при двойном тапе/retry (§1.1 П3). client_message_id делает
+     * повторную отправку идемпотентной (§5.1).
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $customer = $this->customer($request);
+
+        $data = $request->validate([
+            'body'               => 'nullable|string|max:2000',
+            'image_url'          => 'nullable|url|max:1000',
+            'client_message_id'  => 'required|uuid',
+        ]);
+
+        if (empty($data['body']) && empty($data['image_url'])) {
+            return response()->json(['message' => 'Сообщение не может быть пустым'], 422);
+        }
+
+        $existingThread = ChatThread::where('customer_id', $customer->id)->first();
+        if ($existingThread?->is_blocked_by_shop) {
+            return response()->json(['message' => 'Магазин ограничил переписку'], 403);
+        }
+
+        $threadId = DB::selectOne(
+            'INSERT INTO chat_threads (id, customer_id) VALUES (gen_random_uuid(), ?)
+             ON CONFLICT (customer_id) DO UPDATE SET customer_id = EXCLUDED.customer_id
+             RETURNING id',
+            [$customer->id]
+        )->id;
+
+        // Идемпотентность: тот же client_message_id — тот же результат,
+        // без создания дубля (см. §5.1).
+        $existing = ChatMessage::where('thread_id', $threadId)
+            ->where('client_message_id', $data['client_message_id'])
+            ->first();
+        if ($existing) {
+            return response()->json(['data' => $existing], 200);
+        }
+
+        $message = ChatMessage::create([
+            'thread_id'          => $threadId,
+            'sender_type'        => 'customer',
+            'body'               => $data['body'] ?? null,
+            'image_url'          => $data['image_url'] ?? null,
+            'client_message_id'  => $data['client_message_id'],
+        ]);
+
+        $preview = $data['body'] ?? '📷 Фото';
+        DB::table('chat_threads')->where('id', $threadId)->update([
+            'last_message_at'      => $message->created_at,
+            'last_message_preview' => mb_substr($preview, 0, 80),
+            'updated_at'           => now(),
+        ]);
+        DB::table('chat_threads')->where('id', $threadId)->increment('unread_by_shop');
+
+        return response()->json(['data' => $message], 201);
+    }
+
+    /**
+     * POST /api/widget/chat/read
+     *
+     * `status` на сообщении — единственный источник правды для read-статуса,
+     * массово проставляется здесь одним UPDATE (см. PLAN-CHAT.md §1.2).
+     * `customer_last_read_at` — только справочная метка, не используется для
+     * статуса отдельных сообщений.
+     */
+    public function markRead(Request $request): JsonResponse
+    {
+        $customer = $this->customer($request);
+        $thread   = $customer->chatThread;
+
+        if (!$thread) {
+            return response()->json(['message' => 'Диалог не найден'], 404);
+        }
+
+        DB::table('chat_messages')
+            ->where('thread_id', $thread->id)
+            ->where('sender_type', 'shop')
+            ->where('status', 'sent')
+            ->update(['status' => 'read']);
+
+        $thread->update([
+            'unread_by_customer'    => 0,
+            'customer_last_read_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Прочитано']);
+    }
+
+    /**
+     * GET /api/widget/chat/poll?after=<message_id>
+     *
+     * Компактный маркер вместо полного списка сообщений (PLAN-CHAT.md §4) —
+     * `shop_read_up_to` позволяет клиенту локально обновить галочки на своих
+     * уже отрисованных сообщениях без полного перезапроса ленты.
+     */
+    public function poll(Request $request): JsonResponse
+    {
+        $request->validate(['after' => 'nullable|uuid']);
+
+        $customer = $this->customer($request);
+        $thread   = $customer->chatThread;
+
+        if (!$thread) {
+            return response()->json(['has_new' => false, 'unread_total' => 0, 'shop_read_up_to' => null]);
+        }
+
+        $hasNew = false;
+        if ($request->filled('after')) {
+            $cursor = $this->resolveCursor($thread, $request->input('after'));
+            $hasNew = $cursor
+                ? ChatMessage::where('thread_id', $thread->id)
+                    ->where(function ($q) use ($cursor) {
+                        $q->where('created_at', '>', $cursor->created_at)
+                          ->orWhere(function ($q2) use ($cursor) {
+                              $q2->where('created_at', '=', $cursor->created_at)
+                                 ->where('id', '>', $cursor->id);
+                          });
+                    })
+                    ->exists()
+                : $thread->unread_by_customer > 0;
+        } else {
+            $hasNew = $thread->unread_by_customer > 0;
+        }
+
+        return response()->json([
+            'has_new'         => $hasNew,
+            'unread_total'    => $thread->unread_by_customer,
+            'shop_read_up_to' => $thread->shop_last_read_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * POST /api/widget/chat/image
+     *
+     * Без svg в списке типов (в отличие от ImageController::upload) — фото
+     * грузит посторонний покупатель, а откроет сотрудник магазина, SVG может
+     * нести <script> (см. PLAN-CHAT.md §5, П7).
+     */
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image:jpeg,png,gif,webp|max:2048',
+        ], [
+            'image.image' => 'Файл должен быть изображением',
+            'image.max'   => 'Максимальный размер файла — 2 МБ',
+        ]);
+
+        $file     = $request->file('image');
+        $ext      = $file->guessExtension() ?? 'jpg';
+        $filename = Str::uuid() . '.' . $ext;
+        $path     = $file->storeAs('uploads', $filename, 'public');
+        $url      = Storage::disk('public')->url($path);
+
+        return response()->json(['url' => $url]);
+    }
+
+    private function customer(Request $request): Customer
+    {
+        return $request->attributes->get('customer');
+    }
+
+    /**
+     * Резолвит message_id в (created_at, id) для сравнения курсора — только
+     * в пределах СВОЕГО треда, чужой/случайный id просто игнорируется.
+     */
+    private function resolveCursor(ChatThread $thread, string $messageId): ?ChatMessage
+    {
+        return ChatMessage::where('thread_id', $thread->id)
+            ->where('id', $messageId)
+            ->first();
+    }
+}
