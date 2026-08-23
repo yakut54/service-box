@@ -130,6 +130,18 @@ async function pollOpenThread() {
     const fresh = [...data.data].reverse()
     const known = new Set(messages.value.map(m => m.id))
     const newOnes = fresh.filter(m => !known.has(m.id))
+
+    // fresh покрывает только последние ~30 сообщений. Если сообщение из
+    // этого же окна пропало (другой сотрудник удалил его как модерацию),
+    // убираем его и здесь — иначе оно зависает в памяти навсегда, раз
+    // poll умеет только добавлять. Сообщения старше окна (подгруженные
+    // через loadOlder) не трогаем.
+    const windowStart = fresh.length > 0 ? fresh[0].created_at : null
+    const freshIds = new Set(fresh.map(m => m.id))
+    messages.value = messages.value.filter(
+      m => windowStart === null || m.created_at < windowStart || freshIds.has(m.id)
+    )
+
     if (newOnes.length > 0) {
       messages.value = messages.value.concat(newOnes)
       const hasIncoming = newOnes.some(m => m.sender_type === 'customer')

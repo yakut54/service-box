@@ -112,10 +112,26 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final newOnes = fresh.where((m) => !known.contains(m.id)).toList();
       final byId = {for (final m in fresh) m.id: m};
 
+      // fresh — это только последние ~30 сообщений. Если сообщение из этого
+      // же окна времени пропало (модератор удалил), убираем его и у нас —
+      // иначе оно зависает в памяти навсегда, раз poll умеет только
+      // добавлять. Более старые сообщения (подгруженные через "загрузить
+      // раньше") этим окном не покрываются — их не трогаем.
+      final windowStart = fresh.isNotEmpty ? fresh.first.createdAt : null;
+      final freshIds = fresh.map((m) => m.id).toSet();
+
       final wasAtBottom = _isAtBottom;
       setState(() {
         _isBlockedByShop = page.isBlockedByShop;
-        _messages = _messages.map((m) => byId[m.id] ?? m).toList();
+        _messages = _messages
+            .where(
+              (m) =>
+                  windowStart == null ||
+                  m.createdAt.isBefore(windowStart) ||
+                  freshIds.contains(m.id),
+            )
+            .map((m) => byId[m.id] ?? m)
+            .toList();
         if (newOnes.isNotEmpty) _messages.addAll(newOnes);
       });
 
