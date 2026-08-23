@@ -86,6 +86,7 @@ class StorageCleanup extends Command
             'masters'        => 'avatar_url',
             'categories'     => 'image_url',
             'customers'      => 'avatar_url',
+            'chat_messages'  => 'image_url',
         ];
 
         foreach ($schemas as $schema) {
