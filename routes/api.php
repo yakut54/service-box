@@ -235,14 +235,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])-
     // Чат с покупателями — общий почтовый ящик владельца + администраторов
     // (мастера не видят — RequireNotMaster уже стоит на всей группе /admin),
     // см. PLAN-CHAT.md §3.2.
-    Route::get('/chat/threads', [AdminChatController::class, 'index'])->middleware('throttle:60,1');
-    Route::get('/chat/threads/{id}/messages', [AdminChatController::class, 'messages'])->middleware('throttle:60,1');
-    Route::post('/chat/threads/{id}/messages', [AdminChatController::class, 'sendMessage'])->middleware('throttle:20,1');
-    Route::delete('/chat/threads/{id}/messages/{message}', [AdminChatController::class, 'deleteMessage'])->middleware('throttle:20,1');
-    Route::post('/chat/threads/{id}/read', [AdminChatController::class, 'markRead'])->middleware('throttle:60,1');
-    Route::post('/chat/threads/{id}/block', [AdminChatController::class, 'block'])->middleware('throttle:20,1');
-    Route::get('/chat/poll', [AdminChatController::class, 'poll'])->middleware('throttle:60,1');
-    Route::post('/chat/image', [AdminChatController::class, 'uploadImage'])->middleware('throttle:10,1');
+    Route::get('/chat/threads', [AdminChatController::class, 'index'])->middleware('throttle:chat-admin-read');
+    Route::get('/chat/threads/{id}/messages', [AdminChatController::class, 'messages'])->middleware('throttle:chat-admin-read');
+    Route::post('/chat/threads/{id}/messages', [AdminChatController::class, 'sendMessage'])->middleware('throttle:chat-admin-write');
+    Route::delete('/chat/threads/{id}/messages/{message}', [AdminChatController::class, 'deleteMessage'])->middleware('throttle:chat-admin-moderate');
+    Route::post('/chat/threads/{id}/read', [AdminChatController::class, 'markRead'])->middleware('throttle:chat-admin-read');
+    Route::post('/chat/threads/{id}/block', [AdminChatController::class, 'block'])->middleware('throttle:chat-admin-moderate');
+    Route::get('/chat/poll', [AdminChatController::class, 'poll'])->middleware('throttle:chat-admin-read');
+    Route::post('/chat/image', [AdminChatController::class, 'uploadImage'])->middleware('throttle:chat-admin-image');
 
 });
 
