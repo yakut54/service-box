@@ -594,7 +594,7 @@ layout, как список + детали в разделе «Заказы»/«
 
 | # | Что | Зависит от |
 |---|---|---|
-| Ч1 | Схема БД: `chat_threads` + `chat_messages` в `create_shop_schema()`, `ALTER TABLE IF NOT EXISTS` для уже существующих магазинов (по правилу тенантных миграций) | — |
+| ✅ Ч1 | Схема БД: `chat_threads` + `chat_messages` в `create_shop_schema()`, `ALTER TABLE IF NOT EXISTS` для уже существующих магазинов (по правилу тенантных миграций) | — |
 | Ч2 | Backend: модели, `ChatController` (мобильное приложение: список/отправка с `client_message_id`/read/poll/upload фото без svg), именованный rate limiter `chat-customer` по сессии (§3.3), курсор пагинации по timestamp (§3.4), `ON CONFLICT` при создании треда, атомарные инкременты счётчиков (§1.2) | Ч1 |
 | Ч3 | Backend: `ChatController` (админка: тот же набор + блокировка, не запрещающая чтение — §6 + контекст покупателя в ответе), тот же курсор пагинации | Ч1 |
 | Ч4 | `StorageCleanup` — добавить `chat_messages.image_url` в whitelist | Ч2 |

@@ -380,6 +380,43 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE UNIQUE INDEX ON %I.customer_sessions(token)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.customer_sessions(customer_id)', p_schema_name);
 
+                -- chat_threads
+                EXECUTE format($sql$
+                    CREATE TABLE %I.chat_threads (
+                        id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        customer_id           UUID NOT NULL REFERENCES %I.customers(id) ON DELETE CASCADE,
+                        last_message_at       TIMESTAMPTZ,
+                        last_message_preview  TEXT,
+                        unread_by_shop        INTEGER NOT NULL DEFAULT 0,
+                        unread_by_customer    INTEGER NOT NULL DEFAULT 0,
+                        shop_last_read_at     TIMESTAMPTZ,
+                        customer_last_read_at TIMESTAMPTZ,
+                        is_blocked_by_shop    BOOLEAN NOT NULL DEFAULT FALSE,
+                        created_at            TIMESTAMPTZ DEFAULT NOW(),
+                        updated_at            TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE UNIQUE INDEX ON %I.chat_threads(customer_id)', p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.chat_threads(last_message_at DESC)', p_schema_name);
+
+                -- chat_messages
+                EXECUTE format($sql$
+                    CREATE TABLE %I.chat_messages (
+                        id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        thread_id          UUID NOT NULL REFERENCES %I.chat_threads(id) ON DELETE CASCADE,
+                        sender_type        TEXT NOT NULL CHECK (sender_type IN ('shop', 'customer')),
+                        sender_staff_id    UUID REFERENCES public.shop_staff(id) ON DELETE SET NULL,
+                        client_message_id  UUID,
+                        body               TEXT,
+                        image_url          TEXT,
+                        status             TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'read')),
+                        created_at         TIMESTAMPTZ DEFAULT NOW(),
+                        CONSTRAINT chat_messages_not_empty CHECK (body IS NOT NULL OR image_url IS NOT NULL)
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.chat_messages(thread_id, created_at)', p_schema_name);
+                EXECUTE format('CREATE UNIQUE INDEX ON %I.chat_messages(thread_id, client_message_id) WHERE client_message_id IS NOT NULL', p_schema_name);
+
             END;
             $_$;
 
