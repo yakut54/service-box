@@ -207,13 +207,20 @@ class ChatController extends Controller
      * Без svg в списке типов (в отличие от ImageController::upload) — фото
      * грузит посторонний покупатель, а откроет сотрудник магазина, SVG может
      * нести <script> (см. PLAN-CHAT.md §5, П7).
+     *
+     * ВАЖНО: правило `image` в Laravel НЕ принимает параметров — это просто
+     * ярлык для `mimes:jpg,jpeg,png,bmp,gif,svg,webp` целиком, и
+     * `image:jpeg,png,gif,webp` молча игнорирует список, пропуская svg как
+     * ни в чём не бывало (баг найден 2026-08-23 при живом тесте — залитый
+     * .svg с <script> внутри прошёл валидацию). Правильно — `mimes:...`
+     * само по себе, без `image` рядом.
      */
     public function uploadImage(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image:jpeg,png,gif,webp|max:2048',
+            'image' => 'required|file|mimes:jpeg,png,gif,webp|max:2048',
         ], [
-            'image.image' => 'Файл должен быть изображением',
+            'image.mimes' => 'Файл должен быть изображением (JPEG, PNG, GIF или WebP)',
             'image.max'   => 'Максимальный размер файла — 2 МБ',
         ]);
 
