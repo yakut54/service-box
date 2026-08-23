@@ -34,9 +34,12 @@ function formatTime(dateStr: string): string {
 }
 
 function formatDay(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('ru-RU', {
-    day: 'numeric', month: 'long', timeZone: shopTimezone.value,
-  })
+  const tz = shopTimezone.value
+  if (dayKey(dateStr) === dayKey(new Date().toISOString())) return 'Сегодня'
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (dayKey(dateStr) === dayKey(yesterday.toISOString())) return 'Вчера'
+  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: tz })
 }
 
 function dayKey(dateStr: string): string {
@@ -130,7 +133,7 @@ async function pollOpenThread() {
     if (newOnes.length > 0) {
       messages.value = messages.value.concat(newOnes)
       const hasIncoming = newOnes.some(m => m.sender_type === 'customer')
-      if (hasIncoming && selectedThread.value.unread_by_shop >= 0) {
+      if (hasIncoming) {
         await api.markChatRead(selectedThread.value.id)
         selectedThread.value.unread_by_shop = 0
         await chatStore.poll()
