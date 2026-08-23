@@ -84,8 +84,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _isBlockedByShop = page.isBlockedByShop;
         _hasMoreOlder = page.messages.length >= 30;
       });
-      await _repository.markRead(_sessionToken);
-      if (mounted) context.read<ChatState>().clearUnread();
+      // Диалога может ещё не существовать (байер ничего не писал) — тогда
+      // markRead отвечает 404 «Диалог не найден», это ожидаемо и не должно
+      // ронять весь экран ошибкой.
+      try {
+        await _repository.markRead(_sessionToken);
+        if (mounted) context.read<ChatState>().clearUnread();
+      } catch (_) {
+        // нет диалога — нечего отмечать прочитанным, это нормально
+      }
       _startPolling();
       _scrollToBottom();
     } on AppException catch (e) {
