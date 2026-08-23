@@ -38,12 +38,15 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     final phone = _phoneController.text.trim();
 
     try {
-      final maskedPhone = await AuthRepository.create().requestCode(phone);
+      final result = await AuthRepository.create().requestCode(phone);
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) =>
-              OtpVerifyScreen(phone: phone, maskedPhone: maskedPhone),
+          builder: (_) => OtpVerifyScreen(
+            phone: phone,
+            maskedPhone: result.maskedPhone,
+            devCode: result.devCode,
+          ),
         ),
       );
     } on AppException catch (e) {

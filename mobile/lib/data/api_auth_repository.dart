@@ -7,11 +7,14 @@ class ApiAuthRepository implements AuthRepository {
   final ApiClient _client = ApiClient();
 
   @override
-  Future<String?> requestCode(String phone) async {
+  Future<PhoneCodeRequest> requestCode(String phone) async {
     final json = await _client.post('/widget/phone/request-code', {
       'phone': phone,
     });
-    return json['masked_phone'] as String?;
+    return PhoneCodeRequest(
+      maskedPhone: json['masked_phone'] as String?,
+      devCode: json['_dev_code'] as String?,
+    );
   }
 
   @override

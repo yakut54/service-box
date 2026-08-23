@@ -16,7 +16,18 @@ class OtpVerifyScreen extends StatefulWidget {
   final String phone;
   final String? maskedPhone;
 
-  const OtpVerifyScreen({super.key, required this.phone, this.maskedPhone});
+  /// Код из ответа сервера, пока нет реальной отправки SMS — показывается
+  /// подсказкой под полем ввода до отдельного распоряжения (см.
+  /// WidgetPhoneVerificationController). Когда подключат SMS, бэкенд
+  /// перестанет присылать это поле, и подсказка сама пропадёт без правок кода.
+  final String? devCode;
+
+  const OtpVerifyScreen({
+    super.key,
+    required this.phone,
+    this.maskedPhone,
+    this.devCode,
+  });
 
   @override
   State<OtpVerifyScreen> createState() => _OtpVerifyScreenState();
@@ -32,6 +43,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
   bool _verifying = false;
   bool _resending = false;
   AppException? _error;
+  late String? _devCode = widget.devCode;
 
   @override
   void initState() {
@@ -65,7 +77,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
       _error = null;
     });
     try {
-      await AuthRepository.create().requestCode(widget.phone);
+      final result = await AuthRepository.create().requestCode(widget.phone);
+      if (mounted) setState(() => _devCode = result.devCode);
       _startCooldown();
     } on AppException catch (e) {
       setState(() => _error = e);
@@ -150,6 +163,22 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                   onCompleted: _verify,
                 ),
               ),
+              // Пока нет реальной отправки SMS — сервер присылает код прямо
+              // в ответе (_dev_code), показываем его тут же, чтобы можно было
+              // войти без SMS. Как только подключат SMS, бэкенд перестанет
+              // присылать это поле, и подсказка пропадёт сама.
+              if (_devCode != null) ...[
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    'Код (пока без SMS): $_devCode',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.tertiary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
               if (_verifying) ...[
                 const SizedBox(height: 16),
                 const Center(
