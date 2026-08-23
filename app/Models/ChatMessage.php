@@ -21,15 +21,23 @@ class ChatMessage extends Model
         'body',
         'image_url',
         'status',
+        'reply_to_message_id',
+        'edited_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
+        'edited_at'  => 'datetime',
     ];
 
     public function thread()
     {
         return $this->belongsTo(ChatThread::class, 'thread_id');
+    }
+
+    public function replyTo()
+    {
+        return $this->belongsTo(ChatMessage::class, 'reply_to_message_id');
     }
 
     /**

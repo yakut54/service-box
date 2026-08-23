@@ -133,6 +133,7 @@ class ShopController extends Controller
             'prepayment_enabled'    => 'sometimes|boolean',
             'prepayment_amount'     => 'sometimes|integer|min:0',
             'hide_customer_phone'   => 'sometimes|boolean',
+            'chat_customer_delete_enabled' => 'sometimes|boolean',
             // Юридические документы
             'legal_config'                                  => 'sometimes|array',
             'legal_config.public_offer_text'                => 'nullable|string|max:50000',

@@ -40,11 +40,13 @@ class Shop extends Model
         'prepayment_amount',
         'timezone',
         'hide_customer_phone',
+        'chat_customer_delete_enabled',
     ];
 
     protected $casts = [
         'telegram_bot_connected' => 'boolean',
         'max_bot_connected'      => 'boolean',
+        'chat_customer_delete_enabled' => 'boolean',
         'max_chat_id'            => 'integer',
         'widget_config'     => 'array',
         'legal_config'      => 'array',

@@ -149,6 +149,7 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
         // сессии, не по IP (см. PLAN-CHAT.md §3.3 / AppServiceProvider).
         Route::get('/chat', [ChatController::class, 'index'])->middleware('throttle:chat-read');
         Route::post('/chat/messages', [ChatController::class, 'store'])->middleware('throttle:chat-write');
+        Route::delete('/chat/messages/{message}', [ChatController::class, 'destroy'])->middleware('throttle:chat-write');
         Route::post('/chat/read', [ChatController::class, 'markRead'])->middleware('throttle:chat-read');
         Route::get('/chat/poll', [ChatController::class, 'poll'])->middleware('throttle:chat-read');
         Route::post('/chat/image', [ChatController::class, 'uploadImage'])->middleware('throttle:chat-image');
@@ -238,6 +239,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])-
     Route::get('/chat/threads', [AdminChatController::class, 'index'])->middleware('throttle:chat-admin-read');
     Route::get('/chat/threads/{id}/messages', [AdminChatController::class, 'messages'])->middleware('throttle:chat-admin-read');
     Route::post('/chat/threads/{id}/messages', [AdminChatController::class, 'sendMessage'])->middleware('throttle:chat-admin-write');
+    Route::patch('/chat/threads/{id}/messages/{message}', [AdminChatController::class, 'editMessage'])->middleware('throttle:chat-admin-write');
     Route::delete('/chat/threads/{id}/messages/{message}', [AdminChatController::class, 'deleteMessage'])->middleware('throttle:chat-admin-moderate');
     Route::post('/chat/threads/{id}/read', [AdminChatController::class, 'markRead'])->middleware('throttle:chat-admin-read');
     Route::post('/chat/threads/{id}/block', [AdminChatController::class, 'block'])->middleware('throttle:chat-admin-moderate');

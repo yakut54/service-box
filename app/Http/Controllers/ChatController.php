@@ -6,6 +6,7 @@ use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\Customer;
 use App\Services\ImageCompressionService;
+use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,7 @@ class ChatController extends Controller
             return response()->json(['data' => [], 'thread' => null]);
         }
 
-        $query = ChatMessage::where('thread_id', $thread->id);
+        $query = ChatMessage::with('replyTo')->where('thread_id', $thread->id);
 
         if ($request->filled('before')) {
             $cursor = $this->resolveCursor($thread, $request->input('before'));
@@ -79,9 +80,10 @@ class ChatController extends Controller
         $customer = $this->customer($request);
 
         $data = $request->validate([
-            'body'               => 'nullable|string|max:2000',
-            'image_url'          => 'nullable|url|max:1000',
-            'client_message_id'  => 'required|uuid',
+            'body'                 => 'nullable|string|max:2000',
+            'image_url'            => 'nullable|url|max:1000',
+            'client_message_id'    => 'required|uuid',
+            'reply_to_message_id'  => 'nullable|uuid',
         ]);
 
         if (empty($data['body']) && empty($data['image_url'])) {
@@ -106,16 +108,26 @@ class ChatController extends Controller
             ->where('client_message_id', $data['client_message_id'])
             ->first();
         if ($existing) {
-            return response()->json(['data' => $existing], 200);
+            return response()->json(['data' => $existing->load('replyTo')], 200);
+        }
+
+        // Реплай — только на сообщение из ЭТОГО ЖЕ треда (см. Admin\ChatController::sendMessage).
+        $replyToId = null;
+        if (!empty($data['reply_to_message_id'])) {
+            $replyToId = ChatMessage::where('thread_id', $threadId)
+                ->where('id', $data['reply_to_message_id'])
+                ->value('id');
         }
 
         $message = ChatMessage::create([
-            'thread_id'          => $threadId,
-            'sender_type'        => 'customer',
-            'body'               => $data['body'] ?? null,
-            'image_url'          => $data['image_url'] ?? null,
-            'client_message_id'  => $data['client_message_id'],
+            'thread_id'            => $threadId,
+            'sender_type'          => 'customer',
+            'body'                 => $data['body'] ?? null,
+            'image_url'            => $data['image_url'] ?? null,
+            'client_message_id'    => $data['client_message_id'],
+            'reply_to_message_id'  => $replyToId,
         ]);
+        $message->load('replyTo');
 
         $preview = $data['body'] ?? '📷 Фото';
         DB::table('chat_threads')->where('id', $threadId)->update([
@@ -157,6 +169,50 @@ class ChatController extends Controller
         ]);
 
         return response()->json(['message' => 'Прочитано']);
+    }
+
+    /**
+     * DELETE /api/widget/chat/messages/{message}
+     *
+     * Покупатель может удалить только СВОЁ сообщение, и только если владелец
+     * магазина явно включил это в настройках (`shops.chat_customer_delete_enabled`,
+     * выключено по умолчанию — см. PLAN-CHAT.md §11.10, решение принято
+     * 2026-08-24). Сообщения магазина покупателю недоступны для удаления ни
+     * при каких настройках — это модерация только со стороны магазина
+     * (Admin\ChatController::deleteMessage).
+     */
+    public function destroy(Request $request, string $message): JsonResponse
+    {
+        $shop = $request->get('_shop');
+        if (!$shop || !$shop->chat_customer_delete_enabled) {
+            return response()->json(['message' => 'Удаление сообщений недоступно'], 403);
+        }
+
+        $customer = $this->customer($request);
+        $thread   = $customer->chatThread;
+        if (!$thread) {
+            return response()->json(['message' => 'Диалог не найден'], 404);
+        }
+
+        $chatMessage = ChatMessage::where('thread_id', $thread->id)
+            ->where('sender_type', 'customer')
+            ->findOrFail($message);
+
+        StorageService::deleteByUrl($chatMessage->image_url);
+        $chatMessage->delete();
+
+        $latest = ChatMessage::where('thread_id', $thread->id)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $thread->update([
+            'last_message_at'      => $latest?->created_at,
+            'last_message_preview' => $latest
+                ? mb_substr($latest->body ?? '📷 Фото', 0, 80)
+                : null,
+        ]);
+
+        return response()->json(['message' => 'Сообщение удалено']);
     }
 
     /**

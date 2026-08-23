@@ -64,7 +64,7 @@ class ChatController extends Controller
         $thread = ChatThread::with('customer:id,name,phone,avatar_url,total_orders,total_spent')
             ->findOrFail($id);
 
-        $query = ChatMessage::where('thread_id', $thread->id);
+        $query = ChatMessage::with('replyTo')->where('thread_id', $thread->id);
 
         if ($request->filled('before')) {
             $cursor = $this->resolveCursor($thread, $request->input('before'));
@@ -106,9 +106,10 @@ class ChatController extends Controller
         $thread = ChatThread::findOrFail($id);
 
         $data = $request->validate([
-            'body'               => 'nullable|string|max:2000',
-            'image_url'          => 'nullable|url|max:1000',
-            'client_message_id'  => 'required|uuid',
+            'body'                 => 'nullable|string|max:2000',
+            'image_url'            => 'nullable|url|max:1000',
+            'client_message_id'    => 'required|uuid',
+            'reply_to_message_id'  => 'nullable|uuid',
         ]);
 
         if (empty($data['body']) && empty($data['image_url'])) {
@@ -119,17 +120,28 @@ class ChatController extends Controller
             ->where('client_message_id', $data['client_message_id'])
             ->first();
         if ($existing) {
-            return response()->json(['data' => $existing], 200);
+            return response()->json(['data' => $existing->load('replyTo')], 200);
+        }
+
+        // Реплай — только на сообщение из ЭТОГО ЖЕ треда, иначе можно было бы
+        // сослаться на чужую переписку по угаданному/подсмотренному UUID.
+        $replyToId = null;
+        if (!empty($data['reply_to_message_id'])) {
+            $replyToId = ChatMessage::where('thread_id', $thread->id)
+                ->where('id', $data['reply_to_message_id'])
+                ->value('id');
         }
 
         $message = ChatMessage::create([
-            'thread_id'          => $thread->id,
-            'sender_type'        => 'shop',
-            'sender_staff_id'    => $this->currentStaffId($request),
-            'body'               => $data['body'] ?? null,
-            'image_url'          => $data['image_url'] ?? null,
-            'client_message_id'  => $data['client_message_id'],
+            'thread_id'            => $thread->id,
+            'sender_type'          => 'shop',
+            'sender_staff_id'      => $this->currentStaffId($request),
+            'body'                 => $data['body'] ?? null,
+            'image_url'            => $data['image_url'] ?? null,
+            'client_message_id'    => $data['client_message_id'],
+            'reply_to_message_id'  => $replyToId,
         ]);
+        $message->load('replyTo');
 
         $preview = $data['body'] ?? '📷 Фото';
         $thread->update([
@@ -139,6 +151,41 @@ class ChatController extends Controller
         $thread->increment('unread_by_customer');
 
         return response()->json(['data' => $message], 201);
+    }
+
+    /**
+     * PATCH /api/admin/chat/threads/{id}/messages/{message}
+     *
+     * Только текст, только СВОЁ сообщение — сравнение по sender_staff_id
+     * (null у владельца тоже сравнивается как обычное значение, так что
+     * владелец правит только свои же сообщения, не чужие — как в Telegram:
+     * даже админ группы не может отредактировать чужой текст, только
+     * удалить, см. PLAN-CHAT.md §11.5). Фото не редактируется — подпись это
+     * и есть `body`, значит правка подписи уже работает через этот же метод.
+     */
+    public function editMessage(Request $request, string $id, string $message): JsonResponse
+    {
+        $thread = ChatThread::findOrFail($id);
+        $chatMessage = ChatMessage::where('thread_id', $thread->id)->findOrFail($message);
+
+        if ($chatMessage->sender_type !== 'shop' || $chatMessage->sender_staff_id !== $this->currentStaffId($request)) {
+            return response()->json(['message' => 'Можно редактировать только свои сообщения'], 403);
+        }
+
+        $data = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $chatMessage->update([
+            'body'       => $data['body'],
+            'edited_at'  => now(),
+        ]);
+
+        if ($thread->last_message_at?->equalTo($chatMessage->created_at)) {
+            $thread->update(['last_message_preview' => mb_substr($data['body'], 0, 80)]);
+        }
+
+        return response()->json(['data' => $chatMessage->load('replyTo')]);
     }
 
     /**
