@@ -21,6 +21,7 @@ use App\Http\Controllers\WidgetPhoneVerificationController;
 use App\Http\Controllers\CustomerAddressController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Admin\ChatController as AdminChatController;
 use App\Http\Controllers\Widget\AnalyticsController as WidgetAnalyticsController;
 use App\Http\Controllers\MaxController;
 use App\Http\Controllers\DeliverySettingsController;
@@ -230,6 +231,18 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])-
     Route::put('/staff/{id}',         [StaffController::class, 'update'])->middleware('owner');
     Route::post('/staff/{id}/resend', [StaffController::class, 'resend'])->middleware(['owner', 'throttle:5,1']);
     Route::delete('/staff/{id}',      [StaffController::class, 'destroy'])->middleware('owner');
+
+    // Чат с покупателями — общий почтовый ящик владельца + администраторов
+    // (мастера не видят — RequireNotMaster уже стоит на всей группе /admin),
+    // см. PLAN-CHAT.md §3.2.
+    Route::get('/chat/threads', [AdminChatController::class, 'index'])->middleware('throttle:60,1');
+    Route::get('/chat/threads/{id}/messages', [AdminChatController::class, 'messages'])->middleware('throttle:60,1');
+    Route::post('/chat/threads/{id}/messages', [AdminChatController::class, 'sendMessage'])->middleware('throttle:20,1');
+    Route::delete('/chat/threads/{id}/messages/{message}', [AdminChatController::class, 'deleteMessage'])->middleware('throttle:20,1');
+    Route::post('/chat/threads/{id}/read', [AdminChatController::class, 'markRead'])->middleware('throttle:60,1');
+    Route::post('/chat/threads/{id}/block', [AdminChatController::class, 'block'])->middleware('throttle:20,1');
+    Route::get('/chat/poll', [AdminChatController::class, 'poll'])->middleware('throttle:60,1');
+    Route::post('/chat/image', [AdminChatController::class, 'uploadImage'])->middleware('throttle:10,1');
 
 });
 
