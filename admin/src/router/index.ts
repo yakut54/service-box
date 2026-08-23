@@ -91,6 +91,11 @@ const router = createRouter({
           component: () => import('@/views/CustomersView.vue'),
         },
         {
+          path: 'chat',
+          name: 'chat',
+          component: () => import('@/views/ChatView.vue'),
+        },
+        {
           path: 'customers/:id',
           name: 'customer-detail',
           component: () => import('@/views/CustomerDetailView.vue'),

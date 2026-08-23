@@ -2,15 +2,21 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 import { useTheme } from '@/composables/useTheme'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 const route = useRoute()
 const router = useRouter()
 const { isDark, toggle } = useTheme()
+
+chatStore.poll()
+useAutoRefresh(() => chatStore.poll(), 15_000)
 
 const sidebarOpen = ref(false)
 const menuOpen    = ref(false)
@@ -58,6 +64,7 @@ const navigation = [
   // Работа
   { name: 'Заказы',    href: '/orders',       icon: 'shopping-cart' },
   { name: 'Клиенты',   href: '/customers',    icon: 'users' },
+  { name: 'Чат',       href: '/chat',         icon: 'chat' },
   // Каталог
   { name: 'Товары',    href: '/products',     icon: 'package' },
   { name: 'Категории', href: '/categories',   icon: 'categories' },
@@ -171,6 +178,9 @@ async function handleLogout() {
           <svg v-else-if="item.icon === 'staff'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
+          <svg v-else-if="item.icon === 'chat'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
           <svg v-else-if="item.icon === 'commission'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -181,7 +191,13 @@ async function handleLogout() {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          {{ item.name }}
+          <span class="flex-1">{{ item.name }}</span>
+          <span
+            v-if="item.href === '/chat' && chatStore.totalUnread > 0"
+            class="min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-semibold leading-none"
+          >
+            {{ chatStore.totalUnread > 99 ? '99+' : chatStore.totalUnread }}
+          </span>
         </RouterLink>
       </nav>
 

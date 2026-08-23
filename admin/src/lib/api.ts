@@ -10,6 +10,8 @@ import type {
   Discount,
   Review,
   StaffMember,
+  ChatThread,
+  ChatMessage,
   TelegramStatus,
   PaginatedResponse,
   SuperadminShop,
@@ -641,6 +643,68 @@ class ApiClient {
 
   async superadminGetRevenue() {
     return this.request<SuperadminRevenue>('/superadmin/revenue')
+  }
+
+  // ==========================================
+  // CHAT
+  // ==========================================
+
+  async getChatThreads(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ data: ChatThread[] }>(`/admin/chat/threads${query}`)
+  }
+
+  async getChatMessages(threadId: string, params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ data: ChatMessage[]; thread: { id: string; is_blocked_by_shop: boolean; customer: ChatThread['customer'] } }>(
+      `/admin/chat/threads/${threadId}/messages${query}`
+    )
+  }
+
+  async sendChatMessage(threadId: string, data: { body?: string | null; image_url?: string | null; client_message_id: string }) {
+    return this.request<{ data: ChatMessage }>(`/admin/chat/threads/${threadId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteChatMessage(threadId: string, messageId: string) {
+    return this.request<{ message: string }>(`/admin/chat/threads/${threadId}/messages/${messageId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async markChatRead(threadId: string) {
+    return this.request<{ message: string }>(`/admin/chat/threads/${threadId}/read`, { method: 'POST' })
+  }
+
+  async blockChatThread(threadId: string, blocked: boolean) {
+    return this.request<{ data: ChatThread }>(`/admin/chat/threads/${threadId}/block`, {
+      method: 'POST',
+      body: JSON.stringify({ blocked }),
+    })
+  }
+
+  async pollChat() {
+    return this.request<{ unread_by_thread: Record<string, number>; total_unread: number }>('/admin/chat/poll')
+  }
+
+  async uploadChatImage(file: File) {
+    const formData = new FormData()
+    formData.append('image', file)
+    const response = await fetch(`${API_BASE_URL}/admin/chat/image`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}),
+      },
+      body: formData,
+    })
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new ApiError(response.status, err.message || 'Ошибка загрузки')
+    }
+    return response.json() as Promise<{ url: string }>
   }
 
   async getWidgetAnalytics(days: 7 | 30 | 90 = 30) {

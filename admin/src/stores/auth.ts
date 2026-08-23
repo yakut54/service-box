@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { useProductsStore } from '@/stores/products'
 import { useOrdersStore } from '@/stores/orders'
+import { useChatStore } from '@/stores/chat'
 import router from '@/router'
 import type { User, Shop } from '@/types'
 
@@ -143,6 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Очищаем данные других сторов чтобы не утекали между аккаунтами
     useProductsStore().$reset()
     useOrdersStore().$reset()
+    useChatStore().$reset()
   }
 
   return {

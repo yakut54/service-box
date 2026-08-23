@@ -297,6 +297,40 @@ export interface Customer {
 }
 
 // ==========================================
+// CHAT
+// ==========================================
+
+export interface ChatThread {
+  id: string
+  customer_id: string
+  last_message_at: string | null
+  last_message_preview: string | null
+  unread_by_shop: number
+  unread_by_customer: number
+  shop_last_read_at: string | null
+  customer_last_read_at: string | null
+  is_blocked_by_shop: boolean
+  created_at: string
+  customer?: Pick<Customer, 'id' | 'name' | 'phone'> & {
+    avatar_url?: string | null
+    total_orders?: number
+    total_spent?: number
+  }
+}
+
+export interface ChatMessage {
+  id: string
+  thread_id: string
+  sender_type: 'customer' | 'shop'
+  sender_staff_id: string | null
+  client_message_id: string
+  body: string | null
+  image_url: string | null
+  status: 'sent' | 'read'
+  created_at: string
+}
+
+// ==========================================
 // MASTERS
 // ==========================================
 
