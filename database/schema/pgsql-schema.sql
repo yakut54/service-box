@@ -410,10 +410,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         body               TEXT,
                         image_url          TEXT,
                         status             TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'read')),
+                        reply_to_message_id UUID REFERENCES %I.chat_messages(id) ON DELETE SET NULL,
+                        edited_at          TIMESTAMPTZ,
                         created_at         TIMESTAMPTZ DEFAULT NOW(),
                         CONSTRAINT chat_messages_not_empty CHECK (body IS NOT NULL OR image_url IS NOT NULL)
                     )
-                $sql$, p_schema_name, p_schema_name);
+                $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.chat_messages(thread_id, created_at)', p_schema_name);
                 EXECUTE format('CREATE UNIQUE INDEX ON %I.chat_messages(thread_id, client_message_id) WHERE client_message_id IS NOT NULL', p_schema_name);
 
@@ -601,6 +603,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     prepayment_enabled boolean DEFAULT false NOT NULL,
     prepayment_amount integer DEFAULT 0 NOT NULL,
     hide_customer_phone boolean DEFAULT false NOT NULL,
+    chat_customer_delete_enabled boolean DEFAULT false NOT NULL,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
 
