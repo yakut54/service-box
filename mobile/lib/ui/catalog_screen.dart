@@ -9,6 +9,7 @@ import '../state/cart_state.dart';
 import '../state/catalog_state.dart';
 import 'widgets/account_button.dart';
 import 'widgets/cart_button.dart';
+import 'widgets/chat_button.dart';
 import 'widgets/error_view.dart';
 import 'widgets/mini_cart_bar.dart';
 import 'widgets/product_card.dart';
@@ -68,7 +69,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             Text(widget.shop.name),
           ],
         ),
-        actions: const [AccountButton(), CartButton()],
+        actions: const [ChatButton(), AccountButton(), CartButton()],
       ),
       body: Stack(
         children: [

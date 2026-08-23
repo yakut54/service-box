@@ -7,6 +7,7 @@ import '../data/profile_repository.dart';
 import '../models/profile.dart';
 import '../state/auth_state.dart';
 import 'addresses_screen.dart';
+import 'chat_screen.dart';
 import 'orders_screen.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/editable_avatar.dart';
@@ -165,6 +166,15 @@ class _AccountScreenState extends State<AccountScreen> {
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AddressesScreen()),
+          ),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.chat_bubble_outline_rounded),
+          title: const Text('Чат с магазином'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ChatScreen()),
           ),
         ),
         const SizedBox(height: 12),

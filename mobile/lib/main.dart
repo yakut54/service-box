@@ -11,6 +11,7 @@ import 'data/shop_repository.dart';
 import 'state/auth_state.dart';
 import 'state/cart_state.dart';
 import 'state/catalog_state.dart';
+import 'state/chat_state.dart';
 import 'state/shop_state.dart';
 import 'ui/catalog_screen.dart';
 import 'ui/splash_intro_screen.dart';
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AuthState(AuthTokenStore())..load(),
         ),
+        ChangeNotifierProvider(create: (_) => ChatState()),
       ],
       child: const _App(),
     );
