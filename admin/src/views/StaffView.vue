@@ -25,7 +25,7 @@ async function load() {
   error.value = ''
   try {
     const res = await api.getStaff()
-    staff.value = res.data.filter(s => s.role === 'admin')
+    staff.value = res.data.filter(s => s.role === 'admin' || s.role === 'collector')
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Ошибка загрузки'
   } finally {
@@ -131,12 +131,12 @@ onMounted(load)
 <template>
   <div class="space-y-6">
 
-    <PageHeader title="Администраторы" subtitle="Люди с доступом к панели управления">
+    <PageHeader title="Команда" subtitle="Администраторы и сборщики с доступом к панели управления">
       <button @click="openCreate" class="btn-primary shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
-        <span class="hidden sm:inline">Добавить администратора</span>
+        <span class="hidden sm:inline">Добавить сотрудника</span>
       </button>
     </PageHeader>
 
@@ -150,15 +150,15 @@ onMounted(load)
 
       <UiEmptyState
         v-else-if="staff.length === 0"
-        title="Нет администраторов"
-        description="Добавьте первого администратора — он получит доступ к панели управления"
+        title="Нет сотрудников"
+        description="Добавьте администратора или сборщика — он получит доступ к панели управления"
       >
         <template #icon>
           <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         </template>
-        <button @click="openCreate" class="btn-primary">Добавить администратора</button>
+        <button @click="openCreate" class="btn-primary">Добавить сотрудника</button>
       </UiEmptyState>
 
       <!-- Cards grid -->
@@ -183,7 +183,13 @@ onMounted(load)
               >{{ initials(admin) }}</div>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-gray-900 dark:text-white truncate">{{ displayName(admin) }}</p>
+              <div class="flex items-center gap-2">
+                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ displayName(admin) }}</p>
+                <span
+                  v-if="admin.role === 'collector'"
+                  class="shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                >Сборщик</span>
+              </div>
               <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ displayEmail(admin) }}</p>
               <a
                 v-if="admin.phone"

@@ -184,6 +184,23 @@ const router = createRouter({
       ],
     },
     {
+      path: '/collector',
+      component: () => import('@/components/layout/CollectorLayout.vue'),
+      meta: { requiresAuth: true, requiresCollector: true },
+      children: [
+        {
+          path: '',
+          name: 'collector-orders',
+          component: () => import('@/views/collector/CollectorOrdersView.vue'),
+        },
+        {
+          path: 'orders/:id',
+          name: 'collector-order-detail',
+          component: () => import('@/views/collector/CollectorOrderDetailView.vue'),
+        },
+      ],
+    },
+    {
       path: '/invite/:token',
       name: 'invite-accept',
       component: () => import('@/views/InviteAcceptView.vue'),
@@ -211,9 +228,11 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // Мастер после логина/регистрации → в свой кабинет, не в dashboard
+  // Мастер/сборщик после логина/регистрации → в свой кабинет, не в dashboard
   if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
-    next({ name: authStore.isMaster ? 'master-schedule' : 'dashboard' })
+    if (authStore.isMaster) { next({ name: 'master-schedule' }); return }
+    if (authStore.isCollector) { next({ name: 'collector-orders' }); return }
+    next({ name: 'dashboard' })
     return
   }
 
@@ -225,6 +244,18 @@ router.beforeEach(async (to, _from, next) => {
 
   // Не-мастер пытается открыть мастерский раздел
   if (to.meta.requiresMaster && !authStore.isMaster) {
+    next({ name: 'dashboard' })
+    return
+  }
+
+  // Сборщик пытается открыть обычную admin-панель → redirect в свой кабинет
+  if (authStore.isCollector && !to.meta.requiresCollector && requiresAuth && to.name !== 'not-found') {
+    next({ name: 'collector-orders' })
+    return
+  }
+
+  // Не-сборщик пытается открыть раздел сборщика
+  if (to.meta.requiresCollector && !authStore.isCollector) {
     next({ name: 'dashboard' })
     return
   }

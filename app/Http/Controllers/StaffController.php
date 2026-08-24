@@ -55,9 +55,9 @@ class StaffController extends Controller
         $shop = $request->attributes->get('shop');
 
         $data = $request->validate([
-            'name'      => 'required_if:role,admin|nullable|string|max:255',
+            'name'      => 'required_if:role,admin,collector|nullable|string|max:255',
             'email'     => 'required|email|max:255',
-            'role'      => 'sometimes|in:admin,master',
+            'role'      => 'sometimes|in:admin,master,collector',
             'master_id' => 'required_if:role,master|nullable|uuid',
             'phone'     => 'nullable|string|max:20',
         ]);
@@ -192,7 +192,7 @@ class StaffController extends Controller
 
         $staffRecord = ShopStaff::where('id', $id)
             ->where('shop_id', $shop->id)
-            ->where('role', 'admin')
+            ->whereIn('role', ['admin', 'collector'])
             ->firstOrFail();
 
         $data = $request->validate([

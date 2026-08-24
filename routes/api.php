@@ -160,7 +160,7 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
 // ============================================================================
 // ADMIN API (Bearer token + Shop context)
 // ============================================================================
-Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', 'collector.only'])->group(function () {
     // Shop (owner only)
     Route::get('/shop', [ShopController::class, 'show']);
     Route::put('/shop', [ShopController::class, 'update'])->middleware('owner');
@@ -249,7 +249,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])-
 
 });
 
-Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master'])->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', 'collector.only'])->group(function () {
     // Telegram (owner only)
     Route::post('/telegram/generate-code', [TelegramController::class, 'generateCode'])->middleware('owner');
     Route::get('/telegram/status',         [TelegramController::class, 'status'])->middleware('owner');

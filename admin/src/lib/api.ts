@@ -591,6 +591,13 @@ class ApiClient {
     })
   }
 
+  async createCollector(name: string, email: string) {
+    return this.request<{ message: string; data: StaffMember }>('/admin/staff', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, role: 'collector' }),
+    })
+  }
+
   async updateAdmin(id: string, data: { name: string; phone?: string | null; avatar_url?: string | null }) {
     return this.request<{ message: string }>(`/admin/staff/${id}`, {
       method: 'PUT',

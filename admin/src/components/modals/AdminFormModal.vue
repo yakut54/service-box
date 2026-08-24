@@ -18,6 +18,7 @@ const emit = defineEmits<{
 
 const mode = computed(() => props.admin ? 'edit' : 'create')
 
+const role       = ref<'admin' | 'collector'>('admin')
 const name       = ref('')
 const email      = ref('')
 const phone      = ref('')
@@ -51,11 +52,13 @@ watch(() => props.modelValue, (open) => {
   nameTouched.value  = false
   emailTouched.value = false
   if (props.admin) {
+    role.value      = props.admin.role === 'collector' ? 'collector' : 'admin'
     name.value      = props.admin.invite_name ?? props.admin.user?.name ?? ''
     email.value     = props.admin.invite_email ?? props.admin.user?.email ?? ''
     phone.value     = props.admin.phone ? applyPhoneMask(props.admin.phone) : ''
     avatarUrl.value = props.admin.avatar_url ?? null
   } else {
+    role.value      = 'admin'
     name.value      = ''
     email.value     = ''
     phone.value     = ''
@@ -72,7 +75,9 @@ async function save() {
   error.value  = ''
   try {
     if (mode.value === 'create') {
-      const res = await api.createAdmin(name.value.trim(), email.value.trim())
+      const res = role.value === 'collector'
+        ? await api.createCollector(name.value.trim(), email.value.trim())
+        : await api.createAdmin(name.value.trim(), email.value.trim())
       // Если при создании уже загрузили аватар/телефон — сразу обновляем
       if (avatarUrl.value || phone.value) {
         await api.updateAdmin(res.data.id, {
@@ -110,7 +115,7 @@ async function save() {
     <!-- Header -->
     <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-        {{ mode === 'create' ? 'Добавить администратора' : 'Редактировать' }}
+        {{ mode === 'create' ? 'Добавить сотрудника' : 'Редактировать' }}
       </h2>
       <button @click="$emit('update:modelValue', false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,6 +129,38 @@ async function save() {
 
       <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
         {{ error }}
+      </div>
+
+      <!-- Role -->
+      <div v-if="mode === 'create'">
+        <p class="label">Роль</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            @click="role = 'admin'"
+            :class="['px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+              role === 'admin'
+                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300']"
+          >
+            Администратор
+          </button>
+          <button
+            type="button"
+            @click="role = 'collector'"
+            :class="['px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+              role === 'collector'
+                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300']"
+          >
+            Сборщик
+          </button>
+        </div>
+        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
+          {{ role === 'collector'
+            ? 'Видит только заказы — без доступа к финансам, клиентам и настройкам'
+            : 'Полный доступ к панели управления, кроме владельческих настроек' }}
+        </p>
       </div>
 
       <!-- Avatar -->
