@@ -126,7 +126,7 @@ const router = createRouter({
           path: 'staff',
           name: 'staff',
           component: () => import('@/views/StaffView.vue'),
-          meta: { requiresOwner: true, hidden: true },
+          meta: { requiresOwner: true },
         },
         {
           path: 'commission',
