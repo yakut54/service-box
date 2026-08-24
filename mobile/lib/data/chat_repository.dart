@@ -13,7 +13,13 @@ abstract class ChatRepository {
     String? body,
     String? imageUrl,
     required String clientMessageId,
+    String? replyToMessageId,
   });
+
+  /// Только своё сообщение, и только если магазин разрешил это в настройках
+  /// (`shops.chat_customer_delete_enabled`) — сервер сам это проверяет и
+  /// вернёт 403, если нет; экран просто показывает ошибку из ответа.
+  Future<void> deleteMessage(String sessionToken, String messageId);
 
   Future<void> markRead(String sessionToken);
 
@@ -24,6 +30,14 @@ abstract class ChatRepository {
     List<int> bytes,
     String filename,
   );
+
+  /// Ручная подпись приватного WS-канала (см. PLAN-CHAT.md §12) — покупатель
+  /// не Sanctum-пользователь, обычный /broadcasting/auth ему не подходит.
+  Future<Map<String, dynamic>> broadcastAuth(
+    String sessionToken, {
+    required String channelName,
+    required String socketId,
+  });
 
   factory ChatRepository.create() => ApiChatRepository();
 }

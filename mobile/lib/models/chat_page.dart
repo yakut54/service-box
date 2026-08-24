@@ -2,12 +2,18 @@ import 'chat_message.dart';
 
 /// Страница сообщений чата вместе с текущим статусом блокировки треда
 /// (см. GET /widget/chat) — `isBlockedByShop` при отсутствии треда всегда
-/// false, писать в первый раз ничто не мешает.
+/// false, писать в первый раз ничто не мешает. `threadId` — null, пока
+/// диалог ещё не создан (ни одного сообщения не отправлено).
 class ChatPage {
   final List<ChatMessage> messages;
   final bool isBlockedByShop;
+  final String? threadId;
 
-  const ChatPage({required this.messages, required this.isBlockedByShop});
+  const ChatPage({
+    required this.messages,
+    required this.isBlockedByShop,
+    this.threadId,
+  });
 
   factory ChatPage.fromJson(Map<String, dynamic> json) {
     final data = (json['data'] as List<dynamic>? ?? [])
@@ -17,6 +23,7 @@ class ChatPage {
     return ChatPage(
       messages: data,
       isBlockedByShop: thread?['is_blocked_by_shop'] as bool? ?? false,
+      threadId: thread?['id'] as String?,
     );
   }
 }

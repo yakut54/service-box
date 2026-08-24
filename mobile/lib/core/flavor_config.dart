@@ -37,4 +37,14 @@ class FlavorConfig {
     'API_BASE_URL',
     defaultValue: 'https://yakut54.ru',
   );
+
+  /// Публичный ключ Reverb-приложения (WebSocket, чат в реальном времени) —
+  /// один на весь бэкенд, не per-shop (все магазины сидят на одном Laravel
+  /// с одним Reverb-сервером), поэтому дефолта достаточно без правки каждого
+  /// flavors/*.json. Секретный ключ (REVERB_APP_SECRET) сюда никогда не
+  /// попадает — он только на сервере, для подписи авторизации канала.
+  static const String reverbAppKey = String.fromEnvironment(
+    'REVERB_APP_KEY',
+    defaultValue: 'b4trd04insm1nhqtfzpn',
+  );
 }

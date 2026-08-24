@@ -37,6 +37,8 @@ dependencies:
   provider: ^6.1.5+1
   shared_preferences: ^2.5.5
   http: ^1.5.0
+  audioplayers: ^6.1.0
+  web_socket_channel: ^3.0.1
   url_launcher: ^6.3.2
   flutter_secure_storage: ^9.2.4
   pinput: ^5.0.1
@@ -113,6 +115,7 @@ flutter:
   # как рантайм-ассет для анимированного интро-экрана (splash_intro_screen.dart).
   assets:
     - assets/icon/barbariska_app_icon.png
+    - assets/sounds/chat_notify.wav
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -28,15 +28,37 @@ class ApiChatRepository implements ChatRepository {
     String? body,
     String? imageUrl,
     required String clientMessageId,
+    String? replyToMessageId,
   }) async {
     final json = await _client.post('/widget/chat/messages', {
       if (body != null) 'body': body,
       if (imageUrl != null) 'image_url': imageUrl,
       'client_message_id': clientMessageId,
+      if (replyToMessageId != null) 'reply_to_message_id': replyToMessageId,
     }, headers: _authHeaders(sessionToken));
     final data = json['data'] as Map<String, dynamic>?;
     if (data == null) throw AppException.badResponse();
     return ChatMessage.fromJson(data);
+  }
+
+  @override
+  Future<void> deleteMessage(String sessionToken, String messageId) async {
+    await _client.delete(
+      '/widget/chat/messages/$messageId',
+      headers: _authHeaders(sessionToken),
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> broadcastAuth(
+    String sessionToken, {
+    required String channelName,
+    required String socketId,
+  }) async {
+    return _client.post('/widget/chat/broadcasting-auth', {
+      'channel_name': channelName,
+      'socket_id': socketId,
+    }, headers: _authHeaders(sessionToken));
   }
 
   @override
