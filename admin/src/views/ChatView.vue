@@ -444,7 +444,13 @@ loadThreads()
                 : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             ]"
           >
-            <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
+            <img
+              v-if="t.customer?.avatar_url"
+              :src="t.customer.avatar_url"
+              :alt="t.customer?.name || ''"
+              class="w-10 h-10 rounded-full object-cover shrink-0"
+            />
+            <div v-else class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
               <span class="text-gray-600 dark:text-gray-300 font-medium text-sm">
                 {{ (t.customer?.name || '?').charAt(0).toUpperCase() }}
               </span>
