@@ -15,6 +15,7 @@ import '../models/chat_message.dart';
 import '../state/auth_state.dart';
 import '../state/chat_state.dart';
 import 'widgets/app_dialog.dart';
+import 'widgets/chat_background.dart';
 import 'widgets/error_view.dart';
 
 /// Диалог байера с магазином — один тред, лента снизу вверх, отправка
@@ -418,7 +419,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Чат с магазином')),
-      body: SafeArea(child: _buildBody()),
+      body: Stack(
+        children: [
+          ChatBackground(color: Theme.of(context).colorScheme.primary),
+          SafeArea(child: _buildBody()),
+        ],
+      ),
     );
   }
 
@@ -498,7 +504,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Widget _buildComposer() {
     final theme = Theme.of(context);
-    return SafeArea(
+    return DecoratedBox(
+      decoration: BoxDecoration(color: theme.colorScheme.surface),
+      child: SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.all(8),
@@ -639,6 +647,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -706,7 +715,7 @@ class _MessageBubbleState extends State<_MessageBubble>
           if (_dragOffset > 4)
             Positioned.fill(
               child: Align(
-                alignment: Alignment.centerRight,
+                alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                 child: Opacity(
                   opacity: (_dragOffset / _replyThreshold).clamp(0, 1),
                   child: Icon(Icons.reply_rounded, color: theme.colorScheme.primary),
@@ -726,6 +735,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                   minWidth: MediaQuery.of(context).size.width * 0.5,
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
                 ),
+                alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                 margin: const EdgeInsets.symmetric(vertical: 3),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -746,7 +756,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                     if (message.replyTo != null)
                       Container(
                         margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.only(left: 8, bottom: 6),
                         decoration: BoxDecoration(
                           border: Border(
                             left: BorderSide(
@@ -754,6 +764,12 @@ class _MessageBubbleState extends State<_MessageBubble>
                                   ? theme.colorScheme.onPrimary.withValues(alpha: 0.5)
                                   : theme.colorScheme.primary,
                               width: 2,
+                            ),
+                            bottom: BorderSide(
+                              color: isMine
+                                  ? theme.colorScheme.onPrimary.withValues(alpha: 0.3)
+                                  : theme.colorScheme.outlineVariant,
+                              width: 1,
                             ),
                           ),
                         ),
