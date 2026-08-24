@@ -12,14 +12,16 @@ class RequireNotMaster
      * Routes accessible to master role within /api/admin/*.
      * Everything else returns 403.
      *
-     * Format: ['HTTP_METHOD', 'url_pattern']
+     * ВАЖНО: раньше здесь был glob-wildcard `bookings/*`, который матчил не
+     * только `bookings/{uuid}`, но и `bookings/stats`/`bookings/masters`/
+     * `bookings/available-slots` (те же строки, registered раньше
+     * apiResource в routes/api.php) — мастер мог читать общую аналитику по
+     * записям всего магазина, не только свои. Найдено 2026-08-24 при
+     * реализации точно такого же allow-листа для роли «сборщик» —
+     * пофикшено тем же способом: проверяем, что сегмент после bookings/
+     * выглядит как UUID, а не любой строкой.
      */
-    private const MASTER_ALLOWED = [
-        ['GET',   'api/admin/shop'],
-        ['GET',   'api/admin/bookings'],
-        ['GET',   'api/admin/bookings/*'],
-        ['PATCH', 'api/admin/bookings/*'],
-    ];
+    private const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -27,10 +29,16 @@ class RequireNotMaster
             return $next($request);
         }
 
-        foreach (self::MASTER_ALLOWED as [$method, $pattern]) {
-            if ($request->isMethod($method) && $request->is($pattern)) {
-                return $next($request);
-            }
+        $path = $request->path();
+
+        $allowed =
+            ($request->isMethod('GET') && $path === 'api/admin/shop')
+            || ($request->isMethod('GET') && $path === 'api/admin/bookings')
+            || ($request->isMethod('GET') && preg_match('#^api/admin/bookings/' . self::UUID . '$#i', $path) === 1)
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/bookings/' . self::UUID . '$#i', $path) === 1);
+
+        if ($allowed) {
+            return $next($request);
         }
 
         return response()->json([
