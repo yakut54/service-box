@@ -723,7 +723,7 @@ class _MessageBubbleState extends State<_MessageBubble>
               alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
               child: Container(
                 constraints: BoxConstraints(
-                  minWidth: MediaQuery.of(context).size.width * 0.6,
+                  minWidth: MediaQuery.of(context).size.width * 0.5,
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
                 ),
                 margin: const EdgeInsets.symmetric(vertical: 3),
