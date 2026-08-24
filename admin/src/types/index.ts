@@ -159,6 +159,10 @@ export interface ProductPhysical {
   brand: string | null
   material: string | null
   dimensions: string | null
+  sale_mode: 'piece' | 'weight_fixed' | 'weight_variable'
+  weight_step_grams: number | null
+  weight_min_grams: number | null
+  weight_max_grams: number | null
 }
 
 export interface ProductDigital {
@@ -223,6 +227,7 @@ export interface OrderItem {
   price: number
   product_name: string
   product_type: string
+  weight_grams?: number | null
   product?: Product | null
 }
 

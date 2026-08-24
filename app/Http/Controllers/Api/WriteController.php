@@ -180,28 +180,58 @@ class WriteController extends Controller
 
             $cartItems = [];
             foreach ($request->items as $item) {
-                $product = Product::with('physical')->lockForUpdate()->findOrFail($item['product_id']);
+                $product  = Product::with('physical')->lockForUpdate()->findOrFail($item['product_id']);
+                $saleMode = $product->physical->sale_mode ?? 'piece';
+                $weightGrams = null;
 
-                if ($product->type === 'physical' && $product->physical) {
-                    if ($product->physical->stock_quantity < $item['quantity']) {
-                        abort(409, "Товар «{$product->name}» закончился на складе");
+                if ($saleMode === 'piece') {
+                    if (!isset($item['quantity'])) {
+                        abort(422, "Не указано количество для товара «{$product->name}»");
                     }
-                    $product->physical->decrement('stock_quantity', $item['quantity']);
+                    $quantity  = (int) $item['quantity'];
+                    $itemPrice = $product->price;
+
+                    if ($product->type === 'physical' && $product->physical) {
+                        if ($product->physical->stock_quantity < $quantity) {
+                            abort(409, "Товар «{$product->name}» закончился на складе");
+                        }
+                        $product->physical->decrement('stock_quantity', $quantity);
+                    }
+                } else {
+                    // weight_fixed / weight_variable — см. PLAN.md, «Развесной товар».
+                    if (!isset($item['weight_grams'])) {
+                        abort(422, "Не указан вес для товара «{$product->name}»");
+                    }
+                    $weightGrams = (int) $item['weight_grams'];
+                    $min  = $product->physical->weight_min_grams ?? 100;
+                    $max  = $product->physical->weight_max_grams ?? 5000;
+                    $step = $product->physical->weight_step_grams ?? 100;
+
+                    if ($weightGrams < $min || $weightGrams > $max) {
+                        abort(422, "Вес товара «{$product->name}» должен быть от {$min} до {$max} г");
+                    }
+                    if (($weightGrams - $min) % $step !== 0) {
+                        abort(422, "Вес товара «{$product->name}» должен быть кратен шагу {$step} г");
+                    }
+
+                    $quantity  = 1;
+                    $itemPrice = (int) round($product->price * $weightGrams / 1000);
                 }
 
                 $order->items()->create([
                     'product_id'   => $product->id,
-                    'quantity'     => $item['quantity'],
-                    'price'        => $product->price,
+                    'quantity'     => $quantity,
+                    'price'        => $itemPrice,
                     'product_name' => $product->name,
                     'product_type' => $product->type,
+                    'weight_grams' => $weightGrams,
                 ]);
 
                 $cartItems[] = [
                     'product_id'  => $product->id,
                     'category_id' => $product->category_id ?? null,
-                    'quantity'    => $item['quantity'],
-                    'price'       => $product->price,
+                    'quantity'    => $quantity,
+                    'price'       => $itemPrice,
                 ];
             }
 

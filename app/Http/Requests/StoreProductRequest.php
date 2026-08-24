@@ -35,6 +35,11 @@ class StoreProductRequest extends FormRequest
                 'physical.length_cm' => 'nullable|numeric|min:0',
                 'physical.width_cm' => 'nullable|numeric|min:0',
                 'physical.height_cm' => 'nullable|numeric|min:0',
+                // Развесной товар (PLAN.md, «Развесной товар — финальное ТЗ»)
+                'physical.sale_mode' => 'nullable|in:piece,weight_fixed,weight_variable',
+                'physical.weight_step_grams' => 'nullable|integer|min:1',
+                'physical.weight_min_grams' => 'nullable|integer|min:1',
+                'physical.weight_max_grams' => 'nullable|integer|min:1|gte:physical.weight_min_grams',
             ]);
         }
 

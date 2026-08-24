@@ -133,12 +133,29 @@ class DiscountController extends Controller
         $productIds = collect($items)->pluck('product_id')->filter()->unique()->values();
         if ($productIds->isEmpty()) return null;
 
-        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $products = Product::with('physical')->whereIn('id', $productIds)->get()->keyBy('id');
 
         $cartItems = [];
         foreach ($items as $item) {
             $product = $products->get($item['product_id'] ?? null);
             if (!$product) continue;
+
+            $saleMode = $product->physical->sale_mode ?? 'piece';
+
+            // Развесной товар (см. PLAN.md, «Развесной товар») — та же
+            // конвертация цена-за-кг → цена строки, что и при создании
+            // заказа (OrderController::store), иначе скидка считалась бы
+            // от цены за кг вместо реальной стоимости позиции в корзине.
+            if ($saleMode !== 'piece' && isset($item['weight_grams'])) {
+                $cartItems[] = [
+                    'product_id'  => $product->id,
+                    'category_id' => $product->category_id,
+                    'quantity'    => 1,
+                    'price'       => (int) round($product->price * (int) $item['weight_grams'] / 1000),
+                ];
+                continue;
+            }
+
             $cartItems[] = [
                 'product_id'  => $product->id,
                 'category_id' => $product->category_id,
@@ -161,6 +178,7 @@ class DiscountController extends Controller
             'items'                 => 'nullable|array',
             'items.*.product_id'    => 'nullable|uuid',
             'items.*.quantity'      => 'nullable|integer|min:1',
+            'items.*.weight_grams'  => 'nullable|integer|min:1',
         ]);
 
         try {

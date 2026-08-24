@@ -26,6 +26,10 @@ class ProductPhysical extends Model
         'brand',
         'material',
         'dimensions',
+        'sale_mode',
+        'weight_step_grams',
+        'weight_min_grams',
+        'weight_max_grams',
     ];
 
     protected $casts = [
@@ -35,6 +39,9 @@ class ProductPhysical extends Model
         'length_cm' => 'float',
         'width_cm' => 'float',
         'height_cm' => 'float',
+        'weight_step_grams' => 'integer',
+        'weight_min_grams' => 'integer',
+        'weight_max_grams' => 'integer',
     ];
 
     public function product()

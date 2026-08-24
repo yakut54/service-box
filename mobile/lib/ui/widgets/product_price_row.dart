@@ -48,7 +48,9 @@ class ProductPriceRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          formatRubles(product.displayPriceKopecks / 100),
+          product.isWeightBased
+              ? '${formatRubles(product.displayPriceKopecks / 100)}/кг'
+              : formatRubles(product.displayPriceKopecks / 100),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: basePriceStyle?.copyWith(

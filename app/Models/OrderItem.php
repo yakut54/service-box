@@ -20,11 +20,13 @@ class OrderItem extends Model
         'price',
         'product_name',
         'product_type',
+        'weight_grams',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'price' => 'integer',
+        'weight_grams' => 'integer',
     ];
 
     public function order()

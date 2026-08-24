@@ -16,7 +16,11 @@ class StoreOrderRequest extends FormRequest
         return [
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|uuid',
-            'items.*.quantity' => 'required|integer|min:1|max:999',
+            // Штучный товар присылает quantity; весовой (см. PLAN.md, «Развесной
+            // товар») — weight_grams вместо quantity. Какое поле обязательно
+            // для конкретного товара — решает контроллер, зная его sale_mode.
+            'items.*.quantity' => 'sometimes|integer|min:1|max:999',
+            'items.*.weight_grams' => 'sometimes|integer|min:1',
 
             'customer.name' => 'required|string|max:255',
             'customer.email' => 'nullable|email|max:255',

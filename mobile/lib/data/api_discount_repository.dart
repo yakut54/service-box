@@ -4,7 +4,10 @@ import 'api_client.dart';
 import 'discount_repository.dart';
 
 List<Map<String, dynamic>> _itemsPayload(List<CartItem> items) => items
-    .map((i) => {'product_id': i.product.id, 'quantity': i.quantity})
+    .map((i) => {
+          'product_id': i.product.id,
+          if (i.weightGrams != null) 'weight_grams': i.weightGrams else 'quantity': i.quantity,
+        })
     .toList();
 
 class ApiDiscountRepository implements DiscountRepository {

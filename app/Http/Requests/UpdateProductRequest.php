@@ -34,6 +34,10 @@ class UpdateProductRequest extends FormRequest
             'physical.length_cm' => 'nullable|numeric|min:0',
             'physical.width_cm' => 'nullable|numeric|min:0',
             'physical.height_cm' => 'nullable|numeric|min:0',
+            'physical.sale_mode' => 'nullable|in:piece,weight_fixed,weight_variable',
+            'physical.weight_step_grams' => 'nullable|integer|min:1',
+            'physical.weight_min_grams' => 'nullable|integer|min:1',
+            'physical.weight_max_grams' => 'nullable|integer|min:1|gte:physical.weight_min_grams',
 
             'digital.delivery_type' => 'sometimes|in:download,link,code',
             'digital.access_days' => 'nullable|integer|min:1',

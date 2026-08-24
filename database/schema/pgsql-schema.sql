@@ -98,7 +98,11 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         color           TEXT,
                         brand           TEXT,
                         material        TEXT,
-                        dimensions      TEXT
+                        dimensions      TEXT,
+                        sale_mode            TEXT NOT NULL DEFAULT 'piece' CHECK (sale_mode IN ('piece', 'weight_fixed', 'weight_variable')),
+                        weight_step_grams    INTEGER DEFAULT 100,
+                        weight_min_grams     INTEGER DEFAULT 100,
+                        weight_max_grams     INTEGER DEFAULT 5000
                     )
                 $sql$, p_schema_name, p_schema_name);
 
@@ -227,7 +231,8 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         quantity     INTEGER DEFAULT 1,
                         price        INTEGER NOT NULL,
                         product_name TEXT NOT NULL,
-                        product_type TEXT NOT NULL
+                        product_type TEXT NOT NULL,
+                        weight_grams INTEGER
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.order_items(order_id)', p_schema_name);

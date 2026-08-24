@@ -7,6 +7,7 @@ import '../state/cart_state.dart';
 import '../state/shop_state.dart';
 import 'checkout_screen.dart';
 import 'widgets/promo_code_field.dart';
+import 'widgets/weight_cart_control.dart';
 
 /// Корзина: список добавленных позиций, изменение количества, промокод, сумма.
 /// «−» на количестве 1 удаляет позицию целиком (см. _CartQuantityStepper).
@@ -276,7 +277,9 @@ class _CartLineTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      formatRubles(product.priceRubles),
+                      item.weightGrams != null
+                          ? '${formatRubles(product.priceRubles)}/кг'
+                          : formatRubles(product.priceRubles),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -285,7 +288,12 @@ class _CartLineTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              _CartQuantityStepper(item: item),
+              item.weightGrams != null
+                  ? SizedBox(
+                      width: 110,
+                      child: WeightCartControl(product: product, compact: true),
+                    )
+                  : _CartQuantityStepper(item: item),
             ],
           ),
         ),

@@ -36,7 +36,21 @@ const physicalDetails = ref({
   color: '',
   brand: '',
   material: '',
+  sale_mode: 'piece' as 'piece' | 'weight_fixed' | 'weight_variable',
+  weight_step_grams: 100 as number | null,
+  weight_min_grams: 100 as number | null,
+  weight_max_grams: 5000 as number | null,
 })
+
+const isWeightMode = computed(() =>
+  physicalDetails.value.sale_mode === 'weight_fixed' || physicalDetails.value.sale_mode === 'weight_variable'
+)
+
+const saleModeConfig = {
+  piece: { icon: '🍉', label: 'Штучный', desc: 'Цена за штуку' },
+  weight_fixed: { icon: '🍬', label: 'По весу (фасовка)', desc: 'Продавец фасует ровно под заказ' },
+  weight_variable: { icon: '🥩', label: 'По весу (перевзвешивание)', desc: 'Вес плавает, взвешивают при сборке' },
+}
 
 const digitalDetails = ref({
   delivery_type: 'download',
@@ -123,6 +137,10 @@ onMounted(async () => {
           color: p.physical.color || '',
           brand: p.physical.brand || '',
           material: p.physical.material || '',
+          sale_mode: p.physical.sale_mode || 'piece',
+          weight_step_grams: p.physical.weight_step_grams ?? 100,
+          weight_min_grams: p.physical.weight_min_grams ?? 100,
+          weight_max_grams: p.physical.weight_max_grams ?? 5000,
         }
       }
       if (p.digital) {
@@ -233,7 +251,7 @@ async function handleSubmit() {
           <!-- Цена -->
           <div class="grid grid-cols-2 gap-4 items-end">
             <div>
-              <label for="price" class="label">Цена (руб) *</label>
+              <label for="price" class="label">{{ isWeightMode ? 'Цена за кг (руб) *' : 'Цена (руб) *' }}</label>
               <div class="relative">
                 <input id="price" v-model.number="form.price" type="number" min="0" step="1" class="input pr-12" :placeholder="currentTypeConfig.pricePlaceholder" />
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
@@ -303,24 +321,63 @@ async function handleSubmit() {
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Параметры физического товара</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Склад, габариты и характеристики</p>
         <div class="space-y-4">
+          <!-- Режим продажи -->
+          <div>
+            <p class="label">Режим продажи</p>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                v-for="(cfg, key) in saleModeConfig"
+                :key="key"
+                type="button"
+                @click="physicalDetails.sale_mode = key"
+                :class="['p-2 rounded-lg border-2 text-center transition-colors', physicalDetails.sale_mode === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
+              >
+                <div class="text-lg mb-0.5">{{ cfg.icon }}</div>
+                <div class="text-xs font-semibold leading-tight">{{ cfg.label }}</div>
+              </button>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              {{ saleModeConfig[physicalDetails.sale_mode].desc }}
+            </p>
+          </div>
+
           <div class="grid grid-cols-2 gap-4">
             <div>
               <p class="label">Артикул (SKU)</p>
               <input v-model="physicalDetails.sku" type="text" class="input" :placeholder="ep('NOTE-GOALS-001')" />
             </div>
-            <div>
+            <div v-if="!isWeightMode">
               <p class="label">Кол-во на складе</p>
               <input v-model.number="physicalDetails.stock_quantity" type="number" min="0" class="input" placeholder="0" />
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+
+          <!-- Штучный: справочный вес -->
+          <div v-if="physicalDetails.sale_mode === 'piece'" class="grid grid-cols-2 gap-4">
             <div>
               <p class="label">Вес (грамм)</p>
               <input v-model.number="physicalDetails.weight_grams" type="number" min="0" class="input" :placeholder="ep('350')" />
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Необязательно, только для показа в карточке</p>
             </div>
             <div>
               <p class="label">Размер (Д×Ш×В)</p>
               <input v-model="physicalDetails.dimensions" type="text" class="input" :placeholder="ep('20×14×2 см')" />
+            </div>
+          </div>
+
+          <!-- По весу: шаг/мин/макс -->
+          <div v-else class="grid grid-cols-3 gap-4">
+            <div>
+              <p class="label">Шаг ползунка (г)</p>
+              <input v-model.number="physicalDetails.weight_step_grams" type="number" min="1" class="input" placeholder="100" />
+            </div>
+            <div>
+              <p class="label">Мин. вес (г)</p>
+              <input v-model.number="physicalDetails.weight_min_grams" type="number" min="1" class="input" placeholder="100" />
+            </div>
+            <div>
+              <p class="label">Макс. вес (г)</p>
+              <input v-model.number="physicalDetails.weight_max_grams" type="number" min="1" class="input" placeholder="5000" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">

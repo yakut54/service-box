@@ -7,6 +7,16 @@ class ProductPhysical {
   final int? weightGrams;
   final String? dimensions;
 
+  /// Режим продажи (см. PLAN.md, «Развесной товар — финальное ТЗ»):
+  /// piece — целыми штуками (по умолчанию, всё как раньше);
+  /// weightFixed — по весу, продавец фасует ровно под заказ;
+  /// weightVariable — по весу, вес плавает (перевзвешивание при сборке,
+  /// пока не реализовано на бэкенде дальше базового ценообразования).
+  final ProductSaleMode saleMode;
+  final int weightStepGrams;
+  final int weightMinGrams;
+  final int weightMaxGrams;
+
   const ProductPhysical({
     this.sku,
     required this.stockQuantity,
@@ -14,11 +24,18 @@ class ProductPhysical {
     this.color,
     this.weightGrams,
     this.dimensions,
+    this.saleMode = ProductSaleMode.piece,
+    this.weightStepGrams = 100,
+    this.weightMinGrams = 100,
+    this.weightMaxGrams = 5000,
   });
 
   /// В наличии ли товар — с учётом того, что магазин разрешает
   /// принимать заказы даже при нулевом остатке (allow_backorder).
-  bool get inStock => stockQuantity > 0 || allowBackorder;
+  /// Остаток по весу не отслеживается — весовой товар всегда «в наличии».
+  bool get inStock => saleMode != ProductSaleMode.piece || stockQuantity > 0 || allowBackorder;
+
+  bool get isWeightBased => saleMode != ProductSaleMode.piece;
 
   factory ProductPhysical.fromJson(Map<String, dynamic> json) =>
       ProductPhysical(
@@ -28,7 +45,23 @@ class ProductPhysical {
         color: json['color'] as String?,
         weightGrams: (json['weight_grams'] as num?)?.toInt(),
         dimensions: json['dimensions'] as String?,
+        saleMode: ProductSaleMode.fromJson(json['sale_mode'] as String?),
+        weightStepGrams: (json['weight_step_grams'] as num?)?.toInt() ?? 100,
+        weightMinGrams: (json['weight_min_grams'] as num?)?.toInt() ?? 100,
+        weightMaxGrams: (json['weight_max_grams'] as num?)?.toInt() ?? 5000,
       );
+}
+
+enum ProductSaleMode {
+  piece,
+  weightFixed,
+  weightVariable;
+
+  static ProductSaleMode fromJson(String? value) => switch (value) {
+    'weight_fixed' => ProductSaleMode.weightFixed,
+    'weight_variable' => ProductSaleMode.weightVariable,
+    _ => ProductSaleMode.piece,
+  };
 }
 
 /// Физический товар. MVP мобильного приложения показывает только этот тип
@@ -93,6 +126,13 @@ class Product {
   double get priceRubles => priceKopecks / 100;
 
   bool get inStock => physical?.inStock ?? true;
+
+  bool get isWeightBased => physical?.isWeightBased ?? false;
+
+  /// Цена за конкретный вес (граммы) — округление до копейки, идентично
+  /// серверному расчёту в OrderController::store, чтобы то, что видит
+  /// покупатель на ползунке, совпадало с суммой списания.
+  int priceForWeightGrams(int grams) => (priceKopecks * grams / 1000).round();
 
   bool get hasDiscount => discountPercent != null;
 

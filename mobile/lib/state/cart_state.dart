@@ -26,7 +26,7 @@ class CartState extends ChangeNotifier {
 
   int get totalKopecks => _items.values.fold(
     0,
-    (sum, item) => sum + item.product.priceKopecks * item.quantity,
+    (sum, item) => sum + item.lineTotalKopecks,
   );
 
   double get totalRubles => totalKopecks / 100;
@@ -41,6 +41,24 @@ class CartState extends ChangeNotifier {
   }
 
   int quantityOf(String productId) => _items[productId]?.quantity ?? 0;
+
+  int? weightGramsOf(String productId) => _items[productId]?.weightGrams;
+
+  /// Весовой товар — один слайдер на товар, а не накопление, как со
+  /// штучным (двигать ползунок = задать итоговый вес, а не добавить ещё).
+  void setWeight(Product product, int weightGrams) {
+    if (weightGrams <= 0) {
+      _items.remove(product.id);
+    } else {
+      _items[product.id] = CartItem(
+        product: product,
+        quantity: 1,
+        weightGrams: weightGrams,
+      );
+    }
+    notifyListeners();
+    _scheduleDiscountRefresh();
+  }
 
   void add(Product product, int quantity) {
     if (quantity <= 0) return;

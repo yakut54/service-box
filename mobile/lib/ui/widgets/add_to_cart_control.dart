@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/product.dart';
 import '../../state/cart_state.dart';
+import 'weight_cart_control.dart';
 
 /// «В корзину» → степпер +/−, как только товар уже в корзине. Один
 /// компонент на две плотности: `compact` — узкая версия для карточки в
@@ -27,6 +28,10 @@ class AddToCartControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (product.isWeightBased) {
+      return WeightCartControl(product: product, compact: compact);
+    }
+
     final quantity = context.watch<CartState>().quantityOf(product.id);
     final theme = Theme.of(context);
 
