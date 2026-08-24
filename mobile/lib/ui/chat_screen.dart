@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +24,12 @@ import 'widgets/error_view.dart';
 /// опрос остаётся редкой подстраховкой на случай обрыва сокета (см.
 /// PLAN-CHAT.md §12).
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  /// Путь к файлу, с которым открыли приложение через системное
+  /// «Поделиться» (Android, см. main.dart + MainActivity.kt) — фото сразу
+  /// подгружается и встаёт в композер, как будто выбрано из галереи.
+  final String? sharedImagePath;
+
+  const ChatScreen({super.key, this.sharedImagePath});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -57,6 +63,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     _load();
+    final sharedPath = widget.sharedImagePath;
+    if (sharedPath != null) {
+      File(sharedPath).readAsBytes().then((bytes) {
+        if (mounted) _uploadPickedBytes(bytes);
+      });
+    }
   }
 
   @override
@@ -267,9 +279,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final picked = await ImagePicker().pickImage(source: source);
     if (picked == null || !mounted) return;
 
+    await _uploadPickedBytes(await picked.readAsBytes());
+  }
+
+  /// Общий путь для картинки из пикера и картинки, с которой открыли
+  /// приложение через системное «Поделиться» (см. widget.sharedImagePath).
+  Future<void> _uploadPickedBytes(Uint8List bytes) async {
+    if (!mounted) return;
     setState(() => _uploadingImage = true);
     try {
-      final bytes = await picked.readAsBytes();
       // Сжимаем и на клиенте — экономит трафик байера на отправке, но это
       // не гарантия: сервер сам ЖЁСТКО сжимает до ≤100 КБ вне зависимости
       // от того, что пришло (см. ImageCompressionService, П20.1).

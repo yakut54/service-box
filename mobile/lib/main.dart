@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 
@@ -14,8 +15,15 @@ import 'state/catalog_state.dart';
 import 'state/chat_state.dart';
 import 'state/shop_state.dart';
 import 'ui/catalog_screen.dart';
+import 'ui/chat_screen.dart';
 import 'ui/splash_intro_screen.dart';
 import 'ui/widgets/error_view.dart';
+
+/// Системное «Поделиться» (Android, см. MainActivity.kt) шлёт сюда путь к
+/// скопированному файлу — обрабатывается вне дерева виджетов, поэтому нужен
+/// доступ к навигатору напрямую, не через BuildContext.
+final navigatorKey = GlobalKey<NavigatorState>();
+const _shareChannel = MethodChannel('app.barbariska/share');
 
 void main() {
   // Замораживаем нативный сплэш прямо тут — без этого Android сам решает,
@@ -52,14 +60,33 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class _App extends StatelessWidget {
+class _App extends StatefulWidget {
   const _App();
+
+  @override
+  State<_App> createState() => _AppState();
+}
+
+class _AppState extends State<_App> {
+  @override
+  void initState() {
+    super.initState();
+    _shareChannel.setMethodCallHandler((call) async {
+      if (call.method != 'sharedImage') return;
+      final path = call.arguments as String?;
+      if (path == null) return;
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => ChatScreen(sharedImagePath: path)),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final shopState = context.watch<ShopState>();
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: FlavorConfig.shopName,
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(shopState.shop),
