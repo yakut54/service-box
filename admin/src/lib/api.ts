@@ -661,10 +661,17 @@ class ApiClient {
     )
   }
 
-  async sendChatMessage(threadId: string, data: { body?: string | null; image_url?: string | null; client_message_id: string }) {
+  async sendChatMessage(threadId: string, data: { body?: string | null; image_url?: string | null; client_message_id: string; reply_to_message_id?: string | null }) {
     return this.request<{ data: ChatMessage }>(`/admin/chat/threads/${threadId}/messages`, {
       method: 'POST',
       body: JSON.stringify(data),
+    })
+  }
+
+  async editChatMessage(threadId: string, messageId: string, body: string) {
+    return this.request<{ data: ChatMessage }>(`/admin/chat/threads/${threadId}/messages/${messageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body }),
     })
   }
 

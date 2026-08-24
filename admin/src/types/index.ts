@@ -117,6 +117,7 @@ export interface Shop {
   prepayment_enabled: boolean
   prepayment_amount: number
   hide_customer_phone: boolean
+  chat_customer_delete_enabled: boolean
   delivery_settings: Record<string, unknown> | null
   created_at: string
   updated_at: string
@@ -328,6 +329,9 @@ export interface ChatMessage {
   image_url: string | null
   status: 'sent' | 'read'
   created_at: string
+  reply_to_message_id?: string | null
+  reply_to?: ChatMessage | null
+  edited_at?: string | null
 }
 
 // ==========================================

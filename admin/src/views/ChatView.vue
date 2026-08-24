@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { compressIfNeeded } from '@/composables/useImageCompression'
@@ -7,6 +7,7 @@ import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useToast } from '@/composables/useToast'
+import { getEcho } from '@/lib/echo'
 import { UiSpinner, UiEmptyState } from '@/shared/ui'
 import UiModal from '@/shared/ui/UiModal.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -81,11 +82,65 @@ async function scrollToBottom() {
   if (el) el.scrollTop = el.scrollHeight
 }
 
+// ── Реалтайм через Reverb (WebSocket) — polling ниже остаётся как
+// подстраховка на случай обрыва/недоступности сокета, но основная доставка
+// теперь мгновенная (см. PLAN-CHAT.md §12). При любом событии просто
+// перезапрашиваем последнее окно сообщений тем же кодом, что и poll —
+// не дублируем логику слияния/удаления в двух местах.
+let subscribedChannel: string | null = null
+
+function subscribeRealtime(thread: ChatThread) {
+  unsubscribeRealtime()
+  const apiKey = authStore.shop?.api_key
+  if (!apiKey) return
+  const channelName = `chat.thread.${apiKey}.${thread.id}`
+  subscribedChannel = channelName
+  getEcho()
+    .private(channelName)
+    .listen('.message.new', (e: { message: ChatMessage }) => {
+      pollOpenThread()
+      if (e.message.sender_type === 'customer') playNotifySound()
+    })
+    .listen('.message.updated', () => pollOpenThread())
+    .listen('.message.deleted', () => pollOpenThread())
+    .listen('.thread.read', () => pollOpenThread())
+    .listen('.thread.blocked', (e: { is_blocked_by_shop: boolean }) => {
+      if (selectedThread.value) selectedThread.value.is_blocked_by_shop = e.is_blocked_by_shop
+    })
+}
+
+function unsubscribeRealtime() {
+  if (subscribedChannel) {
+    getEcho().leave(subscribedChannel)
+    subscribedChannel = null
+  }
+}
+
+onUnmounted(() => unsubscribeRealtime())
+
+// ── Звук нового сообщения — только пока чат открыт, только на входящее
+// (не на своё же исходящее), с переключателем в localStorage (§11.7).
+const soundEnabled = ref(localStorage.getItem('chat_sound_enabled') !== 'false')
+const notifyAudio = new Audio('/sounds/chat-notify.wav')
+
+function toggleSound() {
+  soundEnabled.value = !soundEnabled.value
+  localStorage.setItem('chat_sound_enabled', String(soundEnabled.value))
+}
+
+function playNotifySound() {
+  if (!soundEnabled.value) return
+  notifyAudio.currentTime = 0
+  notifyAudio.play().catch(() => { /* автовоспроизведение заблокировано браузером — тихо игнорируем */ })
+}
+
 async function selectThread(thread: ChatThread) {
   selectedThread.value = thread
   messages.value = []
   hasMoreOlder.value = true
   loadingMessages.value = true
+  cancelReply()
+  cancelEdit()
   try {
     const data = await api.getChatMessages(thread.id)
     messages.value = [...data.data].reverse()
@@ -95,6 +150,7 @@ async function selectThread(thread: ChatThread) {
       thread.unread_by_shop = 0
       await chatStore.poll()
     }
+    subscribeRealtime(thread)
   } catch (e) {
     toastError(parseApiError(e, 'Не удалось загрузить переписку'))
   }
@@ -103,6 +159,7 @@ async function selectThread(thread: ChatThread) {
 }
 
 function backToList() {
+  unsubscribeRealtime()
   selectedThread.value = null
 }
 
@@ -161,7 +218,42 @@ async function pollOpenThread() {
   await loadThreads(true)
 }
 
-useAutoRefresh(() => pollOpenThread(), 4_000)
+// Раньше это был единственный канал доставки (4с) — теперь основной путь
+// это WebSocket-события выше, poll остаётся более редкой подстраховкой на
+// случай обрыва сокета/пропущенного события при реконнекте.
+useAutoRefresh(() => pollOpenThread(), 20_000)
+
+// ── Ответ на сообщение (reply) ────────────────────────────────────────────────
+const replyTarget = ref<ChatMessage | null>(null)
+
+function startReply(m: ChatMessage) {
+  replyTarget.value = m
+  editingMessage.value = null
+}
+
+function cancelReply() {
+  replyTarget.value = null
+}
+
+function replyPreviewText(m: ChatMessage): string {
+  return m.body || (m.image_url ? '📷 Фото' : '')
+}
+
+// ── Редактирование своего сообщения (переиспользует композер, как в
+// Telegram Desktop — не отдельная модалка) ────────────────────────────────
+const editingMessage = ref<ChatMessage | null>(null)
+
+function startEdit(m: ChatMessage) {
+  if (m.sender_type !== 'shop' || m.image_url) return
+  editingMessage.value = m
+  draft.value = m.body ?? ''
+  replyTarget.value = null
+}
+
+function cancelEdit() {
+  editingMessage.value = null
+  draft.value = ''
+}
 
 // ── Отправка сообщений ───────────────────────────────────────────────────────
 const draft = ref('')
@@ -200,6 +292,21 @@ function openImage(url: string | null) {
 async function sendMessage() {
   if (!selectedThread.value) return
   const body = draft.value.trim()
+
+  if (editingMessage.value) {
+    if (!body) return
+    sending.value = true
+    try {
+      const { data } = await api.editChatMessage(selectedThread.value.id, editingMessage.value.id, body)
+      messages.value = messages.value.map(m => (m.id === data.id ? data : m))
+      cancelEdit()
+    } catch (e) {
+      toastError(parseApiError(e, 'Не удалось изменить сообщение'))
+    }
+    sending.value = false
+    return
+  }
+
   const imageUrl = pendingImageUrl.value
   if (!body && !imageUrl) return
 
@@ -210,10 +317,12 @@ async function sendMessage() {
       body: body || null,
       image_url: imageUrl,
       client_message_id: clientMessageId,
+      reply_to_message_id: replyTarget.value?.id ?? null,
     })
     messages.value.push(data)
     draft.value = ''
     pendingImageUrl.value = null
+    cancelReply()
     selectedThread.value.last_message_preview = body || '📷 Фото'
     selectedThread.value.last_message_at = data.created_at
     await scrollToBottom()
@@ -392,6 +501,19 @@ loadThreads()
             </div>
             <button
               type="button"
+              @click="toggleSound"
+              class="btn-ghost btn-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              :title="soundEnabled ? 'Звук уведомлений включён' : 'Звук уведомлений выключен'"
+            >
+              <svg v-if="soundEnabled" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M6 8h2l4-4v16l-4-4H6a1 1 0 01-1-1V9a1 1 0 011-1z" />
+              </svg>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2 2m0-4l-2 2M6 8h2l4-4v16l-4-4H6a1 1 0 01-1-1V9a1 1 0 011-1z" />
+              </svg>
+            </button>
+            <button
+              type="button"
               @click="toggleBlock"
               :disabled="blocking"
               :class="[
@@ -424,16 +546,39 @@ loadThreads()
                   :class="['group flex mb-2', m.sender_type === 'shop' ? 'justify-end' : 'justify-start']"
                 >
                   <div class="relative max-w-[75%] flex items-end gap-1.5" :class="m.sender_type === 'shop' ? 'flex-row' : 'flex-row-reverse'">
-                    <button
-                      type="button"
-                      @click="deleteTarget = m"
-                      class="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-500 shrink-0 mb-1"
-                      title="Удалить сообщение"
-                    >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 mb-1">
+                      <button
+                        type="button"
+                        @click="startReply(m)"
+                        class="text-gray-300 hover:text-primary-500"
+                        title="Ответить"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l-5-5 5-5m-5 5h12a4 4 0 004-4V6" />
+                        </svg>
+                      </button>
+                      <button
+                        v-if="m.sender_type === 'shop' && !m.image_url"
+                        type="button"
+                        @click="startEdit(m)"
+                        class="text-gray-300 hover:text-primary-500"
+                        title="Редактировать"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        @click="deleteTarget = m"
+                        class="text-gray-300 hover:text-red-500"
+                        title="Удалить сообщение"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                     <div
                       :class="[
                         'rounded-2xl px-3 py-2',
@@ -442,6 +587,18 @@ loadThreads()
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'
                       ]"
                     >
+                      <div
+                        v-if="m.reply_to"
+                        :class="[
+                          'text-xs mb-1.5 pl-2 border-l-2 rounded-sm truncate max-w-[220px]',
+                          m.sender_type === 'shop' ? 'border-white/50 text-white/80' : 'border-primary-400 text-gray-500 dark:text-gray-400'
+                        ]"
+                      >
+                        {{ replyPreviewText(m.reply_to) }}
+                      </div>
+                      <div v-else-if="m.reply_to_message_id" class="text-xs mb-1.5 pl-2 border-l-2 border-gray-300 text-gray-400 italic">
+                        Сообщение удалено
+                      </div>
                       <img
                         v-if="m.image_url"
                         :src="m.image_url"
@@ -450,6 +607,7 @@ loadThreads()
                       />
                       <p v-if="m.body" class="text-sm whitespace-pre-wrap break-words">{{ m.body }}</p>
                       <div class="flex items-center gap-1 justify-end mt-0.5">
+                        <span v-if="m.edited_at" :class="['text-[10px] italic', m.sender_type === 'shop' ? 'text-white/60' : 'text-gray-400']">изменено</span>
                         <span :class="['text-[10px]', m.sender_type === 'shop' ? 'text-white/70' : 'text-gray-400']">{{ formatTime(m.created_at) }}</span>
                         <svg v-if="m.sender_type === 'shop'" class="w-4 h-3.5" :class="m.status === 'read' ? 'text-sky-300' : 'text-white/60'" fill="none" stroke="currentColor" viewBox="0 0 24 12">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 6l3 4L11 2" />
@@ -465,6 +623,23 @@ loadThreads()
 
           <!-- Композер -->
           <div class="border-t border-gray-100 dark:border-gray-800 p-3 shrink-0">
+            <div v-if="replyTarget" class="mb-2 flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+              <svg class="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l-5-5 5-5m-5 5h12a4 4 0 004-4V6" />
+              </svg>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-primary-600 dark:text-primary-400">Ответ на сообщение</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ replyPreviewText(replyTarget) }}</p>
+              </div>
+              <button type="button" @click="cancelReply" class="text-gray-400 hover:text-gray-600 shrink-0">✕</button>
+            </div>
+            <div v-if="editingMessage" class="mb-2 flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+              <svg class="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <p class="text-xs font-medium text-primary-600 dark:text-primary-400 flex-1">Редактирование сообщения</p>
+              <button type="button" @click="cancelEdit" class="text-gray-400 hover:text-gray-600 shrink-0">✕</button>
+            </div>
             <div v-if="pendingImageUrl" class="mb-2 relative inline-block">
               <img :src="pendingImageUrl" class="h-16 rounded-lg" />
               <button
@@ -481,7 +656,7 @@ loadThreads()
               <button
                 type="button"
                 @click="pickImage"
-                :disabled="selectedThread.is_blocked_by_shop || uploadingImage"
+                :disabled="selectedThread.is_blocked_by_shop || uploadingImage || !!editingMessage"
                 class="btn-ghost btn-sm shrink-0 disabled:opacity-40"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,16 +667,17 @@ loadThreads()
                 v-model="draft"
                 rows="1"
                 class="input flex-1 resize-none text-sm"
-                placeholder="Написать покупателю..."
+                :placeholder="editingMessage ? 'Изменить текст...' : 'Написать покупателю...'"
                 :disabled="selectedThread.is_blocked_by_shop"
                 @keydown.enter.exact.prevent="sendMessage"
+                @keydown.esc="cancelEdit(); cancelReply()"
               />
               <button
                 type="submit"
                 class="btn-primary btn-sm shrink-0"
                 :disabled="sending || selectedThread.is_blocked_by_shop || (!draft.trim() && !pendingImageUrl)"
               >
-                Отправить
+                {{ editingMessage ? 'Сохранить' : 'Отправить' }}
               </button>
             </form>
           </div>

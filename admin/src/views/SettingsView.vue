@@ -13,6 +13,7 @@ import SettingsWidgetAppearance from '@/components/settings/SettingsWidgetAppear
 import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalytics.vue'
 import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue'
 import SettingsYandexDelivery   from '@/components/settings/SettingsYandexDelivery.vue'
+import SettingsChatModeration   from '@/components/settings/SettingsChatModeration.vue'
 
 const route     = useRoute()
 const router    = useRouter()
@@ -73,6 +74,7 @@ function setTab(id: TabId) {
       </div>
       <div class="flex flex-col gap-6">
         <SettingsWorkHours />
+        <SettingsChatModeration />
         <SettingsPassword />
       </div>
     </div>
