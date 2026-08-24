@@ -7,7 +7,7 @@ import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner } from '@/shared/ui'
+import { UiSpinner, UiAvatar } from '@/shared/ui'
 import type { Order } from '@/types'
 
 const route      = useRoute()
@@ -207,9 +207,7 @@ async function updateStatus(status: string) {
           <div class="card">
             <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Клиент</div>
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center font-bold text-sm flex-shrink-0 select-none">
-                {{ (order.customer?.name ?? order.customer_name)?.charAt(0)?.toUpperCase() || '?' }}
-              </div>
+              <UiAvatar :src="order.customer?.avatar_url" :name="order.customer?.name ?? order.customer_name" />
               <div class="min-w-0">
                 <RouterLink
                   v-if="order.customer_id"

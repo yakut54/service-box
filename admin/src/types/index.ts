@@ -294,6 +294,7 @@ export interface Customer {
   email: string | null
   phone: string
   notes: string | null
+  avatar_url: string | null
   total_orders: number
   total_spent: number
   last_order_at: string | null

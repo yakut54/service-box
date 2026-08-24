@@ -4,7 +4,7 @@ import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDate } from '@/shared/lib/format'
-import { UiSpinner, UiEmptyState, UiTooltip } from '@/shared/ui'
+import { UiSpinner, UiEmptyState, UiTooltip, UiAvatar } from '@/shared/ui'
 import PageHeader from '@/components/PageHeader.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import type { Customer } from '@/types'
@@ -158,7 +158,8 @@ async function doExport() {
             <tbody>
               <tr v-for="c in sortedCustomers" :key="c.id">
                 <td>
-                  <RouterLink :to="`/customers/${c.id}`" class="font-medium text-gray-900 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
+                  <RouterLink :to="`/customers/${c.id}`" class="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
+                    <UiAvatar :src="c.avatar_url" :name="c.name" size="sm" />
                     {{ c.name || 'Без имени' }}
                   </RouterLink>
                 </td>
@@ -206,9 +207,12 @@ async function doExport() {
           class="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0"
         >
           <RouterLink :to="`/customers/${c.id}`" class="flex-1 min-w-0 flex items-center justify-between gap-3 hover:opacity-80 transition-opacity">
-            <div class="min-w-0">
-              <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ c.name || 'Без имени' }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ c.phone || c.email || '—' }}</div>
+            <div class="min-w-0 flex items-center gap-3">
+              <UiAvatar :src="c.avatar_url" :name="c.name" />
+              <div class="min-w-0">
+                <div class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{{ c.name || 'Без имени' }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ c.phone || c.email || '—' }}</div>
+              </div>
             </div>
             <div class="text-right shrink-0">
               <div class="font-semibold text-sm text-gray-900 dark:text-white">{{ formatPrice(c.total_spent || 0) }}</div>

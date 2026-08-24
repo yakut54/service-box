@@ -6,7 +6,7 @@ import { parseApiError } from '@/lib/parseApiError'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, formatDateTime, formatDate } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner } from '@/shared/ui'
+import { UiSpinner, UiAvatar } from '@/shared/ui'
 import UiModal from '@/shared/ui/UiModal.vue'
 import type { Customer } from '@/types'
 
@@ -72,9 +72,12 @@ onMounted(async () => {
     <template v-else>
       <!-- Header -->
       <div class="flex items-start justify-between mb-6">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ customer.name || 'Без имени' }}</h1>
-          <p class="text-gray-500 dark:text-gray-400 mt-1">Клиент с {{ formatDate(customer.created_at) }}</p>
+        <div class="flex items-center gap-3">
+          <UiAvatar :src="customer.avatar_url" :name="customer.name" size="lg" />
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ customer.name || 'Без имени' }}</h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-1">Клиент с {{ formatDate(customer.created_at) }}</p>
+          </div>
         </div>
         <button @click="openDeleteModal" class="btn-danger btn-sm shrink-0">
           Удалить клиента

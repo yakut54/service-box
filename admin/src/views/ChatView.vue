@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useToast } from '@/composables/useToast'
 import { getEcho } from '@/lib/echo'
-import { UiSpinner, UiEmptyState } from '@/shared/ui'
+import { UiSpinner, UiEmptyState, UiAvatar } from '@/shared/ui'
 import UiModal from '@/shared/ui/UiModal.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import type { ChatThread, ChatMessage } from '@/types'
@@ -444,17 +444,7 @@ loadThreads()
                 : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             ]"
           >
-            <img
-              v-if="t.customer?.avatar_url"
-              :src="t.customer.avatar_url"
-              :alt="t.customer?.name || ''"
-              class="w-10 h-10 rounded-full object-cover shrink-0"
-            />
-            <div v-else class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shrink-0">
-              <span class="text-gray-600 dark:text-gray-300 font-medium text-sm">
-                {{ (t.customer?.name || '?').charAt(0).toUpperCase() }}
-              </span>
-            </div>
+            <UiAvatar :src="t.customer?.avatar_url" :name="t.customer?.name" />
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
@@ -493,6 +483,7 @@ loadThreads()
             <button type="button" @click="backToList" class="sm:hidden btn-ghost btn-sm -ml-2">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
+            <UiAvatar :src="selectedThread.customer?.avatar_url" :name="selectedThread.customer?.name" size="sm" />
             <div class="min-w-0 flex-1">
               <RouterLink
                 :to="`/customers/${selectedThread.customer_id}`"
@@ -682,8 +673,8 @@ loadThreads()
               <textarea
                 v-model="draft"
                 rows="1"
-                class="input flex-1 resize-none text-sm"
-                :placeholder="editingMessage ? 'Изменить текст...' : 'Написать покупателю...'"
+                class="input flex-1 min-w-0 resize-none text-sm"
+                :placeholder="editingMessage ? 'Изменить текст...' : 'Сообщение...'"
                 :disabled="selectedThread.is_blocked_by_shop"
                 @keydown.enter.exact.prevent="sendMessage"
                 @keydown.esc="cancelEdit(); cancelReply()"
