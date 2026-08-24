@@ -753,7 +753,6 @@ class _MessageBubbleState extends State<_MessageBubble>
                   minWidth: MediaQuery.of(context).size.width * 0.5,
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
                 ),
-                alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                 margin: const EdgeInsets.symmetric(vertical: 3),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
