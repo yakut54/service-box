@@ -749,8 +749,9 @@ class _MessageBubbleState extends State<_MessageBubble>
                     bottomRight: Radius.circular(isMine ? 4 : 14),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: IntrinsicWidth(
+                  child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (message.replyTo != null)
@@ -835,6 +836,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                         ),
                         child: Text(
                           message.body!,
+                          textAlign: isMine ? TextAlign.right : TextAlign.left,
                           style: TextStyle(
                             color: isMine
                                 ? theme.colorScheme.onPrimary
@@ -845,6 +847,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                     const SizedBox(height: 2),
                     Row(
                       mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
                       children: [
                         if (message.editedAt != null) ...[
                           Text(
@@ -879,6 +882,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                       ],
                     ),
                   ],
+                  ),
                 ),
               ),
             ),
