@@ -17,6 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ['prefix' => 'api', 'middleware' => ['auth:sanctum']],
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Host nginx проксирует всё на app-контейнер — без этого
+        // $request->ip() везде в проекте (rate limiting по IP, uведомление о
+        // входе с другого устройства, terms_accepted_ip и т.п.) возвращал бы
+        // внутренний IP docker-сети (172.x, IP самого nginx-контейнера), а
+        // не реальный IP клиента. Порт app-контейнера наружу не пробрасывается
+        // (см. docker-compose.prod.yml) — доверять всем прокси безопасно,
+        // достучаться до приложения в обход nginx физически нельзя.
+        $middleware->trustProxies(at: '*');
+
         // CORS for frontend
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
