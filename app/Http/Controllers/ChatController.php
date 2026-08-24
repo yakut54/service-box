@@ -316,9 +316,9 @@ class ChatController extends Controller
             'image.mimes' => 'Файл должен быть изображением (JPEG, PNG или WebP)',
         ]);
 
-        $compressed = ImageCompressionService::compressToJpeg($request->file('image'));
+        $compressed = ImageCompressionService::compressToWebp($request->file('image'));
 
-        $filename = Str::uuid() . '.jpg';
+        $filename = Str::uuid() . '.webp';
         Storage::disk('public')->put('uploads/' . $filename, $compressed);
         $url = Storage::disk('public')->url('uploads/' . $filename);
 
