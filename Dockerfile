@@ -4,11 +4,14 @@ FROM php:8.2-fpm
 # libpng/libjpeg/libwebp-dev + gd — серверное сжатие фото в чате (см.
 # PLAN-CHAT.md §5): что бы ни прислал клиент, сервер сам ужимает до 100 КБ,
 # а не отклоняет с ошибкой "файл слишком большой".
+# pcntl — без него `php artisan reverb:start` падает с "Undefined constant
+# SIGINT" (сигналы завершения процесса не работают без этого расширения,
+# по умолчанию его нет в образе php:8.2-fpm).
 RUN apt-get update && apt-get install -y \
     git unzip libpq-dev libzip-dev libonig-dev postgresql-client \
     libpng-dev libjpeg-dev libwebp-dev \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
-    && docker-php-ext-install pdo pdo_pgsql pgsql bcmath mbstring gd \
+    && docker-php-ext-install pdo pdo_pgsql pgsql bcmath mbstring gd pcntl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Composer
