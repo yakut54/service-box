@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserSessionSuperseded;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Mail\ResetPasswordMail;
@@ -97,6 +98,15 @@ class AuthController extends Controller
                 'message' => 'Магазин не найден',
             ], 404);
         }
+
+        // Уже открытая вкладка на другом устройстве узнаёт об этом входе в
+        // реальном времени и покажет предупреждение до того, как её токен
+        // реально удалят строкой ниже — WS-соединение не привязано к
+        // валидности токена, которым его когда-то авторизовали.
+        $totalUsers = 1 + ShopStaff::where('shop_id', $shop->id)
+            ->whereNotNull('accepted_at')
+            ->count();
+        UserSessionSuperseded::dispatch((string) $user->id, $request->ip(), $totalUsers);
 
         $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;

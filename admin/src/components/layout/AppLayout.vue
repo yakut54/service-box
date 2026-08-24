@@ -7,6 +7,7 @@ import { useTheme } from '@/composables/useTheme'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
+import SessionSupersededModal from '@/components/SessionSupersededModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 
 const authStore = useAuthStore()
@@ -369,4 +370,6 @@ async function handleLogout() {
       </main>
     </div>
   </div>
+
+  <SessionSupersededModal />
 </template>
