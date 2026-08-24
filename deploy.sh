@@ -121,7 +121,13 @@ if [ "$ADMIN_BUILD" = "true" ]; then
   fi
 
   echo "    → building..."
-  VITE_API_URL=/api npm run build:server
+  REVERB_APP_KEY_FOR_BUILD=$(grep '^REVERB_APP_KEY=' ../.env | cut -d'=' -f2- | tr -d '"'"'"' ')
+  VITE_API_URL=/api \
+    VITE_REVERB_APP_KEY="$REVERB_APP_KEY_FOR_BUILD" \
+    VITE_REVERB_HOST=yakut54.ru \
+    VITE_REVERB_PORT=443 \
+    VITE_REVERB_SCHEME=https \
+    npm run build:server
   cd ..
   echo "    admin/dist ready ($(du -sh admin/dist | cut -f1))"
 
@@ -165,10 +171,10 @@ docker compose -f docker-compose.prod.yml up -d db
 
 if [ "$DOCKER_BUILD" = "true" ]; then
   echo "    → rebuilding PHP image (composer deps changed)"
-  docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web scheduler
+  docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web scheduler reverb
 else
   echo "    → restarting containers (no image rebuild)"
-  docker compose -f docker-compose.prod.yml up -d --remove-orphans app web scheduler
+  docker compose -f docker-compose.prod.yml up -d --remove-orphans app web scheduler reverb
 fi
 
 # ── 3.5. Update vendor volume if composer deps changed ───────────

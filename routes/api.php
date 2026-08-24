@@ -152,6 +152,7 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
         Route::delete('/chat/messages/{message}', [ChatController::class, 'destroy'])->middleware('throttle:chat-write');
         Route::post('/chat/read', [ChatController::class, 'markRead'])->middleware('throttle:chat-read');
         Route::get('/chat/poll', [ChatController::class, 'poll'])->middleware('throttle:chat-read');
+        Route::post('/chat/broadcasting-auth', [ChatController::class, 'broadcastAuth'])->middleware('throttle:chat-read');
         Route::post('/chat/image', [ChatController::class, 'uploadImage'])->middleware('throttle:chat-image');
     });
 });

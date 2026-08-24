@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\ChatMessageBroadcast;
 use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
@@ -150,6 +151,8 @@ class ChatController extends Controller
         ]);
         $thread->increment('unread_by_customer');
 
+        ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'message.new', ['message' => $message]);
+
         return response()->json(['data' => $message], 201);
     }
 
@@ -185,6 +188,8 @@ class ChatController extends Controller
             $thread->update(['last_message_preview' => mb_substr($data['body'], 0, 80)]);
         }
 
+        ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'message.updated', ['message' => $chatMessage]);
+
         return response()->json(['data' => $chatMessage->load('replyTo')]);
     }
 
@@ -197,7 +202,7 @@ class ChatController extends Controller
      * фото — тот же класс бага, что уже дважды ловили на StorageCleanup:
      * БД забыла про файл, а он остался висеть мёртвым грузом навсегда.
      */
-    public function deleteMessage(string $id, string $message): JsonResponse
+    public function deleteMessage(Request $request, string $id, string $message): JsonResponse
     {
         $thread = ChatThread::findOrFail($id);
         $chatMessage = ChatMessage::where('thread_id', $thread->id)->findOrFail($message);
@@ -218,13 +223,15 @@ class ChatController extends Controller
                 : null,
         ]);
 
+        ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'message.deleted', ['id' => $chatMessage->id]);
+
         return response()->json(['message' => 'Сообщение удалено']);
     }
 
     /**
      * POST /api/admin/chat/threads/{id}/read
      */
-    public function markRead(string $id): JsonResponse
+    public function markRead(Request $request, string $id): JsonResponse
     {
         $thread = ChatThread::findOrFail($id);
 
@@ -238,6 +245,8 @@ class ChatController extends Controller
             'unread_by_shop'    => 0,
             'shop_last_read_at' => now(),
         ]);
+
+        ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'thread.read', ['reader' => 'shop']);
 
         return response()->json(['message' => 'Прочитано']);
     }
@@ -254,6 +263,8 @@ class ChatController extends Controller
 
         $thread = ChatThread::findOrFail($id);
         $thread->update(['is_blocked_by_shop' => $data['blocked']]);
+
+        ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'thread.blocked', ['is_blocked_by_shop' => $data['blocked']]);
 
         return response()->json(['data' => $thread->fresh()]);
     }
@@ -311,6 +322,11 @@ class ChatController extends Controller
             ->where('user_id', $request->user()->id)
             ->whereNotNull('accepted_at')
             ->value('id');
+    }
+
+    private function shopApiKey(Request $request): string
+    {
+        return $request->attributes->get('shop')->api_key;
     }
 
     private function resolveCursor(ChatThread $thread, string $messageId): ?ChatMessage

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ChatMessageBroadcast;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\Customer;
@@ -137,6 +138,13 @@ class ChatController extends Controller
         ]);
         DB::table('chat_threads')->where('id', $threadId)->increment('unread_by_shop');
 
+        ChatMessageBroadcast::dispatch(
+            $request->get('_shop')->api_key,
+            $threadId,
+            'message.new',
+            ['message' => $message],
+        );
+
         return response()->json(['data' => $message], 201);
     }
 
@@ -167,6 +175,13 @@ class ChatController extends Controller
             'unread_by_customer'    => 0,
             'customer_last_read_at' => now(),
         ]);
+
+        ChatMessageBroadcast::dispatch(
+            $request->get('_shop')->api_key,
+            $thread->id,
+            'thread.read',
+            ['reader' => 'customer'],
+        );
 
         return response()->json(['message' => 'Прочитано']);
     }
@@ -211,6 +226,13 @@ class ChatController extends Controller
                 ? mb_substr($latest->body ?? '📷 Фото', 0, 80)
                 : null,
         ]);
+
+        ChatMessageBroadcast::dispatch(
+            $request->get('_shop')->api_key,
+            $thread->id,
+            'message.deleted',
+            ['id' => $chatMessage->id],
+        );
 
         return response()->json(['message' => 'Сообщение удалено']);
     }
@@ -300,6 +322,48 @@ class ChatController extends Controller
         $url = Storage::disk('public')->url('uploads/' . $filename);
 
         return response()->json(['url' => $url]);
+    }
+
+    /**
+     * POST /api/widget/chat/broadcasting-auth
+     *
+     * Покупатель не Sanctum-пользователь (авторизован `X-Phone-Session`,
+     * см. VerifyPhoneSession), поэтому стандартный `/api/broadcasting/auth`
+     * (auth:sanctum, см. bootstrap/app.php) ему не подходит — свой
+     * эндпоинт с той же ручной подписью через Pusher-совместимый SDK,
+     * которым говорит Reverb (см. PLAN-CHAT.md §12). Пускаем только на
+     * канал СВОЕГО же треда — угадать чужой thread_id недостаточно, имя
+     * канала целиком сверяется со своим.
+     */
+    public function broadcastAuth(Request $request): JsonResponse
+    {
+        $customer = $this->customer($request);
+        $shop     = $request->get('_shop');
+
+        $data = $request->validate([
+            'channel_name' => 'required|string',
+            'socket_id'    => 'required|string',
+        ]);
+
+        $thread = $customer->chatThread;
+        if (!$thread) {
+            return response()->json(['message' => 'Диалог не найден'], 403);
+        }
+
+        $expectedChannel = "private-chat.thread.{$shop->api_key}.{$thread->id}";
+        if ($data['channel_name'] !== $expectedChannel) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        $pusher = new \Pusher\Pusher(
+            config('reverb.apps.apps.0.key'),
+            config('reverb.apps.apps.0.secret'),
+            config('reverb.apps.apps.0.app_id'),
+        );
+
+        $auth = json_decode($pusher->socket_auth($data['channel_name'], $data['socket_id']), true);
+
+        return response()->json($auth);
     }
 
     private function customer(Request $request): Customer
