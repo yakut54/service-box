@@ -517,6 +517,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   children: [
                     Icon(Icons.reply_rounded, size: 18, color: theme.colorScheme.primary),
                     const SizedBox(width: 8),
+                    if (_replyTarget!.imageUrl != null) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: Image.network(
+                          _replyTarget!.imageUrl!,
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -660,8 +672,11 @@ class _MessageBubbleState extends State<_MessageBubble>
   static const _maxDrag = 80.0;
 
   void _onDragUpdate(DragUpdateDetails details) {
+    // Свайп ВЛЕВО = ответить (delta.dx отрицательный при движении влево,
+    // поэтому знак инвертирован — _dragOffset всегда положительный "как
+    // далеко утянули влево").
     setState(() {
-      _dragOffset = (_dragOffset + details.delta.dx).clamp(0, _maxDrag);
+      _dragOffset = (_dragOffset - details.delta.dx).clamp(0, _maxDrag);
     });
   }
 
@@ -691,7 +706,7 @@ class _MessageBubbleState extends State<_MessageBubble>
           if (_dragOffset > 4)
             Positioned.fill(
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.centerRight,
                 child: Opacity(
                   opacity: (_dragOffset / _replyThreshold).clamp(0, 1),
                   child: Icon(Icons.reply_rounded, color: theme.colorScheme.primary),
@@ -703,11 +718,12 @@ class _MessageBubbleState extends State<_MessageBubble>
                 ? const Duration(milliseconds: 200)
                 : Duration.zero,
             curve: Curves.easeOut,
-            transform: Matrix4.translationValues(_dragOffset, 0, 0),
+            transform: Matrix4.translationValues(-_dragOffset, 0, 0),
             child: Align(
               alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
               child: Container(
                 constraints: BoxConstraints(
+                  minWidth: MediaQuery.of(context).size.width * 0.6,
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
                 ),
                 margin: const EdgeInsets.symmetric(vertical: 3),
@@ -741,16 +757,35 @@ class _MessageBubbleState extends State<_MessageBubble>
                             ),
                           ),
                         ),
-                        child: Text(
-                          message.replyTo!.body ??
-                              (message.replyTo!.imageUrl != null ? '📷 Фото' : ''),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isMine
-                                ? theme.colorScheme.onPrimary.withValues(alpha: 0.8)
-                                : theme.colorScheme.onSurfaceVariant,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (message.replyTo!.imageUrl != null) ...[
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: Image.network(
+                                  message.replyTo!.imageUrl!,
+                                  width: 20,
+                                  height: 20,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Flexible(
+                              child: Text(
+                                message.replyTo!.body ??
+                                    (message.replyTo!.imageUrl != null ? '📷 Фото' : ''),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: isMine
+                                      ? theme.colorScheme.onPrimary.withValues(alpha: 0.8)
+                                      : theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       )
                     else if (message.replyToMessageId != null)

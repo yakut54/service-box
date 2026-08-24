@@ -590,11 +590,16 @@ loadThreads()
                       <div
                         v-if="m.reply_to"
                         :class="[
-                          'text-xs mb-1.5 pl-2 border-l-2 rounded-sm truncate max-w-[220px]',
+                          'flex items-center gap-1.5 text-xs mb-1.5 pl-2 border-l-2 rounded-sm max-w-[220px]',
                           m.sender_type === 'shop' ? 'border-white/50 text-white/80' : 'border-primary-400 text-gray-500 dark:text-gray-400'
                         ]"
                       >
-                        {{ replyPreviewText(m.reply_to) }}
+                        <img
+                          v-if="m.reply_to.image_url"
+                          :src="m.reply_to.image_url"
+                          class="w-5 h-5 rounded-sm object-cover shrink-0"
+                        />
+                        <span class="truncate">{{ replyPreviewText(m.reply_to) }}</span>
                       </div>
                       <div v-else-if="m.reply_to_message_id" class="text-xs mb-1.5 pl-2 border-l-2 border-gray-300 text-gray-400 italic">
                         Сообщение удалено
@@ -627,6 +632,11 @@ loadThreads()
               <svg class="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l-5-5 5-5m-5 5h12a4 4 0 004-4V6" />
               </svg>
+              <img
+                v-if="replyTarget.image_url"
+                :src="replyTarget.image_url"
+                class="w-5 h-5 rounded-sm object-cover shrink-0"
+              />
               <div class="min-w-0 flex-1">
                 <p class="text-xs font-medium text-primary-600 dark:text-primary-400">Ответ на сообщение</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ replyPreviewText(replyTarget) }}</p>
