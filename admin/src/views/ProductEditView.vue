@@ -365,20 +365,17 @@ async function handleSubmit() {
             </div>
           </div>
 
-          <!-- По весу: шаг/мин/макс -->
-          <div v-else class="grid grid-cols-3 gap-4">
-            <div>
-              <p class="label">Шаг ползунка (г)</p>
-              <input v-model.number="physicalDetails.weight_step_grams" type="number" min="1" class="input" placeholder="100" />
-            </div>
-            <div>
-              <p class="label">Мин. вес (г)</p>
-              <input v-model.number="physicalDetails.weight_min_grams" type="number" min="1" class="input" placeholder="100" />
-            </div>
-            <div>
-              <p class="label">Макс. вес (г)</p>
-              <input v-model.number="physicalDetails.weight_max_grams" type="number" min="1" class="input" placeholder="5000" />
-            </div>
+          <!-- По весу: шаг/мин/макс. Лейблы и инпуты — отдельными рядами
+               грида (а не парами внутри своей колонки), иначе перенос
+               текста в одном лейбле на мобильной ширине сдвигает вниз
+               только его инпут, ломая выравнивание со соседними полями. -->
+          <div v-else class="grid grid-cols-3 gap-x-4 gap-y-1">
+            <p class="label">Шаг ползунка (г)</p>
+            <p class="label">Мин. вес (г)</p>
+            <p class="label">Макс. вес (г)</p>
+            <input v-model.number="physicalDetails.weight_step_grams" type="number" min="1" class="input" placeholder="100" />
+            <input v-model.number="physicalDetails.weight_min_grams" type="number" min="1" class="input" placeholder="100" />
+            <input v-model.number="physicalDetails.weight_max_grams" type="number" min="1" class="input" placeholder="5000" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
