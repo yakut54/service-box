@@ -17,12 +17,12 @@ class ReviewedProductsStore {
 
   Future<bool> isReviewed(String phone, String productId) async {
     final map = await _load();
-    return (map[phone] ?? const []).contains(productId);
+    return (map[phone] ?? const <String>[]).contains(productId);
   }
 
   Future<void> markReviewed(String phone, String productId) async {
     final map = await _load();
-    final list = {...(map[phone] ?? const []), productId}.toList();
+    final list = <String>{...(map[phone] ?? const <String>[]), productId}.toList();
     map[phone] = list;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, jsonEncode(map));
