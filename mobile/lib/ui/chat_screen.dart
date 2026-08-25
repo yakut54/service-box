@@ -297,12 +297,36 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       if (!mounted) return;
 
-      final key = _messageKeys[targetId];
-      final targetContext = key?.currentContext;
+      final index = _messages.indexWhere((m) => m.id == targetId);
+      if (index == -1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Сообщение не найдено — возможно, оно было удалено'),
+          ),
+        );
+        return;
+      }
+
+      var targetContext = _messageKeys[targetId]?.currentContext;
+      if (targetContext == null && _scrollController.hasClients) {
+        // Сообщение ЕСТЬ в _messages, но ListView.builder ещё не построил
+        // для него виджет (оно вне текущего окна отрисовки) — GlobalKey
+        // появится только после того, как элемент реально попадёт в кадр.
+        // Грубо прыгаем в его окрестность по индексу в списке, чтобы
+        // попасть в зону построения, и на следующем кадре пробуем снова.
+        final approx =
+            (index / _messages.length) *
+            _scrollController.position.maxScrollExtent;
+        _scrollController.jumpTo(
+          approx.clamp(0, _scrollController.position.maxScrollExtent),
+        );
+        await Future.delayed(const Duration(milliseconds: 80));
+        if (!mounted) return;
+        targetContext = _messageKeys[targetId]?.currentContext;
+      }
       if (targetContext == null) {
-        _showError(
-          AppException.unknown(),
-          'Сообщение не найдено — возможно, оно было удалено',
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось прокрутить к сообщению')),
         );
         return;
       }
