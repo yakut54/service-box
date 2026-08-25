@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerSession;
 use App\Models\Review;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,8 +29,13 @@ class ReviewController extends Controller
         $stats = $this->calcStats($productId);
 
         return response()->json([
-            'data'  => $reviews->map(fn ($r) => $this->formatWidget($r)),
-            'stats' => $stats,
+            'data'      => $reviews->map(fn ($r) => $this->formatWidget($r)),
+            'stats'     => $stats,
+            // Заполнено только если пришёл валидный X-Phone-Session (мобильное
+            // приложение) — говорит "я уже отзывался на этот товар", включая
+            // отзывы, ещё не прошедшие модерацию. Веб-виджет анонимный,
+            // заголовок не шлёт — для него всегда null, поведение не меняется.
+            'my_review' => $this->findMyReview($request, $productId),
         ]);
     }
 
@@ -49,9 +55,12 @@ class ReviewController extends Controller
             'order_id'      => 'nullable|uuid',
         ]);
 
-        // Попытка привязать к существующему клиенту по телефону
-        $customerId = null;
-        if (!empty($data['customer_phone'])) {
+        // Приоритет — проверенная сессия (мобильное приложение): телефон
+        // подделать нельзя, в отличие от поля customer_phone в теле запроса.
+        // Веб-виджет анонимный, сессию не шлёт — там остаётся старое
+        // поведение "верим полю как есть".
+        $customerId = $this->resolveCustomer($request)?->id;
+        if (!$customerId && !empty($data['customer_phone'])) {
             $phone    = Customer::normalizePhone($data['customer_phone']);
             $customer = Customer::where('phone', $phone)->first();
             $customerId = $customer?->id;
@@ -149,6 +158,49 @@ class ReviewController extends Controller
     // =========================================================
     // PRIVATE
     // =========================================================
+
+    /**
+     * X-Phone-Session — та же долгая (60 дней) сессия мобильного приложения,
+     * что и на /widget/orders/mine (см. VerifyPhoneSession). Здесь без
+     * миддлвари, вручную и необязательно — эндпоинт должен остаться
+     * доступным анонимно (список отзывов, веб-виджет).
+     */
+    private function resolveCustomer(Request $request): ?Customer
+    {
+        $token = $request->header('X-Phone-Session');
+        if (!$token) {
+            return null;
+        }
+
+        return CustomerSession::with('customer')
+            ->where('token', $token)
+            ->where('expires_at', '>', now())
+            ->first()?->customer;
+    }
+
+    private function findMyReview(Request $request, string $productId): ?array
+    {
+        $customer = $this->resolveCustomer($request);
+        if (!$customer) {
+            return null;
+        }
+
+        $review = Review::where('product_id', $productId)
+            ->where('customer_id', $customer->id)
+            ->first();
+
+        if (!$review) {
+            return null;
+        }
+
+        return [
+            'id'           => $review->id,
+            'rating'       => $review->rating,
+            'text'         => $review->text,
+            'is_published' => $review->is_published,
+            'created_at'   => $review->created_at?->toIso8601String(),
+        ];
+    }
 
     private function calcStats(string $productId): array
     {

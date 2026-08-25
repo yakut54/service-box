@@ -62,13 +62,48 @@ class ReviewStats {
   static const empty = ReviewStats(count: 0);
 }
 
-/// Общий ответ GET /widget/reviews/{productId} — список + сводка одним
-/// запросом, ProductReviewsSection парсит их вместе.
+/// Свой отзыв на этот товар — приходит, только если запрос нёс валидный
+/// X-Phone-Session (см. ReviewController::findMyReview на бэкенде). Заменяет
+/// собой локальную догадку "уже отправлял" — сервер знает точно, включая
+/// реальный статус модерации, и это переживает переустановку приложения.
+class MyReview {
+  final String id;
+  final int rating;
+  final String? text;
+  final bool isPublished;
+  final DateTime? createdAt;
+
+  const MyReview({
+    required this.id,
+    required this.rating,
+    this.text,
+    required this.isPublished,
+    this.createdAt,
+  });
+
+  factory MyReview.fromJson(Map<String, dynamic> json) => MyReview(
+    id: json['id'] as String,
+    rating: (json['rating'] as num).toInt(),
+    text: json['text'] as String?,
+    isPublished: json['is_published'] as bool? ?? false,
+    createdAt: json['created_at'] != null
+        ? DateTime.tryParse(json['created_at'] as String)
+        : null,
+  );
+}
+
+/// Общий ответ GET /widget/reviews/{productId} — список + сводка + свой
+/// отзыв одним запросом, ProductReviewsSection парсит их вместе.
 class ProductReviews {
   final List<Review> items;
   final ReviewStats stats;
+  final MyReview? myReview;
 
-  const ProductReviews({required this.items, required this.stats});
+  const ProductReviews({
+    required this.items,
+    required this.stats,
+    this.myReview,
+  });
 
   factory ProductReviews.fromJson(Map<String, dynamic> json) {
     final list = json['data'] as List<dynamic>? ?? const [];
@@ -79,6 +114,9 @@ class ProductReviews {
       stats: json['stats'] != null
           ? ReviewStats.fromJson(json['stats'] as Map<String, dynamic>)
           : ReviewStats.empty,
+      myReview: json['my_review'] != null
+          ? MyReview.fromJson(json['my_review'] as Map<String, dynamic>)
+          : null,
     );
   }
 

@@ -6,8 +6,11 @@ class ApiReviewRepository implements ReviewRepository {
   final ApiClient _client = ApiClient();
 
   @override
-  Future<ProductReviews> fetch(String productId) async {
-    final json = await _client.get('/widget/reviews/$productId');
+  Future<ProductReviews> fetch(String productId, {String? sessionToken}) async {
+    final json = await _client.get(
+      '/widget/reviews/$productId',
+      headers: sessionToken != null ? {'X-Phone-Session': sessionToken} : null,
+    );
     return ProductReviews.fromJson(json);
   }
 
@@ -18,13 +21,18 @@ class ApiReviewRepository implements ReviewRepository {
     String? text,
     required String customerName,
     required String customerPhone,
+    required String sessionToken,
   }) async {
-    await _client.post('/widget/reviews', {
-      'product_id': productId,
-      'rating': rating,
-      'customer_name': customerName,
-      'customer_phone': customerPhone,
-      if (text != null && text.isNotEmpty) 'text': text,
-    });
+    await _client.post(
+      '/widget/reviews',
+      {
+        'product_id': productId,
+        'rating': rating,
+        'customer_name': customerName,
+        'customer_phone': customerPhone,
+        if (text != null && text.isNotEmpty) 'text': text,
+      },
+      headers: {'X-Phone-Session': sessionToken},
+    );
   }
 }

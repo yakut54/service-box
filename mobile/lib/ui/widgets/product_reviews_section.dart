@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -5,7 +7,6 @@ import '../../core/app_exception.dart';
 import '../../core/format.dart';
 import '../../data/profile_repository.dart';
 import '../../data/review_repository.dart';
-import '../../data/reviewed_products_store.dart';
 import '../../models/product.dart';
 import '../../models/review.dart';
 import '../../state/auth_state.dart';
@@ -17,6 +18,10 @@ import 'star_rating.dart';
 /// телефону (в вебе — анонимно). Это включает уже существующую, но на вебе не
 /// работающую серверную проверку «один отзыв на товар от одного покупателя» —
 /// см. ReviewController::widgetStore. Подробности решения — в PLAN.md.
+///
+/// "Уже отзывался" — не локальная догадка, а my_review из ответа сервера
+/// (см. ReviewController::findMyReview), полученный по X-Phone-Session.
+/// Переживает переустановку приложения и honestly отражает is_published.
 ///
 /// Состояние — локальное для этой страницы товара, не глобальный стор:
 /// отзывы не нужны другим экранам и не требуют реалтайма, как чат.
@@ -31,7 +36,6 @@ class ProductReviewsSection extends StatefulWidget {
 
 class _ProductReviewsSectionState extends State<ProductReviewsSection> {
   final _repository = ReviewRepository.create();
-  final _reviewedStore = ReviewedProductsStore();
 
   ProductReviews? _data;
   bool _loading = true;
@@ -39,7 +43,6 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
 
   bool _formOpen = false;
   bool _justSubmitted = false;
-  bool _alreadyReviewed = false;
 
   final _nameController = TextEditingController();
   final _textController = TextEditingController();
@@ -51,7 +54,6 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
   void initState() {
     super.initState();
     _load();
-    _loadLocalFlag();
   }
 
   @override
@@ -66,8 +68,12 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
       _loading = true;
       _listError = null;
     });
+    final session = context.read<AuthState>().session;
     try {
-      final data = await _repository.fetch(widget.product.id);
+      final data = await _repository.fetch(
+        widget.product.id,
+        sessionToken: session?.sessionToken,
+      );
       if (mounted) setState(() => _data = data);
     } on AppException catch (e) {
       if (mounted) setState(() => _listError = e);
@@ -76,17 +82,6 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  Future<void> _loadLocalFlag() async {
-    final auth = context.read<AuthState>();
-    final session = auth.session;
-    if (session == null) return;
-    final reviewed = await _reviewedStore.isReviewed(
-      session.phone,
-      widget.product.id,
-    );
-    if (mounted) setState(() => _alreadyReviewed = reviewed);
   }
 
   Future<void> _openForm() async {
@@ -147,17 +142,20 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
             : _textController.text.trim(),
         customerName: _nameController.text.trim(),
         customerPhone: session.phone,
+        sessionToken: session.sessionToken,
       );
-      await _reviewedStore.markReviewed(session.phone, widget.product.id);
       if (!mounted) return;
       setState(() {
         _justSubmitted = true;
         _formOpen = false;
-        _alreadyReviewed = true;
         _nameController.clear();
         _textController.clear();
         _rating = 0;
       });
+      // Перезапрос — my_review в ответе теперь отразит только что созданный
+      // отзыв, это и есть источник правды "уже отзывался", а не отдельный
+      // локальный флаг.
+      unawaited(_load());
     } on AppException catch (e) {
       if (mounted) setState(() => _formError = e);
     } catch (_) {
@@ -171,7 +169,8 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final data = _data;
-    final showButton = !_formOpen && !_justSubmitted && !_alreadyReviewed;
+    final myReview = data?.myReview;
+    final showButton = !_formOpen && !_justSubmitted && myReview == null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +223,7 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
             text: 'Спасибо! Отзыв отправлен на модерацию.',
             color: theme.colorScheme.primary,
           ),
-        ] else if (_alreadyReviewed) ...[
+        ] else if (myReview != null && !myReview.isPublished) ...[
           const SizedBox(height: 12),
           _InfoBanner(
             icon: Icons.hourglass_top_rounded,
