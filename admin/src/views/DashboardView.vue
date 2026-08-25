@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useOrdersStore } from '@/stores/orders'
 import { useProductsStore } from '@/stores/products'
+import { useReviewsStore } from '@/stores/reviews'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import KpiCard from '@/components/KpiCard.vue'
@@ -13,6 +14,7 @@ import type { OrderStats } from '@/types'
 const authStore = useAuthStore()
 const ordersStore = useOrdersStore()
 const productsStore = useProductsStore()
+const reviewsStore = useReviewsStore()
 
 const todayStats = ref<Partial<OrderStats>>({})
 const weekStats  = ref<Partial<OrderStats>>({})
@@ -46,13 +48,7 @@ async function loadChart() {
 }
 
 const pendingOrders = computed(() => ordersStore.pendingOrders)
-
-const pendingReviewsCount = ref(0)
-
-async function loadPendingReviews() {
-  try { pendingReviewsCount.value = (await api.getReviews({ is_published: 'false' })).count }
-  catch { /* не критично для дашборда — молча пропускаем */ }
-}
+const pendingReviewsCount = computed(() => reviewsStore.pendingCount)
 
 const recentOrders = computed(() => ordersStore.orders.slice(0, 5))
 
@@ -76,7 +72,7 @@ onMounted(() => Promise.all([
   productsStore.fetchProducts(),
   loadStats(),
   loadChart(),
-  loadPendingReviews(),
+  reviewsStore.fetchPendingCount(),
 ]))
 </script>
 
