@@ -70,6 +70,7 @@ void _openWeightSheet(BuildContext context, Product product) {
               product: product,
               weightGrams: sheetContext.watch<CartState>().weightGramsOf(product.id),
               theme: Theme.of(sheetContext),
+              onDone: () => Navigator.of(sheetContext).pop(),
             ),
             const SizedBox(height: 8),
           ],
@@ -176,18 +177,83 @@ class _CompactWeightChip extends StatelessWidget {
   }
 }
 
-class _InlineWeightSlider extends StatelessWidget {
+class _InlineWeightSlider extends StatefulWidget {
   final Product product;
   final int? weightGrams;
   final ThemeData theme;
 
-  const _InlineWeightSlider({required this.product, required this.weightGrams, required this.theme});
+  /// Не null только в bottom sheet (см. _openWeightSheet) — на странице
+  /// товара это просто часть карточки, закрывать нечего.
+  final VoidCallback? onDone;
+
+  const _InlineWeightSlider({
+    required this.product,
+    required this.weightGrams,
+    required this.theme,
+    this.onDone,
+  });
+
+  @override
+  State<_InlineWeightSlider> createState() => _InlineWeightSliderState();
+}
+
+class _InlineWeightSliderState extends State<_InlineWeightSlider> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  int get _currentValue => widget.weightGrams ?? widget.product.physical!.weightMinGrams;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _currentValue.toString());
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _applyTypedValue();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _InlineWeightSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Не перезаписываем поле, пока в нём набранное значение и так совпадает
+    // (в т.ч. когда его туда вписал сам юзер) — иначе курсор скачет на
+    // каждый ререндер от слайдера.
+    if (!_focusNode.hasFocus && int.tryParse(_controller.text) != _currentValue) {
+      _controller.text = _currentValue.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _applyGrams(int grams) {
+    final physical = widget.product.physical!;
+    final clamped = grams.clamp(physical.weightMinGrams, physical.weightMaxGrams);
+    context.read<CartState>().setWeight(widget.product, clamped);
+  }
+
+  void _applyTypedValue() {
+    final parsed = int.tryParse(_controller.text.trim());
+    if (parsed != null) {
+      _applyGrams(parsed);
+    } else {
+      // Пусто/не число — откатываем поле на текущий вес, а не оставляем
+      // висеть невалидный текст.
+      _controller.text = _currentValue.toString();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final product = widget.product;
     final physical = product.physical!;
-    final cart = context.read<CartState>();
-    final value = weightGrams ?? physical.weightMinGrams;
+    final value = _currentValue;
     final divisions = ((physical.weightMaxGrams - physical.weightMinGrams) / physical.weightStepGrams)
         .round()
         .clamp(1, 1000);
@@ -225,17 +291,44 @@ class _InlineWeightSlider extends StatelessWidget {
           max: physical.weightMaxGrams.toDouble(),
           divisions: divisions,
           label: _formatGrams(value),
-          onChanged: (v) => cart.setWeight(product, v.round()),
+          onChanged: (v) => _applyGrams(v.round()),
         ),
-        if (weightGrams != null)
+        // Ручной ввод — на большом диапазоне (например до 1000 кг) точно
+        // попасть в нужный вес одним слайдером почти нереально (баг найден
+        // 2026-08-25 живым тестом).
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 120,
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  suffixText: 'г',
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => _applyTypedValue(),
+              ),
+            ),
+          ],
+        ),
+        if (widget.weightGrams != null)
           Align(
             alignment: Alignment.center,
             child: TextButton.icon(
-              onPressed: () => cart.remove(product.id),
+              onPressed: () => context.read<CartState>().remove(product.id),
               icon: const Icon(Icons.delete_outline_rounded, size: 18),
               label: const Text('Убрать из корзины'),
             ),
           ),
+        if (widget.onDone != null) ...[
+          const SizedBox(height: 4),
+          FilledButton(onPressed: widget.onDone, child: const Text('Готово')),
+        ],
       ],
     );
   }
