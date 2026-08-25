@@ -47,6 +47,13 @@ async function loadChart() {
 
 const pendingOrders = computed(() => ordersStore.pendingOrders)
 
+const pendingReviewsCount = ref(0)
+
+async function loadPendingReviews() {
+  try { pendingReviewsCount.value = (await api.getReviews({ is_published: 'false' })).count }
+  catch { /* не критично для дашборда — молча пропускаем */ }
+}
+
 const recentOrders = computed(() => ordersStore.orders.slice(0, 5))
 
 function formatPriceFull(kopecks: number) {
@@ -69,6 +76,7 @@ onMounted(() => Promise.all([
   productsStore.fetchProducts(),
   loadStats(),
   loadChart(),
+  loadPendingReviews(),
 ]))
 </script>
 
@@ -105,6 +113,20 @@ onMounted(() => Promise.all([
         }} обработки
       </p>
       <span class="ml-auto text-xs text-yellow-600 dark:text-yellow-400">Открыть →</span>
+    </RouterLink>
+
+    <!-- Pending reviews alert -->
+    <RouterLink v-if="pendingReviewsCount > 0" to="/reviews"
+      class="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
+      <span class="relative flex h-3 w-3 flex-shrink-0">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-purple-500" />
+      </span>
+      <p class="text-sm font-medium text-purple-800 dark:text-purple-300">
+        {{ pendingReviewsCount }} {{ plural(pendingReviewsCount, 'отзыв ждёт', 'отзыва ждут', 'отзывов ждут') }}
+        модерации
+      </p>
+      <span class="ml-auto text-xs text-purple-600 dark:text-purple-400">Открыть →</span>
     </RouterLink>
 
     <!-- Upcoming bookings + Chart -->
