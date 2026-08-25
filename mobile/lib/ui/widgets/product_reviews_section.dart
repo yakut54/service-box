@@ -380,15 +380,24 @@ class _ReviewForm extends StatelessWidget {
             children: [
               TextButton(onPressed: submitting ? null : onCancel, child: const Text('Отмена')),
               const SizedBox(width: 8),
-              FilledButton(
-                onPressed: (canSubmit && !submitting) ? onSubmit : null,
-                child: submitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Отправить'),
+              // IntrinsicWidth — тема задаёт FilledButton.minimumSize через
+              // Size.fromHeight(52), а это значит "ширина = infinity" (для
+              // кнопок на всю ширину экрана вроде оформления заказа). Внутри
+              // Row это ломает рендер кнопки насмерть без ошибки в release
+              // (баг найден 2026-08-25 живым тестом — кнопка отправки отзыва
+              // просто не рисовалась). Тот же приём уже есть в
+              // promo_code_field.dart для этой же ситуации.
+              IntrinsicWidth(
+                child: FilledButton(
+                  onPressed: (canSubmit && !submitting) ? onSubmit : null,
+                  child: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Отправить'),
+                ),
               ),
             ],
           ),
