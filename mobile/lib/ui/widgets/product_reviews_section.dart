@@ -25,6 +25,15 @@ import 'star_rating.dart';
 ///
 /// Состояние — локальное для этой страницы товара, не глобальный стор:
 /// отзывы не нужны другим экранам и не требуют реалтайма, как чат.
+enum _ReviewSort {
+  newest('Сначала новые'),
+  highestFirst('Сначала с высоким рейтингом'),
+  lowestFirst('Сначала с низким рейтингом');
+
+  final String label;
+  const _ReviewSort(this.label);
+}
+
 class ProductReviewsSection extends StatefulWidget {
   final Product product;
 
@@ -43,6 +52,8 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
 
   bool _formOpen = false;
   bool _justSubmitted = false;
+  bool _expanded = false;
+  _ReviewSort _sort = _ReviewSort.newest;
 
   final _nameController = TextEditingController();
   final _textController = TextEditingController();
@@ -124,6 +135,52 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
   }
 
   bool get _canSubmit => _nameController.text.trim().isNotEmpty && _rating >= 1;
+
+  /// Индекс в исходном списке — тай-брейкер, чтобы сортировка по рейтингу
+  /// не перемешивала отзывы с одинаковой оценкой (List.sort в Dart не
+  /// гарантирует стабильность). Список от сервера уже отсортирован по дате
+  /// (новые сверху), поэтому индекс исходного списка одновременно и есть
+  /// "по дате" — второй сортировки не нужно.
+  List<Review> _sortedReviews(List<Review> items) {
+    final indexed = items.asMap().entries.toList();
+    indexed.sort((a, b) {
+      switch (_sort) {
+        case _ReviewSort.newest:
+          return a.key.compareTo(b.key);
+        case _ReviewSort.highestFirst:
+          final byRating = b.value.rating.compareTo(a.value.rating);
+          return byRating != 0 ? byRating : a.key.compareTo(b.key);
+        case _ReviewSort.lowestFirst:
+          final byRating = a.value.rating.compareTo(b.value.rating);
+          return byRating != 0 ? byRating : a.key.compareTo(b.key);
+      }
+    });
+    return indexed.map((e) => e.value).toList();
+  }
+
+  Future<void> _pickSort() async {
+    final selected = await showModalBottomSheet<_ReviewSort>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final sort in _ReviewSort.values)
+              ListTile(
+                title: Text(sort.label),
+                trailing: sort == _sort ? const Icon(Icons.check_rounded) : null,
+                onTap: () => Navigator.of(ctx).pop(sort),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (selected != null && mounted) setState(() => _sort = selected);
+  }
 
   Future<void> _submit() async {
     final session = context.read<AuthState>().session;
@@ -281,10 +338,40 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
             ),
           )
         else if (data != null)
-          Column(
-            children: [
-              for (final review in data.items) _ReviewCard(review: review),
-            ],
+          Builder(
+            builder: (context) {
+              final sorted = _sortedReviews(data.items);
+              // Показываем только 1 отзыв по умолчанию — не топим карточку
+              // товара под длинным списком; остальное — по кнопке.
+              final visible = _expanded ? sorted : sorted.take(1).toList();
+              final hiddenCount = sorted.length - visible.length;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (sorted.length > 1)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: _pickSort,
+                        icon: const Icon(Icons.sort_rounded, size: 18),
+                        label: Text(_sort.label),
+                      ),
+                    ),
+                  for (final review in visible) _ReviewCard(review: review),
+                  if (hiddenCount > 0)
+                    TextButton(
+                      onPressed: () => setState(() => _expanded = true),
+                      child: Text('Показать ещё $hiddenCount'),
+                    )
+                  else if (_expanded && sorted.length > 1)
+                    TextButton(
+                      onPressed: () => setState(() => _expanded = false),
+                      child: const Text('Скрыть'),
+                    ),
+                ],
+              );
+            },
           ),
       ],
     );
@@ -368,6 +455,7 @@ class _ReviewForm extends StatelessWidget {
               hintText: 'Поделитесь впечатлениями...',
             ),
           ),
+          const SizedBox(height: 24),
           if (error != null) ...[
             Text(
               error!.message,
