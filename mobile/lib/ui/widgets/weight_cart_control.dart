@@ -138,22 +138,31 @@ class _CompactWeightChip extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => _openWeightSheet(context, product),
-        child: Center(
-          child: Text(
-            '${_formatGrams(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w700,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          child: Center(
+            child: Text(
+              '${_formatGrams(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
+              // Большой макс. вес (например 1000 кг) даёт длинную строку,
+              // которая переносится на 2 строки в узком чипе — без
+              // textAlign.center вторая строка липнет к левому краю вместо
+              // центра под первой (баг найден 2026-08-25 живым тестом).
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
       ),
     );
 
-    return SizedBox(
-      width: double.infinity,
-      height: 36,
-      child: outlined
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 36),
+      child: SizedBox(
+        width: double.infinity,
+        child: outlined
           ? DecoratedBox(
               decoration: BoxDecoration(
                 border: Border.all(color: theme.colorScheme.outlineVariant),
@@ -162,6 +171,7 @@ class _CompactWeightChip extends StatelessWidget {
               child: chip,
             )
           : chip,
+      ),
     );
   }
 }
