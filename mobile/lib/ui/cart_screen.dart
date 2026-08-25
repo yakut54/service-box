@@ -291,7 +291,11 @@ class _CartLineTile extends StatelessWidget {
               item.weightGrams != null
                   ? SizedBox(
                       width: 110,
-                      child: WeightCartControl(product: product, compact: true),
+                      child: WeightCartControl(
+                        product: product,
+                        compact: true,
+                        outlined: true,
+                      ),
                     )
                   : _CartQuantityStepper(item: item),
             ],

@@ -14,7 +14,20 @@ class WeightCartControl extends StatelessWidget {
   final Product product;
   final bool compact;
 
-  const WeightCartControl({super.key, required this.product, this.compact = false});
+  /// Стиль «уже в корзине» (когда weight != null) для compact-режима:
+  /// каталожная карточка красит его в основной цвет, как кнопку «в
+  /// корзину» рядом (see AddToCartControl); в корзине же соседний степпер
+  /// штучных товаров (_CartQuantityStepper, cart_screen.dart) — светлый, с
+  /// рамкой, без заливки. outlined:true повторяет именно этот вид, чтобы
+  /// весовая позиция не выделялась в списке корзины вперемешку со штучными.
+  final bool outlined;
+
+  const WeightCartControl({
+    super.key,
+    required this.product,
+    this.compact = false,
+    this.outlined = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +35,12 @@ class WeightCartControl extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (compact) {
-      return _CompactWeightChip(product: product, weightGrams: weight, theme: theme);
+      return _CompactWeightChip(
+        product: product,
+        weightGrams: weight,
+        theme: theme,
+        outlined: outlined,
+      );
     }
 
     return _InlineWeightSlider(product: product, weightGrams: weight, theme: theme);
@@ -65,8 +83,14 @@ class _CompactWeightChip extends StatelessWidget {
   final Product product;
   final int? weightGrams;
   final ThemeData theme;
+  final bool outlined;
 
-  const _CompactWeightChip({required this.product, required this.weightGrams, required this.theme});
+  const _CompactWeightChip({
+    required this.product,
+    required this.weightGrams,
+    required this.theme,
+    this.outlined = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -102,26 +126,42 @@ class _CompactWeightChip extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 36,
-      child: Material(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(10),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => _openWeightSheet(context, product),
-          child: Center(
-            child: Text(
-              '${_formatGrams(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onPrimary,
-                fontWeight: FontWeight.w700,
-              ),
+    // «Уже в корзине» — в корзине (outlined:true) должно выглядеть как
+    // соседний степпер штучных товаров (_CartQuantityStepper): светлый
+    // фон, тонкая рамка, обычный цвет текста — не жирная заливка кнопки
+    // «добавить», иначе весовая позиция визуально выбивается из списка.
+    final textColor = outlined ? theme.colorScheme.onSurface : theme.colorScheme.onPrimary;
+
+    final chip = Material(
+      color: outlined ? Colors.transparent : theme.colorScheme.primary,
+      borderRadius: BorderRadius.circular(10),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _openWeightSheet(context, product),
+        child: Center(
+          child: Text(
+            '${_formatGrams(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
       ),
+    );
+
+    return SizedBox(
+      width: double.infinity,
+      height: 36,
+      child: outlined
+          ? DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: chip,
+            )
+          : chip,
     );
   }
 }
