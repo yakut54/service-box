@@ -47,6 +47,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _loadingOlder = false;
   bool _hasMoreOlder = true;
   bool _isBlockedByShop = false;
+  final Map<String, GlobalKey> _messageKeys = {};
+  String? _jumpingToMessageId;
+  String? _highlightedMessageId;
+  Timer? _highlightTimer;
   AppException? _error;
   Timer? _pollTimer;
   bool _sending = false;
@@ -209,10 +213,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToBottomIfAtBottom());
+    // Фото в истории декодируются асинхронно и увеличивают высоту списка
+    // уже ПОСЛЕ первого прыжка вниз — без повторных попыток байер остаётся
+    // чуть выше настоящего конца чата, пока не долистает руками. Повторяем
+    // прыжок несколько раз с нарастающей паузой, но только если байер за
+    // это время сам никуда не проскроллил.
+    for (final delay in const [
+      Duration(milliseconds: 150),
+      Duration(milliseconds: 400),
+      Duration(milliseconds: 900),
+    ]) {
+      Future.delayed(delay, _jumpToBottomIfAtBottom);
+    }
+  }
+
+  void _jumpToBottomIfAtBottom() {
+    if (!mounted || !_scrollController.hasClients) return;
+    if (!_isAtBottom) return;
+    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
   }
 
   void _onScroll() {
@@ -225,7 +244,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _loadOlder() async {
-    if (_messages.isEmpty) return;
+    final prevExtent = _scrollController.hasClients
+        ? _scrollController.position.maxScrollExtent
+        : 0.0;
+    final fetched = await _fetchOlderBatch();
+    if (!fetched) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      final newExtent = _scrollController.position.maxScrollExtent;
+      _scrollController.jumpTo(newExtent - prevExtent);
+    });
+  }
+
+  /// Подгружает одну страницу более старых сообщений и добавляет их в
+  /// начало списка. Общий кусок для обычной подгрузки при скролле вверх
+  /// (_loadOlder) и для прыжка к сообщению, на которое ответили и которого
+  /// ещё нет в памяти (_jumpToMessage) — им обеим нужна ровно эта логика,
+  /// разное только то, что происходит со скроллом после.
+  Future<bool> _fetchOlderBatch() async {
+    if (_messages.isEmpty || _loadingOlder) return false;
     setState(() => _loadingOlder = true);
     try {
       final oldest = _messages.first;
@@ -235,17 +272,56 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       );
       if (page.messages.length < 30) _hasMoreOlder = false;
       final older = page.messages.reversed.toList();
-      final prevExtent = _scrollController.position.maxScrollExtent;
+      if (older.isEmpty) return false;
       setState(() => _messages = [...older, ..._messages]);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_scrollController.hasClients) return;
-        final newExtent = _scrollController.position.maxScrollExtent;
-        _scrollController.jumpTo(newExtent - prevExtent);
-      });
+      return true;
     } catch (_) {
       // тихо — попробует ещё раз при следующем скролле к верху
+      return false;
     } finally {
       if (mounted) setState(() => _loadingOlder = false);
+    }
+  }
+
+  /// Тап по цитате «Ответ на сообщение» внутри пузыря — прокручивает к
+  /// оригиналу, как в Телеграме. Сообщение может быть глубже, чем уже
+  /// подгруженное окно (~30 последних) — тогда молча подгружаем историю
+  /// назад, пока не найдём его или не упрёмся в начало треда.
+  Future<void> _jumpToMessage(String targetId) async {
+    if (_jumpingToMessageId != null) return; // уже идёт один прыжок
+    setState(() => _jumpingToMessageId = targetId);
+    try {
+      while (!_messages.any((m) => m.id == targetId) && _hasMoreOlder) {
+        final fetched = await _fetchOlderBatch();
+        if (!fetched) break;
+      }
+      if (!mounted) return;
+
+      final key = _messageKeys[targetId];
+      final targetContext = key?.currentContext;
+      if (targetContext == null) {
+        _showError(
+          AppException.unknown(),
+          'Сообщение не найдено — возможно, оно было удалено',
+        );
+        return;
+      }
+
+      await Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        alignment: 0.5,
+      );
+
+      if (!mounted) return;
+      _highlightTimer?.cancel();
+      setState(() => _highlightedMessageId = targetId);
+      _highlightTimer = Timer(const Duration(milliseconds: 1200), () {
+        if (mounted) setState(() => _highlightedMessageId = null);
+      });
+    } finally {
+      if (mounted) setState(() => _jumpingToMessageId = null);
     }
   }
 
@@ -507,10 +583,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       );
                     }
                     final message = _messages[index - (_loadingOlder ? 1 : 0)];
+                    final key = _messageKeys.putIfAbsent(
+                      message.id,
+                      () => GlobalKey(),
+                    );
                     return _MessageBubble(
+                      key: key,
                       message: message,
+                      isHighlighted: _highlightedMessageId == message.id,
                       onLongPress: () => _openMessageMenu(message),
                       onSwipeReply: () => _startReply(message),
+                      onQuoteTap: message.replyToMessageId != null
+                          ? () => _jumpToMessage(message.replyToMessageId!)
+                          : null,
                     );
                   },
                 ),
@@ -679,13 +764,18 @@ class Uint8ListHolder {
 
 class _MessageBubble extends StatefulWidget {
   final ChatMessage message;
+  final bool isHighlighted;
   final VoidCallback onLongPress;
   final VoidCallback onSwipeReply;
+  final VoidCallback? onQuoteTap;
 
   const _MessageBubble({
+    super.key,
     required this.message,
+    this.isHighlighted = false,
     required this.onLongPress,
     required this.onSwipeReply,
+    this.onQuoteTap,
   });
 
   @override
@@ -748,7 +838,8 @@ class _MessageBubbleState extends State<_MessageBubble>
             transform: Matrix4.translationValues(-_dragOffset, 0, 0),
             child: Align(
               alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
                 constraints: BoxConstraints(
                   minWidth: MediaQuery.of(context).size.width * 0.5,
                   maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -756,9 +847,14 @@ class _MessageBubbleState extends State<_MessageBubble>
                 margin: const EdgeInsets.symmetric(vertical: 3),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isMine
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.surfaceContainerHighest,
+                  // Короткая подсветка при прыжке по цитате к оригиналу
+                  // (см. ChatScreen._jumpToMessage) — тот же цвет для обеих
+                  // сторон бабла, чтобы не путать с обычным «своим» цветом.
+                  color: widget.isHighlighted
+                      ? theme.colorScheme.tertiaryContainer
+                      : isMine
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(14),
                     topRight: const Radius.circular(14),
@@ -772,7 +868,9 @@ class _MessageBubbleState extends State<_MessageBubble>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (message.replyTo != null)
-                      Container(
+                      GestureDetector(
+                        onTap: widget.onQuoteTap,
+                        child: Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         padding: const EdgeInsets.only(left: 8, bottom: 6),
                         decoration: BoxDecoration(
@@ -820,6 +918,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                               ),
                             ),
                           ],
+                        ),
                         ),
                       )
                     else if (message.replyToMessageId != null)
