@@ -701,6 +701,18 @@ class ApiClient {
     return this.request<{ message: string }>(`/admin/chat/threads/${threadId}/read`, { method: 'POST' })
   }
 
+  // Эфемерный пинг "печатает"/"тут был только что" — без персистентности,
+  // просто транслируется в WS-канал треда (см. ReviewController-style
+  // ChatMessageBroadcast, event type 'presence'). is_typing:false и на
+  // открытие треда (это же activity-сигнал, отдельного "online"-эндпоинта
+  // нет — сознательно cheap-версия, не настоящий presence-канал).
+  async sendChatPresence(threadId: string, isTyping: boolean) {
+    return this.request<{ message: string }>(`/admin/chat/threads/${threadId}/presence`, {
+      method: 'POST',
+      body: JSON.stringify({ is_typing: isTyping }),
+    })
+  }
+
   async blockChatThread(threadId: string, blocked: boolean) {
     return this.request<{ data: ChatThread }>(`/admin/chat/threads/${threadId}/block`, {
       method: 'POST',

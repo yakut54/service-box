@@ -23,6 +23,12 @@ abstract class ChatRepository {
 
   Future<void> markRead(String sessionToken);
 
+  /// Эфемерный пинг "печатаю"/"я тут" — не персистентный, просто пролетает
+  /// в WS-канал треда (см. ChatController::presence на бэкенде,
+  /// PLAN-CHAT.md). Не настоящий presence-канал, дёшево и достаточно для
+  /// одного диалога байер↔магазин.
+  Future<void> sendPresence(String sessionToken, {required bool isTyping});
+
   Future<ChatPollResult> poll(String sessionToken, {String? after});
 
   Future<String> uploadImage(

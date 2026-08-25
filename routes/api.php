@@ -153,6 +153,7 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
         Route::post('/chat/read', [ChatController::class, 'markRead'])->middleware('throttle:chat-read');
         Route::get('/chat/poll', [ChatController::class, 'poll'])->middleware('throttle:chat-read');
         Route::post('/chat/broadcasting-auth', [ChatController::class, 'broadcastAuth'])->middleware('throttle:chat-read');
+        Route::post('/chat/presence', [ChatController::class, 'presence'])->middleware('throttle:chat-read');
         Route::post('/chat/image', [ChatController::class, 'uploadImage'])->middleware('throttle:chat-image');
     });
 });
@@ -245,6 +246,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::patch('/chat/threads/{id}/messages/{message}', [AdminChatController::class, 'editMessage'])->middleware('throttle:chat-admin-write');
     Route::delete('/chat/threads/{id}/messages/{message}', [AdminChatController::class, 'deleteMessage'])->middleware('throttle:chat-admin-moderate');
     Route::post('/chat/threads/{id}/read', [AdminChatController::class, 'markRead'])->middleware('throttle:chat-admin-read');
+    Route::post('/chat/threads/{id}/presence', [AdminChatController::class, 'presence'])->middleware('throttle:chat-admin-read');
     Route::post('/chat/threads/{id}/block', [AdminChatController::class, 'block'])->middleware('throttle:chat-admin-moderate');
     Route::get('/chat/poll', [AdminChatController::class, 'poll'])->middleware('throttle:chat-admin-read');
     Route::post('/chat/image', [AdminChatController::class, 'uploadImage'])->middleware('throttle:chat-admin-image');

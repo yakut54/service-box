@@ -188,6 +188,40 @@ class ChatController extends Controller
     }
 
     /**
+     * POST /api/widget/chat/presence
+     *
+     * Эфемерный пинг "печатаю"/"я тут" — не пишется в БД, просто
+     * пролетает в уже существующий приватный канал треда тем же
+     * ChatMessageBroadcast, что и обычные события (тип 'presence').
+     * Сознательно НЕ presence-канал Reverb — тот потребовал бы переделать
+     * оба пути авторизации (Sanctum у админки и ручную подпись здесь),
+     * см. PLAN-CHAT.md. "Онлайн" на клиенте — просто "недавно был этот
+     * пинг", не настоящий список подключений.
+     */
+    public function presence(Request $request): JsonResponse
+    {
+        $customer = $this->customer($request);
+        $thread   = $customer->chatThread;
+
+        if (!$thread) {
+            return response()->json(['message' => 'Диалог не найден'], 404);
+        }
+
+        $data = $request->validate([
+            'is_typing' => 'required|boolean',
+        ]);
+
+        ChatMessageBroadcast::dispatch(
+            $request->get('_shop')->api_key,
+            $thread->id,
+            'presence',
+            ['sender_type' => 'customer', 'is_typing' => $data['is_typing']],
+        );
+
+        return response()->json(['message' => 'ok']);
+    }
+
+    /**
      * DELETE /api/widget/chat/messages/{message}
      *
      * Покупатель может удалить только СВОЁ сообщение, и только если владелец

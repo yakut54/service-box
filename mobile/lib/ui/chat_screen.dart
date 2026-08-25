@@ -65,6 +65,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   ChatMessage? _replyTarget;
   String? _threadId;
 
+  // ── "Печатает…" / "в сети" (магазин) — эфемерный пинг в тот же WS-канал,
+  // не настоящий presence-канал (см. ChatController::presence на бэкенде и
+  // PLAN-CHAT.md). "В сети" тут условность — "недавно прислал такой пинг".
+  static const _presenceOnlineWindow = Duration(seconds: 40);
+  bool _shopIsTyping = false;
+  DateTime? _shopLastActiveAt;
+  Timer? _shopTypingClearTimer;
+  Timer? _sendTypingClearTimer;
+  bool _wasTyping = false;
+
+  bool get _shopOnline =>
+      _shopLastActiveAt != null &&
+      DateTime.now().difference(_shopLastActiveAt!) < _presenceOnlineWindow;
+
   String get _sessionToken => context.read<AuthState>().session!.sessionToken;
 
   @override
@@ -72,6 +86,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
+    _draftController.addListener(_onDraftChanged);
     _load();
     final sharedPath = widget.sharedImagePath;
     if (sharedPath != null) {
@@ -85,11 +100,29 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
+    _shopTypingClearTimer?.cancel();
+    _sendTypingClearTimer?.cancel();
     _realtime.disconnect();
     _scrollController.dispose();
+    _draftController.removeListener(_onDraftChanged);
     _draftController.dispose();
     _player.dispose();
     super.dispose();
+  }
+
+  // ── Своё "печатает" — дебаунс, не на каждый символ (см. ChatView.vue,
+  // тот же принцип: is_typing:true сразу, false через 3с молчания).
+  void _onDraftChanged() {
+    if (_threadId == null) return;
+    if (_draftController.text.trim().isNotEmpty && !_wasTyping) {
+      _wasTyping = true;
+      _repository.sendPresence(_sessionToken, isTyping: true).catchError((_) {});
+    }
+    _sendTypingClearTimer?.cancel();
+    _sendTypingClearTimer = Timer(const Duration(seconds: 3), () {
+      _wasTyping = false;
+      _repository.sendPresence(_sessionToken, isTyping: false).catchError((_) {});
+    });
   }
 
   @override
@@ -116,6 +149,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       threadId: threadId,
       sessionToken: _sessionToken,
       onEvent: (event, data) {
+        if (event == 'presence') {
+          _handlePresenceEvent(data);
+          return; // эфемерный пинг — не повод перезапрашивать сообщения
+        }
         if (event == 'message.new') {
           final raw = data['message'] as Map<String, dynamic>?;
           if (raw != null && raw['sender_type'] == 'shop') {
@@ -125,6 +162,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _poll();
       },
     );
+    // "Байер тут" для магазина — тот же пинг, что и печать, is_typing:false.
+    _repository.sendPresence(_sessionToken, isTyping: false).catchError((_) {});
+  }
+
+  void _handlePresenceEvent(Map<String, dynamic> data) {
+    if (data['sender_type'] != 'shop') return;
+    if (!mounted) return;
+    setState(() {
+      _shopLastActiveAt = DateTime.now();
+      _shopIsTyping = data['is_typing'] == true;
+    });
+    _shopTypingClearTimer?.cancel();
+    if (_shopIsTyping) {
+      // Страховка — если магазин не пришлёт is_typing:false (закрыли вкладку
+      // посреди набора), индикатор не должен висеть вечно.
+      _shopTypingClearTimer = Timer(const Duration(seconds: 6), () {
+        if (mounted) setState(() => _shopIsTyping = false);
+      });
+    }
   }
 
   Future<void> _playNotifySound() async {
@@ -421,6 +477,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final imageUrl = _pendingImage?.url;
     if (body.isEmpty && imageUrl == null) return;
 
+    // Не ждать 3с таймер — отправка сама по себе уже сигнал "закончил печатать".
+    if (_wasTyping) {
+      _wasTyping = false;
+      _sendTypingClearTimer?.cancel();
+      _repository.sendPresence(_sessionToken, isTyping: false).catchError((_) {});
+    }
+
     setState(() => _sending = true);
     try {
       final message = await _repository.sendMessage(
@@ -542,8 +605,30 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Чат с магазином')),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Чат с магазином'),
+            if (_shopIsTyping)
+              Text(
+                'печатает…',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+            else if (_shopOnline)
+              Text(
+                'в сети',
+                style: theme.textTheme.labelSmall?.copyWith(color: Colors.green),
+              ),
+          ],
+        ),
+      ),
       body: Stack(
         children: [
           ChatBackground(color: Theme.of(context).colorScheme.primary),

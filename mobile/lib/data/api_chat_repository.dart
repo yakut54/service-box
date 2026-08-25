@@ -71,6 +71,15 @@ class ApiChatRepository implements ChatRepository {
   }
 
   @override
+  Future<void> sendPresence(String sessionToken, {required bool isTyping}) async {
+    await _client.post(
+      '/widget/chat/presence',
+      {'is_typing': isTyping},
+      headers: _authHeaders(sessionToken),
+    );
+  }
+
+  @override
   Future<ChatPollResult> poll(String sessionToken, {String? after}) async {
     final json = await _client.get(
       '/widget/chat/poll',

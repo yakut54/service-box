@@ -252,6 +252,30 @@ class ChatController extends Controller
     }
 
     /**
+     * POST /api/admin/chat/threads/{id}/presence
+     *
+     * Зеркало ChatController::presence() на стороне покупателя — см. её
+     * докблок. Эфемерно, ничего не пишет в БД.
+     */
+    public function presence(Request $request, string $id): JsonResponse
+    {
+        $thread = ChatThread::findOrFail($id);
+
+        $data = $request->validate([
+            'is_typing' => 'required|boolean',
+        ]);
+
+        ChatMessageBroadcast::dispatch(
+            $this->shopApiKey($request),
+            $thread->id,
+            'presence',
+            ['sender_type' => 'shop', 'is_typing' => $data['is_typing']],
+        );
+
+        return response()->json(['message' => 'ok']);
+    }
+
+    /**
      * POST /api/admin/chat/threads/{id}/block
      *
      * Явный булев параметр, не тумблер без состояния — двойной клик/повтор

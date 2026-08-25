@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { compressIfNeeded } from '@/composables/useImageCompression'
@@ -89,6 +89,27 @@ async function scrollToBottom() {
 // не дублируем логику слияния/удаления в двух местах.
 let subscribedChannel: string | null = null
 
+// ── "Печатает…" / "в сети" (покупатель) ─────────────────────────────
+// Не настоящий presence-канал (тот тронул бы оба пути авторизации — и
+// Sanctum у админки, и ручную подпись у покупателя) — просто ещё одно
+// эфемерное событие в уже существующий приватный канал треда, ничего не
+// пишет в БД. "Онлайн" здесь условность: "недавно прислал такой пинг",
+// не настоящий список подключений — см. api.sendChatPresence.
+const PRESENCE_ONLINE_WINDOW_MS = 40_000
+const customerIsTyping = ref(false)
+const customerLastActiveAt = ref<number | null>(null)
+let typingClearTimer: ReturnType<typeof setTimeout> | null = null
+
+const customerOnline = computed(() =>
+  customerLastActiveAt.value !== null && Date.now() - customerLastActiveAt.value < PRESENCE_ONLINE_WINDOW_MS,
+)
+
+function resetPresence() {
+  customerIsTyping.value = false
+  customerLastActiveAt.value = null
+  if (typingClearTimer) { clearTimeout(typingClearTimer); typingClearTimer = null }
+}
+
 function subscribeRealtime(thread: ChatThread) {
   unsubscribeRealtime()
   const apiKey = authStore.shop?.api_key
@@ -107,6 +128,18 @@ function subscribeRealtime(thread: ChatThread) {
     .listen('.thread.blocked', (e: { is_blocked_by_shop: boolean }) => {
       if (selectedThread.value) selectedThread.value.is_blocked_by_shop = e.is_blocked_by_shop
     })
+    .listen('.presence', (e: { sender_type: string; is_typing: boolean }) => {
+      if (e.sender_type !== 'customer') return
+      customerLastActiveAt.value = Date.now()
+      customerIsTyping.value = e.is_typing
+      if (typingClearTimer) clearTimeout(typingClearTimer)
+      if (e.is_typing) {
+        // Страховка на случай, если покупатель не пришлёт is_typing:false
+        // (закрыл приложение посреди набора) — индикатор не должен висеть
+        // вечно.
+        typingClearTimer = setTimeout(() => { customerIsTyping.value = false }, 6000)
+      }
+    })
 }
 
 function unsubscribeRealtime() {
@@ -114,6 +147,7 @@ function unsubscribeRealtime() {
     getEcho().leave(subscribedChannel)
     subscribedChannel = null
   }
+  resetPresence()
 }
 
 onUnmounted(() => unsubscribeRealtime())
@@ -139,6 +173,7 @@ async function selectThread(thread: ChatThread) {
   messages.value = []
   hasMoreOlder.value = true
   loadingMessages.value = true
+  resetPresence()
   cancelReply()
   cancelEdit()
   try {
@@ -151,6 +186,9 @@ async function selectThread(thread: ChatThread) {
       await chatStore.poll()
     }
     subscribeRealtime(thread)
+    // "Магазин тут" для покупателя — тот же пинг, что и печать, просто
+    // is_typing:false. Не критично, если не дойдёт.
+    api.sendChatPresence(thread.id, false).catch(() => {})
   } catch (e) {
     toastError(parseApiError(e, 'Не удалось загрузить переписку'))
   }
@@ -257,6 +295,27 @@ function cancelEdit() {
 
 // ── Отправка сообщений ───────────────────────────────────────────────────────
 const draft = ref('')
+
+// ── Отправка своих "печатает" покупателю ────────────────────────────
+// Дебаунс, не на каждый символ: is_typing:true сразу при первом вводе
+// после паузы, is_typing:false через 3с молчания (тот же принцип, что и
+// у входящего — таймер-страховка выше).
+let typingSendTimer: ReturnType<typeof setTimeout> | null = null
+let wasTyping = false
+watch(draft, (value) => {
+  if (!selectedThread.value) return
+  const threadId = selectedThread.value.id
+  if (value.trim() && !wasTyping) {
+    wasTyping = true
+    api.sendChatPresence(threadId, true).catch(() => {})
+  }
+  if (typingSendTimer) clearTimeout(typingSendTimer)
+  typingSendTimer = setTimeout(() => {
+    wasTyping = false
+    api.sendChatPresence(threadId, false).catch(() => {})
+  }, 3000)
+})
+
 const sending = ref(false)
 const pendingImageUrl = ref<string | null>(null)
 const uploadingImage = ref(false)
@@ -292,6 +351,13 @@ function openImage(url: string | null) {
 async function sendMessage() {
   if (!selectedThread.value) return
   const body = draft.value.trim()
+
+  // Не ждать 3с таймер — отправка сама по себе уже сигнал "закончил печатать".
+  if (wasTyping) {
+    wasTyping = false
+    if (typingSendTimer) { clearTimeout(typingSendTimer); typingSendTimer = null }
+    api.sendChatPresence(selectedThread.value.id, false).catch(() => {})
+  }
 
   if (editingMessage.value) {
     if (!body) return
@@ -491,9 +557,13 @@ loadThreads()
               >
                 {{ selectedThread.customer?.name || selectedThread.customer?.phone || 'Покупатель' }}
               </RouterLink>
-              <p class="text-xs text-gray-400 dark:text-gray-500 truncate">
+              <p v-if="customerIsTyping" class="text-xs text-primary-600 dark:text-primary-400 italic truncate">
+                печатает…
+              </p>
+              <p v-else class="text-xs text-gray-400 dark:text-gray-500 truncate">
                 {{ selectedThread.customer?.phone }}
                 <span v-if="selectedThread.customer?.total_orders">· {{ selectedThread.customer.total_orders }} {{ selectedThread.customer.total_orders === 1 ? 'заказ' : 'заказов' }}</span>
+                <span v-if="customerOnline" class="text-emerald-500 dark:text-emerald-400">· в сети</span>
               </p>
             </div>
             <button
