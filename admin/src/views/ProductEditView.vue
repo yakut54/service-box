@@ -324,15 +324,15 @@ async function handleSubmit() {
           <!-- Режим продажи -->
           <div>
             <p class="label">Режим продажи</p>
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 v-for="(cfg, key) in saleModeConfig"
                 :key="key"
                 type="button"
                 @click="physicalDetails.sale_mode = key"
-                :class="['p-2 rounded-lg border-2 text-center transition-colors', physicalDetails.sale_mode === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
+                :class="['min-w-0 flex sm:block items-center gap-2 sm:gap-0 p-2 rounded-lg border-2 text-left sm:text-center transition-colors', physicalDetails.sale_mode === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
               >
-                <div class="text-lg mb-0.5">{{ cfg.icon }}</div>
+                <div class="text-lg sm:mb-0.5">{{ cfg.icon }}</div>
                 <div class="text-xs font-semibold leading-tight">{{ cfg.label }}</div>
               </button>
             </div>
