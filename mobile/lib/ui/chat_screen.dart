@@ -47,6 +47,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _loadingOlder = false;
   bool _hasMoreOlder = true;
   bool _isBlockedByShop = false;
+  bool _initialScrollSettled = false;
   final Map<String, GlobalKey> _messageKeys = {};
   String? _jumpingToMessageId;
   String? _highlightedMessageId;
@@ -153,7 +154,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       _startPolling();
       if (_threadId != null) _connectRealtime(_threadId!);
-      _scrollToBottom();
+      _scrollToBottom(force: true);
     } on AppException catch (e) {
       setState(() => _error = e);
     } catch (_) {
@@ -199,7 +200,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (mounted) context.read<ChatState>().clearUnread();
       }
       if (newOnes.isNotEmpty && (wasAtBottom || newOnes.any((m) => m.isMine))) {
-        _scrollToBottom();
+        // force для своих сообщений — тот же список уже вырос ДО этого
+        // вызова (см. setState выше), сравнивать текущий pixels со свежим
+        // maxScrollExtent бессмысленно для бабла выше ~80px, см. комментарий
+        // в _jumpToBottomIfAtBottom.
+        _scrollToBottom(force: newOnes.any((m) => m.isMine));
       }
     } catch (_) {
       // фоновый опрос — молча пропускаем
@@ -212,8 +217,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _scrollController.position.maxScrollExtent - 80;
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToBottomIfAtBottom());
+  void _scrollToBottom({bool force = false}) {
+    // force — список уже вырос (сообщение дописано в _messages) ДО этого
+    // вызова, поэтому текущий pixels сравнивать с новым maxScrollExtent
+    // бессмысленно: _isAtBottom всегда провалится для бабла выше ~80px,
+    // и мы молча не долистаем до своего же свежего сообщения (баг найден
+    // 2026-08-25 живым тестом). force пропускает эту проверку для первого
+    // прыжка — мы и так точно знаем, что должны оказаться внизу.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _jumpToBottomIfAtBottom(force: force),
+    );
     // Фото в истории декодируются асинхронно и увеличивают высоту списка
     // уже ПОСЛЕ первого прыжка вниз — без повторных попыток байер остаётся
     // чуть выше настоящего конца чата, пока не долистает руками. Повторяем
@@ -228,13 +241,22 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _jumpToBottomIfAtBottom() {
+  void _jumpToBottomIfAtBottom({bool force = false}) {
     if (!mounted || !_scrollController.hasClients) return;
-    if (!_isAtBottom) return;
+    if (!force && !_isAtBottom) return;
     _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    // Разрешаем автоподгрузку старой истории по скроллу только после того,
+    // как мы хотя бы раз осознанно долистали до низа. Иначе ScrollController
+    // успевает уведомить _onScroll о pixels=0 ещё на самом первом кадре,
+    // ДО этого прыжка — тот читает это как "долистали до самого верха" и
+    // сразу тянет ещё страницу истории, чей anchor-jump уносит байера в
+    // середину объединённого списка вместо низа (баг найден 2026-08-25
+    // живым тестом — ровно то самое "открываю чат и я где-то в центре").
+    _initialScrollSettled = true;
   }
 
   void _onScroll() {
+    if (!_initialScrollSettled) return;
     if (!_scrollController.hasClients || _loadingOlder || !_hasMoreOlder) {
       return;
     }
@@ -433,7 +455,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (_threadId != null && !_realtime.isConnected) {
         _connectRealtime(_threadId!);
       }
-      _scrollToBottom();
+      _scrollToBottom(force: true);
     } catch (e) {
       if (mounted) _showError(e, 'Не удалось отправить сообщение');
     } finally {
