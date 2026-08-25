@@ -4,10 +4,15 @@ import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:gal/gal.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../core/app_exception.dart';
+import '../core/format.dart';
 import '../core/image_compress.dart';
 import '../core/uuid.dart';
 import '../data/chat_realtime_client.dart';
@@ -372,33 +377,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _pickImage() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Сделать фото'),
-              onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Выбрать из галереи'),
-              onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (source == null || !mounted) return;
-
-    final picked = await ImagePicker().pickImage(source: source);
+    // Раньше здесь был свой чекер "Сделать фото / Выбрать из галереи" перед
+    // системным пикером. Убрали лишний шаг — системная галерея на
+    // современном Android (image_picker уходит именно в неё для
+    // ImageSource.gallery) уже сама показывает грид недавних фото с
+    // плиткой камеры в углу, один общий bottom sheet, как в Telegram
+    // (идея пользователя, 2026-08-25) — свой экран поверх него не нужен.
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked == null || !mounted) return;
 
     await _uploadPickedBytes(await picked.readAsBytes());
@@ -639,6 +624,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       isHighlighted: _highlightedMessageId == message.id,
                       onLongPress: () => _openMessageMenu(message),
                       onSwipeReply: () => _startReply(message),
+                      onDelete: message.isMine ? () => _deleteMessage(message) : null,
                       onQuoteTap: message.replyToMessageId != null
                           ? () => _jumpToMessage(message.replyToMessageId!)
                           : null,
@@ -813,6 +799,7 @@ class _MessageBubble extends StatefulWidget {
   final bool isHighlighted;
   final VoidCallback onLongPress;
   final VoidCallback onSwipeReply;
+  final VoidCallback? onDelete;
   final VoidCallback? onQuoteTap;
 
   const _MessageBubble({
@@ -821,6 +808,7 @@ class _MessageBubble extends StatefulWidget {
     this.isHighlighted = false,
     required this.onLongPress,
     required this.onSwipeReply,
+    this.onDelete,
     this.onQuoteTap,
   });
 
@@ -984,7 +972,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: GestureDetector(
-                          onTap: () => _openFullImage(context, message.imageUrl!),
+                          onTap: () => _openFullImage(context, message),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 220),
                             child: Image.network(message.imageUrl!, fit: BoxFit.cover),
@@ -1054,14 +1042,155 @@ class _MessageBubbleState extends State<_MessageBubble>
     );
   }
 
-  void _openFullImage(BuildContext context, String url) {
+  void _openFullImage(BuildContext context, ChatMessage message) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(backgroundColor: Colors.black),
-          backgroundColor: Colors.black,
-          body: Center(child: InteractiveViewer(child: Image.network(url))),
+        builder: (_) => _FullImageViewer(
+          message: message,
+          onReply: widget.onSwipeReply,
+          onDelete: widget.onDelete,
         ),
+      ),
+    );
+  }
+}
+
+/// Просмотр фото на весь экран — по образцу Telegram (идея пользователя,
+/// 2026-08-25): дата вместо голого AppBar, подпись поверх фото снизу, меню
+/// действий вместо системного "поделиться скриншотом". onReply/onDelete —
+/// колбэки в _ChatScreenState, а не самостоятельная логика здесь: этот
+/// виджет ничего не знает про список сообщений и сессию.
+class _FullImageViewer extends StatelessWidget {
+  final ChatMessage message;
+  final VoidCallback onReply;
+  final VoidCallback? onDelete;
+
+  const _FullImageViewer({required this.message, required this.onReply, this.onDelete});
+
+  Future<void> _save(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final granted = await Gal.requestAccess();
+      if (!granted) {
+        messenger.showSnackBar(const SnackBar(content: Text('Нет доступа к галерее')));
+        return;
+      }
+      final response = await http.get(Uri.parse(message.imageUrl!));
+      await Gal.putImageBytes(
+        response.bodyBytes,
+        name: 'servicebox_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      messenger.showSnackBar(const SnackBar(content: Text('Сохранено в галерею')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Не удалось сохранить фото')));
+    }
+  }
+
+  Future<void> _share(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final response = await http.get(Uri.parse(message.imageUrl!));
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/chat_share_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await file.writeAsBytes(response.bodyBytes);
+      await Share.shareXFiles([XFile(file.path)]);
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Не удалось поделиться фото')));
+    }
+  }
+
+  void _openMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.download_rounded),
+              title: const Text('Сохранить в галерею'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _save(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.reply_rounded),
+              title: const Text('Ответить'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+                onReply();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_rounded),
+              title: const Text('Поделиться'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _share(context);
+              },
+            ),
+            if (onDelete != null)
+              ListTile(
+                leading: Icon(Icons.delete_outline_rounded, color: Theme.of(ctx).colorScheme.error),
+                title: Text('Удалить', style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pop();
+                  onDelete!();
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(formatMessageDateTime(message.createdAt), style: const TextStyle(fontSize: 16)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert_rounded),
+            onPressed: () => _openMenu(context),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          Center(child: InteractiveViewer(child: Image.network(message.imageUrl!))),
+          if (message.body != null && message.body!.isNotEmpty)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withValues(alpha: 0), Colors.black.withValues(alpha: 0.75)],
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Text(message.body!, style: const TextStyle(color: Colors.white)),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

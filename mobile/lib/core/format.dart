@@ -37,6 +37,26 @@ String formatFullDate(DateTime date) {
   return '${date.day} ${months[date.month - 1]} ${date.year}';
 }
 
+/// Дата+время по образцу Telegram: "Сегодня в 14:32" / "Вчера в 14:32" /
+/// "12 июн. в 14:32" (год добавляется только если не текущий) — для
+/// просмотра фото в чате на весь экран.
+String formatMessageDateTime(DateTime date) {
+  const monthsAbbr = [
+    'янв.', 'февр.', 'мар.', 'апр.', 'мая', 'июн.',
+    'июл.', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.',
+  ];
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final target = DateTime(date.year, date.month, date.day);
+  final time = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
+  if (target == today) return 'Сегодня в $time';
+  if (target == today.subtract(const Duration(days: 1))) return 'Вчера в $time';
+
+  final yearSuffix = date.year == now.year ? '' : ' ${date.year}';
+  return '${date.day} ${monthsAbbr[date.month - 1]}$yearSuffix в $time';
+}
+
 /// Склонение существительного по числу (1 отзыв / 2 отзыва / 5 отзывов).
 /// Стандартное русское правило: 11-14 всегда "many", иначе по последней цифре.
 String pluralRu(int n, String one, String few, String many) {
