@@ -221,7 +221,7 @@ async function handleSubmit() {
           <!-- Тип товара -->
           <div>
             <p class="label">Тип товара</p>
-            <div class="grid grid-cols-3 gap-3">
+            <div :class="['grid gap-3', Object.keys(pickableTypeConfig).length > 1 ? 'grid-cols-3' : 'grid-cols-1']">
               <button
                 v-for="(cfg, key) in pickableTypeConfig"
                 :key="key"
