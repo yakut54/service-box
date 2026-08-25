@@ -103,6 +103,12 @@ class Product {
   final String? categoryId;
   final ProductPhysical? physical;
 
+  /// Средний рейтинг и количество отзывов — считаются на бэкенде по
+  /// опубликованным отзывам (см. ProductController::index/show,
+  /// withAvg/withCount). null/0, если отзывов ещё нет.
+  final double? rating;
+  final int reviewCount;
+
   /// Доп. фото галереи (не включает обложку — см. imageUrl). Пусто для
   /// товаров без галереи (М1) — карточка тогда показывает одну обложку,
   /// как раньше.
@@ -120,6 +126,8 @@ class Product {
     this.imageUrl,
     this.categoryId,
     this.physical,
+    this.rating,
+    this.reviewCount = 0,
     this.images = const [],
   });
 
@@ -189,6 +197,14 @@ class Product {
     physical: json['physical'] != null
         ? ProductPhysical.fromJson(json['physical'] as Map<String, dynamic>)
         : null,
+    // Бэкенд отдаёт (float) после round(avg,1), но на всякий случай
+    // принимаем и строку — Postgres avg() иногда сериализуется как текст.
+    rating: switch (json['rating']) {
+      final num n => n.toDouble(),
+      final String s => double.tryParse(s),
+      _ => null,
+    },
+    reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
     images: (json['images'] as List<dynamic>? ?? const [])
         .map((img) => (img as Map<String, dynamic>)['url'] as String)
         .toList(),

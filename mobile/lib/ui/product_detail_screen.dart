@@ -9,6 +9,8 @@ import 'widgets/cart_button.dart';
 import 'widgets/discount_badge.dart';
 import 'widgets/error_view.dart';
 import 'widgets/product_price_row.dart';
+import 'widgets/product_reviews_section.dart';
+import 'widgets/rating_summary.dart';
 
 /// Карточка товара: GET /widget/products/{id}. Открывается тапом по
 /// карточке в каталоге (см. ProductCard).
@@ -86,6 +88,8 @@ class _ProductDetailBody extends StatelessWidget {
               _ProductGallery(images: product.galleryImages),
               const SizedBox(height: 16),
               Text(product.name, style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 4),
+              RatingSummary(rating: product.rating, reviewCount: product.reviewCount),
               const SizedBox(height: 8),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -139,6 +143,8 @@ class _ProductDetailBody extends StatelessWidget {
                 const SizedBox(height: 16),
                 _CharacteristicsList(physical: product.physical!),
               ],
+              const SizedBox(height: 24),
+              ProductReviewsSection(product: product),
               const SizedBox(height: 24),
               _RelatedProducts(product: product),
             ],
