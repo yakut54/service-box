@@ -20,7 +20,7 @@ defineProps<{
       ]"
       :style="bottomPct !== undefined ? `bottom: calc(${bottomPct}% + 10px)` : undefined"
     >
-      <div class="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-2.5 py-2 whitespace-nowrap shadow-xl ring-1 ring-black/10">
+      <div class="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-2.5 py-2 max-w-[min(200px,calc(100vw-3rem))] whitespace-normal shadow-xl ring-1 ring-black/10">
         <slot name="content" />
       </div>
       <!-- Arrow -->
