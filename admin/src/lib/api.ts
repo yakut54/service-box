@@ -9,6 +9,7 @@ import type {
   Master,
   Discount,
   Review,
+  ReviewsListResponse,
   StaffMember,
   ChatThread,
   ChatMessage,
@@ -560,7 +561,15 @@ class ApiClient {
 
   async getReviews(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<Review>>(`/admin/reviews${query}`)
+    return this.request<ReviewsListResponse>(`/admin/reviews${query}`)
+  }
+
+  async getReviewsPendingCount() {
+    return this.request<{ count: number }>('/admin/reviews/pending-count')
+  }
+
+  async markReviewsSeen() {
+    return this.request<{ message: string }>('/admin/reviews/mark-seen', { method: 'POST' })
   }
 
   async updateReview(id: string, data: { is_published: boolean }) {

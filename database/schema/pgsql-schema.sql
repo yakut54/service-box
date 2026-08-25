@@ -609,6 +609,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     prepayment_amount integer DEFAULT 0 NOT NULL,
     hide_customer_phone boolean DEFAULT false NOT NULL,
     chat_customer_delete_enabled boolean DEFAULT false NOT NULL,
+    reviews_last_seen_at timestamp(0) without time zone,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
 

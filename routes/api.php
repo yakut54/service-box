@@ -220,6 +220,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
 
     // Reviews
     Route::get('/reviews', [ReviewController::class, 'index']);
+    Route::get('/reviews/pending-count', [ReviewController::class, 'pendingCount']);
+    Route::post('/reviews/mark-seen', [ReviewController::class, 'markSeen']);
     Route::patch('/reviews/{id}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
 

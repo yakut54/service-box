@@ -3,20 +3,29 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
+import { useReviewsStore } from '@/stores/reviews'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
+import UiAvatar from '@/shared/ui/UiAvatar.vue'
 import { formatDate } from '@/shared/lib/format'
 import type { Review } from '@/types'
 
 // ── State ────────────────────────────────────────────────────
 const toast    = useToast()
+const reviewsStore = useReviewsStore()
 const reviews  = ref<Review[]>([])
 const products = ref<{ id: string; name: string }[]>([])
 const loading  = ref(false)
 const error    = ref('')
+
+// ── "Новые с прошлого визита" — подсветка на несколько секунд ──
+// (баг/пожелание с живого теста 2026-08-25: бейдж считал "не
+// опубликовано", а не "не виденное", см. useReviewsStore). Id из этого
+// набора убираются через 4 сек, CSS-transition сам плавно уводит цвет.
+const newIds = ref<Set<string>>(new Set())
 
 // ── Filters ───────────────────────────────────────────────────
 const filterStatus  = ref('all')
@@ -72,6 +81,26 @@ async function load() {
     ])
     reviews.value  = revRes.data
     products.value = prodRes.data.map((p: any) => ({ id: p.id, name: p.name }))
+
+    // Считаем "новое" по значению ДО этого захода — дальше сразу отмечаем
+    // текущий момент просмотренным, иначе новые отзывы никогда бы не
+    // подсвечивались (тот же принцип, что markRead в чате).
+    const lastSeenAt = revRes.reviews_last_seen_at ? new Date(revRes.reviews_last_seen_at) : null
+    if (lastSeenAt) {
+      newIds.value = new Set(
+        revRes.data.filter(r => r.created_at && new Date(r.created_at) > lastSeenAt).map(r => r.id),
+      )
+    } else {
+      // Ни разу не заходили раньше — не подсвечиваем ВЕСЬ список разом,
+      // это будет не "новое", а просто шум.
+      newIds.value = new Set()
+    }
+    if (newIds.value.size > 0) {
+      setTimeout(() => { newIds.value = new Set() }, 4000)
+    }
+
+    api.markReviewsSeen().catch(() => {})
+    reviewsStore.fetchPendingCount()
   } catch (e: any) {
     error.value = e.message || 'Не удалось загрузить'
   } finally {
@@ -92,6 +121,9 @@ async function togglePublish(r: Review) {
     const res = await api.updateReview(r.id, { is_published: !r.is_published })
     const idx = reviews.value.findIndex(x => x.id === r.id)
     if (idx !== -1) reviews.value[idx] = res.data
+    // Публикация/скрытие меняет pendingCount немедленно — не ждать до 60 сек
+    // опроса в AppLayout.vue (баг найден 2026-08-25 живым тестом).
+    reviewsStore.fetchPendingCount()
   } catch (e) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось изменить статус отзыва')
   }
@@ -105,6 +137,7 @@ async function doDelete() {
     await api.deleteReview(deleteTarget.value.id)
     reviews.value  = reviews.value.filter(r => r.id !== deleteTarget.value!.id)
     deleteTarget.value = null
+    reviewsStore.fetchPendingCount()
   } catch (e: any) {
     error.value = e.message || 'Ошибка удаления'
   } finally {
@@ -203,18 +236,15 @@ async function doDelete() {
         v-for="r in filtered"
         :key="r.id"
         :class="[
-          'card p-4 transition-all',
-          !r.is_published ? 'border-l-4 border-l-amber-400 dark:border-l-amber-500' : ''
+          'card p-4 transition-colors duration-[3000ms]',
+          !r.is_published ? 'border-l-4 border-l-amber-400 dark:border-l-amber-500' : '',
+          newIds.has(r.id) ? 'ring-2 ring-blue-400 bg-blue-50/60 dark:bg-blue-900/20' : ''
         ]"
       >
         <div class="flex items-start gap-4">
 
           <!-- Avatar -->
-          <div class="flex-shrink-0 w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-            <span class="text-sm font-semibold text-gray-600 dark:text-gray-300">
-              {{ r.customer_name.charAt(0).toUpperCase() }}
-            </span>
-          </div>
+          <UiAvatar :src="r.customer?.avatar_url" :name="r.customer_name" />
 
           <!-- Content -->
           <div class="flex-1 min-w-0">

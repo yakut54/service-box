@@ -103,7 +103,7 @@ class ReviewController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Review::orderByDesc('created_at');
+        $query = Review::with('customer:id,name,avatar_url')->orderByDesc('created_at');
 
         if ($request->filled('product_id')) {
             $query->where('product_id', $request->product_id);
@@ -118,11 +118,53 @@ class ReviewController extends Controller
         }
 
         $reviews = $query->get();
+        $shop = $request->attributes->get('shop');
 
         return response()->json([
             'data'  => $reviews->map(fn ($r) => $this->format($r)),
             'count' => $reviews->count(),
+            // Значение ДО этого захода на страницу — фронт сравнивает
+            // created_at отзывов с ним, чтобы подсветить те, что появились
+            // с прошлого визита. См. markSeen(): фронт сам обновляет
+            // таймстемп отдельным вызовом уже ПОСЛЕ того, как прочитал это
+            // значение — иначе новые отзывы никогда бы не подсвечивались.
+            'reviews_last_seen_at' => $shop->reviews_last_seen_at?->toIso8601String(),
         ]);
+    }
+
+    /**
+     * GET /admin/reviews/pending-count
+     * Лёгкий счётчик для бейджа в меню — специально не "сколько не
+     * опубликовано" (это про заказы, "сколько нерешено"), а "сколько НОВЫХ
+     * (появившихся с прошлого визита на страницу) до сих пор не
+     * опубликовано". Уже просмотренный, но осознанно отложенный на потом
+     * отзыв не должен бесконечно висеть в бейдже — см. PLAN.md.
+     */
+    public function pendingCount(Request $request): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+
+        $count = Review::where('is_published', false)
+            ->when(
+                $shop->reviews_last_seen_at,
+                fn ($q) => $q->where('created_at', '>', $shop->reviews_last_seen_at),
+            )
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
+    /**
+     * POST /admin/reviews/mark-seen
+     * Фиксирует "я только что просматривал отзывы" — двигает таймстемп,
+     * от которого считается pendingCount()/подсветка новых на фронте.
+     */
+    public function markSeen(Request $request): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+        $shop->update(['reviews_last_seen_at' => now()]);
+
+        return response()->json(['message' => 'ok']);
     }
 
     /**
@@ -131,7 +173,7 @@ class ReviewController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $review = Review::findOrFail($id);
+        $review = Review::with('customer:id,name,avatar_url')->findOrFail($id);
 
         $data = $request->validate([
             'is_published' => 'required|boolean',
@@ -234,6 +276,12 @@ class ReviewController extends Controller
             'text'          => $r->text,
             'is_published'  => $r->is_published,
             'created_at'    => $r->created_at?->toIso8601String(),
+            // Только для админки (index() грузит связь через with()) —
+            // formatWidget() эту связь не грузит и клиента не отдаёт, чужие
+            // аватарки в публичном виджете ни к чему.
+            'customer'      => $r->relationLoaded('customer') && $r->customer
+                ? ['avatar_url' => $r->customer->avatar_url]
+                : null,
         ];
     }
 

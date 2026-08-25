@@ -459,6 +459,17 @@ export interface Review {
   text: string | null
   is_published: boolean
   created_at: string | null
+  // Только в ответе админского GET /admin/reviews и PATCH — публичный
+  // виджет-эндпоинт эту связь не отдаёт (см. ReviewController::format).
+  customer: { avatar_url: string | null } | null
+}
+
+export interface ReviewsListResponse {
+  data: Review[]
+  count: number
+  // Значение shops.reviews_last_seen_at ДО этого захода — по нему фронт
+  // считает, какие отзывы новые (см. ReviewsView.vue).
+  reviews_last_seen_at: string | null
 }
 
 // ==========================================
