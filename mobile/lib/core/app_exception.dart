@@ -6,6 +6,7 @@ enum AppErrorKind {
   network,
   server,
   badResponse,
+  tooManyRequests,
   unknown,
 }
 
@@ -51,6 +52,12 @@ class AppException implements Exception {
     AppErrorKind.badResponse,
     message ?? 'Магазин настроен неправильно',
     hint: message == null ? 'Сообщите об этом магазину' : null,
+  );
+
+  factory AppException.tooManyRequests() => const AppException(
+    AppErrorKind.tooManyRequests,
+    'Слишком часто',
+    hint: 'Подождите минуту и попробуйте ещё раз',
   );
 
   factory AppException.unknown() => const AppException(

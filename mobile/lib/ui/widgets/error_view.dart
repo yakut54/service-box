@@ -29,6 +29,8 @@ class ErrorView extends StatelessWidget {
       case AppErrorKind.network:
       case AppErrorKind.server:
         return Icons.wifi_off_rounded;
+      case AppErrorKind.tooManyRequests:
+        return Icons.hourglass_empty_rounded;
       case AppErrorKind.badResponse:
       case AppErrorKind.unknown:
         return Icons.error_outline_rounded;

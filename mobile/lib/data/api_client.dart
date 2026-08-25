@@ -113,6 +113,7 @@ class ApiClient {
     }
 
     if (response.statusCode == 404) throw AppException.notFound();
+    if (response.statusCode == 429) throw AppException.tooManyRequests();
     if (response.statusCode >= 500) throw AppException.server();
     if (response.statusCode >= 400) {
       // Бэкенд часто кладёт конкретный текст на русском в 'message'
