@@ -171,10 +171,10 @@ docker compose -f docker-compose.prod.yml up -d db
 
 if [ "$DOCKER_BUILD" = "true" ]; then
   echo "    → rebuilding PHP image (composer deps changed)"
-  docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web scheduler reverb
+  docker compose -f docker-compose.prod.yml up -d --build --remove-orphans app web scheduler reverb worker
 else
   echo "    → restarting containers (no image rebuild)"
-  docker compose -f docker-compose.prod.yml up -d --remove-orphans app web scheduler reverb
+  docker compose -f docker-compose.prod.yml up -d --remove-orphans app web scheduler reverb worker
 fi
 
 # ── 3.5. Update vendor volume if composer deps changed ───────────
@@ -218,6 +218,16 @@ docker exec servicebox_app php artisan migrate --force
 docker exec servicebox_app php artisan storage:link --force 2>/dev/null || true
 docker exec servicebox_app php artisan config:cache
 docker exec servicebox_app php artisan route:cache
+
+# ── 6.1. Restart long-running workers so they pick up the fresh cache ──
+# scheduler (schedule:work) и worker (queue:work) — долгоживущие процессы:
+# конфиг читается один раз при старте контейнера и держится в памяти.
+# Оба стартуют в шаге [3/7], ДО config:cache выше — значит после ЛЮБОГО
+# изменения .env/docker-compose (не только в этом деплое) они всё ещё
+# работали бы со старым кешем, пока их не перезапустить.
+echo "    → restarting scheduler/worker to pick up fresh config cache"
+docker restart servicebox_scheduler servicebox_worker >/dev/null 2>&1 \
+  && echo "    scheduler/worker restarted OK" || echo "    [warn] scheduler/worker restart failed"
 
 # ── 6.3. Ensure MAX bot env vars are set ─────────────────────────
 grep -q "MAX_BOT_TOKEN" .env 2>/dev/null || echo 'MAX_BOT_TOKEN=f9LHodD0cOItzTlvLnyl7pimZBACt8DDrsgvV3IBQNr-dTRLEaHCdZEEgMst7eCrXul74IPdxRRIoBzs6wv-' >> .env

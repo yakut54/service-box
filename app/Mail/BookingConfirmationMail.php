@@ -10,11 +10,11 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Шоперу — «у вас новая запись». Принимает готовый массив (см.
+ * Байеру — «вы записаны, вот детали». Принимает готовый массив (см.
  * MailService::bookingPayload), не модель — письмо уходит через очередь и
  * обрабатывается воркером вне тенантного контекста запроса.
  */
-class NewBookingMail extends Mailable implements ShouldQueue
+class BookingConfirmationMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -26,14 +26,14 @@ class NewBookingMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Новая запись — ' . $this->shopName,
+            subject: 'Вы записаны — ' . $this->shopName,
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.new-booking',
+            view: 'emails.booking-confirmation',
         );
     }
 }

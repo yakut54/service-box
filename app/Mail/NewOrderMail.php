@@ -2,26 +2,31 @@
 
 namespace App\Mail;
 
-use App\Models\Order;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class NewOrderMail extends Mailable
+/**
+ * Шоперу — «у вас новый заказ». Принимает готовый массив (см.
+ * MailService::orderPayload), не модель — письмо уходит через очередь и
+ * обрабатывается воркером вне тенантного контекста запроса.
+ */
+class NewOrderMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     public function __construct(
-        public readonly Order $order,
+        public readonly array $order,
         public readonly string $shopName,
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Новый заказ #' . $this->order->id . ' — ' . $this->shopName,
+            subject: 'Новый заказ #' . $this->order['short_id'] . ' — ' . $this->shopName,
         );
     }
 

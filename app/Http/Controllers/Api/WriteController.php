@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Requests\StoreOrderRequest;
-use App\Mail\NewBookingMail;
-use App\Mail\NewOrderMail;
 use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Master;
@@ -19,7 +17,6 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 
 class WriteController extends Controller
 {
@@ -87,10 +84,8 @@ class WriteController extends Controller
         $shop = $request->get('_shop');
         if ($shop && !$shop->relationLoaded('user')) { $shop->load('user'); }
 
-        if ($shop?->user?->email) {
-            try { Mail::to($shop->user->email)->send(new NewBookingMail($booking, $shop->name)); } catch (\Throwable) {}
-        }
         if ($shop) {
+            try { \App\Services\MailService::notifyNewBooking($shop, $booking); } catch (\Throwable) {}
             try { \App\Services\TelegramService::notifyNewBooking($shop, $booking); } catch (\Throwable) {}
             try { \App\Services\MaxService::notifyNewBooking($shop, $booking); } catch (\Throwable) {}
         }
@@ -286,10 +281,8 @@ class WriteController extends Controller
         $customer->updateStats();
         $order->load(['items', 'customer']);
 
-        if ($shop && $shop->user?->email) {
-            try { Mail::to($shop->user->email)->send(new NewOrderMail($order, $shop->name)); } catch (\Throwable) {}
-        }
         if ($shop) {
+            try { \App\Services\MailService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
             try { \App\Services\TelegramService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
             try { \App\Services\MaxService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
         }

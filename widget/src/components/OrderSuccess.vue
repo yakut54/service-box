@@ -28,7 +28,10 @@ function openPayment() {
     </div>
 
     <h2 class="sb-success-title">Заказ оформлен!</h2>
-    <p class="sb-success-text">Спасибо за покупку. Детали заказа отправлены на ваш email.</p>
+    <p class="sb-success-text">
+      <template v-if="order?.customer_email">Спасибо за покупку. Детали заказа отправлены на ваш email.</template>
+      <template v-else>Спасибо за покупку!</template>
+    </p>
 
     <div v-if="order" class="sb-success-details">
       <div class="sb-success-row">
