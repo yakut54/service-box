@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { api } from '@/lib/api'
 import { useMailFailuresStore } from '@/stores/mailFailures'
 import { parseApiError } from '@/lib/parseApiError'
@@ -48,6 +48,11 @@ function describe(f: MailFailure): string {
 }
 
 onMounted(load)
+
+// mailFailuresStore.pendingCount опрашивается раз в минуту в AppLayout.vue (бейдж
+// в сайдбаре и на вкладке) — перезагружаем список вслед за ним, иначе после того как
+// бейдж уже погас, эта панель ещё какое-то время показывает старое состояние.
+watch(() => mailFailuresStore.pendingCount, load)
 </script>
 
 <template>
