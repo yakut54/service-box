@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\RecordsMailFailure;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -16,12 +17,15 @@ use Illuminate\Queue\SerializesModels;
  */
 class BookingConfirmationMail extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, RecordsMailFailure;
 
     public function __construct(
         public readonly array $booking,
         public readonly string $shopName,
-    ) {}
+        array $failureMeta,
+    ) {
+        $this->failureMeta = $failureMeta;
+    }
 
     public function envelope(): Envelope
     {

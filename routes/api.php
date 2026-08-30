@@ -16,6 +16,7 @@ use App\Http\Controllers\TelegramController;
 use App\Http\Controllers\ImageController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\MailFailureController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WidgetPhoneVerificationController;
 use App\Http\Controllers\CustomerAddressController;
@@ -225,6 +226,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::post('/reviews/mark-seen', [ReviewController::class, 'markSeen']);
     Route::patch('/reviews/{id}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{id}', [ReviewController::class, 'destroy']);
+
+    // Mail failures — несработавшие письма, видно только владельцу (Настройки → Уведомления)
+    Route::get('/mail-failures', [MailFailureController::class, 'index'])->middleware('owner');
+    Route::get('/mail-failures/pending-count', [MailFailureController::class, 'pendingCount'])->middleware('owner');
+    Route::post('/mail-failures/mark-seen', [MailFailureController::class, 'markSeen'])->middleware('owner');
 
     // Delivery settings (owner only for write)
     Route::get('/delivery-settings', [DeliverySettingsController::class, 'show']);

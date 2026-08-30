@@ -541,6 +541,24 @@ ALTER SEQUENCE public.jobs_id_seq OWNED BY public.jobs.id;
 
 
 --
+-- Name: mail_failures; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.mail_failures (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    shop_id uuid NOT NULL,
+    entity_type character varying(255) NOT NULL,
+    entity_id uuid,
+    recipient_type character varying(255) NOT NULL,
+    recipient_email character varying(255),
+    error_message text,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT mail_failures_entity_type_check CHECK (((entity_type)::text = ANY ((ARRAY['order'::character varying, 'booking'::character varying, 'config'::character varying])::text[]))),
+    CONSTRAINT mail_failures_recipient_type_check CHECK (((recipient_type)::text = ANY ((ARRAY['shop_owner'::character varying, 'buyer'::character varying, 'platform'::character varying])::text[])))
+);
+
+
+--
 -- Name: migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -696,6 +714,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     hide_customer_phone boolean DEFAULT false NOT NULL,
     chat_customer_delete_enabled boolean DEFAULT false NOT NULL,
     reviews_last_seen_at timestamp(0) without time zone,
+    mail_failures_last_seen_at timestamp(0) without time zone,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
 
@@ -838,6 +857,14 @@ ALTER TABLE ONLY public.jobs
 
 
 --
+-- Name: mail_failures mail_failures_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mail_failures
+    ADD CONSTRAINT mail_failures_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -970,6 +997,13 @@ ALTER TABLE ONLY public.users
 --
 
 CREATE INDEX jobs_queue_index ON public.jobs USING btree (queue);
+
+
+--
+-- Name: mail_failures_shop_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX mail_failures_shop_id_created_at_index ON public.mail_failures USING btree (shop_id, created_at);
 
 
 --

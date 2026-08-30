@@ -10,6 +10,7 @@ import type {
   Discount,
   Review,
   ReviewsListResponse,
+  MailFailure,
   StaffMember,
   ChatThread,
   ChatMessage,
@@ -583,6 +584,22 @@ class ApiClient {
     return this.request<{ message: string }>(`/admin/reviews/${id}`, {
       method: 'DELETE',
     })
+  }
+
+  // ==========================================
+  // MAIL FAILURES
+  // ==========================================
+
+  async getMailFailures() {
+    return this.request<{ data: MailFailure[] }>('/admin/mail-failures')
+  }
+
+  async getMailFailuresPendingCount() {
+    return this.request<{ count: number }>('/admin/mail-failures/pending-count')
+  }
+
+  async markMailFailuresSeen() {
+    return this.request<{ message: string }>('/admin/mail-failures/mark-seen', { method: 'POST' })
   }
 
   // ==========================================

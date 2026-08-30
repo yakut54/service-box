@@ -473,6 +473,20 @@ export interface ReviewsListResponse {
 }
 
 // ==========================================
+// MAIL FAILURES
+// ==========================================
+
+export interface MailFailure {
+  id: string
+  entity_type: 'order' | 'booking' | 'config'
+  entity_id: string | null
+  recipient_type: 'shop_owner' | 'buyer' | 'platform'
+  recipient_email: string | null
+  error_message: string | null
+  created_at: string
+}
+
+// ==========================================
 // STAFF
 // ==========================================
 

@@ -4,16 +4,19 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
+import { useMailFailuresStore } from '@/stores/mailFailures'
 import { useTheme } from '@/composables/useTheme'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import SessionSupersededModal from '@/components/SessionSupersededModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
+import NavBadge from '@/components/layout/NavBadge.vue'
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 const reviewsStore = useReviewsStore()
+const mailFailuresStore = useMailFailuresStore()
 const route = useRoute()
 const router = useRouter()
 const { isDark, toggle } = useTheme()
@@ -23,6 +26,10 @@ useAutoRefresh(() => chatStore.poll(), 15_000)
 
 reviewsStore.fetchPendingCount()
 useAutoRefresh(() => reviewsStore.fetchPendingCount(), 60_000)
+
+// Владелец-only — эндпоинт защищён middleware 'owner', сотрудникам его дёргать незачем
+if (authStore.isOwner) mailFailuresStore.fetchPendingCount()
+useAutoRefresh(() => { if (authStore.isOwner) mailFailuresStore.fetchPendingCount() }, 60_000)
 
 const sidebarOpen = ref(false)
 const menuOpen    = ref(false)
@@ -199,18 +206,9 @@ async function handleLogout() {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <span class="flex-1">{{ item.name }}</span>
-          <span
-            v-if="item.href === '/chat' && chatStore.totalUnread > 0"
-            class="min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-semibold leading-none"
-          >
-            {{ chatStore.totalUnread > 99 ? '99+' : chatStore.totalUnread }}
-          </span>
-          <span
-            v-if="item.href === '/reviews' && reviewsStore.pendingCount > 0"
-            class="min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-semibold leading-none"
-          >
-            {{ reviewsStore.pendingCount > 99 ? '99+' : reviewsStore.pendingCount }}
-          </span>
+          <NavBadge v-if="item.href === '/chat'" :count="chatStore.totalUnread" />
+          <NavBadge v-if="item.href === '/reviews'" :count="reviewsStore.pendingCount" />
+          <NavBadge v-if="item.href === '/settings'" :count="mailFailuresStore.pendingCount" />
         </RouterLink>
       </nav>
 

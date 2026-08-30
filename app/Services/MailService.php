@@ -30,18 +30,18 @@ class MailService
         $payload = self::orderPayload($order);
 
         if ($shop->user?->email) {
+            $meta = self::meta($shop, 'order', $order->id, 'shop_owner', $shop->user->email);
             self::dispatch(
-                fn () => Mail::to($shop->user->email)->queue(new NewOrderMail($payload, $shop->name)),
-                $order->id,
-                'order → shop owner',
+                fn () => Mail::to($shop->user->email)->queue(new NewOrderMail($payload, $shop->name, $meta)),
+                $meta,
             );
         }
 
         if ($order->customer_email) {
+            $meta = self::meta($shop, 'order', $order->id, 'buyer', $order->customer_email);
             self::dispatch(
-                fn () => Mail::to($order->customer_email)->queue(new OrderConfirmationMail($payload, $shop->name)),
-                $order->id,
-                'order → buyer',
+                fn () => Mail::to($order->customer_email)->queue(new OrderConfirmationMail($payload, $shop->name, $meta)),
+                $meta,
             );
         }
     }
@@ -51,31 +51,45 @@ class MailService
         $payload = self::bookingPayload($booking, $shop);
 
         if ($shop->user?->email) {
+            $meta = self::meta($shop, 'booking', $booking->id, 'shop_owner', $shop->user->email);
             self::dispatch(
-                fn () => Mail::to($shop->user->email)->queue(new NewBookingMail($payload, $shop->name)),
-                $booking->id,
-                'booking → shop owner',
+                fn () => Mail::to($shop->user->email)->queue(new NewBookingMail($payload, $shop->name, $meta)),
+                $meta,
             );
         }
 
         if ($booking->customer_email) {
+            $meta = self::meta($shop, 'booking', $booking->id, 'buyer', $booking->customer_email);
             self::dispatch(
-                fn () => Mail::to($booking->customer_email)->queue(new BookingConfirmationMail($payload, $shop->name)),
-                $booking->id,
-                'booking → buyer',
+                fn () => Mail::to($booking->customer_email)->queue(new BookingConfirmationMail($payload, $shop->name, $meta)),
+                $meta,
             );
         }
     }
 
-    private static function dispatch(\Closure $send, string $entityId, string $context): void
+    /** Контекст для MailFailureRecorder — кому/о чём было письмо, если оно не дойдёт. */
+    private static function meta(Shop $shop, string $entityType, string $entityId, string $recipientType, string $email): array
+    {
+        return [
+            'shop_id' => $shop->id,
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'recipient_type' => $recipientType,
+            'recipient_email' => $email,
+        ];
+    }
+
+    /**
+     * Ловит только сбой ПОСТАНОВКИ в очередь (редко). Реальный сбой SMTP происходит
+     * позже, внутри воркера — его ловит RecordsMailFailure::failed() на самом Mailable.
+     */
+    private static function dispatch(\Closure $send, array $meta): void
     {
         try {
             $send();
         } catch (\Throwable $e) {
-            Log::warning("Mail dispatch failed: {$context}", [
-                'entity_id' => $entityId,
-                'error' => $e->getMessage(),
-            ]);
+            Log::warning('Mail dispatch failed', $meta + ['error' => $e->getMessage()]);
+            MailFailureRecorder::record($meta, $e->getMessage());
         }
     }
 

@@ -7,6 +7,7 @@ import SettingsEmbedCode        from '@/components/settings/SettingsEmbedCode.vu
 import SettingsPassword         from '@/components/settings/SettingsPassword.vue'
 import SettingsTelegram         from '@/components/settings/SettingsTelegram.vue'
 import SettingsMax              from '@/components/settings/SettingsMax.vue'
+import SettingsMailFailures     from '@/components/settings/SettingsMailFailures.vue'
 import SettingsWorkHours        from '@/components/settings/SettingsWorkHours.vue'
 import SettingsYookassa         from '@/components/settings/SettingsYookassa.vue'
 import SettingsWidgetAppearance from '@/components/settings/SettingsWidgetAppearance.vue'
@@ -92,6 +93,7 @@ function setTab(id: TabId) {
     <div v-show="activeTab === 'notifications'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <SettingsTelegram />
       <SettingsMax />
+      <SettingsMailFailures class="lg:col-span-2" />
     </div>
 
     <!-- Платежи -->

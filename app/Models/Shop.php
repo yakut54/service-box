@@ -42,6 +42,7 @@ class Shop extends Model
         'hide_customer_phone',
         'chat_customer_delete_enabled',
         'reviews_last_seen_at',
+        'mail_failures_last_seen_at',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class Shop extends Model
         'max_bot_connected'      => 'boolean',
         'chat_customer_delete_enabled' => 'boolean',
         'reviews_last_seen_at' => 'datetime',
+        'mail_failures_last_seen_at' => 'datetime',
         'max_chat_id'            => 'integer',
         'widget_config'     => 'array',
         'legal_config'      => 'array',
