@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useMailFailuresStore } from '@/stores/mailFailures'
+import NavBadge                 from '@/components/layout/NavBadge.vue'
 import SettingsShopInfo         from '@/components/settings/SettingsShopInfo.vue'
 import SettingsBrand            from '@/components/settings/SettingsBrand.vue'
 import SettingsEmbedCode        from '@/components/settings/SettingsEmbedCode.vue'
@@ -18,6 +20,7 @@ import SettingsChatModeration   from '@/components/settings/SettingsChatModerati
 
 const route     = useRoute()
 const router    = useRouter()
+const mailFailuresStore = useMailFailuresStore()
 
 // 'widget' скрыта из таб-бара (2026-08-20) — цвет+лого переехали в SettingsBrand
 // на вкладке "Основное", остальное (тема/шрифт/embed/аналитика) пока не в фокусе
@@ -64,7 +67,12 @@ function setTab(id: TabId) {
           activeTab === tab.id
             ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']"
-      >{{ tab.label }}</button>
+      >
+        <span class="flex items-center gap-1.5">
+          {{ tab.label }}
+          <NavBadge v-if="tab.id === 'notifications'" :count="mailFailuresStore.pendingCount" />
+        </span>
+      </button>
     </div>
 
     <!-- Основное -->
