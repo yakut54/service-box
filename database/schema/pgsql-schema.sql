@@ -553,8 +553,8 @@ CREATE TABLE IF NOT EXISTS public.mail_failures (
     recipient_email character varying(255),
     error_message text,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT mail_failures_entity_type_check CHECK (((entity_type)::text = ANY ((ARRAY['order'::character varying, 'booking'::character varying, 'config'::character varying])::text[]))),
-    CONSTRAINT mail_failures_recipient_type_check CHECK (((recipient_type)::text = ANY ((ARRAY['shop_owner'::character varying, 'buyer'::character varying, 'platform'::character varying])::text[])))
+    CONSTRAINT mail_failures_entity_type_check CHECK (((entity_type)::text = ANY ((ARRAY['order'::character varying, 'booking'::character varying])::text[]))),
+    CONSTRAINT mail_failures_recipient_type_check CHECK (((recipient_type)::text = ANY ((ARRAY['shop_owner'::character varying, 'buyer'::character varying])::text[])))
 );
 
 

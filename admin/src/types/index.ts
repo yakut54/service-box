@@ -478,12 +478,19 @@ export interface ReviewsListResponse {
 
 export interface MailFailure {
   id: string
-  entity_type: 'order' | 'booking' | 'config'
+  entity_type: 'order' | 'booking'
   entity_id: string | null
-  recipient_type: 'shop_owner' | 'buyer' | 'platform'
+  recipient_type: 'shop_owner' | 'buyer'
   recipient_email: string | null
   error_message: string | null
   created_at: string
+}
+
+export interface MailFailuresListResponse {
+  data: MailFailure[]
+  // Живая проверка config('mail.default') !== 'log' на момент запроса — не хранится
+  // в БД и не завязана на "просмотрено", см. MailFailureController::mailConfigured().
+  mail_configured: boolean
 }
 
 // ==========================================

@@ -10,7 +10,7 @@ import type {
   Discount,
   Review,
   ReviewsListResponse,
-  MailFailure,
+  MailFailuresListResponse,
   StaffMember,
   ChatThread,
   ChatMessage,
@@ -591,7 +591,7 @@ class ApiClient {
   // ==========================================
 
   async getMailFailures() {
-    return this.request<{ data: MailFailure[] }>('/admin/mail-failures')
+    return this.request<MailFailuresListResponse>('/admin/mail-failures')
   }
 
   async getMailFailuresPendingCount() {

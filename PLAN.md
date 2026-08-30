@@ -146,11 +146,12 @@ Bookings/Masters/Staff Vue-вьюхи и роуты, тип товара digital
 
 | # | Что | Статус |
 |---|---|---|
-| 1 | `public.mail_failures` (shop_id, entity_type order/booking/config, recipient_type shop_owner/buyer/platform, error_message) + `shops.mail_failures_last_seen_at` | ✅ |
+| 1 | `public.mail_failures` (shop_id, entity_type order/booking, recipient_type shop_owner/buyer, error_message) + `shops.mail_failures_last_seen_at` | ✅ |
 | 2 | `MailFailureRecorder::record()` — единая точка записи, вызывается из `MailService::dispatch()` (сбой постановки в очередь) и из `RecordsMailFailure::failed()` — трейт на всех 4 Mailable-классах, ловит реальный сбой SMTP внутри воркера (Laravel сам вызывает `failed()` после исчерпания retry) | ✅ |
-| 3 | `mail:check-configuration` (ежедневно) — отдельно ловит сценарий «почта вообще не настроена» (driver `log` никогда не бросает исключение, обычный перехват его не видит) — по одной записи на магазин, не чаще раза в день | ✅ |
-| 4 | Бейдж на «Настройках» в сайдбаре (owner-only, счётчик как у Отзывов — курсор `mail_failures_last_seen_at`), список с деталями в Настройки → Уведомления → `SettingsMailFailures.vue` | ✅ |
-| 5 | `NavBadge.vue` — общий компонент бейджа, вынесен при добавлении третьей копии (после чата и отзывов) | ✅ |
+| 3 | Бейдж на «Настройках» в сайдбаре (owner-only, счётчик как у Отзывов — курсор `mail_failures_last_seen_at`), список с деталями в Настройки → Уведомления → `SettingsMailFailures.vue` | ✅ |
+| 4 | `NavBadge.vue` — общий компонент бейджа, вынесен при добавлении третьей копии (после чата и отзывов) | ✅ |
+
+**Правка того же дня:** первая версия ловила «почта вообще не настроена» суточной командой `mail:check-configuration`, писавшей запись раз в сутки. Пользователь справедливо указал: это давало ложно-зелёный статус в промежутках между запусками (например, сразу после ручной уборки тестовых данных — ровно так и получилось). Заменено на **живую** проверку `config('mail.default') !== 'log'` на каждый запрос `MailFailureController` — не хранится, не завязана на курсор «просмотрено», кнопка «отметить прочитанным» на неё не действует. Команда и её запись в `routes/console.php` удалены, CHECK-ограничения в БД сужены (`entity_type`/`recipient_type` больше не допускают `config`/`platform`).
 
 **Не делали:** повторную отправку письма из админки (только видимость), автоочистку старых записей `mail_failures`.
 
