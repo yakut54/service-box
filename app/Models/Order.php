@@ -36,6 +36,13 @@ class Order extends Model
         'consent_accepted_at',
         'consent_ip',
         'consent_ua',
+        'weighed_at',
+        'surcharge_amount',
+        'surcharge_status',
+        'surcharge_payment_id',
+        'surcharge_payment_url',
+        'surcharge_requested_at',
+        'surcharge_deadline_at',
     ];
 
     protected $casts = [
@@ -50,6 +57,10 @@ class Order extends Model
         'updated_at'               => 'datetime',
         'paid_at'                  => 'datetime',
         'consent_accepted_at'      => 'datetime',
+        'weighed_at'               => 'datetime',
+        'surcharge_amount'         => 'integer',
+        'surcharge_requested_at'   => 'datetime',
+        'surcharge_deadline_at'    => 'datetime',
     ];
 
     public function customer()

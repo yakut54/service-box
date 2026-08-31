@@ -28,13 +28,19 @@ class YooKassaService
      * @param  string    $description Описание для пользователя
      * @param  string    $returnUrl   Куда редиректить после оплаты
      * @param  array     $metadata    Произвольные данные (shop_id, order_id и т.д.)
+     * @param  bool      $capture     false — двухстадийная оплата (холд): деньги
+     *                                блокируются, но списываются только по
+     *                                отдельному вызову capturePayment(). Нужно для
+     *                                режима «По весу — перевзвешивание», где точная
+     *                                сумма известна только после сборки заказа.
      * @return array{payment_id: string, payment_url: string, status: string}
      */
     public function createPayment(
         int|float $amount,
         string $description,
         string $returnUrl,
-        array  $metadata = []
+        array  $metadata = [],
+        bool   $capture = true,
     ): array {
         $idempotenceKey = Str::uuid()->toString();
 
@@ -47,7 +53,7 @@ class YooKassaService
                 'type'       => 'redirect',
                 'return_url' => $returnUrl,
             ],
-            'capture'     => true,
+            'capture'     => $capture,
             'description' => $description,
             'metadata'    => $metadata,
         ], $idempotenceKey);
@@ -56,6 +62,42 @@ class YooKassaService
             'payment_id'  => $response->getId(),
             'payment_url' => $response->getConfirmation()->getConfirmationUrl(),
             'status'      => $response->getStatus(),
+        ];
+    }
+
+    /**
+     * Списать холд (полностью или частично). Сумма меньше холда — ЮKassa сама
+     * размораживает остаток, отдельно отменять его не нужно.
+     *
+     * @param  string    $paymentId    ID платежа в статусе waiting_for_capture
+     * @param  int|float $amountRubles Сумма к списанию, в рублях
+     */
+    public function capturePayment(string $paymentId, int|float $amountRubles): array
+    {
+        $response = $this->client->capturePayment([
+            'amount' => [
+                'value'    => number_format($amountRubles, 2, '.', ''),
+                'currency' => 'RUB',
+            ],
+        ], $paymentId, Str::uuid()->toString());
+
+        return [
+            'payment_id' => $response->getId(),
+            'status'     => $response->getStatus(),
+        ];
+    }
+
+    /**
+     * Полностью снять холд, ничего не списывая — например если сборщик отменил
+     * все весовые позиции заказа (товара не оказалось).
+     */
+    public function cancelPayment(string $paymentId): array
+    {
+        $response = $this->client->cancelPayment($paymentId, Str::uuid()->toString());
+
+        return [
+            'payment_id' => $response->getId(),
+            'status'     => $response->getStatus(),
         ];
     }
 }

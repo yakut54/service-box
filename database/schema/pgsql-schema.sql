@@ -157,6 +157,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         total_spent      INTEGER DEFAULT 0,
                         telegram_chat_id BIGINT DEFAULT NULL,
                         max_user_id      BIGINT DEFAULT NULL,
+                        fcm_token        TEXT,
                         created_at       TIMESTAMPTZ DEFAULT NOW(),
                         last_order_at    TIMESTAMPTZ
                     )
@@ -217,7 +218,17 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         consent_ua              TEXT,
                         created_at              TIMESTAMPTZ DEFAULT NOW(),
                         updated_at              TIMESTAMPTZ DEFAULT NOW(),
-                        paid_at                 TIMESTAMPTZ
+                        paid_at                 TIMESTAMPTZ,
+                        -- Режим «По весу — перевзвешивание»: weighed_at — когда
+                        -- сборщик подтвердил фактический вес всех позиций; остальное —
+                        -- доплата, если факт оказался больше суммы холда (см. PLAN.md).
+                        weighed_at              TIMESTAMPTZ,
+                        surcharge_amount        INTEGER,
+                        surcharge_status        TEXT,
+                        surcharge_payment_id    TEXT,
+                        surcharge_payment_url   TEXT,
+                        surcharge_requested_at  TIMESTAMPTZ,
+                        surcharge_deadline_at   TIMESTAMPTZ
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.orders(status)', p_schema_name);
@@ -233,7 +244,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         price        INTEGER NOT NULL,
                         product_name TEXT NOT NULL,
                         product_type TEXT NOT NULL,
-                        weight_grams INTEGER
+                        weight_grams INTEGER,
+                        -- Заявленный вес/цена выше не перезаписываются — это опорная
+                        -- точка холда. Факт — сюда, когда сборщик взвесит (NULL, пока
+                        -- не взвешено).
+                        actual_weight_grams INTEGER,
+                        actual_price         INTEGER
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.order_items(order_id)', p_schema_name);

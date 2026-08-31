@@ -99,6 +99,7 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
         ->middleware('verify.phone.session');
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/payment', [PaymentController::class, 'createOrderPayment'])->middleware('throttle:10,1');
+    Route::post('/orders/{order}/surcharge-payment', [PaymentController::class, 'createOrderSurchargePayment'])->middleware('throttle:10,1');
 
     // Bookings (widget can create bookings) — гейт entitlements, см. МФ4 в PLAN.md
     Route::middleware('feature:booking')->group(function () {
@@ -144,6 +145,7 @@ Route::prefix('widget')->middleware(['tenant'])->group(function () {
         Route::put('/profile', [ProfileController::class, 'update']);
         Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1');
         Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar']);
+        Route::post('/profile/fcm-token', [ProfileController::class, 'updateFcmToken']);
 
         // Чат с магазином — только мобильное приложение (60-дневная сессия),
         // см. PLAN-CHAT.md §3.1. Throttle — именованные лимитеры по токену
@@ -193,6 +195,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::get('/orders/export', [OrderController::class, 'export']);
     Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
+    Route::patch('/orders/{order}/items/{item}/weight', [OrderController::class, 'submitItemWeight']);
 
     // Customers
     Route::get('/customers/export', [CustomerController::class, 'export']);
