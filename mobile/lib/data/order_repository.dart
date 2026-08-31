@@ -20,5 +20,19 @@ abstract class OrderRepository {
   /// который используется вебом).
   Future<List<Order>> listMine(String sessionToken);
 
+  /// Один заказ по id — для экрана деталей (см. GET /widget/orders/{id}).
+  /// UUID заказа сам по себе выступает токеном доступа (как и на вебе,
+  /// см. OrderSuccess.vue) — отдельной авторизации не требует.
+  Future<Order> getOrder(String orderId);
+
+  /// Холд ЮKassa за заказ с товаром weight_variable (см.
+  /// PaymentController::createOrderPayment) — вызывается сразу после
+  /// createOrder, до этого сумма не известна точно, списывать нечего.
+  Future<String> createPayment(String orderId);
+
+  /// Доплата за перевзвешенный заказ (см. PaymentController::createOrderSurchargePayment) —
+  /// возвращает ссылку на оплату ЮKassa.
+  Future<String> createSurchargePayment(String orderId);
+
   factory OrderRepository.create() => ApiOrderRepository();
 }

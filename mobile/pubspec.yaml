@@ -55,6 +55,12 @@ dependencies:
   wechat_assets_picker: ^9.4.4
   photo_manager: ^3.6.4
 
+  # Push для доплаты за перевзвешенный заказ (см. lib/services/fcm_service.dart) —
+  # пакеты добавлены, но сервис НЕ вызывается из main.dart, пока нет
+  # google-services.json конкретного шопера (см. комментарий в fcm_service.dart).
+  firebase_core: ^3.15.2
+  firebase_messaging: ^15.2.10
+
   # Помимо генерации нативного сплэша (dart run flutter_native_splash:create,
   # см. flutter_native_splash: ниже), нужен и в рантайме — FlutterNativeSplash
   # .preserve()/.remove() в main.dart синхронизируют момент, когда исчезает

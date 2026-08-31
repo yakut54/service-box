@@ -10,17 +10,18 @@ class ProductPhysical {
   /// Режим продажи (см. PLAN.md, «Развесной товар — финальное ТЗ»):
   /// piece — целыми штуками (по умолчанию, всё как раньше);
   /// weightFixed — по весу, продавец фасует ровно под заказ;
-  /// weightVariable — по весу, вес плавает (перевзвешивание при сборке,
-  /// пока не реализовано на бэкенде дальше базового ценообразования).
+  /// weightVariable — по весу, вес плавает (перевзвешивание при сборке —
+  /// см. PLAN.md, «По весу — перевзвешивание»; заявленный при заказе вес
+  /// приблизительный, точную сумму сборщик подтверждает на весах).
   final ProductSaleMode saleMode;
   final int weightStepGrams;
   final int weightMinGrams;
   final int weightMaxGrams;
 
-  /// Остаток на складе в граммах — только для weightFixed (см. PLAN.md,
-  /// «Остаток на складе для весовых товаров»). У weightVariable это поле
-  /// тоже приходит с бэкенда, но пока ни на что не влияет — сама фича
-  /// перевзвешивания ещё не построена, остаток для неё не enforce'ится.
+  /// Остаток на складе в граммах — для weightFixed списывается сразу при
+  /// заказе; для weightVariable списывается позже, при фактическом
+  /// взвешивании (см. OrderReweighService на бэкенде), поэтому на клиенте
+  /// это поле для weightVariable не влияет на доступность к заказу.
   final int stockWeightGrams;
 
   const ProductPhysical({
@@ -39,8 +40,9 @@ class ProductPhysical {
 
   /// В наличии ли товар — с учётом того, что магазин разрешает
   /// принимать заказы даже при нулевом остатке (allow_backorder).
-  /// weightVariable всегда «в наличии» — остаток для него не отслеживается
-  /// (сама фича перевзвешивания ещё не построена).
+  /// weightVariable всегда «в наличии» на этапе заказа — точное количество
+  /// известно только при взвешивании, остаток на складе enforce'ится там
+  /// (см. OrderReweighService), не в момент заказа.
   bool get inStock => switch (saleMode) {
     ProductSaleMode.weightVariable => true,
     ProductSaleMode.weightFixed => stockWeightGrams > 0 || allowBackorder,

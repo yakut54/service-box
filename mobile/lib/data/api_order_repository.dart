@@ -51,4 +51,28 @@ class ApiOrderRepository implements OrderRepository {
         .map((o) => Order.fromJson(o as Map<String, dynamic>))
         .toList();
   }
+
+  @override
+  Future<Order> getOrder(String orderId) async {
+    final json = await _client.get('/widget/orders/$orderId');
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return Order.fromJson(data);
+  }
+
+  @override
+  Future<String> createPayment(String orderId) async {
+    final json = await _client.post('/widget/orders/$orderId/payment', {});
+    final url = json['payment_url'] as String?;
+    if (url == null) throw AppException.badResponse();
+    return url;
+  }
+
+  @override
+  Future<String> createSurchargePayment(String orderId) async {
+    final json = await _client.post('/widget/orders/$orderId/surcharge-payment', {});
+    final url = json['payment_url'] as String?;
+    if (url == null) throw AppException.badResponse();
+    return url;
+  }
 }

@@ -14,6 +14,8 @@ String orderStatusLabel(String status) {
       return 'Завершён';
     case 'cancelled':
       return 'Отменён';
+    case 'needs_attention':
+      return 'Требует внимания';
     default:
       return status;
   }
@@ -28,6 +30,7 @@ Color orderStatusColor(BuildContext context, String status) {
     case 'processing':
       return scheme.primary;
     case 'cancelled':
+    case 'needs_attention':
       return scheme.error;
     case 'pending':
     default:

@@ -16,5 +16,9 @@ abstract class ProfileRepository {
 
   Future<Profile> deleteAvatar(String sessionToken);
 
+  /// Регистрация Firebase device token для push (см. FcmService — пока не
+  /// подключён к main.dart, ждёт google-services.json от шопера).
+  Future<void> updateFcmToken(String sessionToken, String fcmToken);
+
   factory ProfileRepository.create() => ApiProfileRepository();
 }

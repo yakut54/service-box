@@ -9,7 +9,8 @@ import 'out_of_stock_chip.dart';
 /// Остатка не хватает даже на минимальную порцию — товар эффективно «нет в
 /// наличии», хотя формально stockWeightGrams может быть больше нуля.
 /// weightVariable и allow_backorder не проверяем — там остаток либо не
-/// отслеживается (сама фича перевзвешивания не построена), либо магазин
+/// enforce'ится на этапе заказа (см. Product.inStock — списание для
+/// weightVariable происходит позже, при взвешивании), либо магазин
 /// сознательно снял ограничение.
 bool _isOutOfStock(Product product) {
   final physical = product.physical;
@@ -174,7 +175,7 @@ class _CompactWeightChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           child: Center(
             child: Text(
-              '${_formatGrams(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
+              '${formatWeight(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
               // Большой макс. вес (например 1000 кг) даёт длинную строку,
               // которая переносится на 2 строки в узком чипе — без
               // textAlign.center вторая строка липнет к левому краю вместо
@@ -297,7 +298,7 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              _formatGrams(value),
+              formatWeight(value),
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             Text(
@@ -322,7 +323,7 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
           min: physical.weightMinGrams.toDouble(),
           max: maxGrams.toDouble(),
           divisions: divisions,
-          label: _formatGrams(value),
+          label: formatWeight(value),
           onChanged: (v) => _applyGrams(v.round()),
         ),
         // Ручной ввод — на большом диапазоне (например до 1000 кг) точно
@@ -365,6 +366,3 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
     );
   }
 }
-
-String _formatGrams(int grams) =>
-    grams >= 1000 ? '${(grams / 1000).toStringAsFixed(grams % 1000 == 0 ? 0 : 2)} кг' : '$grams г';

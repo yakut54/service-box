@@ -57,6 +57,12 @@ String formatMessageDateTime(DateTime date) {
   return '${date.day} ${monthsAbbr[date.month - 1]}$yearSuffix в $time';
 }
 
+/// Граммы → человекочитаемая строка: мелкие остатки в граммах, крупные — в кг
+/// (100000 г нечитаемо, 100 кг — нормально). Тот же формат, что и в админке
+/// (admin/src/shared/lib/format.ts formatWeight) — те же товары те же продавцы.
+String formatWeight(int grams) =>
+    grams >= 1000 ? '${(grams / 1000).toStringAsFixed(grams % 1000 == 0 ? 0 : 2)} кг' : '$grams г';
+
 /// Склонение существительного по числу (1 отзыв / 2 отзыва / 5 отзывов).
 /// Стандартное русское правило: 11-14 всегда "many", иначе по последней цифре.
 String pluralRu(int n, String one, String few, String many) {

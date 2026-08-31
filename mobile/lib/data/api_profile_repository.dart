@@ -59,4 +59,13 @@ class ApiProfileRepository implements ProfileRepository {
     if (data == null) throw AppException.badResponse();
     return Profile.fromJson(data);
   }
+
+  @override
+  Future<void> updateFcmToken(String sessionToken, String fcmToken) async {
+    await _client.post(
+      '/widget/profile/fcm-token',
+      {'fcm_token': fcmToken},
+      headers: _authHeaders(sessionToken),
+    );
+  }
 }

@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../data/order_repository.dart';
 import '../models/order.dart';
 import '../state/auth_state.dart';
+import 'order_detail_screen.dart';
 import 'widgets/error_view.dart';
 import 'widgets/order_status_badge.dart';
 
@@ -117,36 +118,71 @@ class _OrderTile extends StatelessWidget {
     final createdAt = order.createdAt;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: order.id)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Text(
-                    'Заказ №$_shortId',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Заказ №$_shortId',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          [
+                            if (createdAt != null) formatShortDate(createdAt),
+                            formatRubles(order.totalRubles),
+                          ].join(' · '),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    [
-                      if (createdAt != null) formatShortDate(createdAt),
-                      formatRubles(order.totalRubles),
-                    ].join(' · '),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  const SizedBox(width: 12),
+                  OrderStatusBadge(status: order.status),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            OrderStatusBadge(status: order.status),
-          ],
+              if (order.hasPendingSurcharge) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.warning_amber_rounded, size: 16, color: theme.colorScheme.onErrorContainer),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Требуется доплата ${formatRubles((order.surchargeAmountKopecks ?? 0) / 100)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

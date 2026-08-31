@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_exception.dart';
 import '../core/format.dart';
@@ -7,6 +8,7 @@ import '../core/phone_input_formatter.dart';
 import '../data/checkout_draft_store.dart';
 import '../data/order_repository.dart';
 import '../data/profile_repository.dart';
+import '../models/product.dart';
 import '../state/auth_state.dart';
 import '../state/cart_state.dart';
 import '../state/shop_state.dart';
@@ -118,6 +120,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       final cart = context.read<CartState>();
+      final hasWeightVariable = cart.items.any(
+        (item) => item.product.physical?.saleMode == ProductSaleMode.weightVariable,
+      );
       final order = await OrderRepository.create().createOrder(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -127,6 +132,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       cart.clear();
       await _draftStore.clear();
+
+      // Заказ с товаром «по весу — перевзвешивание» — точная сумма известна
+      // только после сборки, поэтому вместо обычной оплаты сразу создаём холд
+      // и открываем его на оплату (см. PLAN.md, «По весу — перевзвешивание»).
+      if (hasWeightVariable) {
+        try {
+          final paymentUrl = await OrderRepository.create().createPayment(order.id);
+          final uri = Uri.parse(paymentUrl);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        } catch (_) {
+          // Не удалось создать холд сразу — не блокируем подтверждение заказа,
+          // владелец магазина увидит его в админке и разберётся вручную.
+        }
+      }
+
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
