@@ -47,6 +47,13 @@ dependencies:
   share_plus: ^10.1.4
   gal: ^2.3.1
   path_provider: ^2.1.5
+  # Свой экран выбора фото для чата (сетка + камера первой плиткой +
+  # мультиселект, "как в Telegram") — вместо системного ImagePicker.gallery.
+  # photo_manager указан явно (не только транзитивно через пакет выше),
+  # потому что тип AssetEntity используется напрямую в нашем коде
+  # (mobile/lib/ui/photo_picker_screen.dart).
+  wechat_assets_picker: ^9.4.4
+  photo_manager: ^3.6.4
 
   # Помимо генерации нативного сплэша (dart run flutter_native_splash:create,
   # см. flutter_native_splash: ниже), нужен и в рантайме — FlutterNativeSplash

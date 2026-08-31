@@ -8,6 +8,13 @@
          равно остаётся. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- Свой экран выбора фото в чате (photo_picker_screen.dart, пакет
+         wechat_assets_picker/photo_manager) читает галерею напрямую, а не
+         через системный picker (которому эти права не нужны) — три
+         варианта под разные версии Android. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
 
     <application
         android:label="@string/app_name"

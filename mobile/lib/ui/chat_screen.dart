@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -20,6 +19,7 @@ import '../data/chat_repository.dart';
 import '../models/chat_message.dart';
 import '../state/auth_state.dart';
 import '../state/chat_state.dart';
+import 'photo_picker_screen.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/chat_background.dart';
 import 'widgets/error_view.dart';
@@ -60,8 +60,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   AppException? _error;
   Timer? _pollTimer;
   bool _sending = false;
-  Uint8ListHolder? _pendingImage;
-  bool _uploadingImage = false;
+  List<Uint8ListHolder> _pendingImages = [];
+  // (сколько уже загружено, всего в этом батче) — null, если сейчас ничего
+  // не грузится. Используется и для гейта кнопок, и для текста "N из M".
+  (int, int)? _uploadProgress;
   ChatMessage? _replyTarget;
   String? _threadId;
 
@@ -91,7 +93,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final sharedPath = widget.sharedImagePath;
     if (sharedPath != null) {
       File(sharedPath).readAsBytes().then((bytes) {
-        if (mounted) _uploadPickedBytes(bytes);
+        if (mounted) _uploadPickedBytes([bytes]);
       });
     }
   }
@@ -433,49 +435,65 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _pickImage() async {
-    // Раньше здесь был свой чекер "Сделать фото / Выбрать из галереи" перед
-    // системным пикером. Убрали лишний шаг — системная галерея на
-    // современном Android (image_picker уходит именно в неё для
-    // ImageSource.gallery) уже сама показывает грид недавних фото с
-    // плиткой камеры в углу, один общий bottom sheet, как в Telegram
-    // (идея пользователя, 2026-08-25) — свой экран поверх него не нужен.
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    // До 2026-08-25 здесь был системный ImagePicker.gallery — окно самого
+    // телефона, а не приложения (на Android это Google Photo Picker, на iOS
+    // PHPickerViewController). Тогда решили, что этого достаточно и похоже
+    // на Telegram. По факту не похоже — не наш стиль, и главное, нельзя
+    // выбрать больше одной картинки. Свой экран (photo_picker_screen.dart,
+    // пакет wechat_assets_picker) — сетка + плитка камеры + мультиселект.
+    final picked = await pickChatPhotos(context);
     if (picked == null || !mounted) return;
 
-    await _uploadPickedBytes(await picked.readAsBytes());
+    await _uploadPickedBytes(picked);
   }
 
-  /// Общий путь для картинки из пикера и картинки, с которой открыли
-  /// приложение через системное «Поделиться» (см. widget.sharedImagePath).
-  Future<void> _uploadPickedBytes(Uint8List bytes) async {
-    if (!mounted) return;
-    setState(() => _uploadingImage = true);
-    try {
-      // Сжимаем и на клиенте — экономит трафик байера на отправке, но это
-      // не гарантия: сервер сам ЖЁСТКО сжимает до ≤100 КБ вне зависимости
-      // от того, что пришло (см. ImageCompressionService, П20.1).
-      final compressed = await compressImageBytes(
-        bytes,
-        maxDimension: 1024,
-        targetBytes: 100 * 1024,
-      );
-      final url = await _repository.uploadImage(
-        _sessionToken,
-        compressed,
-        'chat.jpg',
-      );
-      if (mounted) setState(() => _pendingImage = Uint8ListHolder(url));
-    } catch (e) {
-      if (mounted) _showError(e, 'Не удалось загрузить фото');
-    } finally {
-      if (mounted) setState(() => _uploadingImage = false);
+  /// Общий путь для картинок из своего пикера (может быть несколько сразу)
+  /// и картинки, с которой открыли приложение через системное «Поделиться»
+  /// (см. widget.sharedImagePath — там всегда список из одного элемента).
+  /// Грузит по очереди, а не параллельно — сервер и так ограничивает
+  /// загрузку картинок в чат 10 в минуту (throttle chat-image), незачем
+  /// торопиться и бить лимит быстрее.
+  Future<void> _uploadPickedBytes(List<Uint8List> byteList) async {
+    if (!mounted || byteList.isEmpty) return;
+    final total = byteList.length;
+    for (var i = 0; i < byteList.length; i++) {
+      if (!mounted) return;
+      setState(() => _uploadProgress = (i, total));
+      try {
+        // Сжимаем и на клиенте — экономит трафик байера на отправке, но это
+        // не гарантия: сервер сам ЖЁСТКО сжимает до ≤100 КБ вне зависимости
+        // от того, что пришло (см. ImageCompressionService, П20.1).
+        final compressed = await compressImageBytes(
+          byteList[i],
+          maxDimension: 1024,
+          targetBytes: 100 * 1024,
+        );
+        final url = await _repository.uploadImage(
+          _sessionToken,
+          compressed,
+          'chat.jpg',
+        );
+        if (!mounted) return;
+        setState(() => _pendingImages = [..._pendingImages, Uint8ListHolder(url)]);
+      } catch (e) {
+        if (mounted) {
+          _showError(
+            e,
+            total > 1
+                ? 'Загружено ${_pendingImages.length} из $total — остальные не загрузились'
+                : 'Не удалось загрузить фото',
+          );
+        }
+        break;
+      }
     }
+    if (mounted) setState(() => _uploadProgress = null);
   }
 
   Future<void> _send() async {
     final body = _draftController.text.trim();
-    final imageUrl = _pendingImage?.url;
-    if (body.isEmpty && imageUrl == null) return;
+    final images = _pendingImages;
+    if (body.isEmpty && images.isEmpty) return;
 
     // Не ждать 3с таймер — отправка сама по себе уже сигнал "закончил печатать".
     if (_wasTyping) {
@@ -485,27 +503,52 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     setState(() => _sending = true);
+    // Несколько картинок сразу уходят N отдельными сообщениями подряд, не
+    // единым "альбомом" (в модели/API — одна картинка на сообщение). Текст
+    // и ответ-на-сообщение прикрепляются только к первому — иначе непонятно,
+    // к какой из N картинок относится подпись.
+    final total = images.isEmpty ? 1 : images.length;
+    var sent = 0;
     try {
-      final message = await _repository.sendMessage(
-        _sessionToken,
-        body: body.isEmpty ? null : body,
-        imageUrl: imageUrl,
-        clientMessageId: generateUuidV4(),
-        replyToMessageId: _replyTarget?.id,
-      );
-      setState(() {
-        _messages = [..._messages, message];
-        _draftController.clear();
-        _pendingImage = null;
-        _replyTarget = null;
-        _threadId ??= message.threadId;
-      });
+      for (var i = 0; i < total; i++) {
+        final isFirst = i == 0;
+        final message = await _repository.sendMessage(
+          _sessionToken,
+          body: isFirst && body.isNotEmpty ? body : null,
+          imageUrl: images.isEmpty ? null : images[i].url,
+          clientMessageId: generateUuidV4(),
+          replyToMessageId: isFirst ? _replyTarget?.id : null,
+        );
+        sent++;
+        if (!mounted) return;
+        setState(() {
+          _messages = [..._messages, message];
+          _threadId ??= message.threadId;
+          if (isFirst) {
+            _draftController.clear();
+            _replyTarget = null;
+          }
+        });
+      }
+      if (mounted && images.isNotEmpty) setState(() => _pendingImages = []);
       if (_threadId != null && !_realtime.isConnected) {
         _connectRealtime(_threadId!);
       }
       _scrollToBottom(force: true);
     } catch (e) {
-      if (mounted) _showError(e, 'Не удалось отправить сообщение');
+      if (mounted) {
+        _showError(
+          e,
+          sent > 0
+              ? 'Отправлено $sent из $total — остальные не ушли, попробуйте через минуту'
+              : 'Не удалось отправить сообщение',
+        );
+        // Из очереди на отправку убираем только то, что реально ушло —
+        // остальное остаётся в композере, можно повторить попытку сразу.
+        if (images.isNotEmpty) {
+          setState(() => _pendingImages = images.sublist(sent.clamp(0, images.length)));
+        }
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -787,43 +830,62 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ],
                 ),
               ),
-            if (_pendingImage != null)
+            if (_pendingImages.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8, left: 4),
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        _pendingImage!.url,
-                        height: 64,
-                        width: 64,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned(
-                      top: -6,
-                      right: -6,
-                      child: IconButton(
-                        icon: const Icon(Icons.cancel, size: 20),
-                        onPressed: () => setState(() => _pendingImage = null),
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SizedBox(
+                  height: 64,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(left: 4),
+                    itemCount: _pendingImages.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final image = _pendingImages[index];
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              image.url,
+                              height: 64,
+                              width: 64,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: -6,
+                            right: -6,
+                            child: IconButton(
+                              icon: const Icon(Icons.cancel, size: 20),
+                              onPressed: () => setState(() {
+                                _pendingImages = [..._pendingImages]..removeAt(index);
+                              }),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
-            if (_uploadingImage)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8, left: 4),
+            if (_uploadProgress != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 4),
                 child: Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    SizedBox(width: 8),
-                    Text('Загрузка фото...'),
+                    const SizedBox(width: 8),
+                    Text(
+                      _uploadProgress!.$2 > 1
+                          ? 'Загрузка ${_uploadProgress!.$1 + 1} из ${_uploadProgress!.$2}...'
+                          : 'Загрузка фото...',
+                    ),
                   ],
                 ),
               ),
@@ -832,7 +894,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               children: [
                 IconButton(
                   icon: const Icon(Icons.image_outlined),
-                  onPressed: _isBlockedByShop || _uploadingImage
+                  onPressed: _isBlockedByShop || _uploadProgress != null
                       ? null
                       : _pickImage,
                 ),
@@ -1152,6 +1214,18 @@ class _FullImageViewer extends StatelessWidget {
 
   const _FullImageViewer({required this.message, required this.onReply, this.onDelete});
 
+  /// Расширение файла по URL картинки — сервер отдаёт и старые .jpg/.png
+  /// (до перехода на WebP 2026-08-24), и новые .webp вперемешку в одном чате.
+  /// Фолбэк на .jpg, если в URL расширения почему-то нет.
+  static String _extensionFromUrl(String url) {
+    final path = Uri.parse(url).path;
+    final dot = path.lastIndexOf('.');
+    if (dot == -1) return '.jpg';
+    const known = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'};
+    final ext = path.substring(dot).toLowerCase();
+    return known.contains(ext) ? ext : '.jpg';
+  }
+
   Future<void> _save(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -1161,10 +1235,18 @@ class _FullImageViewer extends StatelessWidget {
         return;
       }
       final response = await http.get(Uri.parse(message.imageUrl!));
-      await Gal.putImageBytes(
-        response.bodyBytes,
-        name: 'servicebox_${DateTime.now().millisecondsSinceEpoch}',
+      // На Android Gal.putImageBytes() угадывает формат по содержимому через
+      // библиотеку, которая не знает про WebP (наш сервер шлёт .webp с
+      // 2026-08-24) и падает с ошибкой на любой такой картинке — тихо
+      // проваливается в catch ниже. Gal.putImage() по пути к файлу берёт
+      // формат из расширения имени и не угадывает — пишем во временный файл
+      // с правильным расширением и сохраняем этим путём.
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/servicebox_${DateTime.now().millisecondsSinceEpoch}${_extensionFromUrl(message.imageUrl!)}',
       );
+      await file.writeAsBytes(response.bodyBytes);
+      await Gal.putImage(file.path);
       messenger.showSnackBar(const SnackBar(content: Text('Сохранено в галерею')));
     } catch (_) {
       messenger.showSnackBar(const SnackBar(content: Text('Не удалось сохранить фото')));
@@ -1176,7 +1258,9 @@ class _FullImageViewer extends StatelessWidget {
     try {
       final response = await http.get(Uri.parse(message.imageUrl!));
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/chat_share_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final file = File(
+        '${dir.path}/chat_share_${DateTime.now().millisecondsSinceEpoch}${_extensionFromUrl(message.imageUrl!)}',
+      );
       await file.writeAsBytes(response.bodyBytes);
       await Share.shareXFiles([XFile(file.path)]);
     } catch (_) {
