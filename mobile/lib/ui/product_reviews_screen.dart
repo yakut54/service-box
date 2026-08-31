@@ -3,28 +3,29 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/app_exception.dart';
-import '../../core/format.dart';
-import '../../data/profile_repository.dart';
-import '../../data/review_repository.dart';
-import '../../models/product.dart';
-import '../../models/review.dart';
-import '../../state/auth_state.dart';
-import '../phone_login_screen.dart';
-import 'star_rating.dart';
+import '../core/app_exception.dart';
+import '../core/format.dart';
+import '../data/profile_repository.dart';
+import '../data/review_repository.dart';
+import '../models/product.dart';
+import '../models/review.dart';
+import '../state/auth_state.dart';
+import 'phone_login_screen.dart';
+import 'widgets/error_view.dart';
+import 'widgets/star_rating.dart';
 
-/// Отзывы на товар — порт из веб-виджета (widget/src/components/ProductDetail.vue,
-/// блок «Отзывы»), с одним осознанным расхождением: отправка требует входа по
-/// телефону (в вебе — анонимно). Это включает уже существующую, но на вебе не
-/// работающую серверную проверку «один отзыв на товар от одного покупателя» —
-/// см. ReviewController::widgetStore. Подробности решения — в PLAN.md.
+/// Отзывы на товар — отдельный экран (был инлайн-блоком на странице товара,
+/// см. ProductRatingAskRow — теперь там только компактная строка «рейтинг +
+/// Спросить», по образцу Ozon/Wildberries: полный список открывается тапом,
+/// не разворачивается на месте). Логика загрузки/отправки — как раньше,
+/// один осознанный отход от веб-виджета: отправка требует входа по телефону
+/// (в вебе — анонимно), включает уже существующую, но на вебе не работающую
+/// серверную проверку «один отзыв на товар от одного покупателя» (см.
+/// ReviewController::widgetStore). Подробности — в PLAN.md.
 ///
 /// "Уже отзывался" — не локальная догадка, а my_review из ответа сервера
 /// (см. ReviewController::findMyReview), полученный по X-Phone-Session.
 /// Переживает переустановку приложения и honestly отражает is_published.
-///
-/// Состояние — локальное для этой страницы товара, не глобальный стор:
-/// отзывы не нужны другим экранам и не требуют реалтайма, как чат.
 enum _ReviewSort {
   newest('Сначала новые'),
   highestFirst('Сначала с высоким рейтингом'),
@@ -34,16 +35,16 @@ enum _ReviewSort {
   const _ReviewSort(this.label);
 }
 
-class ProductReviewsSection extends StatefulWidget {
+class ProductReviewsScreen extends StatefulWidget {
   final Product product;
 
-  const ProductReviewsSection({super.key, required this.product});
+  const ProductReviewsScreen({super.key, required this.product});
 
   @override
-  State<ProductReviewsSection> createState() => _ProductReviewsSectionState();
+  State<ProductReviewsScreen> createState() => _ProductReviewsScreenState();
 }
 
-class _ProductReviewsSectionState extends State<ProductReviewsSection> {
+class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
   final _repository = ReviewRepository.create();
 
   ProductReviews? _data;
@@ -52,7 +53,6 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
 
   bool _formOpen = false;
   bool _justSubmitted = false;
-  bool _expanded = false;
   _ReviewSort _sort = _ReviewSort.newest;
 
   final _nameController = TextEditingController();
@@ -99,9 +99,9 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
     final auth = context.read<AuthState>();
     if (!auth.isLoggedIn) {
       // Тот же приём, что ChatButton — вход по телефону, если ещё не
-      // входили. После OTP покупатель попадает на корень каталога (см.
-      // otp_verify_screen.dart), а не обратно сюда — как и у чата, это
-      // принятое для v1 ограничение, не переделываем флоу входа ради этого.
+      // входили. После OTP покупатель попадает на корень каталога, а не
+      // обратно сюда — принятое для v1 ограничение, не переделываем флоу
+      // входа ради этого.
       await Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const PhoneLoginScreen()),
       );
@@ -224,156 +224,125 @@ class _ProductReviewsSectionState extends State<ProductReviewsSection> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final data = _data;
-    final myReview = data?.myReview;
-    final showButton = !_formOpen && !_justSubmitted && myReview == null;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Отзывы')),
+      body: SafeArea(child: _buildBody(context)),
+    );
+  }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+  Widget _buildBody(BuildContext context) {
+    final data = _data;
+
+    if (_loading && data == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_listError != null && data == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ErrorView(error: _listError!, onRetry: _load),
+        ),
+      );
+    }
+    if (data == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final myReview = data.myReview;
+    final showButton = !_formOpen && !_justSubmitted && myReview == null;
+    final sorted = _sortedReviews(data.items);
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (data.stats.average != null) ...[
             Row(
               children: [
-                Text('Отзывы', style: theme.textTheme.titleSmall),
-                if (data != null && data.stats.count > 0) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    '${data.stats.count}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                Text(
+                  data.stats.average!.toStringAsFixed(1).replaceAll('.', ','),
+                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(width: 10),
+                StarRating(value: data.stats.average!, size: 20),
+                const SizedBox(width: 10),
+                Text(
+                  '${data.stats.count} ${pluralRu(data.stats.count, 'отзыв', 'отзыва', 'отзывов')}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
-                ],
+                ),
               ],
             ),
-            if (showButton)
-              TextButton(onPressed: _openForm, child: const Text('Оставить отзыв')),
+            const SizedBox(height: 16),
           ],
-        ),
-        if (data?.stats.average != null) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(
-                data!.stats.average!.toStringAsFixed(1).replaceAll('.', ','),
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(width: 8),
-              StarRating(value: data.stats.average!, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                '${data.stats.count} ${pluralRu(data.stats.count, 'отзыв', 'отзыва', 'отзывов')}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ],
-        if (_justSubmitted) ...[
-          const SizedBox(height: 12),
-          _InfoBanner(
-            icon: Icons.check_circle_outline_rounded,
-            text: 'Спасибо! Отзыв отправлен на модерацию.',
-            color: theme.colorScheme.primary,
-          ),
-        ] else if (myReview != null && !myReview.isPublished) ...[
-          const SizedBox(height: 12),
-          _InfoBanner(
-            icon: Icons.hourglass_top_rounded,
-            text: 'Вы уже оставили отзыв. Он появится после проверки.',
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ],
-        if (_formOpen) ...[
-          const SizedBox(height: 12),
-          _ReviewForm(
-            nameController: _nameController,
-            textController: _textController,
-            rating: _rating,
-            onRatingChanged: (r) => setState(() => _rating = r),
-            canSubmit: _canSubmit,
-            submitting: _submitting,
-            error: _formError,
-            onCancel: _cancelForm,
-            onSubmit: _submit,
-            // Форма зависит от текста в контроллерах для активации кнопки —
-            // простой способ перерисоваться без отдельного стейта на каждый
-            // символ.
-            onFieldChanged: () => setState(() {}),
-          ),
-        ],
-        const SizedBox(height: 12),
-        if (_loading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+          if (showButton)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(onPressed: _openForm, child: const Text('Оставить отзыв')),
             ),
-          )
-        else if (_listError != null)
-          Row(
-            children: [
-              Text(
-                'Не удалось загрузить отзывы',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              TextButton(onPressed: _load, child: const Text('Повторить')),
-            ],
-          )
-        else if (data != null && data.items.isEmpty && !_formOpen)
-          Text(
-            'Отзывов пока нет. Будьте первым!',
-            style: theme.textTheme.bodySmall?.copyWith(
+          if (_justSubmitted) ...[
+            const SizedBox(height: 12),
+            _InfoBanner(
+              icon: Icons.check_circle_outline_rounded,
+              text: 'Спасибо! Отзыв отправлен на модерацию.',
+              color: theme.colorScheme.primary,
+            ),
+          ] else if (myReview != null && !myReview.isPublished) ...[
+            const SizedBox(height: 12),
+            _InfoBanner(
+              icon: Icons.hourglass_top_rounded,
+              text: 'Вы уже оставили отзыв. Он появится после проверки.',
               color: theme.colorScheme.onSurfaceVariant,
             ),
-          )
-        else if (data != null)
-          Builder(
-            builder: (context) {
-              final sorted = _sortedReviews(data.items);
-              // Показываем только 1 отзыв по умолчанию — не топим карточку
-              // товара под длинным списком; остальное — по кнопке.
-              final visible = _expanded ? sorted : sorted.take(1).toList();
-              final hiddenCount = sorted.length - visible.length;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (sorted.length > 1)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: _pickSort,
-                        icon: const Icon(Icons.sort_rounded, size: 18),
-                        label: Text(_sort.label),
-                      ),
-                    ),
-                  for (final review in visible) _ReviewCard(review: review),
-                  if (hiddenCount > 0)
-                    TextButton(
-                      onPressed: () => setState(() => _expanded = true),
-                      child: Text('Показать ещё $hiddenCount'),
-                    )
-                  else if (_expanded && sorted.length > 1)
-                    TextButton(
-                      onPressed: () => setState(() => _expanded = false),
-                      child: const Text('Скрыть'),
-                    ),
-                ],
-              );
-            },
-          ),
-      ],
+          ],
+          if (_formOpen) ...[
+            const SizedBox(height: 12),
+            _ReviewForm(
+              nameController: _nameController,
+              textController: _textController,
+              rating: _rating,
+              onRatingChanged: (r) => setState(() => _rating = r),
+              canSubmit: _canSubmit,
+              submitting: _submitting,
+              error: _formError,
+              onCancel: _cancelForm,
+              onSubmit: _submit,
+              // Форма зависит от текста в контроллерах для активации кнопки —
+              // простой способ перерисоваться без отдельного стейта на каждый
+              // символ.
+              onFieldChanged: () => setState(() {}),
+            ),
+          ],
+          const SizedBox(height: 16),
+          if (data.items.isEmpty && !_formOpen)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'Отзывов пока нет. Будьте первым!',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            )
+          else if (data.items.isNotEmpty) ...[
+            if (sorted.length > 1)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _pickSort,
+                  icon: const Icon(Icons.sort_rounded, size: 18),
+                  label: Text(_sort.label),
+                ),
+              ),
+            for (final review in sorted) ...[
+              _ReviewCard(review: review),
+              const Divider(height: 1),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }

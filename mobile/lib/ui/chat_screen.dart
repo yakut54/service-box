@@ -34,7 +34,13 @@ class ChatScreen extends StatefulWidget {
   /// подгружается и встаёт в композер, как будто выбрано из галереи.
   final String? sharedImagePath;
 
-  const ChatScreen({super.key, this.sharedImagePath});
+  /// Черновик, с которым открывается композер — например «Вопрос по товару
+  /// «...»: » с кнопки «Спросить» на странице товара (см. openChat() в
+  /// widgets/chat_button.dart). У чата нет привязки сообщения к товару на
+  /// уровне БД — так владелец видит контекст прямо в тексте, без миграции.
+  final String? initialDraft;
+
+  const ChatScreen({super.key, this.sharedImagePath, this.initialDraft});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -44,7 +50,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final _repository = ChatRepository.create();
   late final _realtime = ChatRealtimeClient(_repository);
   final _scrollController = ScrollController();
-  final _draftController = TextEditingController();
+  late final _draftController = TextEditingController(text: widget.initialDraft);
   final _player = AudioPlayer();
 
   List<ChatMessage> _messages = [];

@@ -93,7 +93,7 @@ class MyReview {
 }
 
 /// Общий ответ GET /widget/reviews/{productId} — список + сводка + свой
-/// отзыв одним запросом, ProductReviewsSection парсит их вместе.
+/// отзыв одним запросом, ProductReviewsScreen парсит их вместе.
 class ProductReviews {
   final List<Review> items;
   final ReviewStats stats;
