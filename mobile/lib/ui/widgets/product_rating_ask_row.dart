@@ -47,13 +47,16 @@ class ProductRatingAskRow extends StatelessWidget {
                   context,
                   initialDraft: 'Вопрос по товару «${product.name}»: ',
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.help_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 6),
-                    Text('Спросить', style: theme.textTheme.bodyMedium),
-                  ],
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.help_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 6),
+                      Text('Спросить', style: theme.textTheme.bodyMedium),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -96,33 +99,39 @@ class _RatingContent extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (rating == null || reviewCount == 0) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.star_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 6),
-          Text('Отзывов пока нет', style: theme.textTheme.bodyMedium),
-        ],
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.star_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text('Отзывов пока нет', style: theme.textTheme.bodyMedium),
+          ],
+        ),
       );
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        StarRating(value: rating!, size: 15),
-        const SizedBox(width: 6),
-        Text(
-          rating!.toStringAsFixed(1).replaceAll('.', ','),
-          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '· $reviewCount ${pluralRu(reviewCount, 'отзыв', 'отзыва', 'отзывов')}',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          StarRating(value: rating!, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            rating!.toStringAsFixed(1).replaceAll('.', ','),
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-        ),
-      ],
+          const SizedBox(width: 4),
+          Text(
+            '· $reviewCount ${pluralRu(reviewCount, 'отзыв', 'отзыва', 'отзывов')}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
