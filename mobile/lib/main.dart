@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -83,27 +81,13 @@ class _AppState extends State<_App> {
       // проверки на null (нормально для обычной навигации — там AuthState
       // давно загружен), и падает с общей ошибкой на первой попытке; повтор
       // уже успевает застать сессию загруженной (баг найден 2026-08-25 живым
-      // тестом). Ждём готовности AuthState перед пушем.
-      await _waitForAuthReady();
+      // тестом). Ждём готовности AuthState перед пушем (AuthState.waitUntilReady —
+      // тот же приём понадобился и чекауту, вынесен туда, не дублируем здесь).
+      await context.read<AuthState>().waitUntilReady();
       navigatorKey.currentState?.push(
         MaterialPageRoute(builder: (_) => ChatScreen(sharedImagePath: path)),
       );
     });
-  }
-
-  Future<void> _waitForAuthReady() {
-    final auth = context.read<AuthState>();
-    if (!auth.loading) return Future.value();
-    final completer = Completer<void>();
-    void listener() {
-      if (!auth.loading) {
-        auth.removeListener(listener);
-        if (!completer.isCompleted) completer.complete();
-      }
-    }
-
-    auth.addListener(listener);
-    return completer.future;
   }
 
   @override

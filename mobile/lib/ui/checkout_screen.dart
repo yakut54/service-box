@@ -78,9 +78,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   /// Черновик формы (если есть) имеет приоритет — это его недавний ручной
   /// ввод. Тихо игнорируем ошибку сети: профиль — это только удобство,
   /// не блокер оформления заказа.
+  ///
+  /// waitUntilReady() — без него, если экран оформления открылся раньше, чем
+  /// AuthState успел прочитать сессию из хранилища (холодный старт прямо на
+  /// чекаут), сессия здесь виделась бы null и автозаполнение молча
+  /// пропускалось бы для реально залогиненного покупателя — баг найден
+  /// 2026-09-01, «иногда не подтягивается».
   Future<void> _prefillFromProfile() async {
     if (!mounted) return;
-    final token = context.read<AuthState>().session?.sessionToken;
+    final auth = context.read<AuthState>();
+    await auth.waitUntilReady();
+    if (!mounted) return;
+    final token = auth.session?.sessionToken;
     if (token == null) return;
 
     try {
