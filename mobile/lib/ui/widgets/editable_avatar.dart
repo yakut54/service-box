@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../core/app_exception.dart';
 import '../../core/image_compress.dart';
 import '../../data/profile_repository.dart';
 import '../../models/profile.dart';
 import 'app_dialog.dart';
+import 'photo_picker_sheet.dart';
 
-/// Аватарка профиля — тап открывает выбор фото (камера/галерея/удалить),
-/// как в WhatsApp/Telegram. Значок камеры в углу — подсказка, что это
-/// кликабельно, не просто картинка.
+/// Аватарка профиля — тап открывает ту же шторку выбора фото, что и в чате
+/// (см. photo_picker_sheet.dart, maxAssets: 1 — камера уже плиткой внутри
+/// неё, тап по фото сразу подтверждает и загружает). Значок камеры в углу —
+/// подсказка, что это кликабельно, не просто картинка.
 class EditableAvatar extends StatefulWidget {
   final String? avatarUrl;
   final String sessionToken;
@@ -43,14 +44,9 @@ class _EditableAvatarState extends State<EditableAvatar> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Сделать фото'),
-              onTap: () => Navigator.of(ctx).pop(_AvatarAction.camera),
-            ),
-            ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Выбрать из галереи'),
-              onTap: () => Navigator.of(ctx).pop(_AvatarAction.gallery),
+              title: const Text('Выбрать фото'),
+              onTap: () => Navigator.of(ctx).pop(_AvatarAction.pick),
             ),
             if (hasAvatar)
               ListTile(
@@ -73,24 +69,21 @@ class _EditableAvatarState extends State<EditableAvatar> {
     if (action == null || !mounted) return;
 
     switch (action) {
-      case _AvatarAction.camera:
-        await _pickAndUpload(ImageSource.camera);
-      case _AvatarAction.gallery:
-        await _pickAndUpload(ImageSource.gallery);
+      case _AvatarAction.pick:
+        await _pickAndUpload();
       case _AvatarAction.delete:
         await _delete();
     }
   }
 
-  Future<void> _pickAndUpload(ImageSource source) async {
-    final picked = await ImagePicker().pickImage(source: source);
-    if (picked == null || !mounted) return;
+  Future<void> _pickAndUpload() async {
+    final picked = await pickPhotos(context, maxAssets: 1);
+    if (picked == null || picked.isEmpty || !mounted) return;
 
     setState(() => _busy = true);
     try {
-      final bytes = await picked.readAsBytes();
       final compressed = await compressImageBytes(
-        bytes,
+        picked.first,
         maxDimension: 640,
         targetBytes: 130 * 1024,
       );
@@ -206,4 +199,4 @@ class _EditableAvatarState extends State<EditableAvatar> {
   }
 }
 
-enum _AvatarAction { camera, gallery, delete }
+enum _AvatarAction { pick, delete }

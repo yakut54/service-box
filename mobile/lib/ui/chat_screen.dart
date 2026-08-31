@@ -19,7 +19,7 @@ import '../data/chat_repository.dart';
 import '../models/chat_message.dart';
 import '../state/auth_state.dart';
 import '../state/chat_state.dart';
-import 'photo_picker_screen.dart';
+import 'widgets/photo_picker_sheet.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/chat_background.dart';
 import 'widgets/error_view.dart';
@@ -439,9 +439,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // телефона, а не приложения (на Android это Google Photo Picker, на iOS
     // PHPickerViewController). Тогда решили, что этого достаточно и похоже
     // на Telegram. По факту не похоже — не наш стиль, и главное, нельзя
-    // выбрать больше одной картинки. Свой экран (photo_picker_screen.dart,
-    // пакет wechat_assets_picker) — сетка + плитка камеры + мультиселект.
-    final picked = await pickChatPhotos(context);
+    // выбрать больше одной картинки. Своя шторка (widgets/photo_picker_sheet.dart,
+    // переиспользуется и в аватаре профиля) — сетка + плитка камеры + мультиселект.
+    final picked = await pickPhotos(context);
     if (picked == null || !mounted) return;
 
     await _uploadPickedBytes(picked);

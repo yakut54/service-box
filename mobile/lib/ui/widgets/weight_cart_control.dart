@@ -19,6 +19,17 @@ bool _isOutOfStock(Product product) {
   return physical.stockWeightGrams < physical.weightMinGrams;
 }
 
+/// Граммы → строка для РУЧНОГО ВВОДА в кг (без единицы измерения — она в
+/// suffixText поля, и без округления до кг, в отличие от formatWeight,
+/// который для показа скругляет до 1 знака после запятой — тут нужна полная
+/// точность, иначе шаг слайдера в 100г не введёшь вручную как "0.1").
+String _gramsToKgInputString(int grams) {
+  final kg = grams / 1000;
+  final text = kg.toStringAsFixed(3);
+  // Срезаем незначащие нули: "30.000" → "30", "1.500" → "1.5"
+  return text.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+}
+
 /// Верхняя граница ползунка — обычно weightMaxGrams, но если на складе
 /// осталось меньше (и остаток вообще отслеживается) — не даём заказать
 /// больше, чем реально есть.
@@ -235,10 +246,20 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
 
   int get _currentValue => widget.weightGrams ?? widget.product.physical!.weightMinGrams;
 
+  /// Единица ручного ввода: кг для крупных диапазонов (максимум ≥ 1 кг, как
+  /// в «Капуста» — 30 000 г одним числом нечитаемо), граммы — для мелких
+  /// (специи/орехи, где шаг измеряется в десятках грамм и кг только мешал бы
+  /// точности). Порог — по максимуму слайдера, не по текущему значению,
+  /// чтобы единица не переключалась на лету при движении ползунка.
+  bool get _useKg => _effectiveMaxGrams(widget.product) >= 1000;
+
+  String _formatForInput(int grams) =>
+      _useKg ? _gramsToKgInputString(grams) : grams.toString();
+
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: _currentValue.toString());
+    _controller = TextEditingController(text: _formatForInput(_currentValue));
     _focusNode = FocusNode();
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus) _applyTypedValue();
@@ -251,8 +272,8 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
     // Не перезаписываем поле, пока в нём набранное значение и так совпадает
     // (в т.ч. когда его туда вписал сам юзер) — иначе курсор скачет на
     // каждый ререндер от слайдера.
-    if (!_focusNode.hasFocus && int.tryParse(_controller.text) != _currentValue) {
-      _controller.text = _currentValue.toString();
+    if (!_focusNode.hasFocus && _parseInput(_controller.text) != _currentValue) {
+      _controller.text = _formatForInput(_currentValue);
     }
   }
 
@@ -269,14 +290,24 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
     context.read<CartState>().setWeight(widget.product, clamped);
   }
 
+  /// Кг вводится через запятую или точку (100,5 / 100.5) — оба варианта
+  /// привычны на русской и системной раскладке клавиатуры.
+  int? _parseInput(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return null;
+    if (!_useKg) return int.tryParse(trimmed);
+    final kg = double.tryParse(trimmed.replaceAll(',', '.'));
+    return kg == null ? null : (kg * 1000).round();
+  }
+
   void _applyTypedValue() {
-    final parsed = int.tryParse(_controller.text.trim());
+    final parsed = _parseInput(_controller.text);
     if (parsed != null) {
       _applyGrams(parsed);
     } else {
       // Пусто/не число — откатываем поле на текущий вес, а не оставляем
       // висеть невалидный текст.
-      _controller.text = _currentValue.toString();
+      _controller.text = _formatForInput(_currentValue);
     }
   }
 
@@ -337,12 +368,12 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
               child: TextField(
                 controller: _controller,
                 focusNode: _focusNode,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.numberWithOptions(decimal: _useKg),
                 textAlign: TextAlign.center,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   isDense: true,
-                  suffixText: 'г',
-                  border: OutlineInputBorder(),
+                  suffixText: _useKg ? 'кг' : 'г',
+                  border: const OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => _applyTypedValue(),
               ),

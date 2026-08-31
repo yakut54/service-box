@@ -47,13 +47,17 @@ dependencies:
   share_plus: ^10.1.4
   gal: ^2.3.1
   path_provider: ^2.1.5
-  # Свой экран выбора фото для чата (сетка + камера первой плиткой +
-  # мультиселект, "как в Telegram") — вместо системного ImagePicker.gallery.
-  # photo_manager указан явно (не только транзитивно через пакет выше),
-  # потому что тип AssetEntity используется напрямую в нашем коде
-  # (mobile/lib/ui/photo_picker_screen.dart).
-  wechat_assets_picker: ^9.4.4
+  # Своя шторка выбора фото (сетка + камера первой плиткой + мультиселект,
+  # "как в Telegram/WhatsApp") — вместо системного ImagePicker.gallery,
+  # переиспользуется и в чате, и в аватаре профиля (см.
+  # mobile/lib/ui/widgets/photo_picker_sheet.dart). Своя сетка на
+  # photo_manager напрямую — у wechat_assets_picker (использовался раньше)
+  # нет режима шторки в принципе, весь его API жёстко пушит отдельный
+  # full-screen route.
   photo_manager: ^3.6.4
+  # AssetEntityImage — готовый виджет превью для AssetEntity, отдельный
+  # пакет от той же команды (photo_manager сам его не тянет).
+  photo_manager_image_provider: ^2.2.0
 
   # Push для доплаты за перевзвешенный заказ (см. lib/services/fcm_service.dart) —
   # пакеты добавлены, но сервис НЕ вызывается из main.dart, пока нет
