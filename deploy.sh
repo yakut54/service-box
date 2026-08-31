@@ -186,6 +186,16 @@ if [ "$DOCKER_BUILD" = "true" ]; then
   sleep 3   # ждём пока контейнер поднимется
   docker exec servicebox_app composer install --no-dev --no-interaction --no-scripts 2>&1 | tail -5 \
     && echo "    composer install OK" || echo "    [warn] composer install failed"
+
+  # --no-scripts выше специально пропускает composer-хуки (post-autoload-dump
+  # и т.д.), но заодно и package:discover — bootstrap/cache/packages.php
+  # остаётся со старым списком провайдеров. Если до этого в vendor стоял
+  # dev-пакет (например, кто-то руками гонял composer require без --no-dev),
+  # а этот install его убрал — artisan падает на несуществующем провайдере.
+  # Пересобираем кеш пакетов явно, отдельно от --no-scripts.
+  echo "    → refreshing package discovery cache"
+  docker exec servicebox_app php artisan package:discover --ansi 2>&1 | tail -5 \
+    && echo "    package:discover OK" || echo "    [warn] package:discover failed"
 fi
 
 # ── 3.6. Restart nginx if config changed ─────────────────────────
