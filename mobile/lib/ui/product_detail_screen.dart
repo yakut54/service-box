@@ -87,9 +87,12 @@ class _ProductDetailBody extends StatelessWidget {
               _ProductGallery(images: product.galleryImages),
               const SizedBox(height: 16),
               Text(product.name, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 4),
-              ProductRatingAskRow(product: product),
               const SizedBox(height: 8),
+              // Цена сразу под названием (не после рейтинга) — по образцу
+              // Ozon: это самое важное, что решает, читать ли дальше. Порядок
+              // блоков согласован с пользователем 2026-09-01 (было
+              // название→рейтинг→цена→описание→характеристики, стало
+              // название→цена→рейтинг→характеристики→описание).
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -115,8 +118,8 @@ class _ProductDetailBody extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 8),
-              if (!inStock)
+              if (!inStock) ...[
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -133,14 +136,19 @@ class _ProductDetailBody extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
+              const SizedBox(height: 12),
+              ProductRatingAskRow(product: product),
+              // Характеристики (сухие факты) — перед описанием (текст), не
+              // после, тоже часть того же согласованного порядка.
+              if (product.physical != null) ...[
+                const SizedBox(height: 16),
+                _CharacteristicsList(physical: product.physical!),
+              ],
               if (product.description != null &&
                   product.description!.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(product.description!, style: theme.textTheme.bodyMedium),
-              ],
-              if (product.physical != null) ...[
-                const SizedBox(height: 16),
-                _CharacteristicsList(physical: product.physical!),
               ],
               const SizedBox(height: 24),
               _RelatedProducts(product: product),
