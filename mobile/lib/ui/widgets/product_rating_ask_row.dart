@@ -4,7 +4,6 @@ import '../../core/format.dart';
 import '../../models/product.dart';
 import '../product_reviews_screen.dart';
 import 'chat_button.dart';
-import 'star_rating.dart';
 
 /// Компактная строка «рейтинг + Спросить» под названием товара — по образцу
 /// Ozon/Wildberries: две ячейки в общем контейнере, левая ведёт на отдельный
@@ -117,15 +116,18 @@ class _RatingContent extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          StarRating(value: rating!, size: 15),
-          const SizedBox(width: 6),
+          // Одна звезда, не пять — как у Ozon/WB в этом компактном виде
+          // (полная россыпь звёзд остаётся в StarRating для карточки отзыва
+          // и формы оценки). Заодно освобождает место под большие счётчики.
+          const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+          const SizedBox(width: 4),
           Text(
             rating!.toStringAsFixed(1).replaceAll('.', ','),
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(width: 4),
           Text(
-            '· $reviewCount ${pluralRu(reviewCount, 'отзыв', 'отзыва', 'отзывов')}',
+            '· ${formatCount(reviewCount)} ${pluralRu(reviewCount, 'отзыв', 'отзыва', 'отзывов')}',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

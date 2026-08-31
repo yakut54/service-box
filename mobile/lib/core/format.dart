@@ -1,20 +1,28 @@
+/// "12345" → "12 345" — разряды пробелом. Общая часть formatRubles (целая
+/// часть суммы) и formatCount (счётчики вроде количества отзывов).
+String _groupThousands(String digits) {
+  final buffer = StringBuffer();
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(' ');
+    buffer.write(digits[i]);
+  }
+  return buffer.toString();
+}
+
 /// Форматирует сумму в рублях с разделителем разрядов: 1234.5 → "1 234,50 ₽".
 /// Целые суммы показываются без копеек: 1234 → "1 234 ₽".
 String formatRubles(double rubles) {
   final isWhole = rubles == rubles.roundToDouble();
   final value = isWhole ? rubles.toStringAsFixed(0) : rubles.toStringAsFixed(2);
   final parts = value.split('.');
-
-  final buffer = StringBuffer();
-  final intPart = parts[0];
-  for (var i = 0; i < intPart.length; i++) {
-    if (i > 0 && (intPart.length - i) % 3 == 0) buffer.write(' ');
-    buffer.write(intPart[i]);
-  }
-
-  final formattedInt = buffer.toString();
+  final formattedInt = _groupThousands(parts[0]);
   return parts.length > 1 ? '$formattedInt,${parts[1]} ₽' : '$formattedInt ₽';
 }
+
+/// Целое число с разделителем разрядов, без единицы измерения: 12345 →
+/// "12 345". Для счётчиков без верхней границы (отзывы и т.п.), где просто
+/// "$n" рано или поздно становится нечитаемой сплошной цепочкой цифр.
+String formatCount(int n) => _groupThousands(n.toString());
 
 /// Дата в формате "5 авг" / "5 авг 2025" (год — только если не текущий).
 String formatShortDate(DateTime date) {

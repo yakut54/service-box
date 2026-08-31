@@ -267,7 +267,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
                 StarRating(value: data.stats.average!, size: 20),
                 const SizedBox(width: 10),
                 Text(
-                  '${data.stats.count} ${pluralRu(data.stats.count, 'отзыв', 'отзыва', 'отзывов')}',
+                  '${formatCount(data.stats.count)} ${pluralRu(data.stats.count, 'отзыв', 'отзыва', 'отзывов')}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
