@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Services\DiscountService;
+use App\Services\OrderReweighService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +26,10 @@ class OrderController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Order::query()->with(['items', 'customer']);
+        // items.product.physical — сборщику (роль collector) нужен sale_mode и
+        // вес каждой позиции, чтобы показать поле ввода факт. веса только для
+        // weight_variable (см. CollectorOrderDetailView.vue).
+        $query = Order::query()->with(['items.product.physical', 'customer']);
 
         if ($request->filled('status')) {
             $query->withStatus($request->status);
@@ -231,7 +236,7 @@ class OrderController extends Controller
         }
 
         $customer->updateStats();
-        $order->load(['items', 'customer']);
+        $order->load(['items.product.physical', 'customer']);
 
         if ($shop) {
             try {
@@ -245,9 +250,43 @@ class OrderController extends Controller
             } catch (\Throwable) {}
         }
 
+        // Заказ с товаром «по весу — перевзвешивание» может обернуться доплатой
+        // после сборки (см. OrderReweighService) — сразу предлагаем покупателю
+        // привязать Telegram/MAX, чтобы было куда её прислать. Для обычных
+        // заказов не нужно — не спамим лишним предложением привязки.
+        $hasWeightVariable = $order->items->contains(
+            fn ($item) => $item->product?->physical?->sale_mode === 'weight_variable'
+        );
+
+        $telegramLink = null;
+        $maxLink = null;
+        $maxCode = null;
+
+        if ($shop && $hasWeightVariable) {
+            if ($shop->telegram_bot_connected) {
+                try {
+                    $telegramLink = \App\Services\TelegramService::generateCustomerLinkToken(
+                        $shop,
+                        $order->customer_phone
+                    );
+                } catch (\Throwable) {}
+            }
+            if ($shop->max_bot_connected && config('services.max.bot_username')) {
+                try {
+                    $maxCode = \App\Services\MaxService::generateCustomerCode($order->id);
+                    $maxLink = 'https://max.ru/' . config('services.max.bot_username') . '?start=' . $maxCode;
+                } catch (\Throwable) {}
+            }
+        }
+
+        $orderData = $order->toArray();
+        $orderData['telegram_link'] = $telegramLink;
+        $orderData['max_link']      = $maxLink;
+        $orderData['max_code']      = $maxCode;
+
         return response()->json([
             'message' => 'Заказ успешно создан',
-            'data'    => $order,
+            'data'    => $orderData,
         ], 201);
     }
 
@@ -287,6 +326,12 @@ class OrderController extends Controller
             ], 422);
         }
 
+        if ($newStatus === 'completed' && $order->surcharge_status === 'pending') {
+            return response()->json([
+                'message' => 'Нельзя завершить заказ — покупатель ещё не подтвердил доплату за перевзвешенный товар',
+            ], 422);
+        }
+
         $oldStatus = $order->status;
 
         $order->update(['status' => $newStatus]);
@@ -308,6 +353,44 @@ class OrderController extends Controller
         return response()->json([
             'message' => 'Статус заказа обновлён',
             'data' => $order,
+        ]);
+    }
+
+    /**
+     * Сборщик (или владелец) вводит фактический вес одной weight_variable-
+     * позиции. Если это была последняя невзвешенная позиция заказа —
+     * OrderReweighService сразу считает итог и списывает/довзыскивает деньги.
+     *
+     * PATCH /api/admin/orders/{order}/items/{item}/weight
+     */
+    public function submitItemWeight(Request $request, string $order, string $item): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+
+        $request->validate([
+            'actual_weight_grams' => 'required|integer|min:0',
+        ]);
+
+        $orderModel = Order::findOrFail($order);
+        $itemModel = OrderItem::where('order_id', $orderModel->id)
+            ->with('product.physical')
+            ->findOrFail($item);
+
+        if ($itemModel->product?->physical?->sale_mode !== 'weight_variable') {
+            return response()->json(['message' => 'Эта позиция не требует взвешивания'], 422);
+        }
+
+        if ($itemModel->actual_weight_grams !== null) {
+            return response()->json(['message' => 'Вес по этой позиции уже подтверждён'], 422);
+        }
+
+        OrderReweighService::submitActualWeight($itemModel, (int) $request->actual_weight_grams, $shop);
+
+        $orderModel->refresh()->load('items.product.physical');
+
+        return response()->json([
+            'message' => 'Вес подтверждён',
+            'data' => $orderModel,
         ]);
     }
 
@@ -368,11 +451,20 @@ class OrderController extends Controller
             'status' => $order->status,
             'total_price' => $order->total_price,
             'created_at' => $order->created_at,
+            'weighed_at' => $order->weighed_at,
+            'surcharge_amount' => $order->surcharge_amount,
+            'surcharge_status' => $order->surcharge_status,
+            'surcharge_payment_url' => $order->surcharge_payment_url,
+            'surcharge_deadline_at' => $order->surcharge_deadline_at,
+            'payment_url' => $order->payment_url,
             'items' => $order->items->map(fn ($item) => [
                 'id' => $item->id,
                 'product_name' => $item->product_name,
                 'quantity' => $item->quantity,
                 'price' => $item->price,
+                'weight_grams' => $item->weight_grams,
+                'actual_weight_grams' => $item->actual_weight_grams,
+                'actual_price' => $item->actual_price,
             ]),
         ];
     }
@@ -507,11 +599,12 @@ class OrderController extends Controller
         $filename = 'orders_' . now()->format('Y-m-d') . '.csv';
 
         $statusLabels = [
-            'pending'    => 'Ожидает',
-            'paid'       => 'Оплачен',
-            'processing' => 'В работе',
-            'completed'  => 'Завершён',
-            'cancelled'  => 'Отменён',
+            'pending'         => 'Ожидает',
+            'paid'            => 'Оплачен',
+            'processing'      => 'В работе',
+            'completed'       => 'Завершён',
+            'cancelled'       => 'Отменён',
+            'needs_attention' => 'Требует внимания',
         ];
 
         return response()->streamDownload(function () use ($orders, $statusLabels) {

@@ -34,7 +34,8 @@ class RequireCollectorAccess
             ($request->isMethod('GET') && $path === 'api/admin/shop')
             || ($request->isMethod('GET') && $path === 'api/admin/orders')
             || ($request->isMethod('GET') && preg_match('#^api/admin/orders/' . self::UUID . '$#i', $path) === 1)
-            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/status$#i', $path) === 1);
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/status$#i', $path) === 1)
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/items/' . self::UUID . '/weight$#i', $path) === 1);
 
         if ($allowed) {
             return $next($request);

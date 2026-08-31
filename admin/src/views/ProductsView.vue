@@ -8,7 +8,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { plural } from '@/lib/utils'
-import { formatPrice } from '@/shared/lib/format'
+import { formatPrice, formatWeight } from '@/shared/lib/format'
 
 const route = useRoute()
 const productsStore = useProductsStore()
@@ -65,13 +65,6 @@ async function applyFilters() {
 async function handleDelete(id: string) {
   await productsStore.deleteProduct(id)
   deleteConfirm.value = null
-}
-
-/** Граммы → человекочитаемая строка: мелкие остатки в граммах, крупные —
- * в кг с одним знаком после запятой (100000 г нечитаемо, 100 кг — нормально). */
-function formatWeight(grams: number): string {
-  if (grams >= 1000) return `${(grams / 1000).toFixed(1).replace(/\.0$/, '')} кг`
-  return `${grams} г`
 }
 
 function getStockBadge(product: any) {

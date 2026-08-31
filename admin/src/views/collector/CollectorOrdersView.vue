@@ -17,6 +17,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   processing: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
   completed: 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   cancelled: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+  needs_attention: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400',
 }
 
 async function load() {

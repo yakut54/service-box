@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
-import { formatPrice } from '@/shared/lib/format'
+import { formatPrice, formatWeight } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner } from '@/shared/ui'
 import type { Order } from '@/types'
@@ -15,6 +15,11 @@ const order    = ref<Order | null>(null)
 const loading  = ref(true)
 const updating = ref(false)
 const error    = ref('')
+
+// Черновой ввод веса по каждой weight_variable-позиции — в кг (натуральнее для
+// весов, как и на форме товара), храним по item.id, шлём на бэкенд в граммах.
+const weightDrafts = reactive<Record<string, string>>({})
+const weighing = ref<string | null>(null)
 
 async function load() {
   loading.value = true
@@ -47,6 +52,26 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleString('ru-RU', {
     day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
   })
+}
+
+async function confirmWeight(itemId: string) {
+  if (!order.value) return
+  const kg = parseFloat(weightDrafts[itemId])
+  if (!Number.isFinite(kg) || kg < 0) {
+    toast.error('Введите вес')
+    return
+  }
+  weighing.value = itemId
+  try {
+    const resp = await api.submitOrderItemWeight(order.value.id, itemId, Math.round(kg * 1000))
+    order.value = resp.data
+    delete weightDrafts[itemId]
+    toast.success('Вес подтверждён')
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось сохранить вес')
+  } finally {
+    weighing.value = null
+  }
 }
 
 onMounted(load)
@@ -97,15 +122,65 @@ onMounted(load)
         <div
           v-for="item in order.items"
           :key="item.id"
-          class="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800 last:border-0"
+          class="py-1.5 border-b border-gray-100 dark:border-gray-800 last:border-0"
         >
-          <span class="text-gray-900 dark:text-white">{{ item.product_name }} <span class="text-gray-400">× {{ item.quantity }}</span></span>
-          <span class="font-medium text-gray-700 dark:text-gray-300">{{ formatPrice(item.price * item.quantity) }}</span>
+          <div class="flex items-center justify-between">
+            <span class="text-gray-900 dark:text-white">
+              {{ item.product_name }}
+              <span class="text-gray-400">
+                <template v-if="item.product?.physical?.sale_mode === 'weight_variable'">
+                  <template v-if="item.weight_grams">, заявлено ≈ {{ formatWeight(item.weight_grams) }}</template>
+                </template>
+                <template v-else>× {{ item.quantity }}</template>
+              </span>
+            </span>
+            <span class="font-medium text-gray-700 dark:text-gray-300">
+              {{ formatPrice(item.actual_price ?? (item.price * item.quantity)) }}
+            </span>
+          </div>
+
+          <!-- Ввод факт. веса — только для weight_variable, ещё не взвешенных -->
+          <div
+            v-if="item.product?.physical?.sale_mode === 'weight_variable' && item.actual_weight_grams == null"
+            class="flex items-center gap-2 mt-2"
+          >
+            <input
+              v-model="weightDrafts[item.id]"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Факт. вес, кг"
+              class="input flex-1"
+            />
+            <button
+              @click="confirmWeight(item.id)"
+              :disabled="weighing === item.id || !weightDrafts[item.id]"
+              class="btn-primary btn-sm shrink-0"
+            >
+              Подтвердить
+            </button>
+          </div>
+          <p
+            v-else-if="item.product?.physical?.sale_mode === 'weight_variable'"
+            class="text-xs text-green-600 dark:text-green-400 mt-1"
+          >
+            Факт: {{ formatWeight(item.actual_weight_grams!) }} — {{ formatPrice(item.actual_price ?? 0) }}
+          </p>
         </div>
         <div class="flex items-center justify-between pt-2 font-semibold text-gray-900 dark:text-white">
           <span>Итого</span>
           <span>{{ formatPrice(order.total_price) }}</span>
         </div>
+      </div>
+
+      <!-- Доплата после перевзвешивания -->
+      <div
+        v-if="order.surcharge_status === 'pending'"
+        class="card bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300"
+      >
+        Факт оказался тяжелее заявленного — покупателю выставлена доплата
+        {{ formatPrice(order.surcharge_amount ?? 0) }}. Заказ нельзя завершить, пока
+        покупатель не подтвердит оплату.
       </div>
 
       <!-- Status -->
@@ -128,7 +203,7 @@ onMounted(load)
           </button>
           <button
             @click="setStatus('completed')"
-            :disabled="updating"
+            :disabled="updating || order.surcharge_status === 'pending'"
             class="btn-primary btn-sm flex-1"
           >
             Готово

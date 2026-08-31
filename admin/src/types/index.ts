@@ -229,6 +229,8 @@ export interface OrderItem {
   product_name: string
   product_type: string
   weight_grams?: number | null
+  actual_weight_grams?: number | null
+  actual_price?: number | null
   product?: Product | null
 }
 
@@ -240,7 +242,7 @@ export interface ShippingAddress {
   postal_code?: string | null
 }
 
-export type OrderStatus = 'pending' | 'paid' | 'processing' | 'completed' | 'cancelled'
+export type OrderStatus = 'pending' | 'paid' | 'processing' | 'completed' | 'cancelled' | 'needs_attention'
 
 export interface Order {
   id: string
@@ -260,6 +262,11 @@ export interface Order {
   delivery_price: number
   notes: string | null
   paid_at: string | null
+  weighed_at?: string | null
+  surcharge_amount?: number | null
+  surcharge_status?: 'pending' | 'paid' | 'expired' | null
+  surcharge_payment_url?: string | null
+  surcharge_deadline_at?: string | null
   items?: OrderItem[]
   customer?: Customer | null
   created_at: string

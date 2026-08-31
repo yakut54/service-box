@@ -20,9 +20,9 @@ class PhysicalStockService
      * получить $product с lockForUpdate() — эта функция сама блокировок не
      * ставит.
      *
-     * Для weight_variable — ничего не делает: сама фича перевзвешивания
-     * (холд ЮKassa, экран сборщика с фактическим весом) ещё не построена,
-     * списывать физически нечего (см. PLAN.md, «Развесной товар», Режим C).
+     * Для weight_variable — ничего не делает: точное количество известно
+     * только после взвешивания сборщиком, списание происходит там же
+     * (см. OrderReweighService::submitActualWeight), не при заказе.
      */
     public static function reserve(Product $product, int $quantity, ?int $weightGrams): void
     {
@@ -72,6 +72,10 @@ class PhysicalStockService
             $physical->increment('stock_quantity', $item->quantity);
         } elseif ($saleMode === 'weight_fixed' && $item->weight_grams) {
             $physical->increment('stock_weight_grams', $item->weight_grams);
+        } elseif ($saleMode === 'weight_variable' && $item->actual_weight_grams) {
+            // Списано было не при заказе, а при взвешивании (см. reserve()
+            // выше) — возвращать нечего, если сборщик ещё не подтвердил вес.
+            $physical->increment('stock_weight_grams', $item->actual_weight_grams);
         }
     }
 }

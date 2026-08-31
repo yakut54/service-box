@@ -30,3 +30,10 @@ export function formatDate(dateStr: string | null | undefined, timeZone?: string
     ...(timeZone && { timeZone }),
   })
 }
+
+/** Граммы → человекочитаемая строка: мелкие остатки в граммах, крупные —
+ * в кг с одним знаком после запятой (100000 г нечитаемо, 100 кг — нормально). */
+export function formatWeight(grams: number): string {
+  if (grams >= 1000) return `${(grams / 1000).toFixed(1).replace(/\.0$/, '')} кг`
+  return `${grams} г`
+}

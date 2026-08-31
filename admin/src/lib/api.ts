@@ -316,6 +316,16 @@ class ApiClient {
     return this.download('/admin/orders/export', params)
   }
 
+  async submitOrderItemWeight(orderId: string, itemId: string, actualWeightGrams: number) {
+    return this.request<{ message: string; data: Order }>(
+      `/admin/orders/${orderId}/items/${itemId}/weight`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ actual_weight_grams: actualWeightGrams }),
+      }
+    )
+  }
+
   // ==========================================
   // CUSTOMERS
   // ==========================================
