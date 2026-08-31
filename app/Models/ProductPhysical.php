@@ -30,6 +30,7 @@ class ProductPhysical extends Model
         'weight_step_grams',
         'weight_min_grams',
         'weight_max_grams',
+        'stock_weight_grams',
     ];
 
     protected $casts = [
@@ -42,6 +43,7 @@ class ProductPhysical extends Model
         'weight_step_grams' => 'integer',
         'weight_min_grams' => 'integer',
         'weight_max_grams' => 'integer',
+        'stock_weight_grams' => 'integer',
     ];
 
     public function product()

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/product.dart';
 import '../../state/cart_state.dart';
+import 'out_of_stock_chip.dart';
 import 'weight_cart_control.dart';
 
 /// «В корзину» → степпер +/−, как только товар уже в корзине. Один
@@ -36,7 +37,7 @@ class AddToCartControl extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (!product.inStock) {
-      return _OutOfStockChip(compact: compact, theme: theme);
+      return OutOfStockChip(compact: compact, theme: theme);
     }
 
     if (quantity == 0) {
@@ -49,41 +50,6 @@ class AddToCartControl extends StatelessWidget {
       maxQuantity: _maxQuantity,
       compact: compact,
       theme: theme,
-    );
-  }
-}
-
-class _OutOfStockChip extends StatelessWidget {
-  final bool compact;
-  final ThemeData theme;
-
-  const _OutOfStockChip({required this.compact, required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    if (compact) {
-      return SizedBox(
-        width: double.infinity,
-        height: 36,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
-            child: Text(
-              'Нет в наличии',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return const SizedBox(
-      width: double.infinity,
-      child: FilledButton(onPressed: null, child: Text('Нет в наличии')),
     );
   }
 }

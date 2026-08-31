@@ -67,12 +67,34 @@ async function handleDelete(id: string) {
   deleteConfirm.value = null
 }
 
+/** Граммы → человекочитаемая строка: мелкие остатки в граммах, крупные —
+ * в кг с одним знаком после запятой (100000 г нечитаемо, 100 кг — нормально). */
+function formatWeight(grams: number): string {
+  if (grams >= 1000) return `${(grams / 1000).toFixed(1).replace(/\.0$/, '')} кг`
+  return `${grams} г`
+}
+
 function getStockBadge(product: any) {
-  if (product.type !== 'physical') return null
-  const stock = product.physical?.stock_quantity ?? 0
-  if (stock === 0) return { cls: 'bg-red-100 text-red-800', text: 'Нет в наличии' }
-  if (stock < 5) return { cls: 'bg-yellow-100 text-yellow-800', text: `Мало: ${stock}` }
-  return { cls: 'bg-green-100 text-green-800', text: `В наличии: ${stock}` }
+  if (product.type !== 'physical' || !product.physical) return null
+  const saleMode = product.physical.sale_mode || 'piece'
+
+  if (saleMode === 'piece') {
+    const stock = product.physical.stock_quantity ?? 0
+    if (stock === 0) return { cls: 'bg-red-100 text-red-800', text: 'Нет в наличии' }
+    if (stock < 5) return { cls: 'bg-yellow-100 text-yellow-800', text: `Мало: ${stock}` }
+    return { cls: 'bg-green-100 text-green-800', text: `В наличии: ${stock}` }
+  }
+
+  if (saleMode === 'weight_fixed') {
+    const grams = product.physical.stock_weight_grams ?? 0
+    const minOrder = product.physical.weight_min_grams ?? 100
+    if (grams === 0) return { cls: 'bg-red-100 text-red-800', text: 'Нет в наличии' }
+    if (grams < minOrder * 3) return { cls: 'bg-yellow-100 text-yellow-800', text: `Мало: ${formatWeight(grams)}` }
+    return { cls: 'bg-green-100 text-green-800', text: `В наличии: ${formatWeight(grams)}` }
+  }
+
+  // weight_variable — сток пока не отслеживается (см. PLAN.md)
+  return null
 }
 </script>
 

@@ -163,6 +163,7 @@ export interface ProductPhysical {
   weight_step_grams: number | null
   weight_min_grams: number | null
   weight_max_grams: number | null
+  stock_weight_grams: number
 }
 
 export interface ProductDigital {

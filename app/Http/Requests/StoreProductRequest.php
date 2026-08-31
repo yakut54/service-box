@@ -29,7 +29,9 @@ class StoreProductRequest extends FormRequest
         if ($this->type === 'physical') {
             $rules = array_merge($rules, [
                 'physical.sku' => 'nullable|string|max:100',
-                'physical.stock_quantity' => 'required|integer|min:0',
+                // required только для штучного режима — весовые товары ведут
+                // остаток в граммах (stock_weight_grams), не в штуках.
+                'physical.stock_quantity' => 'nullable|required_if:physical.sale_mode,piece|integer|min:0',
                 'physical.allow_backorder' => 'nullable|boolean',
                 'physical.weight_grams' => 'nullable|integer|min:0',
                 'physical.length_cm' => 'nullable|numeric|min:0',
@@ -40,6 +42,11 @@ class StoreProductRequest extends FormRequest
                 'physical.weight_step_grams' => 'nullable|integer|min:1',
                 'physical.weight_min_grams' => 'nullable|integer|min:1',
                 'physical.weight_max_grams' => 'nullable|integer|min:1|gte:physical.weight_min_grams',
+                // Остаток на складе для весовых товаров (см. PLAN.md, «Остаток
+                // на складе для весовых товаров») — поле общее для weight_fixed
+                // и weight_variable, но enforce на бэкенде только у первого
+                // (второй режим сам как фича ещё не построен).
+                'physical.stock_weight_grams' => 'nullable|required_if:physical.sale_mode,weight_fixed,weight_variable|integer|min:0',
             ]);
         }
 
@@ -72,7 +79,8 @@ class StoreProductRequest extends FormRequest
             'name.required' => 'Укажите название товара',
             'price.required' => 'Укажите цену товара',
             'price.integer' => 'Цена должна быть целым числом (в копейках)',
-            'physical.stock_quantity.required' => 'Укажите количество на складе',
+            'physical.stock_quantity.required_if' => 'Укажите количество на складе',
+            'physical.stock_weight_grams.required_if' => 'Укажите остаток на складе (г)',
             'digital.delivery_type.required' => 'Укажите способ доставки',
             'service.duration_minutes.required' => 'Укажите длительность услуги',
         ];

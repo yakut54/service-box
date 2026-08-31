@@ -102,7 +102,8 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         sale_mode            TEXT NOT NULL DEFAULT 'piece' CHECK (sale_mode IN ('piece', 'weight_fixed', 'weight_variable')),
                         weight_step_grams    INTEGER DEFAULT 100,
                         weight_min_grams     INTEGER DEFAULT 100,
-                        weight_max_grams     INTEGER DEFAULT 5000
+                        weight_max_grams     INTEGER DEFAULT 5000,
+                        stock_weight_grams   INTEGER DEFAULT 0
                     )
                 $sql$, p_schema_name, p_schema_name);
 

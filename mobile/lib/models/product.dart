@@ -17,6 +17,12 @@ class ProductPhysical {
   final int weightMinGrams;
   final int weightMaxGrams;
 
+  /// Остаток на складе в граммах — только для weightFixed (см. PLAN.md,
+  /// «Остаток на складе для весовых товаров»). У weightVariable это поле
+  /// тоже приходит с бэкенда, но пока ни на что не влияет — сама фича
+  /// перевзвешивания ещё не построена, остаток для неё не enforce'ится.
+  final int stockWeightGrams;
+
   const ProductPhysical({
     this.sku,
     required this.stockQuantity,
@@ -28,12 +34,18 @@ class ProductPhysical {
     this.weightStepGrams = 100,
     this.weightMinGrams = 100,
     this.weightMaxGrams = 5000,
+    this.stockWeightGrams = 0,
   });
 
   /// В наличии ли товар — с учётом того, что магазин разрешает
   /// принимать заказы даже при нулевом остатке (allow_backorder).
-  /// Остаток по весу не отслеживается — весовой товар всегда «в наличии».
-  bool get inStock => saleMode != ProductSaleMode.piece || stockQuantity > 0 || allowBackorder;
+  /// weightVariable всегда «в наличии» — остаток для него не отслеживается
+  /// (сама фича перевзвешивания ещё не построена).
+  bool get inStock => switch (saleMode) {
+    ProductSaleMode.weightVariable => true,
+    ProductSaleMode.weightFixed => stockWeightGrams > 0 || allowBackorder,
+    ProductSaleMode.piece => stockQuantity > 0 || allowBackorder,
+  };
 
   bool get isWeightBased => saleMode != ProductSaleMode.piece;
 
@@ -49,6 +61,7 @@ class ProductPhysical {
         weightStepGrams: (json['weight_step_grams'] as num?)?.toInt() ?? 100,
         weightMinGrams: (json['weight_min_grams'] as num?)?.toInt() ?? 100,
         weightMaxGrams: (json['weight_max_grams'] as num?)?.toInt() ?? 5000,
+        stockWeightGrams: (json['stock_weight_grams'] as num?)?.toInt() ?? 0,
       );
 }
 

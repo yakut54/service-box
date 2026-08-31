@@ -231,10 +231,28 @@ class ProductController extends Controller
         return $data;
     }
 
+    /**
+     * Штучный и весовые режимы ведут остаток в разных полях
+     * (stock_quantity шт. / stock_weight_grams г) — форма шлёт весь блок
+     * physical целиком независимо от выбранного режима (см. ProductEditView.vue),
+     * поэтому здесь обнуляем то поле, которое для текущего sale_mode не
+     * актуально. Раньше это не делалось вообще — отсюда мусорные остатки у
+     * весовых товаров (см. PLAN.md, «Остаток на складе для весовых товаров»).
+     */
+    protected function normalizePhysical(array $data): array
+    {
+        if (($data['sale_mode'] ?? 'piece') === 'piece') {
+            $data['stock_weight_grams'] = 0;
+        } else {
+            $data['stock_quantity'] = 0;
+        }
+        return $data;
+    }
+
     protected function storeProductDetails(Product $product, Request $request): void
     {
         if ($product->type === 'physical' && $request->has('physical')) {
-            $product->physical()->create($request->physical);
+            $product->physical()->create($this->normalizePhysical($request->physical));
         }
 
         if ($product->type === 'digital' && $request->has('digital')) {
@@ -249,10 +267,11 @@ class ProductController extends Controller
     protected function updateProductDetails(Product $product, Request $request): void
     {
         if ($request->has('physical') && $product->type === 'physical') {
+            $physical = $this->normalizePhysical($request->physical);
             if ($product->physical) {
-                $product->physical->update($request->physical);
+                $product->physical->update($physical);
             } else {
-                $product->physical()->create($request->physical);
+                $product->physical()->create($physical);
             }
         }
 

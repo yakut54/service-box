@@ -109,14 +109,13 @@ class OrderController extends Controller
                     $itemPrice = $product->price;
 
                     if ($product->type === 'physical' && $product->physical) {
-                        if ($product->physical->stock_quantity < $quantity) {
-                            abort(409, "Товар «{$product->name}» закончился на складе");
-                        }
-                        $product->physical->decrement('stock_quantity', $quantity);
+                        \App\Services\PhysicalStockService::reserve($product, $quantity, null);
                     }
                 } else {
                     // weight_fixed / weight_variable — см. PLAN.md, «Развесной товар».
-                    // Складской остаток по весу в этой версии не отслеживается.
+                    // Остаток по весу списывается только для weight_fixed —
+                    // weight_variable сам как фича ещё не построен (см.
+                    // PhysicalStockService::reserve).
                     if (!isset($item['weight_grams'])) {
                         abort(422, "Не указан вес для товара «{$product->name}»");
                     }
@@ -130,6 +129,10 @@ class OrderController extends Controller
                     }
                     if (($weightGrams - $min) % $step !== 0) {
                         abort(422, "Вес товара «{$product->name}» должен быть кратен шагу {$step} г");
+                    }
+
+                    if ($product->type === 'physical' && $product->physical) {
+                        \App\Services\PhysicalStockService::reserve($product, 1, $weightGrams);
                     }
 
                     $quantity = 1;
@@ -291,9 +294,7 @@ class OrderController extends Controller
         if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
             // Возвращаем товары на склад
             foreach ($order->items as $item) {
-                if ($item->product && $item->product->type === 'physical') {
-                    $item->product->physical?->increment('stock_quantity', $item->quantity);
-                }
+                \App\Services\PhysicalStockService::release($item);
             }
 
             // Комиссия возвращается вместе с заказом — без исключений
@@ -469,9 +470,9 @@ class OrderController extends Controller
         $order = Order::with('items.product')->findOrFail($order);
 
         // Возвращаем физические товары на склад перед удалением
-        foreach ($order->items as $item) {
-            if ($item->product && $item->product->type === 'physical' && $order->status !== 'cancelled') {
-                $item->product->physical?->increment('stock_quantity', $item->quantity);
+        if ($order->status !== 'cancelled') {
+            foreach ($order->items as $item) {
+                \App\Services\PhysicalStockService::release($item);
             }
         }
 

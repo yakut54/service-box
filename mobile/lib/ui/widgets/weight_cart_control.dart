@@ -4,6 +4,32 @@ import 'package:provider/provider.dart';
 import '../../core/format.dart';
 import '../../models/product.dart';
 import '../../state/cart_state.dart';
+import 'out_of_stock_chip.dart';
+
+/// Остатка не хватает даже на минимальную порцию — товар эффективно «нет в
+/// наличии», хотя формально stockWeightGrams может быть больше нуля.
+/// weightVariable и allow_backorder не проверяем — там остаток либо не
+/// отслеживается (сама фича перевзвешивания не построена), либо магазин
+/// сознательно снял ограничение.
+bool _isOutOfStock(Product product) {
+  final physical = product.physical;
+  if (physical == null || physical.saleMode != ProductSaleMode.weightFixed) return false;
+  if (physical.allowBackorder) return false;
+  return physical.stockWeightGrams < physical.weightMinGrams;
+}
+
+/// Верхняя граница ползунка — обычно weightMaxGrams, но если на складе
+/// осталось меньше (и остаток вообще отслеживается) — не даём заказать
+/// больше, чем реально есть.
+int _effectiveMaxGrams(Product product) {
+  final physical = product.physical!;
+  if (physical.saleMode != ProductSaleMode.weightFixed || physical.allowBackorder) {
+    return physical.weightMaxGrams;
+  }
+  return physical.weightMaxGrams < physical.stockWeightGrams
+      ? physical.weightMaxGrams
+      : physical.stockWeightGrams;
+}
 
 /// Аналог AddToCartControl, но для товара «по весу» (см. PLAN.md, «Развесной
 /// товар — финальное ТЗ»): вместо степпера +/- — ползунок веса. Один слайдер
@@ -31,8 +57,13 @@ class WeightCartControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final weight = context.watch<CartState>().weightGramsOf(product.id);
     final theme = Theme.of(context);
+
+    if (_isOutOfStock(product)) {
+      return OutOfStockChip(compact: compact, theme: theme);
+    }
+
+    final weight = context.watch<CartState>().weightGramsOf(product.id);
 
     if (compact) {
       return _CompactWeightChip(
@@ -233,7 +264,7 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
 
   void _applyGrams(int grams) {
     final physical = widget.product.physical!;
-    final clamped = grams.clamp(physical.weightMinGrams, physical.weightMaxGrams);
+    final clamped = grams.clamp(physical.weightMinGrams, _effectiveMaxGrams(widget.product));
     context.read<CartState>().setWeight(widget.product, clamped);
   }
 
@@ -254,7 +285,8 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
     final product = widget.product;
     final physical = product.physical!;
     final value = _currentValue;
-    final divisions = ((physical.weightMaxGrams - physical.weightMinGrams) / physical.weightStepGrams)
+    final maxGrams = _effectiveMaxGrams(product);
+    final divisions = ((maxGrams - physical.weightMinGrams) / physical.weightStepGrams)
         .round()
         .clamp(1, 1000);
 
@@ -288,7 +320,7 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
         Slider(
           value: value.toDouble(),
           min: physical.weightMinGrams.toDouble(),
-          max: physical.weightMaxGrams.toDouble(),
+          max: maxGrams.toDouble(),
           divisions: divisions,
           label: _formatGrams(value),
           onChanged: (v) => _applyGrams(v.round()),

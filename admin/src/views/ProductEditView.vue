@@ -31,6 +31,7 @@ const form = ref({
 const physicalDetails = ref({
   sku: '',
   stock_quantity: 0,
+  allow_backorder: false,
   weight_grams: null as number | null,
   dimensions: '',
   color: '',
@@ -40,11 +41,24 @@ const physicalDetails = ref({
   weight_step_grams: 100 as number | null,
   weight_min_grams: 100 as number | null,
   weight_max_grams: 5000 as number | null,
+  stock_weight_grams: 0,
 })
 
 const isWeightMode = computed(() =>
   physicalDetails.value.sale_mode === 'weight_fixed' || physicalDetails.value.sale_mode === 'weight_variable'
 )
+
+// Остаток склада хранится в граммах (та же точность, что и вес заказа), но
+// вводится в кг — у весовых товаров остаток обычно измеряется десятками-
+// сотнями килограммов, в граммах это нечитаемо (100 кг = "100000", легко
+// ошибиться на порядок). Шаг/мин/макс веса ПОРЦИИ заказа остаются в
+// граммах намеренно — там числа небольшие (100–5000), граммы уместны.
+const stockWeightKg = computed({
+  get: () => physicalDetails.value.stock_weight_grams / 1000,
+  set: (kg: number | null) => {
+    physicalDetails.value.stock_weight_grams = Math.round((kg || 0) * 1000)
+  },
+})
 
 const saleModeConfig = {
   piece: { icon: '🍉', label: 'Штучный', desc: 'Цена за штуку' },
@@ -132,6 +146,7 @@ onMounted(async () => {
         physicalDetails.value = {
           sku: p.physical.sku || '',
           stock_quantity: p.physical.stock_quantity,
+          allow_backorder: p.physical.allow_backorder ?? false,
           weight_grams: p.physical.weight_grams,
           dimensions: p.physical.dimensions || '',
           color: p.physical.color || '',
@@ -141,6 +156,7 @@ onMounted(async () => {
           weight_step_grams: p.physical.weight_step_grams ?? 100,
           weight_min_grams: p.physical.weight_min_grams ?? 100,
           weight_max_grams: p.physical.weight_max_grams ?? 5000,
+          stock_weight_grams: p.physical.stock_weight_grams ?? 0,
         }
       }
       if (p.digital) {
@@ -350,7 +366,23 @@ async function handleSubmit() {
               <p class="label">Кол-во на складе</p>
               <input v-model.number="physicalDetails.stock_quantity" type="number" min="0" class="input" placeholder="0" />
             </div>
+            <div v-else>
+              <p class="label">Остаток на складе (кг)</p>
+              <input v-model.number="stockWeightKg" type="number" min="0" step="0.1" class="input" placeholder="0" />
+              <p v-if="physicalDetails.sale_mode === 'weight_variable'" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Пока не влияет на приём заказов — режим «перевзвешивание» в разработке
+              </p>
+            </div>
           </div>
+
+          <label v-if="!isWeightMode || physicalDetails.sale_mode === 'weight_fixed'" class="flex items-center gap-3 cursor-pointer select-none">
+            <div class="relative">
+              <input type="checkbox" v-model="physicalDetails.allow_backorder" class="sr-only peer" />
+              <div class="w-11 h-6 bg-gray-200 peer-checked:bg-primary-600 rounded-full transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+            </div>
+            <span class="text-gray-700 dark:text-gray-300 text-sm">Принимать заказы при нулевом остатке</span>
+          </label>
 
           <!-- Штучный: справочный вес -->
           <div v-if="physicalDetails.sale_mode === 'piece'" class="grid grid-cols-2 gap-4">
