@@ -258,6 +258,23 @@ class MaxService
         self::sendMessage($shop, "Запись {$date} {$time} (" . self::esc($name) . ") — {$label}");
     }
 
+    /**
+     * Покупатель не подтвердил доплату за 3 часа — заказ переведён в
+     * needs_attention (см. CheckSurchargeDeadline). Владельцу — в общий инбокс.
+     */
+    public static function notifyOwnerSurchargeExpired(Shop $shop, $order): void
+    {
+        $amount = number_format(($order->surcharge_amount ?? 0) / 100, 0, '.', ' ');
+        $name   = $order->customer_name ?? $order->customer_phone;
+
+        $text = "⚠️ <b>Не оплачена доплата за заказ №" . substr($order->id, 0, 8) . "</b>\n\n"
+              . "Клиент: " . self::esc($name) . "\n"
+              . "Сумма доплаты: {$amount} ₽\n\n"
+              . "Срок истёк, заказ требует внимания.";
+
+        self::sendMessage($shop, $text);
+    }
+
     public static function removeButtonsByEntity(string $type, string $entityId): void
     {
         $cached = Cache::get("max_mid:{$type}:{$entityId}");
@@ -300,6 +317,11 @@ class MaxService
         return $found ? ($found['max_user_id'] ?? null) : null;
     }
 
+    /**
+     * $bookingId на самом деле — id любой сущности, для которой был вызван
+     * generateCustomerCode (booking или order, общий namespace кодов — см.
+     * notifySurchargeRequest ниже, доплата за перевзвешенный заказ).
+     */
     private static function findCustomerByBooking(string $bookingId): ?array
     {
         $schemas = DB::select("
@@ -315,6 +337,15 @@ class MaxService
                 JOIN \"{$s}\".customers c ON c.id = b.customer_id
                 WHERE b.id = ?
             ", [$bookingId]);
+
+            if (!$result) {
+                $result = DB::selectOne("
+                    SELECT c.id, c.max_user_id
+                    FROM \"{$s}\".orders o
+                    JOIN \"{$s}\".customers c ON c.id = o.customer_id
+                    WHERE o.id = ?
+                ", [$bookingId]);
+            }
 
             if ($result) {
                 return [
@@ -421,6 +452,34 @@ class MaxService
                 Cache::put("max_cust_cancel_mid:{$bookingId}", ['user_id' => $userId, 'mid' => $mid], now()->addDays(7));
             }
         } catch (\Throwable) {}
+    }
+
+    /**
+     * Уведомление о доплате за перевзвешенный заказ (см.
+     * OrderReweighService::finalizeOrder). Работает только если покупатель
+     * уже привязал MAX через код, выданный при оформлении заказа
+     * (см. OrderController::store — max_code генерируется только для
+     * заказов с товаром weight_variable).
+     */
+    public static function notifySurchargeRequest(Shop $shop, $order): void
+    {
+        $userId = self::getCustomerUserId($order->id);
+        if (!$userId) return;
+
+        $tz       = $shop->timezone ?? 'Europe/Moscow';
+        $deadline = \Carbon\Carbon::parse($order->surcharge_deadline_at)->setTimezone($tz)->locale('ru');
+        $amount   = number_format($order->surcharge_amount / 100, 0, ',', ' ');
+
+        $text  = "⚠️ <b>Требуется доплата за заказ</b>\n\n";
+        $text .= "Фактический вес товара оказался больше заявленного при оформлении.\n";
+        $text .= "Сумма доплаты: <b>{$amount} ₽</b>\n";
+        $text .= "Подтвердите до <b>" . $deadline->translatedFormat('j M, H:i') . "</b>, иначе заказ будет отменён.";
+
+        if ($order->surcharge_payment_url) {
+            $text .= "\n\n🔗 " . $order->surcharge_payment_url;
+        }
+
+        self::sendRaw($userId, $text);
     }
 
     private static function esc(string $s): string

@@ -30,4 +30,11 @@ return [
         'secret_key' => env('YOOKASSA_SECRET_KEY'),
     ],
 
+    'firebase' => [
+        // Путь к JSON сервис-аккаунта Firebase (Project Settings → Service
+        // Accounts → Generate new private key). Нет файла — push-канал молча
+        // выключен (тот же паттерн, что MAIL_MAILER=log до настройки SMTP).
+        'credentials_path' => env('FIREBASE_CREDENTIALS_PATH'),
+    ],
+
 ];

@@ -17,19 +17,21 @@ const searched  = ref(false)
 const error     = ref('')
 
 const statusLabels: Record<string, string> = {
-  pending:    'Ожидает',
-  paid:       'Оплачен',
-  processing: 'В работе',
-  completed:  'Завершён',
-  cancelled:  'Отменён',
+  pending:         'Ожидает',
+  paid:            'Оплачен',
+  processing:      'В работе',
+  completed:       'Завершён',
+  cancelled:       'Отменён',
+  needs_attention: 'Требует внимания',
 }
 
 const statusBadge: Record<string, string> = {
-  pending:    'sb-badge-warning',
-  paid:       'sb-badge-success',
-  processing: 'sb-badge-info',
-  completed:  'sb-badge-success',
-  cancelled:  'sb-badge-danger',
+  pending:         'sb-badge-warning',
+  paid:            'sb-badge-success',
+  processing:      'sb-badge-info',
+  completed:       'sb-badge-success',
+  cancelled:       'sb-badge-danger',
+  needs_attention: 'sb-badge-danger',
 }
 
 function formatDate(dateStr: string) {

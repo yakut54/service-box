@@ -6,6 +6,7 @@ use App\Mail\BookingConfirmationMail;
 use App\Mail\NewBookingMail;
 use App\Mail\NewOrderMail;
 use App\Mail\OrderConfirmationMail;
+use App\Mail\OrderSurchargeMail;
 use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
@@ -67,6 +68,23 @@ class MailService
         }
     }
 
+    public static function notifySurcharge(Shop $shop, Order $order): void
+    {
+        if (!$order->customer_email) {
+            return;
+        }
+
+        $payload = self::surchargePayload($order, $shop);
+        // entity_type ограничен CHECK'ом до order/booking (mail_failures) — доплата
+        // это письмо про тот же заказ, отдельного типа сущности заводить не нужно.
+        $meta    = self::meta($shop, 'order', $order->id, 'buyer', $order->customer_email);
+
+        self::dispatch(
+            fn () => Mail::to($order->customer_email)->queue(new OrderSurchargeMail($payload, $shop->name, $meta)),
+            $meta,
+        );
+    }
+
     /** Контекст для MailFailureRecorder — кому/о чём было письмо, если оно не дойдёт. */
     private static function meta(Shop $shop, string $entityType, string $entityId, string $recipientType, string $email): array
     {
@@ -109,6 +127,18 @@ class MailService
                 'quantity'     => $item->quantity,
                 'price'        => self::rubles($item->price),
             ])->all(),
+        ];
+    }
+
+    private static function surchargePayload(Order $order, Shop $shop): array
+    {
+        $tz = $shop->timezone ?? 'Europe/Moscow';
+
+        return [
+            'short_id'         => substr($order->id, 0, 8),
+            'surcharge_amount' => self::rubles($order->surcharge_amount ?? 0),
+            'deadline'         => Carbon::parse($order->surcharge_deadline_at)->setTimezone($tz)->locale('ru')->translatedFormat('j F, H:i'),
+            'payment_url'      => $order->surcharge_payment_url,
         ];
     }
 

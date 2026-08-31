@@ -167,6 +167,75 @@ class TelegramService
     }
 
     /**
+     * Уведомление о доплате за перевзвешенный заказ (см.
+     * OrderReweighService::finalizeOrder). Работает только если покупатель
+     * уже привязал Telegram — либо раньше (через запись), либо через
+     * telegram_link выданный при оформлении заказа (см. OrderController::store).
+     */
+    public static function notifySurchargeRequest(Shop $shop, $order): void
+    {
+        $chatId = \DB::table("{$shop->schema_name}.customers")
+            ->where('phone', $order->customer_phone)
+            ->value('telegram_chat_id');
+
+        if (!$chatId) {
+            return;
+        }
+
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return;
+        }
+
+        $tz       = $shop->timezone ?? 'Europe/Moscow';
+        $deadline = \Carbon\Carbon::parse($order->surcharge_deadline_at)->setTimezone($tz);
+        $amount   = number_format($order->surcharge_amount / 100, 0, ',', ' ');
+
+        $text  = "⚠️ <b>Требуется доплата за заказ</b>\n\n";
+        $text .= "Фактический вес товара оказался больше заявленного при оформлении.\n";
+        $text .= "Сумма доплаты: <b>{$amount} ₽</b>\n";
+        $text .= "Подтвердите до <b>" . $deadline->translatedFormat('j M, H:i') . "</b>, иначе заказ будет отменён.";
+
+        $payload = [
+            'chat_id'    => $chatId,
+            'text'       => $text,
+            'parse_mode' => 'HTML',
+        ];
+
+        if ($order->surcharge_payment_url) {
+            $payload['reply_markup'] = json_encode([
+                'inline_keyboard' => [[['text' => '💳 Оплатить доплату', 'url' => $order->surcharge_payment_url]]],
+            ]);
+        }
+
+        \Illuminate\Support\Facades\Http::timeout(5)
+            ->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+    }
+
+    /**
+     * Покупатель не подтвердил доплату за 3 часа — заказ переведён в
+     * needs_attention (см. CheckSurchargeDeadline). Владельцу — в общий инбокс.
+     */
+    public static function notifyOwnerSurchargeExpired(Shop $shop, $order): void
+    {
+        $amount = number_format(($order->surcharge_amount ?? 0) / 100, 0, '.', ' ');
+        $name   = $order->customer_name ?? $order->customer_phone;
+
+        $text = "⚠️ <b>Не оплачена доплата за заказ №" . substr($order->id, 0, 8) . "</b>\n\n"
+              . "Клиент: " . self::esc($name) . "\n"
+              . "Сумма доплаты: {$amount} ₽\n\n"
+              . "Срок истёк, заказ требует внимания.";
+
+        self::sendMessage(
+            shop: $shop,
+            text: $text,
+            type: 'system_notification',
+            entityType: 'Order',
+            entityId: $order->id
+        );
+    }
+
+    /**
      * Generate a deep-link token so a customer can link their Telegram.
      * Returns the full t.me URL to put in the widget.
      */

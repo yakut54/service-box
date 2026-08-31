@@ -89,6 +89,26 @@ class ProfileController extends Controller
         return response()->json(['data' => $this->present($customer)]);
     }
 
+    /**
+     * POST /api/widget/profile/fcm-token
+     *
+     * Токен устройства для Firebase push (см. FirebaseService::notifySurcharge).
+     * Один токен на покупателя — упрощение v1, переустановка/новый телефон
+     * затирает предыдущий (см. PLAN.md).
+     */
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $customer = $this->customer($request);
+
+        $data = $request->validate([
+            'fcm_token' => 'required|string|max:255',
+        ]);
+
+        $customer->update(['fcm_token' => $data['fcm_token']]);
+
+        return response()->json(['message' => 'ok']);
+    }
+
     private function customer(Request $request): Customer
     {
         return $request->attributes->get('customer');
