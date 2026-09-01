@@ -11,16 +11,18 @@ const props = defineProps<{
 // относительно триггера — этого достаточно на широком экране, но у ⓘ в
 // правой колонке узкой сетки (320-360px) пузырь всё равно вылезает за край
 // вьюпорта. Замеряем реальный прямоугольник после раскладки и докручиваем
-// коррекцию через transform.
+// позицию через transform (на самом пузыре и на стрелке — стрелка при
+// align="center" уже центрируется через translateX(-50%), коррекция
+// дописывается к этому значению, а не заменяет его).
 //
-// Коррекция идёт ПРЯМО на пузырь и на стрелку (не на общую обёртку вокруг
-// них): обёртка пробовалась первой — простой div без своих классов между
-// уже-спозиционированным родителем и пузырём с max-width ломает shrink-to-fit
-// у родителя (браузер считает предпочтительную ширину не по max-width пузыря,
-// а по самому длинному неразрывному слову) — пузырь визуально сжимался ДО
-// max-width, а не после него. На самом пузыре transform раньше не был занят
-// ничем (только у стрелки при align="center" уже висит -translate-x-1/2 —
-// её JS-коррекция дописывается к этому значению, не заменяет).
+// w-max на пузыре обязателен: containing block абсолютно спозиционированного
+// пузыря — это крохотная .relative-обёртка вокруг иконки ⓘ (ширина = ширина
+// самой иконки). При обычном width:auto формула shrink-to-fit берёт
+// max(preferred-minimum-width, available-width) — available-width тут почти
+// нулевой (ширина иконки), поэтому побеждает preferred-minimum-width (ширина
+// самого длинного неразрывного слова) — пузырь схлопывался до одного слова
+// в строке НЕЗАВИСИМО от значения max-width. width:max-content игнорирует
+// containing block и считается от контента, max-width уже честно его ограничивает.
 const boxEl = ref<HTMLElement | null>(null)
 const shiftPx = ref(0)
 const EDGE_MARGIN = 12
@@ -76,7 +78,7 @@ onUnmounted(() => {
     >
       <div
         ref="boxEl"
-        class="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-2.5 py-2 max-w-[min(300px,calc(100vw-24px))] whitespace-normal shadow-xl ring-1 ring-black/10"
+        class="w-max bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-2.5 py-2 max-w-[min(300px,calc(100vw-24px))] whitespace-normal shadow-xl ring-1 ring-black/10"
         :style="boxShiftStyle"
       >
         <slot name="content" />
