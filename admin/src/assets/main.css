@@ -401,11 +401,39 @@
   .card {
     padding: 12px 10px;
   }
+
+  .label {
+    font-size: 12px;
+  }
+
+  .input {
+    font-size: 14px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .input.pr-12 {
+    padding-right: 38px;
+  }
 }
 
 @media (max-width: 360px) {
   .card {
     padding: 10px 8px;
+  }
+
+  .label {
+    font-size: 11px;
+  }
+
+  .input {
+    font-size: 13px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .input.pr-12 {
+    padding-right: 34px;
   }
 }
 
