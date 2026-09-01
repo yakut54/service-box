@@ -9,6 +9,7 @@ import 'checkout_screen.dart';
 import 'product_detail_screen.dart';
 import 'widgets/primary_submit_button.dart';
 import 'widgets/promo_code_field.dart';
+import 'widgets/related_products.dart';
 import 'widgets/weight_cart_control.dart';
 
 /// Корзина: список добавленных позиций, изменение количества, промокод, сумма.
@@ -131,11 +132,21 @@ class _CartBody extends StatelessWidget {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.all(12),
-            itemCount: cart.items.length + 1,
+            // +2: PromoCodeField, затем «Похожие товары» — раньше корзина
+            // с 1-2 позициями оставляла пустой экран до самого «Итого»
+            // (найдено 2026-09-01 живым тестом), карусель заполняет это
+            // место так же, как на карточке товара (тот же RelatedProducts).
+            itemCount: cart.items.length + 2,
             separatorBuilder: (_, _) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               if (index == cart.items.length) {
                 return const PromoCodeField();
+              }
+              if (index == cart.items.length + 1) {
+                return RelatedProducts(
+                  categoryId: cart.items.last.product.categoryId,
+                  excludeProductIds: cart.items.map((i) => i.product.id).toSet(),
+                );
               }
               return _CartLineTile(item: cart.items[index]);
             },
