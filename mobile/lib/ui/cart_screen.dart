@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/format.dart';
+import '../data/cart_swipe_hint_store.dart';
 import '../models/cart_item.dart';
 import '../state/cart_state.dart';
 import '../state/shop_state.dart';
@@ -17,8 +18,33 @@ import 'widgets/weight_cart_control.dart';
 /// Промокод/автоскидка пересчитываются в CartState на каждое изменение
 /// корзины (см. CartState._scheduleDiscountRefresh) — этому экрану о них
 /// заботиться не нужно.
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  final _hintStore = CartSwipeHintStore();
+  bool _showSwipeHint = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHintFlag();
+  }
+
+  Future<void> _loadHintFlag() async {
+    final dismissed = await _hintStore.isDismissed();
+    if (!mounted || dismissed) return;
+    setState(() => _showSwipeHint = true);
+  }
+
+  void _closeSwipeHint({required bool rememberChoice}) {
+    setState(() => _showSwipeHint = false);
+    if (rememberChoice) _hintStore.dismissForever();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +55,12 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Корзина')),
       body: cart.items.isEmpty
           ? const _EmptyCart()
-          : _CartBody(cart: cart, minOrderKopecks: minOrderKopecks),
+          : _CartBody(
+              cart: cart,
+              minOrderKopecks: minOrderKopecks,
+              showSwipeHint: _showSwipeHint,
+              onCloseSwipeHint: _closeSwipeHint,
+            ),
     );
   }
 }
@@ -78,6 +109,88 @@ class _MinOrderHint extends StatelessWidget {
   }
 }
 
+/// Подсказка про свайп-удаление — единственная подсказка о жесте в корзине
+/// (иконка-корзина на карточке раньше дублировала свайп явной кнопкой,
+/// убрана в пользу этого баннера). Крестик закрывает только на эту сессию;
+/// подсказка не появится больше, только если отмечен чекбокс.
+class _SwipeHintBanner extends StatefulWidget {
+  final void Function({required bool rememberChoice}) onClose;
+
+  const _SwipeHintBanner({required this.onClose});
+
+  @override
+  State<_SwipeHintBanner> createState() => _SwipeHintBannerState();
+}
+
+class _SwipeHintBannerState extends State<_SwipeHintBanner> {
+  bool _dontShowAgain = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.swipe_left_alt_rounded, size: 20, color: scheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Чтобы удалить товар из корзины, смахните его влево',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => widget.onClose(rememberChoice: _dontShowAgain),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: Icon(Icons.close_rounded, size: 18, color: scheme.onPrimaryContainer),
+              ),
+            ],
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => setState(() => _dontShowAgain = !_dontShowAgain),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Checkbox(
+                    value: _dontShowAgain,
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    onChanged: (v) => setState(() => _dontShowAgain = v ?? false),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Больше не показывать',
+                    style: theme.textTheme.bodySmall?.copyWith(color: scheme.onPrimaryContainer),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmptyCart extends StatelessWidget {
   const _EmptyCart();
 
@@ -115,8 +228,15 @@ class _EmptyCart extends StatelessWidget {
 class _CartBody extends StatelessWidget {
   final CartState cart;
   final int minOrderKopecks;
+  final bool showSwipeHint;
+  final void Function({required bool rememberChoice}) onCloseSwipeHint;
 
-  const _CartBody({required this.cart, required this.minOrderKopecks});
+  const _CartBody({
+    required this.cart,
+    required this.minOrderKopecks,
+    required this.showSwipeHint,
+    required this.onCloseSwipeHint,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +268,10 @@ class _CartBody extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (showSwipeHint) ...[
+                          _SwipeHintBanner(onClose: onCloseSwipeHint),
+                          const SizedBox(height: 8),
+                        ],
                         for (final item in cart.items) ...[
                           _CartLineTile(item: item),
                           const SizedBox(height: 8),
@@ -282,18 +406,11 @@ class _CartLineTile extends StatelessWidget {
         ),
       ),
       child: Card(
-        child: Stack(
-          children: [
-            Padding(
-              // Правый отступ освобождает место под кнопку удаления в углу
-              // (ниже) — свайп остаётся рабочим, но не единственной
-              // подсказкой: красный фон с корзиной виден только после того,
-              // как свайп уже начался, заранее ничего не намекает, что так
-              // можно.
-              padding: const EdgeInsets.fromLTRB(10, 10, 34, 10),
-              child: Row(
-                children: [
-                  ClipRRect(
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: InkWell(
                       onTap: () => Navigator.of(context).push(
@@ -350,26 +467,8 @@ class _CartLineTile extends StatelessWidget {
                           ),
                         )
                       : _CartQuantityStepper(item: item),
-                ],
-              ),
-            ),
-            Positioned(
-              top: 2,
-              right: 2,
-              child: IconButton(
-                onPressed: () => context.read<CartState>().remove(product.id),
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                icon: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 18,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
-                tooltip: 'Удалить из корзины',
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
