@@ -77,15 +77,25 @@ class ReviewController extends Controller
             }
         }
 
-        $review = Review::create([
-            'product_id'    => $data['product_id'],
-            'customer_id'   => $customerId,
-            'order_id'      => $data['order_id'] ?? null,
-            'customer_name' => trim($data['customer_name']),
-            'rating'        => $data['rating'],
-            'text'          => isset($data['text']) ? trim($data['text']) : null,
-            'is_published'  => false,
-        ]);
+        try {
+            $review = Review::create([
+                'product_id'    => $data['product_id'],
+                'customer_id'   => $customerId,
+                'order_id'      => $data['order_id'] ?? null,
+                'customer_name' => trim($data['customer_name']),
+                'rating'        => $data['rating'],
+                'text'          => isset($data['text']) ? trim($data['text']) : null,
+                'is_published'  => false,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // 23505 = unique_violation — reviews_customer_product_unique ловит
+            // гонку двух одновременных запросов, проскочивших exists() выше
+            // до того как первый закоммитился.
+            if ($e->getCode() === '23505') {
+                return response()->json(['message' => 'Вы уже оставили отзыв на этот товар'], 422);
+            }
+            throw $e;
+        }
 
         return response()->json([
             'message' => 'Отзыв отправлен на модерацию',
