@@ -5,6 +5,7 @@ import '../../state/auth_state.dart';
 import '../../state/chat_state.dart';
 import '../chat_screen.dart';
 import '../phone_login_screen.dart';
+import 'notification_badge.dart';
 
 /// Открыть чат — если байер не вошёл, сперва просит войти по телефону
 /// (переписка привязана к сессии). Общая точка входа для иконки чата в
@@ -66,19 +67,7 @@ class _ChatButtonState extends State<ChatButton> {
           Positioned(
             right: 6,
             top: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                unread > 99 ? '99+' : '$unread',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onError,
-                ),
-              ),
-            ),
+            child: NotificationBadge(count: unread),
           ),
       ],
     );

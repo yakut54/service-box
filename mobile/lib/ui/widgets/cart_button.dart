@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/cart_state.dart';
 import '../cart_screen.dart';
+import 'notification_badge.dart';
 
 /// Иконка корзины с бейджем количества — переиспользуется в AppBar каталога
 /// и карточки товара, чтобы корзина была доступна с любого экрана покупок.
@@ -26,19 +27,7 @@ class CartButton extends StatelessWidget {
           Positioned(
             right: 6,
             top: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$itemCount',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onError,
-                ),
-              ),
-            ),
+            child: NotificationBadge(count: itemCount),
           ),
       ],
     );

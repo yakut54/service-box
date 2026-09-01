@@ -14,6 +14,7 @@ import 'widgets/app_dialog.dart';
 import 'widgets/editable_avatar.dart';
 import 'widgets/error_view.dart';
 import 'widgets/form/name_field.dart';
+import 'widgets/notification_badge.dart';
 import 'widgets/primary_submit_button.dart';
 import 'widgets/success_flash.dart';
 
@@ -184,19 +185,9 @@ class _AccountScreenState extends State<AccountScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (unread > 0)
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.error,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        unread > 99 ? '99+' : '$unread',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onError,
-                        ),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: NotificationBadge(count: unread),
                     ),
                   const Icon(Icons.chevron_right_rounded),
                 ],
