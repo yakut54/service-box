@@ -284,6 +284,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 $sql$, p_schema_name, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.reviews(product_id, is_published)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.reviews(is_published)', p_schema_name);
+                EXECUTE format('CREATE UNIQUE INDEX ON %I.reviews(customer_id, product_id)', p_schema_name);
 
                 -- masters
                 EXECUTE format($sql$
