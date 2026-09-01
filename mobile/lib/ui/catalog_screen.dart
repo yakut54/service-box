@@ -161,8 +161,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
     // кнопкой остаётся пустое место (см. скрин с эмулятора). Поэтому
     // считаем высоту ячейки явно: ширина колонки (= высота картинки) +
     // фиксированная высота футера (имя + цена + кнопка, см. ProductCard).
-    const gridPadding = 12.0;
-    const crossAxisSpacing = 12.0;
+    const gridPadding = 8.0;
+    const crossAxisSpacing = 8.0;
+    const mainAxisSpacing = 8.0;
     const cardFooterHeight = 130.0;
     final columnWidth =
         (MediaQuery.sizeOf(context).width - gridPadding * 2 - crossAxisSpacing) / 2;
@@ -178,7 +179,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         ),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisSpacing: 12,
+          mainAxisSpacing: mainAxisSpacing,
           crossAxisSpacing: crossAxisSpacing,
           mainAxisExtent: columnWidth + cardFooterHeight,
         ),

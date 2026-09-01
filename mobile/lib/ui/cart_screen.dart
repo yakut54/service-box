@@ -8,6 +8,7 @@ import '../state/cart_state.dart';
 import '../state/shop_state.dart';
 import 'checkout_screen.dart';
 import 'product_detail_screen.dart';
+import 'widgets/app_dialog.dart';
 import 'widgets/primary_submit_button.dart';
 import 'widgets/promo_code_field.dart';
 import 'widgets/related_products.dart';
@@ -46,13 +47,33 @@ class _CartScreenState extends State<CartScreen> {
     if (rememberChoice) _hintStore.dismissForever();
   }
 
+  Future<void> _confirmClearCart(BuildContext context) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Очистить корзину?',
+      message: 'Все товары будут удалены из корзины.',
+      confirmLabel: 'Очистить',
+    );
+    if (confirmed && context.mounted) context.read<CartState>().clear();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartState>();
     final minOrderKopecks = context.watch<ShopState>().shop?.minOrderAmountKopecks ?? 0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Корзина')),
+      appBar: AppBar(
+        title: const Text('Корзина'),
+        actions: [
+          if (cart.items.isNotEmpty)
+            IconButton(
+              onPressed: () => _confirmClearCart(context),
+              icon: const Icon(Icons.delete_sweep_outlined),
+              tooltip: 'Очистить корзину',
+            ),
+        ],
+      ),
       body: cart.items.isEmpty
           ? const _EmptyCart()
           : _CartBody(
