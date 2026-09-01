@@ -147,16 +147,16 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Bookings -->
-      <div v-if="customer.bookings" class="card">
+      <!-- Bookings — только когда есть хотя бы одна запись: у товарных
+           магазинов (без услуг) этот блок всегда пуст, а вкладка "Записи"
+           уже скрыта из меню для всех — пустая карточка тут чистый шум. -->
+      <div v-if="customer.bookings?.length" class="card">
         <h3 class="font-semibold text-gray-900 dark:text-white mb-4">
           История записей
-          <span class="text-gray-400 dark:text-gray-500 font-normal text-sm ml-1">({{ customer.bookings?.length || 0 }})</span>
+          <span class="text-gray-400 dark:text-gray-500 font-normal text-sm ml-1">({{ customer.bookings.length }})</span>
         </h3>
 
-        <div v-if="!customer.bookings?.length" class="text-gray-500 dark:text-gray-400 text-sm py-4 text-center">Нет записей</div>
-
-        <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+        <div class="divide-y divide-gray-100 dark:divide-gray-700">
           <div v-for="booking in customer.bookings" :key="booking.id" class="py-3 flex items-center justify-between">
             <div class="min-w-0">
               <div class="font-medium text-sm text-gray-900 dark:text-gray-100">{{ booking.service?.name || '—' }}</div>
