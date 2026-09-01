@@ -449,6 +449,11 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
             ),
           ],
         ),
+        // Отступ фиксированный, не зависит от того, показана ли «Убрать из
+        // корзины» ниже — без этого, как только товар убирали и кнопка
+        // пропадала, ряд −/+/поле слипался с «Готово» вплотную (найдено
+        // 2026-09-01 живым тестом).
+        const SizedBox(height: 12),
         if (widget.weightGrams != null)
           Align(
             alignment: Alignment.center,
@@ -459,7 +464,7 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
             ),
           ),
         if (widget.onDone != null) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           FilledButton(onPressed: widget.onDone, child: const Text('Готово')),
         ],
       ],
