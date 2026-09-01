@@ -6,6 +6,7 @@ import '../core/format.dart';
 import '../data/profile_repository.dart';
 import '../models/profile.dart';
 import '../state/auth_state.dart';
+import '../state/chat_state.dart';
 import 'addresses_screen.dart';
 import 'chat_screen.dart';
 import 'orders_screen.dart';
@@ -168,14 +169,43 @@ class _AccountScreenState extends State<AccountScreen> {
             MaterialPageRoute(builder: (_) => const AddressesScreen()),
           ),
         ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.chat_bubble_outline_rounded),
-          title: const Text('Чат с магазином'),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ChatScreen()),
-          ),
+        Builder(
+          builder: (context) {
+            // Бейдж непрочитанных — тот же счётчик, что у ChatButton в
+            // шапке (общий ChatState), но опрос запускает/останавливает
+            // только ChatButton (см. его доккомент — единственное место в
+            // дереве для этого); здесь просто читаем текущее значение.
+            final unread = context.watch<ChatState>().unreadTotal;
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.chat_bubble_outline_rounded),
+              title: const Text('Чат с магазином'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (unread > 0)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        unread > 99 ? '99+' : '$unread',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onError,
+                        ),
+                      ),
+                    ),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
+              ),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChatScreen()),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 12),
         OutlinedButton(
