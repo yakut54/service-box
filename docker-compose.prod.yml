@@ -95,6 +95,11 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-servicebox}
       POSTGRES_USER: ${DB_USERNAME:-servicebox}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # Только localhost на самом сервере — снаружи недоступно, доступ
+      # только через SSH-туннель (см. DBeaver: вкладка SSH в настройках
+      # соединения).
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
