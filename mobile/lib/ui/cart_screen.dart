@@ -67,10 +67,10 @@ class _CartScreenState extends State<CartScreen> {
         title: const Text('Корзина'),
         actions: [
           if (cart.items.isNotEmpty)
-            IconButton(
+            TextButton.icon(
               onPressed: () => _confirmClearCart(context),
-              icon: const Icon(Icons.delete_sweep_outlined),
-              tooltip: 'Очистить корзину',
+              icon: const Icon(Icons.delete_sweep_outlined, size: 20),
+              label: const Text('Очистить'),
             ),
         ],
       ),
