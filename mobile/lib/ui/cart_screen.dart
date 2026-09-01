@@ -130,30 +130,56 @@ class _CartBody extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(12),
-            // +2: PromoCodeField, затем «Похожие товары» — раньше корзина
-            // с 1-2 позициями оставляла пустой экран до самого «Итого»
-            // (найдено 2026-09-01 живым тестом), карусель заполняет это
-            // место так же, как на карточке товара (тот же RelatedProducts).
-            itemCount: cart.items.length + 2,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              if (index == cart.items.length) {
-                return const PromoCodeField();
-              }
-              if (index == cart.items.length + 1) {
-                // CartScreen.build() уже уводит на _EmptyCart(), как только
-                // cart.items пустеет — .last сюда попасть с пустым списком
-                // не должен, но isNotEmpty дешевле, чем гадать про порядок
-                // перерисовок между виджетами (похожий баг с чужим контекстом
-                // в шторке веса найден рядом же, 2026-09-01).
-                return RelatedProducts(
-                  categoryId: cart.items.isNotEmpty ? cart.items.last.product.categoryId : null,
-                  excludeProductIds: cart.items.map((i) => i.product.id).toSet(),
-                );
-              }
-              return _CartLineTile(item: cart.items[index]);
+          // «Похожие товары» должны быть прижаты к низу списка — когда в
+          // корзине мало позиций, пустое место остаётся НАД каруселью (под
+          // промокодом), а не под ней перед «Итого» (пользователь явно
+          // попросил именно так, 2026-09-01). ConstrainedBox(minHeight) +
+          // IntrinsicHeight — стандартный приём для «прижать футер книзу
+          // внутри скролла»: IntrinsicHeight даёт Column ниже тугую (не
+          // бесконечную) высоту, поэтому Expanded внутри неё реально
+          // получает лишнее место, а не падает с ошибкой unbounded height.
+          // Когда позиций много и контент выше экрана — свободного места
+          // нет, и всё ведёт себя как обычный скролл (карусель сразу под
+          // промокодом, как было раньше).
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(12),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final item in cart.items) ...[
+                          _CartLineTile(item: item),
+                          const SizedBox(height: 8),
+                        ],
+                        const PromoCodeField(),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              // CartScreen.build() уже уводит на _EmptyCart(),
+                              // как только cart.items пустеет — .last сюда
+                              // попасть с пустым списком не должен, но
+                              // isNotEmpty дешевле, чем гадать про порядок
+                              // перерисовок между виджетами (похожий баг с
+                              // чужим контекстом в шторке веса найден рядом
+                              // же, 2026-09-01).
+                              child: RelatedProducts(
+                                categoryId: cart.items.isNotEmpty ? cart.items.last.product.categoryId : null,
+                                excludeProductIds: cart.items.map((i) => i.product.id).toSet(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         ),

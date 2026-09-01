@@ -56,6 +56,13 @@ class _RelatedProductsState extends State<RelatedProducts> {
 
         final theme = Theme.of(context);
         return Column(
+          // min — в корзине этот виджет вкладывается в Expanded+Align, чтобы
+          // прижаться к низу списка, когда товаров в корзине мало (см.
+          // cart_screen.dart, _CartBody). С mainAxisSize.max (дефолт Column)
+          // он бы сам растянулся на всё доступное место и Align стал бы
+          // бессмысленным. На высоту в остальных местах использования
+          // (карточка товара — обычный скролл) не влияет.
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Похожие товары', style: theme.textTheme.titleSmall),
