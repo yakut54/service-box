@@ -78,7 +78,10 @@ function getStockBadge(product: any) {
     return { cls: 'bg-green-100 text-green-800', text: `В наличии: ${stock}` }
   }
 
-  if (saleMode === 'weight_fixed') {
+  // weight_fixed и weight_variable делят одно и то же поле stock_weight_grams
+  // (для weight_variable списывается при взвешивании, не при заказе — см.
+  // OrderReweighService, — но остаток тот же самый склад, бейдж не отличается).
+  if (saleMode === 'weight_fixed' || saleMode === 'weight_variable') {
     const grams = product.physical.stock_weight_grams ?? 0
     const minOrder = product.physical.weight_min_grams ?? 100
     if (grams === 0) return { cls: 'bg-red-100 text-red-800', text: 'Нет в наличии' }
@@ -86,7 +89,6 @@ function getStockBadge(product: any) {
     return { cls: 'bg-green-100 text-green-800', text: `В наличии: ${formatWeight(grams)}` }
   }
 
-  // weight_variable — сток пока не отслеживается (см. PLAN.md)
   return null
 }
 </script>
