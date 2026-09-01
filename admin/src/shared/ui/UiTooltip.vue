@@ -13,10 +13,9 @@ defineProps<{
       :class="[
         'absolute z-50 pointer-events-none',
         side === 'bottom'
-          ? 'opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 ease-out top-full mt-2'
-          : 'opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 ease-out bottom-full mb-2',
+          ? 'opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-150 ease-out top-full mt-2'
+          : 'opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-150 ease-out bottom-full mb-2',
         align === 'start' ? 'left-0' : align === 'end' ? 'right-0' : 'left-1/2 -translate-x-1/2',
-        bottomPct === undefined ? '' : '',
       ]"
       :style="bottomPct !== undefined ? `bottom: calc(${bottomPct}% + 10px)` : undefined"
     >
