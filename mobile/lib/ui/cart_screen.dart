@@ -6,6 +6,7 @@ import '../models/cart_item.dart';
 import '../state/cart_state.dart';
 import '../state/shop_state.dart';
 import 'checkout_screen.dart';
+import 'product_detail_screen.dart';
 import 'widgets/primary_submit_button.dart';
 import 'widgets/promo_code_field.dart';
 import 'widgets/weight_cart_control.dart';
@@ -248,16 +249,23 @@ class _CartLineTile extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: (imageUrl != null && imageUrl.isNotEmpty)
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _placeholder(theme),
-                        )
-                      : _placeholder(theme),
+                child: InkWell(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailScreen(productId: product.id),
+                    ),
+                  ),
+                  child: SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: (imageUrl != null && imageUrl.isNotEmpty)
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _placeholder(theme),
+                          )
+                        : _placeholder(theme),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
