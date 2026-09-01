@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/format.dart';
 import '../../models/product.dart';
 import '../../state/cart_state.dart';
+import 'primary_submit_button.dart';
 import 'out_of_stock_chip.dart';
 
 /// Остатка не хватает даже на минимальную порцию — товар эффективно «нет в
@@ -112,27 +113,19 @@ class _WeightSummaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (weightGrams == null) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: () => context.read<CartState>().setWeight(
-            product,
-            product.physical!.weightMinGrams,
-          ),
-          icon: const Icon(Icons.add_shopping_cart_rounded),
-          label: const Text('В корзину'),
+      return PrimarySubmitButton(
+        label: 'В корзину',
+        icon: Icons.add_shopping_cart_rounded,
+        onPressed: () => context.read<CartState>().setWeight(
+          product,
+          product.physical!.weightMinGrams,
         ),
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton(
-        onPressed: () => _openWeightSheet(context, product),
-        child: Text(
-          '${formatWeight(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
-        ),
-      ),
+    return PrimarySubmitButton(
+      label: '${formatWeight(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
+      onPressed: () => _openWeightSheet(context, product),
     );
   }
 }
@@ -410,6 +403,13 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            IconButton.filledTonal(
+              onPressed: value > physical.weightMinGrams
+                  ? () => _applyGrams(value - physical.weightStepGrams)
+                  : null,
+              icon: const Icon(Icons.remove_rounded),
+            ),
+            const SizedBox(width: 8),
             SizedBox(
               width: 120,
               child: TextField(
@@ -424,6 +424,13 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
                 ),
                 onSubmitted: (_) => _applyTypedValue(),
               ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filledTonal(
+              onPressed: value < maxGrams
+                  ? () => _applyGrams(value + physical.weightStepGrams)
+                  : null,
+              icon: const Icon(Icons.add_rounded),
             ),
           ],
         ),
