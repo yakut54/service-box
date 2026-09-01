@@ -347,18 +347,16 @@ class _EditNameDialogState extends State<_EditNameDialog> {
           onPressed: _submitting ? null : () => Navigator.of(context).pop(),
           child: const Text('Отмена'),
         ),
-        // IntrinsicWidth, не фиксированный SizedBox — PrimarySubmitButton
-        // сам себя растягивает на всю ширину (SizedBox(width: infinity),
-        // рассчитан на форму на весь экран вроде чекаута), а в диалоге ему
-        // нужна ширина по содержимому. 120px — узкая через раз, "Сохранить"
-        // переносился на две строки (баг найден 2026-09-01 живым тестом).
-        // Тот же приём уже есть в promo_code_field.dart/product_reviews_screen.dart.
-        IntrinsicWidth(
-          child: PrimarySubmitButton(
-            label: 'Сохранить',
-            loading: _submitting,
-            onPressed: _submit,
-          ),
+        // expand: false — ширина по содержимому, не на весь диалог/экран
+        // (дефолт PrimarySubmitButton). IntrinsicWidth снаружи это не решало
+        // (баг найден 2026-09-01 живым тестом, три раза) — PrimarySubmitButton
+        // сам требовал width: double.infinity изнутри, и IntrinsicWidth
+        // измерял именно эту бесконечность как «естественную» ширину.
+        PrimarySubmitButton(
+          label: 'Сохранить',
+          loading: _submitting,
+          expand: false,
+          onPressed: _submit,
         ),
       ],
       child: Form(

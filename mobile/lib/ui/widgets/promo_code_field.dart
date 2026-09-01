@@ -125,17 +125,22 @@ class _PromoCodeFieldState extends State<PromoCodeField> {
               ),
             ),
             const SizedBox(width: 8),
-            IntrinsicWidth(
-              child: FilledButton(
-                onPressed: _applying ? null : _apply,
-                child: _applying
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Применить'),
-              ),
+            // FilledButton.styleFrom(minimumSize: Size.zero), не IntrinsicWidth
+            // — тема задаёт кнопкам minimumSize: Size.fromHeight(52), то есть
+            // ширина = infinity; IntrinsicWidth снаружи измеряет ровно эту же
+            // бесконечность как "естественную" ширину, не помогает (см.
+            // primary_submit_button.dart, перепроверено 2026-09-01 живым
+            // тестом на реальном устройстве).
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: Size.zero),
+              onPressed: _applying ? null : _apply,
+              child: _applying
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Применить'),
             ),
           ],
         ),

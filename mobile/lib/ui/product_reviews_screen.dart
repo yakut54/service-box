@@ -437,24 +437,25 @@ class _ReviewForm extends StatelessWidget {
             children: [
               TextButton(onPressed: submitting ? null : onCancel, child: const Text('Отмена')),
               const SizedBox(width: 8),
-              // IntrinsicWidth — тема задаёт FilledButton.minimumSize через
-              // Size.fromHeight(52), а это значит "ширина = infinity" (для
-              // кнопок на всю ширину экрана вроде оформления заказа). Внутри
-              // Row это ломает рендер кнопки насмерть без ошибки в release
-              // (баг найден 2026-08-25 живым тестом — кнопка отправки отзыва
-              // просто не рисовалась). Тот же приём уже есть в
-              // promo_code_field.dart для этой же ситуации.
-              IntrinsicWidth(
-                child: FilledButton(
-                  onPressed: (canSubmit && !submitting) ? onSubmit : null,
-                  child: submitting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Отправить'),
-                ),
+              // Тема задаёт FilledButton.minimumSize через Size.fromHeight(52)
+              // — то есть "ширина = infinity" (рассчитано на кнопки на всю
+              // ширину экрана вроде оформления заказа). Внутри Row это ломает
+              // рендер кнопки насмерть без ошибки в release (баг найден
+              // 2026-08-25 живым тестом). IntrinsicWidth снаружи это НЕ решает
+              // — он измеряет ту же бесконечность как «естественную» ширину
+              // (перепроверено 2026-09-01 на PrimarySubmitButton — тот же
+              // трюк там тоже не сработал). Правильный фикс — снять
+              // навязанный theme minimumSize точечно для этой кнопки.
+              FilledButton(
+                style: FilledButton.styleFrom(minimumSize: Size.zero),
+                onPressed: (canSubmit && !submitting) ? onSubmit : null,
+                child: submitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Отправить'),
               ),
             ],
           ),

@@ -23,6 +23,11 @@ class AppDialog extends StatelessWidget {
     final width = MediaQuery.of(context).size.width * 0.9;
 
     return Dialog(
+      // Дефолтный insetPadding у Dialog — 40px с каждой стороны (Material 3)
+      // ПОВЕРХ ширины, которую задаём ниже сами — вместе с SizedBox(width:
+      // 90%) это сжимало диалог заметно уже 90% экрана, а не шире (баг
+      // найден 2026-09-01 живым тестом, пользователь просил трижды).
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SizedBox(
         width: width,
