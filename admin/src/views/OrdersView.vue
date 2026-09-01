@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useOrdersStore } from '@/stores/orders'
 import { api } from '@/lib/api'
@@ -12,6 +13,7 @@ import { plural } from '@/lib/utils'
 import { formatPrice, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 
+const router = useRouter()
 const ordersStore = useOrdersStore()
 const filterStatus = ref('')
 const searchQuery = ref('')
@@ -131,10 +133,15 @@ async function doExport() {
               <tr><th>Заказ</th><th>Клиент</th><th>Товары</th><th>Сумма</th><th>Статус</th><th>Дата</th><th></th></tr>
             </thead>
             <tbody>
-              <tr v-for="order in ordersStore.orders" :key="order.id">
-                <td><RouterLink :to="`/orders/${order.id}`" class="text-primary-600 hover:text-primary-700 font-medium">#{{ order.id.slice(0, 8) }}</RouterLink></td>
+              <tr
+                v-for="order in ordersStore.orders"
+                :key="order.id"
+                class="cursor-pointer"
+                @click="router.push(`/orders/${order.id}`)"
+              >
+                <td><span class="text-primary-600 font-medium">#{{ order.id.slice(0, 8) }}</span></td>
                 <td>
-                  <RouterLink v-if="order.customer_id" :to="`/customers/${order.customer_id}`" class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ order.customer?.name ?? order.customer_name }}</RouterLink>
+                  <RouterLink v-if="order.customer_id" :to="`/customers/${order.customer_id}`" @click.stop class="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ order.customer?.name ?? order.customer_name }}</RouterLink>
                   <div v-else class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer_name }}</div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">{{ order.customer_phone }}</div>
                 </td>
@@ -153,11 +160,8 @@ async function doExport() {
                 <td class="text-sm text-gray-500 dark:text-gray-400">{{ formatDateTime(order.created_at) }}</td>
                 <td>
                   <div class="flex items-center gap-1">
-                    <RouterLink :to="`/orders/${order.id}`" class="btn-ghost btn-sm">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    </RouterLink>
                     <UiTooltip>
-                      <button @click="deleteConfirm = order.id" class="btn-ghost btn-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                      <button @click.stop="deleteConfirm = order.id" class="btn-ghost btn-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
                       <template #content>Удалить</template>
