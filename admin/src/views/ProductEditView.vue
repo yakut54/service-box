@@ -51,14 +51,41 @@ const isWeightMode = computed(() =>
 // Остаток склада хранится в граммах (та же точность, что и вес заказа), но
 // вводится в кг — у весовых товаров остаток обычно измеряется десятками-
 // сотнями килограммов, в граммах это нечитаемо (100 кг = "100000", легко
-// ошибиться на порядок). Шаг/мин/макс веса ПОРЦИИ заказа остаются в
-// граммах намеренно — там числа небольшие (100–5000), граммы уместны.
+// ошибиться на порядок).
 const stockWeightKg = computed({
   get: () => physicalDetails.value.stock_weight_grams / 1000,
   set: (kg: number | null) => {
     physicalDetails.value.stock_weight_grams = Math.round((kg || 0) * 1000)
   },
 })
+
+// Диапазон веса ПОРЦИИ заказа (шаг/мин/макс) раньше был всегда в граммах —
+// расчёт был на мелкий фасованный товар (100–5000 г). Но у «перевзвешивания»
+// верхняя граница бывает оптовой — сотни килограммов, и 150000 в граммах
+// нечитаемо (тот же класс бага, что и у остатка выше, найден 2026-09-01
+// живым тестом на реальной форме). Единица общая для всех трёх полей и
+// зависит от макс. веса — порог 1000 г, тот же, что и в мобильном
+// приложении (_useKg в weight_cart_control.dart), чтобы язык был одинаковый.
+const weightRangeUseKg = computed(() => (physicalDetails.value.weight_max_grams ?? 0) >= 1000)
+
+function weightFieldProxy(field: 'weight_step_grams' | 'weight_min_grams' | 'weight_max_grams') {
+  return computed<number | null>({
+    get: () => {
+      const grams = physicalDetails.value[field]
+      if (grams == null) return null
+      return weightRangeUseKg.value ? Math.round((grams / 1000) * 1000) / 1000 : grams
+    },
+    set: (value: number | null) => {
+      physicalDetails.value[field] = weightRangeUseKg.value
+        ? Math.round((value ?? 0) * 1000)
+        : Math.round(value ?? 0)
+    },
+  })
+}
+
+const weightStepDisplay = weightFieldProxy('weight_step_grams')
+const weightMinDisplay = weightFieldProxy('weight_min_grams')
+const weightMaxDisplay = weightFieldProxy('weight_max_grams')
 
 const saleModeConfig = {
   piece: { icon: '🍉', label: 'Штучный', desc: 'Цена за штуку' },
@@ -402,12 +429,33 @@ async function handleSubmit() {
                текста в одном лейбле на мобильной ширине сдвигает вниз
                только его инпут, ломая выравнивание со соседними полями. -->
           <div v-else class="grid grid-cols-3 gap-x-4 gap-y-1">
-            <p class="label">Шаг ползунка (г)</p>
-            <p class="label">Мин. вес (г)</p>
-            <p class="label">Макс. вес (г)</p>
-            <input v-model.number="physicalDetails.weight_step_grams" type="number" min="1" class="input" placeholder="100" />
-            <input v-model.number="physicalDetails.weight_min_grams" type="number" min="1" class="input" placeholder="100" />
-            <input v-model.number="physicalDetails.weight_max_grams" type="number" min="1" class="input" placeholder="5000" />
+            <p class="label">Шаг ползунка ({{ weightRangeUseKg ? 'кг' : 'г' }})</p>
+            <p class="label">Мин. вес ({{ weightRangeUseKg ? 'кг' : 'г' }})</p>
+            <p class="label">Макс. вес ({{ weightRangeUseKg ? 'кг' : 'г' }})</p>
+            <input
+              v-model.number="weightStepDisplay"
+              type="number"
+              min="0"
+              :step="weightRangeUseKg ? 0.1 : 1"
+              class="input"
+              :placeholder="weightRangeUseKg ? '0.1' : '100'"
+            />
+            <input
+              v-model.number="weightMinDisplay"
+              type="number"
+              min="0"
+              :step="weightRangeUseKg ? 0.1 : 1"
+              class="input"
+              :placeholder="weightRangeUseKg ? '0.1' : '100'"
+            />
+            <input
+              v-model.number="weightMaxDisplay"
+              type="number"
+              min="0"
+              :step="weightRangeUseKg ? 0.1 : 1"
+              class="input"
+              :placeholder="weightRangeUseKg ? '5' : '5000'"
+            />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
