@@ -142,8 +142,17 @@ void _openWeightSheet(BuildContext context, Product product) {
         left: 20, right: 20, top: 20,
         bottom: 20 + MediaQuery.of(sheetContext).viewInsets.bottom,
       ),
+      // sheetContext.read, не закрытый (outer) context — тот принадлежит
+      // кнопке/чипу, который открыл шторку, и может исчезнуть из дерева,
+      // пока шторка ещё открыта (например, «Убрать из корзины» внутри самой
+      // шторки убирает строку в корзине, из которой шторку открыли). builder
+      // перевызывается на каждую перерисовку (например, по «+» после
+      // повторного добавления) — обращение к context уже отмонтированного
+      // виджета на этом шаге роняло рендер (баг найден 2026-09-01 живым
+      // тестом на реальном устройстве). sheetContext же живёт, пока жива
+      // сама шторка, и не зависит от судьбы того, что её открыло.
       child: ChangeNotifierProvider.value(
-        value: context.read<CartState>(),
+        value: sheetContext.read<CartState>(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

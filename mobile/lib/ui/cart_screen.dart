@@ -143,8 +143,13 @@ class _CartBody extends StatelessWidget {
                 return const PromoCodeField();
               }
               if (index == cart.items.length + 1) {
+                // CartScreen.build() уже уводит на _EmptyCart(), как только
+                // cart.items пустеет — .last сюда попасть с пустым списком
+                // не должен, но isNotEmpty дешевле, чем гадать про порядок
+                // перерисовок между виджетами (похожий баг с чужим контекстом
+                // в шторке веса найден рядом же, 2026-09-01).
                 return RelatedProducts(
-                  categoryId: cart.items.last.product.categoryId,
+                  categoryId: cart.items.isNotEmpty ? cart.items.last.product.categoryId : null,
                   excludeProductIds: cart.items.map((i) => i.product.id).toSet(),
                 );
               }
