@@ -68,8 +68,16 @@ String formatMessageDateTime(DateTime date) {
 /// Граммы → человекочитаемая строка: мелкие остатки в граммах, крупные — в кг
 /// (100000 г нечитаемо, 100 кг — нормально). Тот же формат, что и в админке
 /// (admin/src/shared/lib/format.ts formatWeight) — те же товары те же продавцы.
-String formatWeight(int grams) =>
-    grams >= 1000 ? '${(grams / 1000).toStringAsFixed(grams % 1000 == 0 ? 0 : 2)} кг' : '$grams г';
+String formatWeight(int grams) {
+  if (grams < 1000) return '$grams г';
+  // Обрезаем незначащие нули после 2 знаков ("33.50" → "33.5", "33.00" →
+  // "33"), а не toStringAsFixed(0/2) по чётности килограммов — тот вариант
+  // расходился с полем ручного ввода на той же шторке (33500 г показывались
+  // как "33.50 кг" здесь и "33.5 кг" там; найдено 2026-09-01 живым тестом).
+  final text = (grams / 1000).toStringAsFixed(2);
+  final trimmed = text.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+  return '$trimmed кг';
+}
 
 /// Склонение существительного по числу (1 отзыв / 2 отзыва / 5 отзывов).
 /// Стандартное русское правило: 11-14 всегда "many", иначе по последней цифре.

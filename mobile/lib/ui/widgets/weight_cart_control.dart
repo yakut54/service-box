@@ -324,10 +324,25 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
     super.dispose();
   }
 
+  /// Сервер требует (weightGrams - min) кратно step (см. OrderController::
+  /// store) — раньше это не гарантировалось на клиенте, только клампилось
+  /// в границы [min, max]. Три источника значения (слайдер, ручной ввод,
+  /// кнопки −/+) могли дать невыровненное число:
+  /// - `Slider.divisions` кламплен до 1000 (иначе слишком мелкая нарезка на
+  ///   больших диапазонах тормозит рендер) — на диапазоне вроде 100–150000 г
+  ///   с шагом 100 г реальных делений 1499, слайдер тогда шагает ~150 г, не
+  ///   100 г;
+  /// - ручной ввод принимает вообще любое число.
+  /// Найдено 2026-09-01 живым тестом: заказ «Картофель» на 33.528 кг (не
+  /// кратно 100) сервер отклонял на чекауте. Снапаем к ближайшему кратному
+  /// шагу здесь — единая точка, все три источника проходят через неё.
   void _applyGrams(int grams) {
     final physical = widget.product.physical!;
-    final clamped = grams.clamp(physical.weightMinGrams, _effectiveMaxGrams(widget.product));
-    context.read<CartState>().setWeight(widget.product, clamped);
+    final min = physical.weightMinGrams;
+    final max = _effectiveMaxGrams(widget.product);
+    final step = physical.weightStepGrams;
+    final snapped = min + ((grams - min) / step).round() * step;
+    context.read<CartState>().setWeight(widget.product, snapped.clamp(min, max));
   }
 
   /// Кг вводится через запятую или точку (100,5 / 100.5) — оба варианта
