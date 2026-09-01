@@ -1,105 +1,131 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{
   align?: 'start' | 'center' | 'end'
   side?: 'top' | 'bottom'
-  bottomPct?: number  // when set, positions tooltip above bar at given % height
+  bottomPct?: number  // when set, positions tooltip above bar at given % height of the trigger
 }>()
 
-// Tailwind-классы (left-0/right-0/center) дают только СТАРТОВОЕ положение
-// относительно триггера — этого достаточно на широком экране, но у ⓘ в
-// правой колонке узкой сетки (320-360px) пузырь всё равно вылезает за край
-// вьюпорта. Замеряем реальный прямоугольник после раскладки и докручиваем
-// позицию через transform (на самом пузыре и на стрелке — стрелка при
-// align="center" уже центрируется через translateX(-50%), коррекция
-// дописывается к этому значению, а не заменяет его).
+// Раньше пузырь был обычным потомком триггера (position:absolute внутри
+// .relative-обёртки) — на странице товара main-контент (AppLayout.vue) имеет
+// overflow-auto для собственного скролла, и это ЖЁСТКО обрезает любого
+// потомка, который выходит за его границы, СОВСЕМ НЕ ГЛЯДЯ на z-index —
+// overflow обрезает раньше, чем до стэкинга вообще доходит очередь (поднятый
+// в прошлый раз z-index поэтому не мог помочь в принципе). Единственный
+// надёжный выход — Teleport пузыря прямо в body, вне зоны обрезки, и
+// позиционирование через fixed + координаты триггера, посчитанные в JS.
 //
-// w-max на пузыре обязателен: containing block абсолютно спозиционированного
-// пузыря — это крохотная .relative-обёртка вокруг иконки ⓘ (ширина = ширина
-// самой иконки). При обычном width:auto формула shrink-to-fit берёт
-// max(preferred-minimum-width, available-width) — available-width тут почти
-// нулевой (ширина иконки), поэтому побеждает preferred-minimum-width (ширина
-// самого длинного неразрывного слова) — пузырь схлопывался до одного слова
-// в строке НЕЗАВИСИМО от значения max-width. width:max-content игнорирует
-// containing block и считается от контента, max-width уже честно его ограничивает.
+// inheritAttrs: false + ручной v-bind="$attrs" на триггере — обязателен,
+// т.к. компонент больше не имеет одного корневого узла (триггер и
+// телепортированный пузырь — раздельные корни), а RevenueChart.vue передаёт
+// сюда класс со своей flex-раскладкой прямо на <UiTooltip> (сама разметка
+// одного столбца графика — см. RevenueChart.vue) — без ручной переадресации
+// эти классы улетели бы в пустоту.
+const triggerEl = ref<HTMLElement | null>(null)
 const boxEl = ref<HTMLElement | null>(null)
-const shiftPx = ref(0)
+const visible = ref(false)
+const boxLeft = ref(-9999)
+const boxTop = ref(-9999)
+const arrowLeftPx = ref(12)
+
+const GAP = 8
 const EDGE_MARGIN = 12
 
-const boxShiftStyle = computed(() =>
-  shiftPx.value === 0 ? undefined : { transform: `translateX(${shiftPx.value}px)` },
-)
-// Стрелка при align="center" уже центрируется через translateX(-50%) —
-// JS-коррекция дописывается к этому значению, а не заменяет его.
-const arrowTransformStyle = computed(() => {
-  const base = props.align === 'start' || props.align === 'end' ? '' : 'translateX(-50%) '
-  const shift = shiftPx.value === 0 ? '' : `translateX(${shiftPx.value}px)`
-  const combined = `${base}${shift}`.trim()
-  return combined === '' ? undefined : { transform: combined }
-})
-
 async function updatePosition() {
-  const el = boxEl.value
-  if (!el) return
-  shiftPx.value = 0
-  await nextTick()
-  const rect = el.getBoundingClientRect()
-  const viewportWidth = window.innerWidth
-  if (rect.left < EDGE_MARGIN) {
-    shiftPx.value = EDGE_MARGIN - rect.left
-  } else if (rect.right > viewportWidth - EDGE_MARGIN) {
-    shiftPx.value = viewportWidth - EDGE_MARGIN - rect.right
+  const trigger = triggerEl.value
+  const box = boxEl.value
+  if (!trigger || !box) return
+
+  const t = trigger.getBoundingClientRect()
+  const b = box.getBoundingClientRect()
+
+  let left: number
+  if (props.align === 'start') left = t.left
+  else if (props.align === 'end') left = t.right - b.width
+  else left = t.left + t.width / 2 - b.width / 2
+  left = Math.min(Math.max(left, EDGE_MARGIN), window.innerWidth - EDGE_MARGIN - b.width)
+
+  let top: number
+  if (props.bottomPct !== undefined) {
+    const bottomY = t.bottom - (t.height * props.bottomPct) / 100 - 10
+    top = bottomY - b.height
+  } else if (props.side === 'bottom') {
+    top = t.bottom + GAP
+  } else {
+    top = t.top - GAP - b.height
   }
+
+  boxLeft.value = left
+  boxTop.value = top
+  arrowLeftPx.value = Math.min(Math.max(t.left + t.width / 2 - left, 12), Math.max(b.width - 12, 12))
+}
+
+async function show() {
+  visible.value = true
+  await nextTick()
+  await updatePosition()
+}
+
+function hide() {
+  visible.value = false
+}
+
+function onScroll() {
+  if (visible.value) hide()
 }
 
 onMounted(() => {
-  updatePosition()
   window.addEventListener('resize', updatePosition)
+  window.addEventListener('scroll', onScroll, true)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updatePosition)
+  window.removeEventListener('scroll', onScroll, true)
 })
 </script>
 
 <template>
-  <div class="relative group" @mouseenter="updatePosition" @focusin="updatePosition">
+  <div
+    ref="triggerEl"
+    v-bind="$attrs"
+    @mouseenter="show"
+    @mouseleave="hide"
+    @focusin="show"
+    @focusout="hide"
+  >
     <slot />
+  </div>
+  <Teleport to="body">
     <div
       :class="[
-        'absolute z-[9999] pointer-events-none',
-        side === 'bottom'
-          ? 'opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-150 ease-out top-full mt-2'
-          : 'opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-150 ease-out bottom-full mb-3',
-        align === 'start' ? 'left-0' : align === 'end' ? 'right-0' : 'left-1/2 -translate-x-1/2',
+        'fixed z-[9999] pointer-events-none transition-all duration-150 ease-out',
+        visible
+          ? 'opacity-100 translate-y-0'
+          : side === 'bottom' ? 'opacity-0 -translate-y-1' : 'opacity-0 translate-y-1',
       ]"
-      :style="bottomPct !== undefined ? { bottom: `calc(${bottomPct}% + 10px)` } : undefined"
+      :style="{ top: `${boxTop}px`, left: `${boxLeft}px` }"
     >
       <div
         ref="boxEl"
         class="w-max bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-2.5 py-2 max-w-[min(300px,calc(100vw-24px))] whitespace-normal shadow-xl ring-1 ring-black/10"
-        :style="boxShiftStyle"
       >
         <slot name="content" />
       </div>
       <!-- Arrow -->
       <div
         v-if="side === 'bottom'"
-        :class="[
-          'absolute bottom-full border-4 border-transparent border-b-gray-900 dark:border-b-gray-700',
-          align === 'start' ? 'left-3' : align === 'end' ? 'right-3' : 'left-1/2',
-        ]"
-        :style="arrowTransformStyle"
+        class="absolute bottom-full border-4 border-transparent border-b-gray-900 dark:border-b-gray-700"
+        :style="{ left: `${arrowLeftPx}px` }"
       />
       <div
         v-else
-        :class="[
-          'absolute top-full border-4 border-transparent border-t-gray-900 dark:border-t-gray-700',
-          align === 'start' ? 'left-3' : align === 'end' ? 'right-3' : 'left-1/2',
-        ]"
-        :style="arrowTransformStyle"
+        class="absolute top-full border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"
+        :style="{ left: `${arrowLeftPx}px` }"
       />
     </div>
-  </div>
+  </Teleport>
 </template>
