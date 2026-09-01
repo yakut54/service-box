@@ -259,69 +259,94 @@ class _CartLineTile extends StatelessWidget {
         ),
       ),
       child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: InkWell(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ProductDetailScreen(productId: product.id),
+        child: Stack(
+          children: [
+            Padding(
+              // Правый отступ освобождает место под кнопку удаления в углу
+              // (ниже) — свайп остаётся рабочим, но не единственной
+              // подсказкой: раньше красный фон с корзиной был виден только
+              // ПОСЛЕ того как начал свайпать, заранее ничего не намекало,
+              // что так можно (спросили живые пользователи, 2026-09-01).
+              padding: const EdgeInsets.fromLTRB(10, 10, 34, 10),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailScreen(productId: product.id),
+                        ),
+                      ),
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: (imageUrl != null && imageUrl.isNotEmpty)
+                            ? Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => _placeholder(theme),
+                              )
+                            : _placeholder(theme),
+                      ),
                     ),
                   ),
-                  child: SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: (imageUrl != null && imageUrl.isNotEmpty)
-                        ? Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _placeholder(theme),
-                          )
-                        : _placeholder(theme),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          item.weightGrams != null
+                              ? '${formatRubles(product.priceRubles)}/кг'
+                              : formatRubles(product.priceRubles),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  item.weightGrams != null
+                      ? SizedBox(
+                          width: 110,
+                          child: WeightCartControl(
+                            product: product,
+                            compact: true,
+                            outlined: true,
+                          ),
+                        )
+                      : _CartQuantityStepper(item: item),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.weightGrams != null
-                          ? '${formatRubles(product.priceRubles)}/кг'
-                          : formatRubles(product.priceRubles),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+            ),
+            Positioned(
+              top: 2,
+              right: 2,
+              child: IconButton(
+                onPressed: () => context.read<CartState>().remove(product.id),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
+                tooltip: 'Удалить из корзины',
               ),
-              const SizedBox(width: 8),
-              item.weightGrams != null
-                  ? SizedBox(
-                      width: 110,
-                      child: WeightCartControl(
-                        product: product,
-                        compact: true,
-                        outlined: true,
-                      ),
-                    )
-                  : _CartQuantityStepper(item: item),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
