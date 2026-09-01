@@ -6,6 +6,7 @@ import CustomSelect from '@/components/CustomSelect.vue'
 import CategorySelect from '@/components/CategorySelect.vue'
 import DatePicker from '@/components/DatePicker.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 import type { Discount, DiscountType, DiscountScope } from '@/types'
 
 const props = defineProps<{
@@ -145,18 +146,22 @@ async function save() {
       </div>
 
       <div>
-        <p class="label">Размер скидки <span class="text-red-500">*</span></p>
+        <p class="label flex items-center gap-1">
+          Размер скидки <span class="text-red-500">*</span>
+          <UiHint v-if="form.type === 'percent'">От 1 до 100%</UiHint>
+        </p>
         <div class="relative">
           <input v-model.number="form.value" type="number" :min="1" :max="form.type === 'percent' ? 100 : undefined" class="input pr-12" :placeholder="form.type === 'percent' ? '10' : '500'" />
           <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">{{ form.type === 'percent' ? '%' : '₽' }}</span>
         </div>
-        <p v-if="form.type === 'percent'" class="text-xs text-gray-400 mt-1">От 1 до 100%</p>
       </div>
 
       <div>
-        <p class="label">Промокод</p>
+        <p class="label flex items-center gap-1">
+          Промокод
+          <UiHint>{{ form.code.trim() ? 'Клиент вводит код вручную при оформлении заказа' : 'Скидка применится автоматически при выполнении условий' }}</UiHint>
+        </p>
         <input v-model="form.code" type="text" class="input font-mono uppercase" placeholder="SUMMER20 (оставьте пустым — авто-применение)" maxlength="50" />
-        <p class="text-xs text-gray-400 mt-1">{{ form.code.trim() ? 'Клиент вводит код вручную при оформлении заказа' : 'Скидка применится автоматически при выполнении условий' }}</p>
       </div>
 
       <div>
@@ -188,9 +193,11 @@ async function save() {
       </div>
 
       <div>
-        <p class="label">Максимальная скидка, ₽</p>
+        <p class="label flex items-center gap-1">
+          Максимальная скидка, ₽
+          <UiHint>Защита маржи: скидка не превысит это значение в ₽</UiHint>
+        </p>
         <input v-model="form.max_discount_amount" type="number" min="1" class="input" placeholder="Оставьте пустым — без ограничения" />
-        <p class="text-xs text-gray-400 mt-1">Защита маржи: скидка не превысит это значение в ₽</p>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
@@ -199,16 +206,20 @@ async function save() {
           <input v-model="form.usage_limit" type="number" min="1" class="input" placeholder="∞" />
         </div>
         <div>
-          <p class="label">Лимит на 1 клиента</p>
+          <p class="label flex items-center gap-1">
+            Лимит на 1 клиента
+            <UiHint>0 = без ограничений</UiHint>
+          </p>
           <input v-model.number="form.per_user_limit" type="number" min="0" class="input" placeholder="1" />
-          <p class="text-xs text-gray-400 mt-1">0 = без ограничений</p>
         </div>
       </div>
 
       <div>
-        <p class="label">Приоритет</p>
+        <p class="label flex items-center gap-1">
+          Приоритет
+          <UiHint>Чем выше — тем важнее. При равной корзине побеждает скидка с бо́льшим приоритетом.</UiHint>
+        </p>
         <input v-model.number="form.priority" type="number" min="0" class="input" placeholder="0" />
-        <p class="text-xs text-gray-400 mt-1">Чем выше — тем важнее. При равной корзине побеждает скидка с бо́льшим приоритетом.</p>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
@@ -223,10 +234,10 @@ async function save() {
       </div>
 
       <div class="flex items-center justify-between py-2">
-        <div>
-          <span class="label mb-0">Активна</span>
-          <p class="text-xs text-gray-400">Скидка применяется при оформлении заказов</p>
-        </div>
+        <span class="label mb-0 flex items-center gap-1">
+          Активна
+          <UiHint>Скидка применяется при оформлении заказов</UiHint>
+        </span>
         <button type="button" @click="form.is_active = !form.is_active"
           :class="['relative w-11 h-6 rounded-full transition-colors', form.is_active ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600']">
           <span :class="['absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform', form.is_active ? 'translate-x-5' : '']" />

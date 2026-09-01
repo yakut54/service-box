@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/lib/parseApiError'
 import UiCheckbox from '@/shared/ui/UiCheckbox.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const authStore = useAuthStore()
 
@@ -37,11 +38,13 @@ async function save() {
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Модерация переписки</p>
 
     <UiCheckbox v-model="customerDeleteEnabled" align="start">
-      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Разрешить покупателям удалять свои сообщения</span>
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-        По умолчанию выключено — удалять сообщения в чате может только магазин
-        (модерация). <br>Сообщения магазина покупатель не может удалить в любом случае.
-      </p>
+      <span class="text-sm font-medium text-gray-700 dark:text-gray-300 inline-flex items-center gap-1">
+        Разрешить покупателям удалять свои сообщения
+        <UiHint>
+          По умолчанию выключено — удалять сообщения в чате может только магазин
+          (модерация). Сообщения магазина покупатель не может удалить в любом случае.
+        </UiHint>
+      </span>
     </UiCheckbox>
 
     <div v-if="error" class="mt-3 text-xs text-red-500">{{ error }}</div>

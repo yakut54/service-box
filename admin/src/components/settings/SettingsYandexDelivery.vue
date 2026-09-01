@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import PasswordInput from '@/components/PasswordInput.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const enabled           = ref(false)
 const apiToken          = ref('')
@@ -80,10 +81,10 @@ async function save() {
 
     <div v-else class="space-y-4">
       <div class="flex items-center justify-between cursor-pointer select-none" @click="enabled = !enabled">
-        <div>
-          <p class="text-sm font-medium text-gray-800 dark:text-gray-200">Подключить Яндекс.Доставку</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Пока не влияет на витрину — только сохраняет намерение</p>
-        </div>
+        <p class="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1">
+          Подключить Яндекс.Доставку
+          <span @click.stop><UiHint>Пока не влияет на витрину — только сохраняет намерение</UiHint></span>
+        </p>
         <button
           type="button"
           class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
@@ -97,24 +98,27 @@ async function save() {
       </div>
 
       <div>
-        <p class="label">
+        <p class="label flex items-center gap-1">
           API-токен
-          <span class="text-gray-400 font-normal">
-            ({{ hasToken ? 'сохранён — оставьте пустым, чтобы не менять' : 'из личного кабинета dostavka.yandex.ru' }})
-          </span>
+          <UiHint>{{ hasToken ? 'Сохранён — оставьте пустым, чтобы не менять' : 'Из личного кабинета dostavka.yandex.ru' }}</UiHint>
         </p>
         <PasswordInput v-model="apiToken" placeholder="y0_xxxxxxxxxxxxxxxxxxxx" />
       </div>
 
       <div>
-        <p class="label">Адрес склада <span class="text-gray-400 font-normal">(откуда забирает курьер)</span></p>
+        <p class="label flex items-center gap-1">
+          Адрес склада
+          <UiHint>Откуда забирает курьер</UiHint>
+        </p>
         <input v-model="warehouseAddress" type="text" class="input" placeholder="Красноярская 49" />
       </div>
 
       <div class="w-48">
-        <p class="label">Бесплатно от, ₽</p>
+        <p class="label flex items-center gap-1">
+          Бесплатно от, ₽
+          <UiHint>Пусто — порог не действует, доставка всегда платная</UiHint>
+        </p>
         <input v-model="freeFrom" type="number" min="0" step="100" placeholder="—" class="input text-right" />
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Пусто — порог не действует, доставка всегда платная</p>
       </div>
 
       <div v-if="error"   class="text-sm text-red-600">{{ error }}</div>

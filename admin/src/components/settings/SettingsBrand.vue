@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import ImageUpload from '@/components/ImageUpload.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const authStore = useAuthStore()
 
@@ -60,12 +61,14 @@ async function save() {
     <div class="space-y-5">
       <!-- Primary color -->
       <div>
-        <p class="label">Основной цвет</p>
+        <p class="label flex items-center gap-1">
+          Основной цвет
+          <UiHint>Кнопки, ссылки, акценты</UiHint>
+        </p>
         <div class="flex items-center gap-2">
           <input type="color" v-model="color" aria-label="Основной цвет" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
           <input type="text" v-model="color" aria-label="Hex основного цвета" class="input flex-1 font-mono text-sm" placeholder="#6366f1" />
         </div>
-        <p class="text-xs text-gray-400 mt-1">Кнопки, ссылки, акценты</p>
       </div>
 
       <!-- Logo -->

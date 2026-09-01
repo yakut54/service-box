@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import PasswordInput from '@/components/PasswordInput.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const authStore = useAuthStore()
 
@@ -63,11 +64,17 @@ async function save() {
 
     <div class="space-y-4">
       <div>
-        <p class="label">Shop ID <span class="text-gray-400 font-normal">(из личного кабинета ЮКасса)</span></p>
+        <p class="label flex items-center gap-1">
+          Shop ID
+          <UiHint>Из личного кабинета ЮКасса</UiHint>
+        </p>
         <input v-model="shopId" type="text" class="input font-mono" placeholder="123456" />
       </div>
       <div>
-        <p class="label">Секретный ключ <span class="text-gray-400 font-normal">(оставьте пустым чтобы не менять)</span></p>
+        <p class="label flex items-center gap-1">
+          Секретный ключ
+          <UiHint>Оставьте пустым, чтобы не менять</UiHint>
+        </p>
         <PasswordInput v-model="secretKey" placeholder="live_xxxxxxxxxxxxxxxxxxxx" />
       </div>
 
@@ -79,10 +86,10 @@ async function save() {
           class="flex items-center justify-between cursor-pointer select-none"
           @click="prepaymentEnabled = !prepaymentEnabled"
         >
-          <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-200">Предоплата при записи</p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Байер оплачивает онлайн перед визитом</p>
-          </div>
+          <p class="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-1">
+            Предоплата при записи
+            <span @click.stop><UiHint>Байер оплачивает онлайн перед визитом</UiHint></span>
+          </p>
           <button
             type="button"
             class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
@@ -96,7 +103,10 @@ async function save() {
         </div>
 
         <div v-if="prepaymentEnabled" class="mt-3">
-          <p class="label">Сумма предоплаты, ₽ <span class="text-gray-400 font-normal">(0 = полная стоимость услуги)</span></p>
+          <p class="label flex items-center gap-1">
+            Сумма предоплаты, ₽
+            <UiHint>0 = полная стоимость услуги</UiHint>
+          </p>
           <input
             v-model.number="prepaymentAmount"
             type="number"

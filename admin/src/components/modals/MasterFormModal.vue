@@ -3,7 +3,7 @@ import { ref, computed, reactive, watch } from 'vue'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { handlePhoneInput, applyPhoneMask, isValidPhone } from '@/composables/usePhoneInput'
-import { UiModal } from '@/shared/ui'
+import { UiModal, UiHint } from '@/shared/ui'
 import ImageUpload from '@/components/ImageUpload.vue'
 import type { Master, Product } from '@/types'
 
@@ -207,7 +207,10 @@ async function save() {
       <!-- Services -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <p class="label mb-0">Услуги мастера</p>
+          <p class="label mb-0 flex items-center gap-1">
+            Услуги мастера
+            <UiHint>Если ничего не выбрано — мастер появится для всех услуг</UiHint>
+          </p>
           <span class="text-xs text-gray-400 dark:text-gray-500">
             {{ selectedServiceIds.length ? `${selectedServiceIds.length} выбрано` : 'все (не ограничено)' }}
           </span>
@@ -232,7 +235,6 @@ async function save() {
             </label>
           </template>
         </div>
-        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Если ничего не выбрано — мастер появится для всех услуг</p>
       </div>
 
       <div class="flex items-center justify-between py-2">

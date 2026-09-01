@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { handlePhoneInput, applyPhoneMask } from '@/composables/usePhoneInput'
-import { UiModal } from '@/shared/ui'
+import { UiModal, UiHint } from '@/shared/ui'
 import ImageUpload from '@/components/ImageUpload.vue'
 import type { StaffMember } from '@/types'
 
@@ -133,7 +133,12 @@ async function save() {
 
       <!-- Role -->
       <div v-if="mode === 'create'">
-        <p class="label">Роль</p>
+        <p class="label flex items-center gap-1">
+          Роль
+          <UiHint>{{ role === 'collector'
+            ? 'Видит только заказы — без доступа к финансам, клиентам и настройкам'
+            : 'Полный доступ к панели управления, кроме владельческих настроек' }}</UiHint>
+        </p>
         <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -156,11 +161,6 @@ async function save() {
             Сборщик
           </button>
         </div>
-        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-          {{ role === 'collector'
-            ? 'Видит только заказы — без доступа к финансам, клиентам и настройкам'
-            : 'Полный доступ к панели управления, кроме владельческих настроек' }}
-        </p>
       </div>
 
       <!-- Avatar -->
@@ -190,7 +190,10 @@ async function save() {
 
       <!-- Email -->
       <div>
-        <p class="label">Email <span class="text-red-500">*</span></p>
+        <p class="label flex items-center gap-1">
+          Email <span class="text-red-500">*</span>
+          <UiHint v-if="mode === 'create'">На этот адрес придёт ссылка-приглашение. Действует 48 часов.</UiHint>
+        </p>
         <input
           v-if="mode === 'create'"
           v-model="email"
@@ -204,9 +207,6 @@ async function save() {
           {{ email }}
         </div>
         <p v-if="emailError" class="mt-1 text-xs text-red-500">{{ emailError }}</p>
-        <p v-if="mode === 'create'" class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-          На этот адрес придёт ссылка-приглашение. Действует 48 часов.
-        </p>
       </div>
 
       <!-- Phone -->

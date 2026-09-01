@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import UiCheckbox from '@/shared/ui/UiCheckbox.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 type FontFamily = 'system' | 'inter' | 'roboto' | 'montserrat' | 'georgia'
 
@@ -194,32 +195,39 @@ async function saveConfig() {
           <!-- Widget background color -->
           <div>
             <UiCheckbox v-model="bgEnabled" class="mb-2">
-              <span class="label mb-0">Фон виджета</span>
+              <span class="label mb-0 flex items-center gap-1">
+                Фон виджета
+                <UiHint>Переопределяет фон темы</UiHint>
+              </span>
             </UiCheckbox>
             <div v-if="bgEnabled" class="flex items-center gap-2">
               <input type="color" v-model="bgColor" aria-label="Цвет фона виджета" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
               <input type="text" v-model="bgColor" aria-label="Hex цвета фона виджета" class="input flex-1 font-mono text-sm" placeholder="#ffffff" />
             </div>
-            <p class="text-xs text-gray-400 mt-1">Переопределяет фон темы</p>
           </div>
 
           <!-- Secondary background color -->
           <div>
             <UiCheckbox v-model="pageBgEnabled" class="mb-2">
-              <span class="label mb-0">Вторичный фон</span>
+              <span class="label mb-0 flex items-center gap-1">
+                Вторичный фон
+                <UiHint>Фон панелей и контентной области</UiHint>
+              </span>
             </UiCheckbox>
             <div v-if="pageBgEnabled" class="flex items-center gap-2">
               <input type="color" v-model="pageBgColor" aria-label="Вторичный цвет фона" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
               <input type="text" v-model="pageBgColor" aria-label="Hex вторичного цвета фона" class="input flex-1 font-mono text-sm" placeholder="#f9fafb" />
             </div>
-            <p class="text-xs text-gray-400 mt-1">Фон панелей и контентной области</p>
           </div>
         </div>
 
         <!-- Row 2: text color -->
         <div>
           <UiCheckbox v-model="textColorEnabled" class="mb-2">
-            <span class="label mb-0">Свой цвет текста</span>
+            <span class="label mb-0 flex items-center gap-1">
+              Свой цвет текста
+              <UiHint>Переопределяет цвет текста выбранной темы</UiHint>
+            </span>
           </UiCheckbox>
           <div v-if="textColorEnabled" class="flex items-center gap-2">
             <input type="color" v-model="textColor" aria-label="Цвет текста" class="w-10 h-10 rounded cursor-pointer border border-gray-200 dark:border-gray-700 p-0.5 bg-white dark:bg-gray-800" />
@@ -231,7 +239,6 @@ async function saveConfig() {
               <span class="text-sm font-medium">Пример текста</span>
             </div>
           </div>
-          <p class="text-xs text-gray-400 mt-1">Переопределяет цвет текста выбранной темы</p>
         </div>
       </div>
 
@@ -265,9 +272,9 @@ async function saveConfig() {
         <!-- Right: white label + custom CSS -->
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <div>
-              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Убрать «Powered by ServiceBox»</div>
-              <div class="text-xs text-gray-400 mt-0.5">Виджет полностью под вашим брендом</div>
+            <div class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+              Убрать «Powered by ServiceBox»
+              <UiHint>Виджет полностью под вашим брендом</UiHint>
             </div>
             <button
               type="button"
@@ -280,9 +287,11 @@ async function saveConfig() {
             </button>
           </div>
           <div>
-            <p class="label">Свой CSS <span class="text-gray-400 font-normal">(переопределяет стили виджета)</span></p>
+            <p class="label flex items-center gap-1">
+              Свой CSS
+              <UiHint>Переопределяет стили виджета. Применяется внутри Shadow DOM.</UiHint>
+            </p>
             <textarea v-model="customCss" class="input font-mono text-xs" rows="6" placeholder=".sb-catalog-card { border-radius: 12px; }" />
-            <p class="text-xs text-gray-400 mt-1">CSS применяется внутри Shadow DOM виджета</p>
           </div>
         </div>
       </div>
@@ -328,7 +337,10 @@ async function saveConfig() {
 
           <!-- Sidebar position -->
           <div>
-            <p class="label">Навигация в виджете</p>
+            <p class="label flex items-center gap-1">
+              Навигация в виджете
+              <UiHint>С какой стороны виджета отображается боковое меню</UiHint>
+            </p>
             <div class="flex gap-2">
               <button
                 v-for="opt in ([{ v: 'left', label: '← Слева' }, { v: 'right', label: 'Справа →' }] as const)"
@@ -340,7 +352,6 @@ async function saveConfig() {
                 {{ opt.label }}
               </button>
             </div>
-            <p class="text-xs text-gray-400 mt-1">С какой стороны виджета отображается боковое меню</p>
           </div>
         </div>
 

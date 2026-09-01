@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const authStore = useAuthStore()
 
@@ -78,25 +79,25 @@ async function regenerate() {
 
       <!-- Regenerate -->
       <div class="mb-5">
-        <button type="button" class="btn-secondary btn-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
-                @click="showConfirm = true" :disabled="regenerating">
-          Перегенерировать ключ
-        </button>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-          Старый ключ перестанет работать немедленно
-        </p>
+        <div class="flex items-center gap-1">
+          <button type="button" class="btn-secondary btn-sm text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  @click="showConfirm = true" :disabled="regenerating">
+            Перегенерировать ключ
+          </button>
+          <UiHint>Старый ключ перестанет работать немедленно</UiHint>
+        </div>
         <p v-if="error" class="text-xs text-red-500 mt-1">{{ error }}</p>
       </div>
 
       <!-- Usage example -->
       <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-        <p class="label mb-2">Пример запроса</p>
+        <p class="label mb-2 flex items-center gap-1">
+          Пример запроса
+          <UiHint>Передавайте ключ в заголовке <code class="font-mono">X-API-Key</code> каждого запроса</UiHint>
+        </p>
         <div class="relative">
           <pre class="bg-gray-900 text-green-400 rounded-lg p-3 text-xs overflow-x-auto whitespace-pre">{{ exampleCurl }}</pre>
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
-          Передавайте ключ в заголовке <code class="font-mono bg-gray-100 dark:bg-gray-800 px-1 rounded">X-API-Key</code> каждого запроса
-        </p>
       </div>
 
     <UiConfirmDialog

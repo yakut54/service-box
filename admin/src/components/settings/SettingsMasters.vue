@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/lib/parseApiError'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const authStore = useAuthStore()
 
@@ -36,12 +37,10 @@ async function save() {
 
     <!-- Hide customer phone toggle -->
     <div class="flex items-start justify-between gap-4">
-      <div>
-        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Скрывать телефон клиента</p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-          Мастер не видит номер телефона в своём портале и уведомлениях. Защита клиентской базы.
-        </p>
-      </div>
+      <p class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+        Скрывать телефон клиента
+        <UiHint>Мастер не видит номер телефона в своём портале и уведомлениях. Защита клиентской базы.</UiHint>
+      </p>
       <button
         type="button"
         @click="hidePhone = !hidePhone"

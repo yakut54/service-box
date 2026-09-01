@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 interface MethodForm {
   enabled:   boolean
@@ -159,7 +160,10 @@ async function save() {
                   </div>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Бесплатно от</label>
+                  <label class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                    Бесплатно от
+                    <UiHint>Оставьте пустым — порог не действует</UiHint>
+                  </label>
                   <div class="flex items-center gap-2">
                     <input
                       v-model="methods[key].free_from"
@@ -171,7 +175,6 @@ async function save() {
                   </div>
                 </div>
               </div>
-              <p class="text-xs text-gray-400 dark:text-gray-500 -mt-1">Оставьте «Бесплатно от» пустым — порог не действует</p>
             </template>
 
           </div>

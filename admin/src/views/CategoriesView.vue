@@ -12,6 +12,7 @@ import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const categoriesStore = useCategoriesStore()
 const toast = useToast()
@@ -395,9 +396,11 @@ async function doDelete() {
         </div>
 
         <div>
-          <p class="label">Родительская категория</p>
+          <p class="label flex items-center gap-1">
+            Родительская категория
+            <UiHint>Поддерживается только 1 уровень вложенности</UiHint>
+          </p>
           <CustomSelect v-model="form.parent_id" :options="parentSelectOptions" placeholder="Верхний уровень (без родителя)" searchable />
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Поддерживается только 1 уровень вложенности</p>
         </div>
 
         <div>
@@ -417,10 +420,10 @@ async function doDelete() {
         </div>
 
         <div class="flex items-center justify-between py-2">
-          <div>
-            <span class="label mb-0">Видна на витрине</span>
-            <p class="text-xs text-gray-400">Показывать в публичном каталоге</p>
-          </div>
+          <span class="label mb-0 flex items-center gap-1">
+            Видна на витрине
+            <UiHint>Показывать в публичном каталоге</UiHint>
+          </span>
           <button type="button" @click="form.is_visible = !form.is_visible" :class="['relative w-11 h-6 rounded-full transition-colors', form.is_visible ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600']">
             <span :class="['absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform', form.is_visible ? 'translate-x-5' : '']" />
           </button>

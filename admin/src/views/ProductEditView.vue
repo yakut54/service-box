@@ -6,6 +6,7 @@ import { parseApiError } from '@/lib/parseApiError'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
 import ProductImageGallery from '@/components/ProductImageGallery.vue'
+import { UiHint } from '@/shared/ui'
 import type { ProductImage } from '@/types'
 
 const route = useRoute()
@@ -292,7 +293,7 @@ async function handleSubmit() {
           </div>
 
           <!-- Цена -->
-          <div class="grid grid-cols-2 gap-4 items-end">
+          <div class="grid grid-cols-2 gap-4 items-start">
             <div>
               <label for="price" class="label">{{ isWeightMode ? 'Цена за кг (руб) *' : 'Цена (руб) *' }}</label>
               <div class="relative">
@@ -301,19 +302,18 @@ async function handleSubmit() {
               </div>
             </div>
             <div>
-              <label for="compare_price" class="label">
-                <span class="text-gray-400 dark:text-gray-500 font-normal text-xs">для показа скидки</span><br>
+              <label for="compare_price" class="label flex items-center gap-1">
                 Старая цена (руб)
+                <UiHint>
+                  Для показа скидки — просто зачёркнутая цена, без сроков и лимитов.
+                  Для акций с датами, скидкой на категорию и т.п. — раздел «Скидки».
+                </UiHint>
               </label>
               <div class="relative">
                 <input id="compare_price" v-model.number="form.compare_price" type="number" min="0" step="1" class="input pr-12" placeholder="0" />
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm pointer-events-none">₽</span>
               </div>
               <p v-if="form.compare_price && form.compare_price <= form.price" class="text-xs text-amber-600 dark:text-amber-400 mt-1">Старая цена должна быть больше текущей</p>
-              <p v-else class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Просто зачёркнутая цена, без сроков и лимитов. Для акций с датами,
-                скидкой на категорию и т.п. — раздел «Скидки».
-              </p>
             </div>
           </div>
 
@@ -366,7 +366,10 @@ async function handleSubmit() {
         <div class="space-y-4">
           <!-- Режим продажи -->
           <div>
-            <p class="label">Режим продажи</p>
+            <p class="label flex items-center gap-1">
+              Режим продажи
+              <UiHint>{{ saleModeConfig[physicalDetails.sale_mode].desc }}</UiHint>
+            </p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 v-for="(cfg, key) in saleModeConfig"
@@ -379,9 +382,6 @@ async function handleSubmit() {
                 <div class="text-xs font-semibold leading-tight">{{ cfg.label }}</div>
               </button>
             </div>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              {{ saleModeConfig[physicalDetails.sale_mode].desc }}
-            </p>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
@@ -394,11 +394,13 @@ async function handleSubmit() {
               <input v-model.number="physicalDetails.stock_quantity" type="number" min="0" class="input" placeholder="0" />
             </div>
             <div v-else>
-              <p class="label">Остаток на складе (кг)</p>
-              <input v-model.number="stockWeightKg" type="number" min="0" step="0.1" class="input" placeholder="0" />
-              <p v-if="physicalDetails.sale_mode === 'weight_variable'" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Пока не влияет на приём заказов — режим «перевзвешивание» в разработке
+              <p class="label flex items-center gap-1">
+                Остаток на складе (кг)
+                <UiHint v-if="physicalDetails.sale_mode === 'weight_variable'">
+                  Пока не влияет на приём заказов — режим «перевзвешивание» в разработке
+                </UiHint>
               </p>
+              <input v-model.number="stockWeightKg" type="number" min="0" step="0.1" class="input" placeholder="0" />
             </div>
           </div>
 
@@ -414,9 +416,11 @@ async function handleSubmit() {
           <!-- Штучный: справочный вес -->
           <div v-if="physicalDetails.sale_mode === 'piece'" class="grid grid-cols-2 gap-4">
             <div>
-              <p class="label">Вес (грамм)</p>
+              <p class="label flex items-center gap-1">
+                Вес (грамм)
+                <UiHint>Необязательно, только для показа в карточке</UiHint>
+              </p>
               <input v-model.number="physicalDetails.weight_grams" type="number" min="0" class="input" :placeholder="ep('350')" />
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Необязательно, только для показа в карточке</p>
             </div>
             <div>
               <p class="label">Размер (Д×Ш×В)</p>
@@ -528,20 +532,26 @@ async function handleSubmit() {
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <p class="label">Длительность (мин) *</p>
+              <p class="label flex items-center gap-1">
+                Длительность (мин) *
+                <UiHint>Шаг: 5 минут</UiHint>
+              </p>
               <input v-model.number="serviceDetails.duration_minutes" type="number" min="5" step="5" class="input" placeholder="60" />
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Шаг: 5 минут</p>
             </div>
             <div>
-              <p class="label">Перерыв (мин)</p>
+              <p class="label flex items-center gap-1">
+                Перерыв (мин)
+                <UiHint>Время на подготовку</UiHint>
+              </p>
               <input v-model.number="serviceDetails.break_minutes" type="number" min="0" step="5" class="input" placeholder="0" />
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Время на подготовку</p>
             </div>
           </div>
           <div>
-            <p class="label">Макс. одновременных записей</p>
+            <p class="label flex items-center gap-1">
+              Макс. одновременных записей
+              <UiHint>Сколько клиентов одновременно могут быть записаны</UiHint>
+            </p>
             <input v-model.number="serviceDetails.max_concurrent" type="number" min="1" class="input" placeholder="1" />
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Сколько клиентов одновременно могут быть записаны</p>
           </div>
           <label class="flex items-center gap-3 cursor-pointer select-none">
             <div class="relative">
@@ -549,10 +559,10 @@ async function handleSubmit() {
               <div class="w-11 h-6 bg-gray-200 peer-checked:bg-primary-600 rounded-full transition-colors"></div>
               <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
             </div>
-            <div>
-              <span class="text-gray-700 dark:text-gray-300">Требуется предоплата</span>
-              <p class="text-xs text-gray-400 dark:text-gray-500">Клиент должен оплатить при записи</p>
-            </div>
+            <span class="text-gray-700 dark:text-gray-300 flex items-center gap-1">
+              Требуется предоплата
+              <UiHint>Клиент должен оплатить при записи</UiHint>
+            </span>
           </label>
         </div>
       </div>

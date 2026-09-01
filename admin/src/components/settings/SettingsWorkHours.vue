@@ -6,6 +6,7 @@ import { parseApiError } from '@/lib/parseApiError'
 import TimeInput from '@/components/TimeInput.vue'
 import CustomSelect from '@/components/CustomSelect.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
+import UiHint from '@/shared/ui/UiHint.vue'
 
 const authStore = useAuthStore()
 
@@ -78,9 +79,11 @@ async function save() {
     </div>
 
     <div class="mb-4">
-      <p class="label">Часовой пояс</p>
+      <p class="label flex items-center gap-1">
+        Часовой пояс
+        <UiHint>Используется для корректного отображения слотов записи</UiHint>
+      </p>
       <CustomSelect v-model="timezone" :options="timezoneOptions" placeholder="Выберите часовой пояс" searchable />
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Используется для корректного отображения слотов записи</p>
     </div>
 
     <div v-if="error"   class="mb-3 text-sm text-red-600 dark:text-red-400">{{ error }}</div>
