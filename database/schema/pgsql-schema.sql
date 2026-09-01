@@ -793,7 +793,9 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at timestamp(0) without time zone,
     terms_accepted_at timestamp(0) with time zone,
     terms_accepted_ip character varying(45),
-    is_superadmin boolean DEFAULT false NOT NULL
+    is_superadmin boolean DEFAULT false NOT NULL,
+    avatar_url character varying(1000),
+    phone character varying(20)
 );
 
 
