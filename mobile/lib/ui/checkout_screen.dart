@@ -17,7 +17,7 @@ import 'widgets/form/email_field.dart';
 import 'widgets/form/name_field.dart';
 import 'widgets/form/phone_field.dart';
 import 'widgets/delivery_method_selector.dart';
-import 'widgets/form/primary_submit_button.dart';
+import 'widgets/primary_submit_button.dart';
 import 'widgets/pickup_address_card.dart';
 
 /// Оформление заказа. MVP — только самовывоз, без выбора доставки

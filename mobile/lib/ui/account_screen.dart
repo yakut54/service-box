@@ -13,7 +13,7 @@ import 'widgets/app_dialog.dart';
 import 'widgets/editable_avatar.dart';
 import 'widgets/error_view.dart';
 import 'widgets/form/name_field.dart';
-import 'widgets/form/primary_submit_button.dart';
+import 'widgets/primary_submit_button.dart';
 import 'widgets/success_flash.dart';
 
 class AccountScreen extends StatefulWidget {

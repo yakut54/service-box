@@ -5,7 +5,7 @@ import '../core/app_exception.dart';
 import '../data/address_repository.dart';
 import '../state/auth_state.dart';
 import 'widgets/form/live_validated_field.dart';
-import 'widgets/form/primary_submit_button.dart';
+import 'widgets/primary_submit_button.dart';
 
 /// Форма добавления адреса. При успехе возвращает true через Navigator.pop,
 /// чтобы AddressesScreen знал, что список нужно перезагрузить.

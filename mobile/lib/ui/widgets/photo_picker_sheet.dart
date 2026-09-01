@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
+import 'primary_submit_button.dart';
+
 /// Максимум фото за один выбор в чате — ровно лимит сервера на загрузку
 /// картинок (throttle `chat-image` = 10 в минуту, см.
 /// app/Providers/AppServiceProvider.php). Больше выбрать физически нельзя —
@@ -171,7 +173,7 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
             // Панель всегда на месте для мультивыбора (даже с 0 выбранных,
             // просто задизейблена) — иначе вёрстка шторки прыгает в момент
             // выбора первого фото.
-            if (!_isSingle) _buildConfirmBar(accent),
+            if (!_isSingle) _buildConfirmBar(),
           ],
         ),
       ),
@@ -225,24 +227,15 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
     );
   }
 
-  Widget _buildConfirmBar(Color accent) {
+  Widget _buildConfirmBar() {
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: accent),
-            onPressed: (_confirming || _selected.isEmpty) ? null : _confirmSelection,
-            child: _confirming
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : Text('Готово (${_selected.length}/${widget.maxAssets})'),
-          ),
+        child: PrimarySubmitButton(
+          label: 'Готово (${_selected.length}/${widget.maxAssets})',
+          loading: _confirming,
+          onPressed: _selected.isEmpty ? null : _confirmSelection,
         ),
       ),
     );

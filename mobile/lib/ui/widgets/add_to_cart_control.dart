@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/product.dart';
 import '../../state/cart_state.dart';
+import 'primary_submit_button.dart';
 import 'out_of_stock_chip.dart';
 import 'weight_cart_control.dart';
 
@@ -102,13 +103,10 @@ class _AddButton extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: onAdd,
-        icon: const Icon(Icons.add_shopping_cart_rounded),
-        label: const Text('В корзину'),
-      ),
+    return PrimarySubmitButton(
+      label: 'В корзину',
+      icon: Icons.add_shopping_cart_rounded,
+      onPressed: onAdd,
     );
   }
 }

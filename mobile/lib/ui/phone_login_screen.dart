@@ -4,7 +4,7 @@ import '../core/app_exception.dart';
 import '../data/auth_repository.dart';
 import 'otp_verify_screen.dart';
 import 'widgets/form/phone_field.dart';
-import 'widgets/form/primary_submit_button.dart';
+import 'widgets/primary_submit_button.dart';
 
 /// Первый шаг входа: телефон → запрос SMS-кода → переход к вводу кода.
 class PhoneLoginScreen extends StatefulWidget {

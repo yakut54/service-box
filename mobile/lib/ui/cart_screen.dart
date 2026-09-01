@@ -6,6 +6,7 @@ import '../models/cart_item.dart';
 import '../state/cart_state.dart';
 import '../state/shop_state.dart';
 import 'checkout_screen.dart';
+import 'widgets/primary_submit_button.dart';
 import 'widgets/promo_code_field.dart';
 import 'widgets/weight_cart_control.dart';
 
@@ -194,18 +195,15 @@ class _CartBody extends StatelessWidget {
                   _MinOrderHint(missingRubles: missingKopecks / 100),
                 ],
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: belowMinimum
-                        ? null
-                        : () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const CheckoutScreen(),
-                            ),
+                PrimarySubmitButton(
+                  label: 'Оформить заказ',
+                  onPressed: belowMinimum
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CheckoutScreen(),
                           ),
-                    child: const Text('Оформить заказ'),
-                  ),
+                        ),
                 ),
               ],
             ),

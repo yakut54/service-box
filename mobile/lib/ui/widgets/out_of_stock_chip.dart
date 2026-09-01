@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'primary_submit_button.dart';
+
 /// «Нет в наличии» — общий чип для штучных и весовых товаров (раньше жил
 /// приватным классом внутри add_to_cart_control.dart и не мог переиспользоваться
 /// из weight_cart_control.dart из-за приватности на уровне файла в Dart).
@@ -31,9 +33,6 @@ class OutOfStockChip extends StatelessWidget {
         ),
       );
     }
-    return const SizedBox(
-      width: double.infinity,
-      child: FilledButton(onPressed: null, child: Text('Нет в наличии')),
-    );
+    return const PrimarySubmitButton(label: 'Нет в наличии', onPressed: null);
   }
 }
