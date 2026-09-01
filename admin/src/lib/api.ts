@@ -188,6 +188,13 @@ class ApiClient {
     return this.request<{ token: string }>('/auth/refresh', { method: 'POST' })
   }
 
+  async updateProfile(data: { name: string; phone?: string | null; avatar_url?: string | null }) {
+    return this.request<{ user: User }>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
   async changePassword(currentPassword: string, password: string, passwordConfirmation: string) {
     return this.request<{ message: string }>('/auth/change-password', {
       method: 'POST',

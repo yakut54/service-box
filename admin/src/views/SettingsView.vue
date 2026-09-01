@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useMailFailuresStore } from '@/stores/mailFailures'
 import NavBadge                 from '@/components/layout/NavBadge.vue'
+import SettingsProfile          from '@/components/settings/SettingsProfile.vue'
 import SettingsShopInfo         from '@/components/settings/SettingsShopInfo.vue'
 import SettingsBrand            from '@/components/settings/SettingsBrand.vue'
 import SettingsEmbedCode        from '@/components/settings/SettingsEmbedCode.vue'
@@ -20,12 +22,17 @@ import SettingsChatModeration   from '@/components/settings/SettingsChatModerati
 
 const route     = useRoute()
 const router    = useRouter()
+const authStore = useAuthStore()
 const mailFailuresStore = useMailFailuresStore()
 
 // 'widget' скрыта из таб-бара (2026-08-20) — цвет+лого переехали в SettingsBrand
 // на вкладке "Основное", остальное (тема/шрифт/embed/аналитика) пока не в фокусе
 // (см. PLAN.md). Компонент и вкладка остаются в коде, просто недоступны из UI.
+// 'profile' — ownerOnly: аватар/телефон владельца живут в public.users, у
+// сотрудников (admin/collector) своя запись в shop_staff и своё редактирование
+// через "Команду" (см. AdminFormModal) — самообслуживание для них не добавляли.
 const tabs = [
+  { id: 'profile',       label: 'Профиль', ownerOnly: true },
   { id: 'main',          label: 'Основное' },
   { id: 'widget',        label: 'Виджет', hidden: true },
   { id: 'notifications', label: 'Уведомления' },
@@ -35,12 +42,17 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]['id']
 
-const visibleTabs = computed(() => tabs.filter(tab => !('hidden' in tab && tab.hidden)))
+const visibleTabs = computed(() => tabs.filter(tab =>
+  !('hidden' in tab && tab.hidden) &&
+  (!('ownerOnly' in tab && tab.ownerOnly) || authStore.isOwner)
+))
 
 const activeTab = computed<TabId>(() => {
   const t = route.query.tab as string | undefined
   const match = tabs.find(tab => tab.id === t)
-  if (!match || ('hidden' in match && match.hidden)) return 'main'
+  if (!match) return 'main'
+  if ('hidden' in match && match.hidden) return 'main'
+  if ('ownerOnly' in match && match.ownerOnly && !authStore.isOwner) return 'main'
   return match.id
 })
 
@@ -75,6 +87,12 @@ function setTab(id: TabId) {
       </button>
     </div>
 
+    <!-- Профиль (только владелец) -->
+    <div v-show="activeTab === 'profile'" class="max-w-xl space-y-6">
+      <SettingsProfile />
+      <SettingsPassword />
+    </div>
+
     <!-- Основное -->
     <div v-show="activeTab === 'main'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <div class="flex flex-col gap-6">
@@ -84,7 +102,6 @@ function setTab(id: TabId) {
       <div class="flex flex-col gap-6">
         <SettingsWorkHours />
         <SettingsChatModeration />
-        <SettingsPassword />
       </div>
     </div>
 

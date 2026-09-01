@@ -11,6 +11,7 @@ import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import SessionSupersededModal from '@/components/SessionSupersededModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
+import UiAvatar from '@/shared/ui/UiAvatar.vue'
 import NavBadge from '@/components/layout/NavBadge.vue'
 
 const authStore = useAuthStore()
@@ -257,11 +258,7 @@ async function handleLogout() {
             @click.stop="menuOpen = !menuOpen"
             class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
           >
-            <div class="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
-              <span class="text-gray-600 dark:text-gray-300 font-medium text-sm">
-                {{ authStore.user?.name?.charAt(0).toUpperCase() || authStore.user?.email?.charAt(0).toUpperCase() }}
-              </span>
-            </div>
+            <UiAvatar :src="authStore.user?.avatar_url" :name="authStore.user?.name || authStore.user?.email" size="sm" />
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-gray-900 dark:text-white truncate leading-tight">{{ authStore.user?.name || authStore.user?.email }}</p>
               <p class="text-xs text-gray-400 dark:text-gray-500 leading-tight">{{ authStore.isOwner ? 'Владелец' : 'Администратор' }}</p>
@@ -301,6 +298,18 @@ async function handleLogout() {
                 </svg>
                 {{ isDark ? 'Светлая тема' : 'Тёмная тема' }}
               </button>
+
+              <RouterLink
+                v-if="authStore.isOwner"
+                :to="{ path: '/settings', query: { tab: 'profile' } }"
+                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                @click="menuOpen = false"
+              >
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Мой профиль
+              </RouterLink>
 
               <div class="my-1 border-t border-gray-100 dark:border-gray-800" />
 

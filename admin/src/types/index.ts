@@ -6,6 +6,8 @@ export interface User {
   id: string
   name: string
   email: string
+  avatar_url?: string | null
+  phone?: string | null
   is_superadmin: boolean
   role: 'owner' | 'admin' | 'master' | 'collector'
   created_at: string

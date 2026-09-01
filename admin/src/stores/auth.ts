@@ -136,6 +136,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(data: { name: string; phone?: string | null; avatar_url?: string | null }) {
+    try {
+      const response = await api.updateProfile(data)
+      user.value = response.user
+      return { success: true }
+    } catch (err: unknown) {
+      const message = err instanceof ApiError ? err.message : 'Ошибка обновления'
+      return { success: false, error: message }
+    }
+  }
+
   function clearAuth() {
     user.value = null
     shop.value = null
@@ -165,5 +176,6 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     loginWithToken,
     updateShop,
+    updateProfile,
   }
 })
