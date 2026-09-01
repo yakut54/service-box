@@ -64,9 +64,12 @@ async function updatePosition() {
 }
 
 async function show() {
-  visible.value = true
+  // Позиция считается ДО того, как visible становится true — иначе fade-in
+  // стартует со старых/нулевых координат и tooltip визуально «долетает»
+  // до места, а не появляется сразу на нём.
   await nextTick()
   await updatePosition()
+  visible.value = true
 }
 
 function hide() {
@@ -102,7 +105,10 @@ onUnmounted(() => {
   <Teleport to="body">
     <div
       :class="[
-        'fixed z-[9999] pointer-events-none transition-all duration-150 ease-out',
+        // transition (не transition-all!): анимирует только opacity/transform
+        // из Tailwind-набора — top/left, которыми задаётся позиция, в него
+        // не входят и меняются мгновенно, без наезда на fade-анимацию.
+        'fixed z-[9999] pointer-events-none transition duration-150 ease-out',
         visible
           ? 'opacity-100 translate-y-0'
           : side === 'bottom' ? 'opacity-0 -translate-y-1' : 'opacity-0 translate-y-1',
