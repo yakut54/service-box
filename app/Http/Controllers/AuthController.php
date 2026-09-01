@@ -9,6 +9,7 @@ use App\Mail\ResetPasswordMail;
 use App\Models\Shop;
 use App\Models\ShopStaff;
 use App\Models\User;
+use App\Services\StorageService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -117,6 +118,8 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'avatar_url' => $user->avatar_url,
+                'phone' => $user->phone,
                 'is_superadmin' => (bool) $user->is_superadmin,
                 'role' => $role,
             ],
@@ -155,6 +158,8 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'avatar_url' => $user->avatar_url,
+                'phone' => $user->phone,
                 'is_superadmin' => (bool) $user->is_superadmin,
                 'role' => $role,
             ],
@@ -222,6 +227,50 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Токен обновлён',
             'token' => $token,
+        ]);
+    }
+
+    /**
+     * PUT /api/auth/profile  (requires auth)
+     *
+     * Имя/аватар/телефон владельца магазина — email сюда сознательно не
+     * принимается (он же логин, менять его отдельная задача с подтверждением,
+     * см. StaffController::update, где то же самое для сотрудника).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name'       => 'required|string|max:255',
+            'phone'      => 'nullable|string|max:20',
+            'avatar_url' => 'nullable|url|max:1000',
+        ]);
+
+        $oldAvatarUrl = $user->avatar_url;
+
+        $user->update([
+            'name'       => trim($data['name']),
+            'phone'      => isset($data['phone']) ? trim($data['phone']) : null,
+            'avatar_url' => $data['avatar_url'] ?? $user->avatar_url,
+        ]);
+
+        if (array_key_exists('avatar_url', $data) && $data['avatar_url'] !== $oldAvatarUrl) {
+            StorageService::deleteByUrl($oldAvatarUrl);
+        }
+
+        [, $role] = $this->resolveShopAndRole($user);
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'avatar_url' => $user->avatar_url,
+                'phone' => $user->phone,
+                'is_superadmin' => (bool) $user->is_superadmin,
+                'role' => $role,
+            ],
         ]);
     }
 

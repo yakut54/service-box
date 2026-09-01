@@ -19,6 +19,8 @@ class User extends Authenticatable
         'terms_accepted_at',
         'terms_accepted_ip',
         'is_superadmin',
+        'avatar_url',
+        'phone',
     ];
 
     protected $hidden = [
