@@ -162,8 +162,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
     // считаем высоту ячейки явно: ширина колонки (= высота картинки) +
     // фиксированная высота футера (имя + цена + кнопка, см. ProductCard).
     const gridPadding = 8.0;
-    const crossAxisSpacing = 8.0;
-    const mainAxisSpacing = 8.0;
+    const crossAxisSpacing = 4.0;
+    const mainAxisSpacing = 4.0;
     const cardFooterHeight = 130.0;
     final columnWidth =
         (MediaQuery.sizeOf(context).width - gridPadding * 2 - crossAxisSpacing) / 2;
