@@ -46,8 +46,10 @@ int _effectiveMaxGrams(Product product) {
 /// Аналог AddToCartControl, но для товара «по весу» (см. PLAN.md, «Развесной
 /// товар — финальное ТЗ»): вместо степпера +/- — ползунок веса. Один слайдер
 /// на товар (двигаешь = задаёшь итоговый вес, не накапливаешь как со
-/// штучным товаром). Compact-версия (карточка в сетке каталога) слайдер не
-/// показывает — слишком узко, вместо этого открывает bottom sheet с ним.
+/// штучным товаром). Слайдер сам по себе нигде не показывается инлайн — ни
+/// compact (карточка в сетке), ни обычная версия (нижняя панель страницы
+/// товара) не рисуют его на странице напрямую, обе только кнопка/чип,
+/// открывающие общую шторку (_openWeightSheet) с этим слайдером внутри.
 class WeightCartControl extends StatelessWidget {
   final Product product;
   final bool compact;
@@ -86,7 +88,52 @@ class WeightCartControl extends StatelessWidget {
       );
     }
 
-    return _InlineWeightSlider(product: product, weightGrams: weight, theme: theme);
+    return _WeightSummaryButton(product: product, weightGrams: weight, theme: theme);
+  }
+}
+
+/// Полноразмерная кнопка для нижней панели страницы товара — раньше здесь
+/// был сразу развёрнутый `_InlineWeightSlider` (бегунок, поле ввода,
+/// «Убрать из корзины» — всё разом на странице), пользователь справедливо
+/// назвал это «порнухой» (2026-09-01, живой тест). Теперь как у штучного
+/// товара — одна кнопка, тап открывает уже готовую шторку с тем же
+/// слайдером (_openWeightSheet).
+class _WeightSummaryButton extends StatelessWidget {
+  final Product product;
+  final int? weightGrams;
+  final ThemeData theme;
+
+  const _WeightSummaryButton({
+    required this.product,
+    required this.weightGrams,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (weightGrams == null) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: () => context.read<CartState>().setWeight(
+            product,
+            product.physical!.weightMinGrams,
+          ),
+          icon: const Icon(Icons.add_shopping_cart_rounded),
+          label: const Text('В корзину'),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: () => _openWeightSheet(context, product),
+        child: Text(
+          '${formatWeight(weightGrams!)} · ${formatRubles(product.priceForWeightGrams(weightGrams!) / 100)}',
+        ),
+      ),
+    );
   }
 }
 
