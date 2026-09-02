@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "398667676891",
+    "project_id": "servicebox54",
+    "storage_bucket": "servicebox54.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398667676891:android:6b4272d7ea7b9a654fe0fe",
+        "android_client_info": {
+          "package_name": "ru.yakut54.servicebox.barbariska"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAX7rdskyTjMt7n-8n_JowRylV-H0nWpkU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

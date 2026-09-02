@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/auth_token_store.dart';
 import '../models/auth_session.dart';
+import '../services/fcm_service.dart';
 
 class AuthState extends ChangeNotifier {
   final AuthTokenStore _store;
@@ -21,6 +22,7 @@ class AuthState extends ChangeNotifier {
     _session = await _store.load();
     _loading = false;
     notifyListeners();
+    if (_session != null) _initFcm(_session!.sessionToken);
   }
 
   /// Ждёт, пока `load()` (чтение сессии из хранилища при старте приложения)
@@ -49,11 +51,19 @@ class AuthState extends ChangeNotifier {
     _session = session;
     await _store.save(session);
     notifyListeners();
+    _initFcm(session.sessionToken);
   }
 
   Future<void> logout() async {
     _session = null;
     await _store.clear();
     notifyListeners();
+  }
+
+  /// Не критично для входа/восстановления сессии — если push не завёлся
+  /// (нет Google Play Services, отказано в разрешении и т.п.), покупатель
+  /// всё равно получит уведомления другими каналами (Telegram/MAX/чат).
+  void _initFcm(String sessionToken) {
+    FcmService.initialize(sessionToken).catchError((_) {});
   }
 }
