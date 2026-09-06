@@ -204,11 +204,23 @@ service-box/
   FK-каскад при удалении товара; HTTP `/api/widget/products/{id}` отдаёт `product_attributes`.
   `flutter analyze` / `vue-tsc` — чисто.
 
-### Фаза 2 — Структурные габариты, упаковка, ед. измерения, маркировка, флаги категории 🔜
-`products_physical` += package-габариты, `units_per_pack`/`unit_label`, `marking_code`; форма
-пишет структурные `length/width/height_cm` вместо строки `dimensions`. `categories.age_restricted`
-+ `no_return` (+ тумблеры, `UiToggle`). Мобилка: `AgeGateDialog`, блюр фото в 18+ категории,
-бейдж «возврату не подлежит», `SpecList` показывает габариты товара/упаковки и «₽/шт».
+### Фаза 2 — Упаковка, маркировка, флаги категории ✅ (2026-09-07, `5021548` + `7459680`)
+- **2a (`5021548`).** `products_physical` += `units_per_pack`, `unit_label`, `marking_code`.
+  Штучные упаковки → «1 250 ₽ · 208 ₽/шт» на карточке товара + строка «В упаковке»; поля
+  единиц занулены для весовых режимов, пустые строки → NULL. `marking_code` («Честный знак») —
+  хранится + строка «Маркировка», без ГИС МТ. Валидация в Store/UpdateProductRequest.
+  Проверено на сервере: CC1–CC3.
+- **2b (`7459680`).** `categories` += `age_restricted`, `no_return`. Мобилка: сервис `AgeGate`
+  (SharedPreferences, раз на установку, `ValueNotifier` → карточки в сетке разблюриваются
+  сразу). Спрашивает возраст перед фильтром по 18+ категории и перед открытием 18+ товара
+  (отказ закрывает экран); карточка в сетке блюрит фото + плашка «18+» до подтверждения.
+  `no_return` → строка «Возврату не подлежит» у цены. Флаги отданы на `/widget/categories`
+  (родитель + дети) и во вложенном `category` у `/widget/products(/{id})` — все 4 relation-
+  select в `ProductController`. `CategoryController` валидирует, `UiToggle` в модалке категории.
+  Проверено на сервере: CC1–CC3, дефолт FALSE у существующих строк.
+- **Отложено осознанно (не «код ради кода» для заинтересованных продавцов):** структурные
+  `length/width/height_cm` вместо строки `dimensions`; габариты упаковки (крупногабарит) —
+  вернуться, когда появится реальный продавец такой категории.
 
 ### Фаза 3 — Размерные сетки 🔜
 `size_charts` (kind clothing/shoes/custom, columns/rows JSONB, на магазин) + `products.size_chart_id`.
