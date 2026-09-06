@@ -4,6 +4,9 @@
 class OrderItem {
   final String id;
   final String productName;
+
+  /// «Размер: M · Цвет: Чёрный» — снимок выбранного варианта, null у обычных.
+  final String? variantLabel;
   final int quantity;
   final int priceKopecks;
   final int? weightGrams;
@@ -13,6 +16,7 @@ class OrderItem {
   const OrderItem({
     required this.id,
     required this.productName,
+    this.variantLabel,
     required this.quantity,
     required this.priceKopecks,
     this.weightGrams,
@@ -28,6 +32,7 @@ class OrderItem {
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
     id: json['id'] as String,
     productName: json['product_name'] as String? ?? '',
+    variantLabel: (json['variant_label'] as String?)?.trim(),
     quantity: (json['quantity'] as num?)?.toInt() ?? 1,
     priceKopecks: (json['price'] as num?)?.toInt() ?? 0,
     weightGrams: (json['weight_grams'] as num?)?.toInt(),

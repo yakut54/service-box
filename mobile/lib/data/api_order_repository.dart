@@ -20,6 +20,7 @@ class ApiOrderRepository implements OrderRepository {
           .map(
             (item) => {
               'product_id': item.product.id,
+              if (item.variant != null) 'variant_id': item.variant!.id,
               if (item.weightGrams != null)
                 'weight_grams': item.weightGrams
               else

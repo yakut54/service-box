@@ -6,6 +6,7 @@ import '../data/discount_repository.dart';
 import '../models/applied_discount.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
+import '../models/product_variant.dart';
 
 /// Корзина живёт только в памяти телефона до оформления заказа — на сервер
 /// ничего не уходит, пока байер не нажмёт «Оформить заказ» (см. Шаг E).
@@ -40,7 +41,9 @@ class CartState extends ChangeNotifier {
     return (afterDiscount < 0 ? 0 : afterDiscount) / 100;
   }
 
-  int quantityOf(String productId) => _items[productId]?.quantity ?? 0;
+  /// Количество для товара (обычного — variantId null) или конкретного варианта.
+  int quantityOf(String productId, {String? variantId}) =>
+      _items[CartItem.cartKey(productId, variantId)]?.quantity ?? 0;
 
   int? weightGramsOf(String productId) => _items[productId]?.weightGrams;
 
@@ -60,29 +63,38 @@ class CartState extends ChangeNotifier {
     _scheduleDiscountRefresh();
   }
 
-  void add(Product product, int quantity) {
+  void add(Product product, int quantity, {ProductVariant? variant}) {
     if (quantity <= 0) return;
-    final current = _items[product.id]?.quantity ?? 0;
-    _items[product.id] = CartItem(
+    final key = CartItem.cartKey(product.id, variant?.id);
+    final current = _items[key]?.quantity ?? 0;
+    _items[key] = CartItem(
       product: product,
       quantity: current + quantity,
+      variant: variant,
     );
     notifyListeners();
     _scheduleDiscountRefresh();
   }
 
-  void setQuantity(Product product, int quantity) {
+  void setQuantity(Product product, int quantity, {ProductVariant? variant}) {
+    final key = CartItem.cartKey(product.id, variant?.id);
     if (quantity <= 0) {
-      _items.remove(product.id);
+      _items.remove(key);
     } else {
-      _items[product.id] = CartItem(product: product, quantity: quantity);
+      _items[key] = CartItem(
+        product: product,
+        quantity: quantity,
+        variant: variant,
+      );
     }
     notifyListeners();
     _scheduleDiscountRefresh();
   }
 
-  void remove(String productId) {
-    _items.remove(productId);
+  /// Убрать строку по её ключу (CartItem.key). Для весовых/обычных товаров
+  /// ключ = product.id, поэтому старые вызовы remove(product.id) работают.
+  void remove(String cartKey) {
+    _items.remove(cartKey);
     notifyListeners();
     _scheduleDiscountRefresh();
   }

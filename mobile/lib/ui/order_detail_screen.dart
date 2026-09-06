@@ -148,6 +148,15 @@ class _OrderItemRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.productName, style: theme.textTheme.bodyMedium),
+                if ((item.variantLabel ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    item.variantLabel!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
                 if (weightGrams != null) ...[
                   const SizedBox(height: 2),
                   if (item.isAwaitingWeighing)

@@ -4,6 +4,7 @@ import '../core/app_exception.dart';
 import '../core/format.dart';
 import '../data/catalog_repository.dart';
 import '../models/product.dart';
+import '../models/product_variant.dart';
 import '../services/age_gate.dart';
 import 'widgets/add_to_cart_control.dart';
 import 'widgets/cart_button.dart';
@@ -14,6 +15,7 @@ import 'widgets/product_rating_ask_row.dart';
 import 'widgets/related_products.dart';
 import 'widgets/size_chart_sheet.dart';
 import 'widgets/spec_list.dart';
+import 'widgets/variant_selector.dart';
 
 /// Карточка товара: GET /widget/products/{id}. Открывается тапом по
 /// карточке в каталоге (см. ProductCard).
@@ -88,16 +90,69 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 }
 
-class _ProductDetailBody extends StatelessWidget {
+class _ProductDetailBody extends StatefulWidget {
   final Product product;
 
   const _ProductDetailBody({required this.product});
 
   @override
+  State<_ProductDetailBody> createState() => _ProductDetailBodyState();
+}
+
+class _ProductDetailBodyState extends State<_ProductDetailBody> {
+  // Выбор значений по позициям опций (null — не выбрано). Пусто у товара
+  // без вариантов.
+  late List<String?> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = List<String?>.filled(widget.product.options.length, null);
+  }
+
+  void _onSelect(int optionIndex, String value) {
+    setState(() {
+      // повторный тап по выбранному — снять выбор
+      _selected[optionIndex] = _selected[optionIndex] == value ? null : value;
+    });
+  }
+
+  ProductVariant? get _variant => widget.product.resolveVariant(_selected);
+
+  String _variantPriceLabel(ProductVariant? variant, (int, int)? range) {
+    if (variant != null) {
+      return formatRubles(
+        variant.effectivePriceKopecks(widget.product.priceKopecks) / 100,
+      );
+    }
+    if (range == null) return formatRubles(widget.product.priceKopecks / 100);
+    final (lo, hi) = range;
+    return lo == hi
+        ? formatRubles(lo / 100)
+        : 'от ${formatRubles(lo / 100)}';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
     final theme = Theme.of(context);
-    final inStock = product.inStock;
     final discountEndsAt = product.discountEndsAt;
+
+    final variant = _variant;
+    // Цена: выбран вариант → его цена; вариантный товар без выбора → диапазон;
+    // обычный товар → как раньше через ProductPriceRow.
+    final priceRange = product.hasVariants ? product.variantPriceRangeKopecks : null;
+    final resolvedInStock = variant != null
+        ? variant.inStock
+        : (product.hasVariants ? true : product.inStock);
+
+    // Фото выбранного цвета, если у варианта своё.
+    final gallery = (variant?.imageUrl != null && variant!.imageUrl!.isNotEmpty)
+        ? <String>[
+            variant.imageUrl!,
+            ...product.galleryImages.where((u) => u != variant.imageUrl),
+          ]
+        : product.galleryImages;
 
     // Структурные поля физ-товара + произвольные характеристики из админки —
     // один блок «Характеристики» (Baymard принцип 6: сухие факты отдельно
@@ -120,7 +175,10 @@ class _ProductDetailBody extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             children: [
-              _ProductGallery(images: product.galleryImages),
+              _ProductGallery(
+                key: ValueKey(variant?.id ?? 'base'),
+                images: gallery,
+              ),
               const SizedBox(height: 16),
               Text(product.name, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
@@ -132,14 +190,23 @@ class _ProductDetailBody extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ProductPriceRow(
-                    product: product,
-                    priceStyle: theme.textTheme.titleLarge?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+                  if (product.hasVariants)
+                    Text(
+                      _variantPriceLabel(variant, priceRange),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  else
+                    ProductPriceRow(
+                      product: product,
+                      priceStyle: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  if (product.hasDiscount) ...[
+                  if (!product.hasVariants && product.hasDiscount) ...[
                     const SizedBox(width: 8),
                     DiscountBadge(percent: product.discountPercent!),
                   ],
@@ -164,7 +231,7 @@ class _ProductDetailBody extends StatelessWidget {
                   ),
                 ),
               ],
-              if (!inStock) ...[
+              if (!resolvedInStock) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -222,6 +289,15 @@ class _ProductDetailBody extends StatelessWidget {
                   ),
                 ),
               ],
+              // Выбор размера/цвета (одежда/обувь) — над характеристиками.
+              if (product.hasVariants) ...[
+                const SizedBox(height: 12),
+                VariantSelector(
+                  product: product,
+                  selected: _selected,
+                  onSelect: _onSelect,
+                ),
+              ],
               // Характеристики (сухие факты) — перед описанием (текст), не
               // после, тоже часть того же согласованного порядка.
               if (specRows.isNotEmpty) ...[
@@ -245,7 +321,7 @@ class _ProductDetailBody extends StatelessWidget {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: AddToCartControl(product: product),
+            child: AddToCartControl(product: product, variant: variant),
           ),
         ),
       ],
@@ -258,7 +334,7 @@ class _ProductDetailBody extends StatelessWidget {
 class _ProductGallery extends StatefulWidget {
   final List<String> images;
 
-  const _ProductGallery({required this.images});
+  const _ProductGallery({super.key, required this.images});
 
   @override
   State<_ProductGallery> createState() => _ProductGalleryState();

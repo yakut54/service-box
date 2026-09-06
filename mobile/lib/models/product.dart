@@ -1,3 +1,4 @@
+import 'product_variant.dart';
 import 'size_chart.dart';
 
 /// Складские данные физического товара (GET /widget/products, /widget/products/{id}).
@@ -159,6 +160,11 @@ class Product {
   /// Размерная сетка (одежда/обувь) — кнопка «Таблица размеров» на карточке.
   final SizeChart? sizeChart;
 
+  /// Оси вариативности и заведённые комбинации (одежда/обувь). Пусто —
+  /// товар обычный, продаётся как раньше.
+  final List<ProductOption> options;
+  final List<ProductVariant> variants;
+
   final ProductPhysical? physical;
 
   /// Средний рейтинг и количество отзывов — считаются на бэкенде по
@@ -191,6 +197,8 @@ class Product {
     this.categoryAgeRestricted = false,
     this.categoryNoReturn = false,
     this.sizeChart,
+    this.options = const [],
+    this.variants = const [],
     this.physical,
     this.rating,
     this.reviewCount = 0,
@@ -263,6 +271,67 @@ class Product {
     ...images,
   ];
 
+  // ── Варианты ──────────────────────────────────────────────────
+
+  bool get hasVariants => options.isNotEmpty && variants.isNotEmpty;
+
+  /// Вариант по выбранным значениям (по позициям опций). null — выбраны не все.
+  ProductVariant? resolveVariant(List<String?> selected) {
+    if (selected.length != options.length ||
+        selected.any((s) => s == null || s.isEmpty)) {
+      return null;
+    }
+    for (final v in variants) {
+      if (v.optionValues.length == selected.length) {
+        var match = true;
+        for (var i = 0; i < selected.length; i++) {
+          if (v.optionValues[i] != selected[i]) {
+            match = false;
+            break;
+          }
+        }
+        if (match) return v;
+      }
+    }
+    return null;
+  }
+
+  /// Есть ли в наличии хоть один вариант с этим значением опции при уже
+  /// выбранных значениях остальных осей — для зачёркивания недоступных чипов.
+  bool isOptionValueAvailable(int optionIndex, String value, List<String?> selected) {
+    for (final v in variants) {
+      if (!v.inStock) continue;
+      if (optionIndex >= v.optionValues.length ||
+          v.optionValues[optionIndex] != value) {
+        continue;
+      }
+      var ok = true;
+      for (var i = 0; i < selected.length; i++) {
+        if (i == optionIndex) continue;
+        final s = selected[i];
+        if (s != null &&
+            s.isNotEmpty &&
+            i < v.optionValues.length &&
+            v.optionValues[i] != s) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  /// [min, max] эффективной цены вариантов в копейках. null — нет вариантов.
+  (int, int)? get variantPriceRangeKopecks {
+    if (variants.isEmpty) return null;
+    final prices = variants
+        .map((v) => v.effectivePriceKopecks(displayPriceKopecks))
+        .toList()
+      ..sort();
+    return (prices.first, prices.last);
+  }
+
   factory Product.fromJson(Map<String, dynamic> json) => Product(
     id: json['id'] as String,
     name: json['name'] as String,
@@ -283,6 +352,13 @@ class Product {
     sizeChart: json['size_chart'] != null
         ? SizeChart.fromJson(json['size_chart'] as Map<String, dynamic>)
         : null,
+    options: (json['options'] as List<dynamic>? ?? const [])
+        .map((o) => ProductOption.fromJson(o as Map<String, dynamic>))
+        .where((o) => o.name.isNotEmpty && o.values.isNotEmpty)
+        .toList(),
+    variants: (json['variants'] as List<dynamic>? ?? const [])
+        .map((v) => ProductVariant.fromJson(v as Map<String, dynamic>))
+        .toList(),
     physical: json['physical'] != null
         ? ProductPhysical.fromJson(json['physical'] as Map<String, dynamic>)
         : null,

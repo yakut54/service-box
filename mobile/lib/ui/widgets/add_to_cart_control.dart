@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/product.dart';
+import '../../models/product_variant.dart';
 import '../../state/cart_state.dart';
 import 'primary_submit_button.dart';
 import 'out_of_stock_chip.dart';
@@ -16,13 +17,21 @@ class AddToCartControl extends StatelessWidget {
   final Product product;
   final bool compact;
 
+  /// Выбранный вариант (размер/цвет). Для вариантного товара обязателен —
+  /// без него кнопка неактивна («Выберите вариант»).
+  final ProductVariant? variant;
+
   const AddToCartControl({
     super.key,
     required this.product,
     this.compact = false,
+    this.variant,
   });
 
   int? get _maxQuantity {
+    if (variant != null) {
+      return variant!.allowBackorder ? null : variant!.stockQuantity;
+    }
     final physical = product.physical;
     if (physical == null || physical.allowBackorder) return null;
     return physical.stockQuantity;
@@ -34,19 +43,38 @@ class AddToCartControl extends StatelessWidget {
       return WeightCartControl(product: product, compact: compact);
     }
 
-    final quantity = context.watch<CartState>().quantityOf(product.id);
     final theme = Theme.of(context);
 
-    if (!product.inStock) {
+    // Вариантный товар без выбранного варианта — предложить выбрать.
+    if (product.hasVariants && variant == null) {
+      return PrimarySubmitButton(
+        label: 'Выберите вариант',
+        icon: Icons.tune_rounded,
+        onPressed: null,
+      );
+    }
+
+    final quantity = context
+        .watch<CartState>()
+        .quantityOf(product.id, variantId: variant?.id);
+
+    final inStock = variant != null ? variant!.inStock : product.inStock;
+    if (!inStock) {
       return OutOfStockChip(compact: compact, theme: theme);
     }
 
     if (quantity == 0) {
-      return _AddButton(product: product, compact: compact, theme: theme);
+      return _AddButton(
+        product: product,
+        variant: variant,
+        compact: compact,
+        theme: theme,
+      );
     }
 
     return _QuantityStepper(
       product: product,
+      variant: variant,
       quantity: quantity,
       maxQuantity: _maxQuantity,
       compact: compact,
@@ -57,18 +85,20 @@ class AddToCartControl extends StatelessWidget {
 
 class _AddButton extends StatelessWidget {
   final Product product;
+  final ProductVariant? variant;
   final bool compact;
   final ThemeData theme;
 
   const _AddButton({
     required this.product,
+    required this.variant,
     required this.compact,
     required this.theme,
   });
 
   @override
   Widget build(BuildContext context) {
-    void onAdd() => context.read<CartState>().add(product, 1);
+    void onAdd() => context.read<CartState>().add(product, 1, variant: variant);
 
     if (compact) {
       return SizedBox(
@@ -114,6 +144,7 @@ class _AddButton extends StatelessWidget {
 /// «−» на количестве 1 удаляет позицию — та же семантика, что и в корзине.
 class _QuantityStepper extends StatelessWidget {
   final Product product;
+  final ProductVariant? variant;
   final int quantity;
   final int? maxQuantity;
   final bool compact;
@@ -121,6 +152,7 @@ class _QuantityStepper extends StatelessWidget {
 
   const _QuantityStepper({
     required this.product,
+    required this.variant,
     required this.quantity,
     required this.maxQuantity,
     required this.compact,
@@ -147,7 +179,7 @@ class _QuantityStepper extends StatelessWidget {
                 icon: quantity == 1
                     ? Icons.delete_outline_rounded
                     : Icons.remove_rounded,
-                onTap: () => cart.setQuantity(product, quantity - 1),
+                onTap: () => cart.setQuantity(product, quantity - 1, variant: variant),
                 theme: theme,
               ),
               Expanded(
@@ -163,7 +195,7 @@ class _QuantityStepper extends StatelessWidget {
               _CompactStepButton(
                 icon: Icons.add_rounded,
                 onTap: canIncrease
-                    ? () => cart.setQuantity(product, quantity + 1)
+                    ? () => cart.setQuantity(product, quantity + 1, variant: variant)
                     : null,
                 theme: theme,
               ),
@@ -182,7 +214,7 @@ class _QuantityStepper extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => cart.setQuantity(product, quantity - 1),
+            onPressed: () => cart.setQuantity(product, quantity - 1, variant: variant),
             icon: Icon(
               quantity == 1
                   ? Icons.delete_outline_rounded
@@ -200,7 +232,7 @@ class _QuantityStepper extends StatelessWidget {
           ),
           IconButton(
             onPressed: canIncrease
-                ? () => cart.setQuantity(product, quantity + 1)
+                ? () => cart.setQuantity(product, quantity + 1, variant: variant)
                 : null,
             icon: const Icon(Icons.add_rounded),
           ),

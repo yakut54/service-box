@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../core/format.dart';
 import '../../models/product.dart';
 import '../../services/age_gate.dart';
 import '../product_detail_screen.dart';
@@ -136,13 +137,24 @@ class ProductCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  ProductPriceRow(product: product),
+                  if (product.hasVariants && product.variantPriceRangeKopecks != null)
+                    Text(
+                      _rangeLabel(product.variantPriceRangeKopecks!),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  else
+                    ProductPriceRow(product: product),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 14, 6, 10),
-              child: AddToCartControl(product: product, compact: true),
+              child: product.hasVariants
+                  ? _ChooseButton(product: product, theme: theme)
+                  : AddToCartControl(product: product, compact: true),
             ),
           ],
         ),
@@ -155,4 +167,47 @@ class ProductCard extends StatelessWidget {
     size: 32,
     color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
   );
+
+  static String _rangeLabel((int, int) range) {
+    final (lo, hi) = range;
+    return lo == hi ? formatRubles(lo / 100) : 'от ${formatRubles(lo / 100)}';
+  }
+}
+
+/// Кнопка «Выбрать» на карточке товара с вариантами — быстрый add невозможен,
+/// нужно открыть карточку и выбрать размер/цвет.
+class _ChooseButton extends StatelessWidget {
+  final Product product;
+  final ThemeData theme;
+
+  const _ChooseButton({required this.product, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 36,
+      child: Material(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(10),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(productId: product.id),
+            ),
+          ),
+          child: Center(
+            child: Text(
+              'Выбрать',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

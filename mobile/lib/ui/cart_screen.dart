@@ -411,9 +411,9 @@ class _CartLineTile extends StatelessWidget {
     final imageUrl = product.imageUrl;
 
     return Dismissible(
-      key: ValueKey(product.id),
+      key: ValueKey(item.key),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => context.read<CartState>().remove(product.id),
+      onDismissed: (_) => context.read<CartState>().remove(item.key),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -465,11 +465,20 @@ class _CartLineTile extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        if (item.variant != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            item.variant!.optionValues.join(' · '),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 2),
                         Text(
                           item.weightGrams != null
                               ? '${formatRubles(product.priceRubles)}/кг'
-                              : formatRubles(product.priceRubles),
+                              : formatRubles(item.unitPriceKopecks / 100),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -515,10 +524,13 @@ class _CartQuantityStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final variant = item.variant;
     final physical = item.product.physical;
-    final maxQuantity = (physical != null && !physical.allowBackorder)
-        ? physical.stockQuantity
-        : null;
+    final maxQuantity = variant != null
+        ? (variant.allowBackorder ? null : variant.stockQuantity)
+        : (physical != null && !physical.allowBackorder)
+            ? physical.stockQuantity
+            : null;
     final canIncrease = maxQuantity == null || item.quantity < maxQuantity;
 
     return Container(
@@ -539,6 +551,7 @@ class _CartQuantityStepper extends StatelessWidget {
             onPressed: () => context.read<CartState>().setQuantity(
               item.product,
               item.quantity - 1,
+              variant: variant,
             ),
           ),
           SizedBox(
@@ -556,6 +569,7 @@ class _CartQuantityStepper extends StatelessWidget {
                 ? () => context.read<CartState>().setQuantity(
                     item.product,
                     item.quantity + 1,
+                    variant: variant,
                   )
                 : null,
           ),
