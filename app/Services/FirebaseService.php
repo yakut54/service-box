@@ -12,7 +12,7 @@ use App\Support\PushSendResult;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Exception\Messaging\AuthenticationError as FcmAuthError;
-use Kreait\Firebase\Exception\Messaging\InvalidArgument as FcmInvalidArgument;
+use Kreait\Firebase\Exception\Messaging\InvalidMessage as FcmInvalidMessage;
 use Kreait\Firebase\Exception\Messaging\NotFound as FcmTokenNotFound;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\AndroidConfig;
@@ -89,10 +89,11 @@ class FirebaseService implements PushTransport
             return PushSendResult::Ok;
         } catch (FcmTokenNotFound) {
             return PushSendResult::InvalidToken; // 404 UNREGISTERED
-        } catch (FcmInvalidArgument $e) {
-            // 400 от FCM. Как правило — про токен («not a valid FCM registration
-            // token»). Если про полезную нагрузку — это наш баг, токен не трогаем.
-            if (stripos($e->getMessage(), 'token') !== false) {
+        } catch (FcmInvalidMessage $e) {
+            // 400. kreait шлёт InvalidMessage и на битый токен («registration
+            // token is not a valid FCM registration token»), и на кривой payload.
+            // Различаем по тексту: токен — удаляем, payload — это наш баг.
+            if (stripos($e->getMessage(), 'registration token') !== false) {
                 return PushSendResult::InvalidToken;
             }
             Log::error('Firebase send: bad message payload', ['error' => $e->getMessage()]);
