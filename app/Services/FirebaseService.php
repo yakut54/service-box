@@ -115,6 +115,7 @@ class FirebaseService implements PushTransport
      *
      * @param string      $entityType для push_failures ('order_surcharge', 'order_status', ...)
      * @param string|null $entityId   id связанной сущности (для отладки)
+     * @return bool доставлено в шлюз хотя бы на один токен (не гарантия показа)
      */
     public static function sendToCustomer(
         Shop $shop,
@@ -122,16 +123,21 @@ class FirebaseService implements PushTransport
         PushMessage $message,
         string $entityType,
         ?string $entityId = null,
-    ): void {
+    ): bool {
         $tokens = $customer->pushTokens()->pluck('token');
         if ($tokens->isEmpty()) {
-            return;
+            return false;
         }
 
         $transport = app(PushTransport::class);
+        $delivered = false;
 
         foreach ($tokens as $token) {
-            if ($transport->send($token, $message) === PushSendResult::InvalidToken) {
+            $result = $transport->send($token, $message);
+
+            if ($result === PushSendResult::Ok) {
+                $delivered = true;
+            } elseif ($result === PushSendResult::InvalidToken) {
                 CustomerPushToken::where('token', $token)->delete();
                 PushFailureRecorder::record([
                     'shop_id'     => $shop->id,
@@ -141,6 +147,8 @@ class FirebaseService implements PushTransport
                 ], 'FCM token no longer registered', tokenInvalidated: true);
             }
         }
+
+        return $delivered;
     }
 
     /** Доплата за перевзвешенный заказ (см. OrderReweighService::finalizeOrder). */

@@ -238,6 +238,11 @@ class OrderController extends Controller
         $customer->updateStats();
         $order->load(['items.product.physical', 'customer']);
 
+        // «Заказал сегодня» — гейт для промо-рассылок на сутки (см. Notifier).
+        if ($shop) {
+            \App\Services\Notifier::markOrdered($shop->id, $customer->id);
+        }
+
         if ($shop) {
             try {
                 \App\Services\MailService::notifyNewOrder($shop, $order);

@@ -268,6 +268,31 @@ class TelegramService
     }
 
     /**
+     * Прямая отправка plain-текста в чат байера. Используется как фолбэк-канал
+     * оркестратором (Notifier), когда push не дошёл. Синхронно — вызывается уже
+     * из очереди. Возвращает true при успешной доставке в Bot API.
+     */
+    public static function sendToCustomer(int $chatId, string $text): bool
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) {
+            return false;
+        }
+
+        try {
+            $response = Http::timeout(10)->post(
+                "https://api.telegram.org/bot{$botToken}/sendMessage",
+                ['chat_id' => $chatId, 'text' => $text],
+            );
+
+            return $response->successful() && $response->json('ok') === true;
+        } catch (\Throwable $e) {
+            Log::warning('TelegramService::sendToCustomer failed', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
      * Notify customer when owner confirms or cancels their booking.
      */
     public static function notifyBookingStatusToCustomer(Shop $shop, $booking, string $status): void

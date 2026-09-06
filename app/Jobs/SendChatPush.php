@@ -6,7 +6,7 @@ use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\Customer;
 use App\Models\Shop;
-use App\Services\FirebaseService;
+use App\Services\Notifier;
 use App\Services\TenantService;
 use App\Support\PushMessage;
 use Illuminate\Bus\Queueable;
@@ -67,17 +67,27 @@ class SendChatPush implements ShouldQueue
                 return;
             }
 
-            FirebaseService::sendToCustomer($shop, $customer, new PushMessage(
-                title: $shop->name !== '' ? $shop->name : 'Новое сообщение',
-                body: $this->preview,
-                data: [
-                    'type'       => 'chat',
-                    'thread_id'  => (string) $this->threadId,
-                    'message_id' => (string) $this->messageId,
-                ],
-                channelId: 'chat',
-                collapseKey: "chat:{$this->threadId}",
-            ), 'chat', (string) $this->threadId);
+            $title = $shop->name !== '' ? $shop->name : 'Новое сообщение';
+
+            Notifier::toCustomer(
+                $shop,
+                $customer,
+                Notifier::TIER_TRANSACTIONAL,
+                new PushMessage(
+                    title: $title,
+                    body: $this->preview,
+                    data: [
+                        'type'       => 'chat',
+                        'thread_id'  => (string) $this->threadId,
+                        'message_id' => (string) $this->messageId,
+                    ],
+                    channelId: 'chat',
+                    collapseKey: "chat:{$this->threadId}",
+                ),
+                entityType: 'chat',
+                entityId: (string) $this->threadId,
+                fallbackText: "{$title}: {$this->preview}",
+            );
         });
     }
 }

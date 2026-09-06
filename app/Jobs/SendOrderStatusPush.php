@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Order;
 use App\Models\Shop;
-use App\Services\FirebaseService;
+use App\Services\Notifier;
 use App\Services\TenantService;
 use App\Support\PushMessage;
 use Illuminate\Bus\Queueable;
@@ -74,17 +74,25 @@ class SendOrderStatusPush implements ShouldQueue
 
             $short = substr((string) $order->id, 0, 8);
 
-            FirebaseService::sendToCustomer($shop, $customer, new PushMessage(
-                title: "Заказ №{$short}",
-                body: $label,
-                data: [
-                    'type'     => 'order_status',
-                    'order_id' => (string) $order->id,
-                    'status'   => $this->status,
-                ],
-                channelId: 'orders',
-                collapseKey: "order:{$order->id}:status",
-            ), 'order_status', (string) $order->id);
+            Notifier::toCustomer(
+                $shop,
+                $customer,
+                Notifier::TIER_TRANSACTIONAL,
+                new PushMessage(
+                    title: "Заказ №{$short}",
+                    body: $label,
+                    data: [
+                        'type'     => 'order_status',
+                        'order_id' => (string) $order->id,
+                        'status'   => $this->status,
+                    ],
+                    channelId: 'orders',
+                    collapseKey: "order:{$order->id}:status",
+                ),
+                entityType: 'order_status',
+                entityId: (string) $order->id,
+                fallbackText: "Заказ №{$short}: {$label}",
+            );
         });
     }
 }
