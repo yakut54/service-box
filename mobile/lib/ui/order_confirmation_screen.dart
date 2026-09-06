@@ -2,23 +2,44 @@ import 'package:flutter/material.dart';
 
 import '../core/format.dart';
 import '../models/order.dart';
+import '../services/notification_permission.dart';
 import 'widgets/order_status_badge.dart';
 
 /// Показывается сразу после успешного оформления заказа (в т.ч. для заказов
 /// с холдом ЮKassa — см. CheckoutScreen._submit, окно оплаты открывается до
 /// перехода на этот экран). Заказ создаётся со статусом «ожидает
 /// подтверждения» — это самостоятельный валидный исход оформления.
-class OrderConfirmationScreen extends StatelessWidget {
+class OrderConfirmationScreen extends StatefulWidget {
   final Order order;
 
   const OrderConfirmationScreen({super.key, required this.order});
 
-  String get _shortId =>
-      order.id.length > 8 ? order.id.substring(0, 8) : order.id;
+  @override
+  State<OrderConfirmationScreen> createState() => _OrderConfirmationScreenState();
+}
+
+class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Момент очевидной ценности: заказ оформлен — спрашиваем про уведомления
+    // о статусе доставки. Не на старте приложения.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        NotificationPermission.maybeShowPrimer(context, trigger: 'order');
+      }
+    });
+  }
+
+  String get _shortId {
+    final id = widget.order.id;
+    return id.length > 8 ? id.substring(0, 8) : id;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final order = widget.order;
 
     return Scaffold(
       appBar: AppBar(automaticallyImplyLeading: false),

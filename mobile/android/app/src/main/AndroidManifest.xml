@@ -3,6 +3,10 @@
          сходить ни в один запрос (в debug/profile сборках доступ есть по умолчанию,
          поэтому проблема проявляется только в реальном APK). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: показ уведомлений — runtime-разрешение. Спрашиваем не на
+         старте, а после первого заказа / первого входа в чат (см.
+         NotificationPermission.maybeShowPrimer). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Съёмка фото для аватарки профиля. Без required=false приложение
          не поставится на устройства без камеры — доступ к галерее всё
          равно остаётся. -->

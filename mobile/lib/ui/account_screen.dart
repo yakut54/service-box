@@ -5,6 +5,7 @@ import '../core/app_exception.dart';
 import '../core/format.dart';
 import '../data/profile_repository.dart';
 import '../models/profile.dart';
+import '../services/notification_permission.dart';
 import '../state/auth_state.dart';
 import '../state/chat_state.dart';
 import 'addresses_screen.dart';
@@ -25,15 +26,35 @@ class AccountScreen extends StatefulWidget {
   State<AccountScreen> createState() => _AccountScreenState();
 }
 
-class _AccountScreenState extends State<AccountScreen> {
+class _AccountScreenState extends State<AccountScreen> with WidgetsBindingObserver {
   Profile? _profile;
   bool _loading = true;
   AppException? _error;
+  bool _offerEnableNotifications = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    _refreshNotificationState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Вернулись из системных настроек уведомлений — перепроверить строку.
+    if (state == AppLifecycleState.resumed) _refreshNotificationState();
+  }
+
+  Future<void> _refreshNotificationState() async {
+    final offer = await NotificationPermission.shouldOfferEnableInProfile();
+    if (mounted) setState(() => _offerEnableNotifications = offer);
   }
 
   String? get _sessionToken => context.read<AuthState>().session?.sessionToken;
@@ -198,6 +219,18 @@ class _AccountScreenState extends State<AccountScreen> {
             );
           },
         ),
+        if (_offerEnableNotifications)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.notifications_off_outlined,
+              color: theme.colorScheme.error,
+            ),
+            title: const Text('Уведомления выключены'),
+            subtitle: const Text('Статус заказа и сообщения от магазина'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: NotificationPermission.openSystemSettings,
+          ),
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: () async {

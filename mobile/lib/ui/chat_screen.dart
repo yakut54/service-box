@@ -17,6 +17,7 @@ import '../core/uuid.dart';
 import '../data/chat_realtime_client.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_message.dart';
+import '../services/notification_permission.dart';
 import '../state/auth_state.dart';
 import '../state/chat_state.dart';
 import 'widgets/photo_picker_sheet.dart';
@@ -102,6 +103,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (mounted) _uploadPickedBytes([bytes]);
       });
     }
+    // Первый вход в чат — момент очевидной ценности уведомлений («сообщения от
+    // магазина»). No-op, если уже спрашивали дважды или разрешение дано.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        NotificationPermission.maybeShowPrimer(context, trigger: 'chat');
+      }
+    });
   }
 
   @override

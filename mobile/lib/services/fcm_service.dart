@@ -21,9 +21,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../data/profile_repository.dart';
 
 class FcmService {
-  /// Запрашивает разрешение, получает device token и регистрирует его на
-  /// бэкенде. Слушает onTokenRefresh — токен может смениться в любой момент
-  /// (переустановка, смена аккаунта Google Play и т.д.), не только при старте.
+  /// Получает device token и регистрирует его на бэкенде. Слушает
+  /// onTokenRefresh — токен может смениться в любой момент (переустановка,
+  /// смена аккаунта Google Play и т.д.), не только при старте.
+  ///
+  /// РАЗРЕШЕНИЕ на показ уведомлений здесь НЕ запрашивается — токен на Android
+  /// выдаётся и без него. Спрашиваем контекстно, после первого заказа / входа
+  /// в чат (NotificationPermission.maybeShowPrimer), чтобы не жечь единственную
+  /// попытку системного диалога на старте.
   ///
   /// initialize() может быть вызван больше одного раза за сессию приложения
   /// (восстановление сессии при старте, затем повторный логин после выхода) —
@@ -35,7 +40,6 @@ class FcmService {
     }
 
     final messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission();
 
     final token = await messaging.getToken();
     if (token != null) {
