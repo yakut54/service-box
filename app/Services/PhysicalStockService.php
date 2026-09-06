@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductVariant;
 
 /**
  * Единая точка списания/возврата складского остатка физических товаров —
@@ -23,9 +24,20 @@ class PhysicalStockService
      * Для weight_variable — ничего не делает: точное количество известно
      * только после взвешивания сборщиком, списание происходит там же
      * (см. OrderReweighService::submitActualWeight), не при заказе.
+     *
+     * $variant задан → остаток ведёт вариант (одежда/обувь), не products_physical.
      */
-    public static function reserve(Product $product, int $quantity, ?int $weightGrams): void
+    public static function reserve(Product $product, int $quantity, ?int $weightGrams, ?ProductVariant $variant = null): void
     {
+        if ($variant !== null) {
+            if ($variant->stock_quantity < $quantity && !$variant->allow_backorder) {
+                $combo = $variant->shortLabel();
+                abort(409, "«{$product->name}»" . ($combo ? " ({$combo})" : '') . ' закончился на складе');
+            }
+            $variant->decrement('stock_quantity', $quantity);
+            return;
+        }
+
         $physical = $product->physical;
         if (!$physical) {
             return;
@@ -58,6 +70,13 @@ class PhysicalStockService
     {
         $product = $item->product;
         if (!$product || $product->type !== 'physical') {
+            return;
+        }
+
+        // Вариантная позиция — вернуть остаток именно варианту.
+        if ($item->variant_id) {
+            $variant = ProductVariant::find($item->variant_id);
+            $variant?->increment('stock_quantity', $item->quantity);
             return;
         }
 

@@ -161,6 +161,49 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     )
                 $sql$, p_schema_name, p_schema_name);
 
+                -- Варианты товара (одежда/обувь): опции = каталог осей выбора,
+                -- product_variants = реально заведённые комбинации со своим
+                -- SKU/ценой/остатком/фото. option_values хранится текстом
+                -- (позиционно к product_options.position) — без FK, чтобы
+                -- переименование значения не рушило каскадом варианты.
+                EXECUTE format($sql$
+                    CREATE TABLE %I.product_options (
+                        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        product_id UUID NOT NULL REFERENCES %I.products(id) ON DELETE CASCADE,
+                        name       TEXT NOT NULL,
+                        position   INTEGER NOT NULL DEFAULT 1
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.product_options(product_id)', p_schema_name);
+
+                EXECUTE format($sql$
+                    CREATE TABLE %I.product_option_values (
+                        id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        option_id UUID NOT NULL REFERENCES %I.product_options(id) ON DELETE CASCADE,
+                        value     TEXT NOT NULL,
+                        position  INTEGER NOT NULL DEFAULT 0
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.product_option_values(option_id)', p_schema_name);
+
+                EXECUTE format($sql$
+                    CREATE TABLE %I.product_variants (
+                        id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        product_id      UUID NOT NULL REFERENCES %I.products(id) ON DELETE CASCADE,
+                        sku             TEXT,
+                        price           INTEGER,
+                        stock_quantity  INTEGER NOT NULL DEFAULT 0,
+                        allow_backorder BOOLEAN NOT NULL DEFAULT FALSE,
+                        image_url       TEXT,
+                        option_values   JSONB NOT NULL DEFAULT '[]'::jsonb,
+                        is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+                        position        INTEGER NOT NULL DEFAULT 0,
+                        created_at      TIMESTAMPTZ DEFAULT NOW(),
+                        updated_at      TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.product_variants(product_id)', p_schema_name);
+
                 -- product_images
                 EXECUTE format($sql$
                     CREATE TABLE %I.product_images (
@@ -285,6 +328,11 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                         order_id     UUID NOT NULL REFERENCES %I.orders(id) ON DELETE CASCADE,
                         product_id   UUID NOT NULL REFERENCES %I.products(id) ON DELETE RESTRICT,
+                        -- Вариант (размер/цвет), если товар с вариантами. Снимок
+                        -- подписи «Размер: M · Цвет: Чёрный» — variant_label, как
+                        -- product_name: переживает удаление/правку варианта.
+                        variant_id   UUID REFERENCES %I.product_variants(id) ON DELETE SET NULL,
+                        variant_label TEXT,
                         quantity     INTEGER DEFAULT 1,
                         price        INTEGER NOT NULL,
                         product_name TEXT NOT NULL,
@@ -296,7 +344,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         actual_weight_grams INTEGER,
                         actual_price         INTEGER
                     )
-                $sql$, p_schema_name, p_schema_name, p_schema_name);
+                $sql$, p_schema_name, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.order_items(order_id)', p_schema_name);
 
                 -- discount_uses

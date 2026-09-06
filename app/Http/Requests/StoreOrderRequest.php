@@ -16,6 +16,8 @@ class StoreOrderRequest extends FormRequest
         return [
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|uuid',
+            // Товар с вариантами (размер/цвет) присылает id выбранного варианта.
+            'items.*.variant_id' => 'nullable|uuid',
             // Штучный товар присылает quantity; весовой (см. PLAN.md, «Развесной
             // товар») — weight_grams вместо quantity. Какое поле обязательно
             // для конкретного товара — решает контроллер, зная его sale_mode.

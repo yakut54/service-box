@@ -105,16 +105,35 @@ class OrderController extends Controller
                 $product  = Product::with('physical')->lockForUpdate()->findOrFail($item['product_id']);
                 $saleMode = $product->physical->sale_mode ?? 'piece';
                 $weightGrams = null;
+                $variant = null;
+                $variantLabel = null;
 
                 if ($saleMode === 'piece') {
                     if (!isset($item['quantity'])) {
                         abort(422, "Не указано количество для товара «{$product->name}»");
                     }
                     $quantity  = (int) $item['quantity'];
-                    $itemPrice = $product->price;
+
+                    // Товар с вариантами (размер/цвет) — нужен конкретный вариант.
+                    $hasVariants = $product->options()->exists();
+                    if (!empty($item['variant_id'])) {
+                        $variant = \App\Models\ProductVariant::where('product_id', $product->id)
+                            ->whereKey($item['variant_id'])
+                            ->lockForUpdate()
+                            ->first();
+                        if (!$variant || !$variant->is_active) {
+                            abort(422, "Выбранный вариант товара «{$product->name}» недоступен");
+                        }
+                        $names = $product->options()->orderBy('position')->pluck('name')->all();
+                        $variantLabel = $variant->fullLabel($names);
+                    } elseif ($hasVariants) {
+                        abort(422, "Для товара «{$product->name}» нужно выбрать вариант");
+                    }
+
+                    $itemPrice = $variant ? $variant->effectivePrice($product->price) : $product->price;
 
                     if ($product->type === 'physical' && $product->physical) {
-                        \App\Services\PhysicalStockService::reserve($product, $quantity, null);
+                        \App\Services\PhysicalStockService::reserve($product, $quantity, null, $variant);
                     }
                 } else {
                     // weight_fixed / weight_variable — см. PLAN.md, «Развесной товар».
@@ -151,6 +170,8 @@ class OrderController extends Controller
 
                 $order->items()->create([
                     'product_id' => $product->id,
+                    'variant_id' => $variant?->id,
+                    'variant_label' => $variantLabel,
                     'quantity' => $quantity,
                     'price' => $itemPrice,
                     'product_name' => $product->name,

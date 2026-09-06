@@ -10,6 +10,7 @@ use App\Services\DiscountService;
 use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 class ProductController extends Controller
 {
@@ -278,6 +279,120 @@ class ProductController extends Controller
         }
 
         $this->syncAttributes($product, $request);
+        $this->syncOptionsAndVariants($product, $request);
+    }
+
+    private const TUPLE_SEP = "\x1f";
+
+    private static function tupleKey(array $values): string
+    {
+        return implode(self::TUPLE_SEP, array_map(fn ($v) => trim((string) $v), $values));
+    }
+
+    /**
+     * Опции + варианты товара (одежда/обувь). Ключ 'options' отсутствует в
+     * запросе → не трогаем (внешний API v1 варианты не шлёт). Варианты только
+     * у штучного физического товара; в остальных случаях всё зачищается.
+     *
+     * Опции — replace-all (это каталог выбора, варианты ссылаются на значения
+     * текстом, не FK). Варианты — sync по кортежу option_values: совпавшие
+     * обновляем на месте (сохраняя id и остаток из формы), новые создаём,
+     * пропавшие удаляем — чтобы order_items.variant_id пережил пере-сохранение.
+     */
+    protected function syncOptionsAndVariants(Product $product, Request $request): void
+    {
+        if (!$request->has('options')) {
+            return;
+        }
+
+        $saleMode = $request->input('physical.sale_mode')
+            ?? $product->physical()->value('sale_mode')
+            ?? 'piece';
+        $variantsAllowed = $product->type === 'physical' && $saleMode === 'piece';
+
+        $options = collect($variantsAllowed ? $request->input('options', []) : [])
+            ->map(fn ($o) => [
+                'name'   => trim((string) ($o['name'] ?? '')),
+                'values' => collect($o['values'] ?? [])
+                    ->map(fn ($v) => trim((string) $v))
+                    ->filter()->unique()->values()->all(),
+            ])
+            ->filter(fn ($o) => $o['name'] !== '' && count($o['values']) > 0)
+            ->take(3)
+            ->values();
+
+        // --- опции ---
+        $product->options()->delete();
+        foreach ($options as $i => $o) {
+            $opt = $product->options()->create(['name' => $o['name'], 'position' => $i + 1]);
+            foreach ($o['values'] as $j => $val) {
+                $opt->values()->create(['value' => $val, 'position' => $j]);
+            }
+        }
+
+        if ($options->isEmpty()) {
+            $product->variants()->delete();
+            return;
+        }
+
+        // допустимые комбинации = декартово произведение значений опций
+        $allowed = array_map([self::class, 'tupleKey'], $this->cartesian($options->pluck('values')->all()));
+        $width   = $options->count();
+
+        $desired = collect($request->input('variants', []))
+            ->map(function ($v) use ($width) {
+                $vals = collect($v['option_values'] ?? [])->map(fn ($x) => trim((string) $x))->all();
+                $vals = array_map(fn ($i) => $vals[$i] ?? '', range(0, $width - 1));
+                $price = Arr::get($v, 'price');
+
+                return [
+                    'option_values'   => $vals,
+                    'sku'             => trim((string) Arr::get($v, 'sku', '')) ?: null,
+                    'price'           => ($price === null || $price === '') ? null : max(0, (int) $price),
+                    'stock_quantity'  => max(0, (int) Arr::get($v, 'stock_quantity', 0)),
+                    'allow_backorder' => (bool) Arr::get($v, 'allow_backorder', false),
+                    'image_url'       => trim((string) Arr::get($v, 'image_url', '')) ?: null,
+                    'is_active'       => (bool) Arr::get($v, 'is_active', true),
+                ];
+            })
+            ->filter(fn ($v) => !in_array('', $v['option_values'], true)
+                && in_array(self::tupleKey($v['option_values']), $allowed, true))
+            ->keyBy(fn ($v) => self::tupleKey($v['option_values']));
+
+        $existing = $product->variants()->get()
+            ->keyBy(fn ($row) => self::tupleKey((array) $row->option_values));
+
+        foreach ($existing as $key => $row) {
+            if (!$desired->has($key)) {
+                $row->delete();
+            }
+        }
+
+        $pos = 0;
+        foreach ($desired as $key => $data) {
+            $data['position'] = $pos++;
+            if ($existing->has($key)) {
+                $existing[$key]->update($data);
+            } else {
+                $product->variants()->create($data);
+            }
+        }
+    }
+
+    /** Декартово произведение списков значений опций. @return array<int,array<int,string>> */
+    private function cartesian(array $lists): array
+    {
+        $result = [[]];
+        foreach ($lists as $list) {
+            $next = [];
+            foreach ($result as $prefix) {
+                foreach ($list as $item) {
+                    $next[] = [...$prefix, $item];
+                }
+            }
+            $result = $next;
+        }
+        return $result;
     }
 
     /**
@@ -341,5 +456,6 @@ class ProductController extends Controller
         }
 
         $this->syncAttributes($product, $request);
+        $this->syncOptionsAndVariants($product, $request);
     }
 }

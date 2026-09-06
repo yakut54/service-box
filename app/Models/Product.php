@@ -75,6 +75,23 @@ class Product extends Model
         return $this->hasMany(ProductAttribute::class, 'product_id')->orderBy('sort_order');
     }
 
+    /** Оси вариативности («Размер», «Цвет») с их значениями. */
+    public function options()
+    {
+        return $this->hasMany(ProductOption::class, 'product_id')->orderBy('position');
+    }
+
+    /** Заведённые комбинации со своим SKU/ценой/остатком/фото. */
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class, 'product_id')->orderBy('position');
+    }
+
+    public function hasVariants(): bool
+    {
+        return $this->options()->exists();
+    }
+
     /**
      * Доп. фото галереи (не включает обложку — см. image_url).
      */
@@ -103,6 +120,8 @@ class Product extends Model
         return $this->load([
             'productAttributes',
             'sizeChart',
+            'options.values',
+            'variants',
             'physical' => function ($query) {
                 return $this->type === 'physical' ? $query : $query->whereRaw('false');
             },

@@ -30,6 +30,21 @@ class StoreProductRequest extends FormRequest
             'attributes' => 'nullable|array|max:30',
             'attributes.*.label' => 'nullable|string|max:255|required_with:attributes.*.value',
             'attributes.*.value' => 'nullable|string|max:1000|required_with:attributes.*.label',
+
+            // Опции + варианты (одежда/обувь) — см. ProductController::syncOptionsAndVariants
+            'options' => 'nullable|array|max:3',
+            'options.*.name' => 'required_with:options.*.values|string|max:60',
+            'options.*.values' => 'nullable|array|max:30',
+            'options.*.values.*' => 'required|string|max:60',
+            'variants' => 'nullable|array|max:300',
+            'variants.*.option_values' => 'required_with:variants|array|max:3',
+            'variants.*.option_values.*' => 'nullable|string|max:60',
+            'variants.*.sku' => 'nullable|string|max:100',
+            'variants.*.price' => 'nullable|integer|min:0',
+            'variants.*.stock_quantity' => 'nullable|integer|min:0',
+            'variants.*.allow_backorder' => 'nullable|boolean',
+            'variants.*.image_url' => 'nullable|string|max:500',
+            'variants.*.is_active' => 'nullable|boolean',
         ];
 
         if ($this->type === 'physical') {
