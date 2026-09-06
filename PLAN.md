@@ -176,7 +176,73 @@ service-box/
 - **Возвраты товаров** (В1–В8) — таблица `order_returns`, `YooKassaService::refund()` (сейчас нет), обработка `refund.succeeded` в вебхуке, различение причин (брак / передумал) для суммы возврата, экран заявки у покупателя. Исследование — `product-returns-research.pdf` (не в git). Детали — в архиве
 - **Весовой товар в веб-виджете** — `widget/` не знает про `sale_mode`/`weight_grams`, не может оформить весовой заказ
 - **Ретеншн изображений** — недельная очистка фото-доказательств, per-shop переключатель «оригинал / лимит по весу». Ждёт фичу возвратов. Детали — в архиве
-- **Карточка товара** — исследование `product-card-research.pdf` (не в git), в PLAN.md ещё не перенесено
+- **Карточка товара** — план внедрения ниже (варианты, размерные сетки, универсальные характеристики). Обоснование — `needs/product-card-research.pdf` (не в git)
+
+---
+
+## 🔜 Карточка товара — варианты, размерные сетки, характеристики (мобилка + админка)
+
+> Обоснование, разбор конкурентов, UX best practice — `needs/product-card-research.pdf`.
+> Заинтересовались реальные продавцы: фрукты/овощи (развесное) и одежда/обувь.
+> Каждая фаза: реализация → коммит+пуш → авто-деплой → **стоп** → проверка. Не копить.
+> **widget не трогаем** (заморожен). digital/service — только универсальные характеристики,
+> UI не ворошим.
+
+### Фаза 1 — Универсальные характеристики «label: value» ✅ (2026-09-06, `fa1e647`)
+- **Сделано.** Тенантная `product_attributes (id, product_id FK CASCADE, label, value, sort_order)`
+  — свободные пары, шопер добавляет сам. `ProductAttribute` модель; `Product::productAttributes()`
+  в `loadDetails()` → `/admin/products` и `/widget/products` отдают ключ `product_attributes`.
+  `ProductController::syncAttributes()` — перезапись целиком на store/update, пустые строки
+  отброшены, label/value обрезаны до 255/1000, ключ отсутствует в запросе → не трогаем (внешний
+  API v1). Валидация `attributes[]` max 30. Схема свёрнута в `create_shop_schema()`, функция +
+  таблица применены на сервер, миграционного файла нет.
+  Админка: `KeyValueEditor.vue` в `shared/ui` (переиспользуемые строки пар, datalist-подсказки) →
+  карточка «Характеристики» в форме товара. Мобилка: `SpecList` (обобщён из приватного
+  `_CharacteristicsList`), карточка товара кормит его структурными полями + универсальными.
+- **Проверено на сервере.** CC1–CC8: перезапись не копит; пустой массив чистит; отсутствие
+  ключа не трогает; обрезка длины; JSON-ключ `product_attributes` (без коллизии имён relation);
+  FK-каскад при удалении товара; HTTP `/api/widget/products/{id}` отдаёт `product_attributes`.
+  `flutter analyze` / `vue-tsc` — чисто.
+
+### Фаза 2 — Структурные габариты, упаковка, ед. измерения, маркировка, флаги категории 🔜
+`products_physical` += package-габариты, `units_per_pack`/`unit_label`, `marking_code`; форма
+пишет структурные `length/width/height_cm` вместо строки `dimensions`. `categories.age_restricted`
++ `no_return` (+ тумблеры, `UiToggle`). Мобилка: `AgeGateDialog`, блюр фото в 18+ категории,
+бейдж «возврату не подлежит», `SpecList` показывает габариты товара/упаковки и «₽/шт».
+
+### Фаза 3 — Размерные сетки 🔜
+`size_charts` (kind clothing/shoes/custom, columns/rows JSONB, на магазин) + `products.size_chart_id`.
+`SizeChartController` CRUD; `SizeChartPicker.vue` с фронт-пресетами RU/EU/US. Мобилка:
+`SizeChartSheet` + кнопка «Таблица размеров».
+
+### Фаза 4 — Варианты: бэкенд + модель 🔜
+`product_options` / `product_option_values` / `product_variants` (≤3 оси, строка на реальную
+комбинацию, свой SKU/цена/остаток/фото). `order_items` += `variant_id`, `variant_label`.
+`PhysicalStockService` variant-aware; `OrderController::store` + `Api/WriteController::storeOrder`
+принимают `variant_id` — заодно свести дублирование (техдолг #6). Отзывы остаются на `product_id`.
+Варианты только для `sale_mode = piece`.
+
+### Фаза 5 — Варианты: админка 🔜
+`ProductOptionsEditor` + `ProductVariantsTable` + быстрый старт «Одежда»/«Обувь» (фронт-пресеты
+опций и сетки, нового `products.type` нет). Разбор `ProductEditView.vue` на секции.
+
+### Фаза 6 — Варианты: мобилка 🔜
+`VariantSelector` (чипы-кнопки на опцию, OOS зачёркнут); `CartState`/`CartItem`/`AddToCartControl`
+— ключ `productId:variantId`; свап фото/цены на карточке; подписи корзины; payload чекаута +=
+`variant_id`; показ в заказе. Полный флоу покупки одежды/обуви.
+
+### Фаза 7 — «Сообщить о поступлении» 🔜
+`stock_subscriptions` + джоба на переход остатка 0→>0 + `Notifier` tier 2 + мобилка
+`NotifyBackInStockButton` вместо `OutOfStockChip`.
+
+### Фаза 8 — Редизайн grid-карточки + сквозная проверка флоу 🔜
+`product_card.dart` + `catalog_screen.dart` grid — по Baymard (рейтинг на карточке, «₽/шт»/«₽/кг»,
+«от N ₽», бейджи). Затем прогон всех флоу: создание/редактирование/удаление (все формы), покупка,
+чекаут, OOS, перевзвешивание не сломано, роль collector не сломана.
+
+### Что НЕ делаем
+Сравнительные таблицы, rich-text описание, Taobao-инфографика, fit-finder квиз, мультиязычность.
+Устаревший состав еды/косметики — вне охвата.
 
 ---
 
