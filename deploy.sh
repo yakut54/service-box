@@ -4,6 +4,14 @@ set -e
 REPO_DIR="/var/www/servicebox"
 BRANCH="flutter-app"
 
+# Единая точка чтения серверного .env (он вне git). Раньше связка grep|cut|tr
+# была скопирована в трёх местах.
+env_get() {
+  local key="$1" def="$2" val
+  val=$(grep "^${key}=" "$REPO_DIR/.env" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d "\"' ")
+  echo "${val:-$def}"
+}
+
 cd "$REPO_DIR"
 
 # ── Bootstrap: pull latest code, re-exec so the UPDATED script runs ──
@@ -27,10 +35,24 @@ fi
 
 NEW_HASH=$(git rev-parse HEAD)
 
+# ── Домен: единственный источник — APP_URL в серверном .env ──────────
+# Из него выводятся VITE_API_URL / VITE_REVERB_HOST для бандлов и URL вебхуков.
+APP_URL=$(env_get APP_URL)
+if [[ -z "$APP_URL" || "$APP_URL" != https://* ]]; then
+  echo "FATAL: APP_URL в $REPO_DIR/.env пуст или не начинается с https:// ('$APP_URL')."
+  echo "       Без него бандлы соберутся с пустым доменом и сломают чат. Прерываю."
+  exit 1
+fi
+APP_URL="${APP_URL%/}"                     # без хвостового слэша
+APP_DOMAIN="${APP_URL#https://}"           # голый хост
+APP_DOMAIN="${APP_DOMAIN%%/*}"
+
 echo "=== ServiceBox Deploy ==="
 echo "→ Dir:    $REPO_DIR"
 echo "→ Branch: $BRANCH"
 echo "→ Commit: ${NEW_HASH:0:8}"
+echo "→ URL:    $APP_URL"
+echo "→ Domain: $APP_DOMAIN"
 
 # ── Detect what changed since last deploy ──────────────────────────
 if [ -n "$OLD_HASH" ] && [ "$OLD_HASH" != "$NEW_HASH" ]; then
@@ -121,10 +143,9 @@ if [ "$ADMIN_BUILD" = "true" ]; then
   fi
 
   echo "    → building..."
-  REVERB_APP_KEY_FOR_BUILD=$(grep '^REVERB_APP_KEY=' ../.env | cut -d'=' -f2- | tr -d '"'"'"' ')
   VITE_API_URL=/api \
-    VITE_REVERB_APP_KEY="$REVERB_APP_KEY_FOR_BUILD" \
-    VITE_REVERB_HOST=yakut54.ru \
+    VITE_REVERB_APP_KEY="$(env_get REVERB_APP_KEY)" \
+    VITE_REVERB_HOST="$APP_DOMAIN" \
     VITE_REVERB_PORT=443 \
     VITE_REVERB_SCHEME=https \
     npm run build:server
@@ -155,7 +176,7 @@ if [ "$WIDGET_BUILD" = "true" ]; then
   fi
 
   echo "    → building..."
-  VITE_API_URL=https://yakut54.ru/api VITE_SHOP_ID= npm run build:server
+  VITE_API_URL="$APP_URL/api" VITE_SHOP_ID= npm run build:server
   cd ..
   echo "    widget/dist ready ($(du -sh widget/dist | cut -f1))"
 
@@ -216,9 +237,10 @@ echo "    Disk: $(df -h / | awk 'NR==2{print $4}') free"
 echo ""
 echo "[5/7] Syncing DB password..."
 sleep 5
-DB_PASSWORD=$(grep '^DB_PASSWORD=' .env | cut -d'=' -f2- | tr -d '"'"'"' ')
-docker exec servicebox_db psql -U servicebox \
-  -c "ALTER USER servicebox WITH PASSWORD '${DB_PASSWORD:-servicebox}';" \
+DB_USER=$(env_get DB_USERNAME servicebox)
+DB_PASSWORD=$(env_get DB_PASSWORD servicebox)
+docker exec servicebox_db psql -U "$DB_USER" \
+  -c "ALTER USER \"$DB_USER\" WITH PASSWORD '${DB_PASSWORD}';" \
   && echo "    DB password synced OK" || echo "    [warn] DB password sync skipped"
 
 # ── 6. Run migrations + cache ────────────────────────────────────
@@ -250,12 +272,13 @@ grep -q "MAX_WEBHOOK_SECRET" .env 2>/dev/null || echo 'MAX_WEBHOOK_SECRET=sbmaxh
 grep -q "^APP_LOCALE=" .env 2>/dev/null || echo 'APP_LOCALE=ru' >> .env
 
 # ── 6.3.1. Register MAX webhook ───────────────────────────────────
-MAX_TOKEN=$(grep '^MAX_BOT_TOKEN=' .env | cut -d'=' -f2-)
-if [ -n "$MAX_TOKEN" ]; then
+MAX_TOKEN=$(env_get MAX_BOT_TOKEN)
+MAX_SECRET=$(env_get MAX_WEBHOOK_SECRET)
+if [ -n "$MAX_TOKEN" ] && [ -n "$MAX_SECRET" ]; then
   curl -s -X POST https://platform-api.max.ru/subscriptions \
     -H "Authorization: ${MAX_TOKEN}" \
     -H "Content-Type: application/json" \
-    -d '{"url":"https://yakut54.ru/api/webhook/max/sbmaxhook2024","update_types":["message_created","message_callback","bot_started"]}' \
+    -d "{\"url\":\"${APP_URL}/api/webhook/max/${MAX_SECRET}\",\"update_types\":[\"message_created\",\"message_callback\",\"bot_started\"]}" \
     | grep -q '"ok"' && echo "    → MAX webhook registered OK" || echo "    → MAX webhook response received"
 fi
 
@@ -291,6 +314,6 @@ curl -sf http://localhost:8000/api/health && echo " → API OK" || echo " → AP
 echo ""
 echo "=== Deploy complete ==="
 echo "    Disk free: $(df -h / | awk 'NR==2{print $4}')"
-echo "    Admin:  https://yakut54.ru"
-echo "    API:    https://yakut54.ru/api/health"
-echo "    Widget: https://yakut54.ru/widget.js"
+echo "    Admin:  $APP_URL"
+echo "    API:    $APP_URL/api/health"
+echo "    Widget: $APP_URL/widget.js"
