@@ -261,26 +261,12 @@ echo "    → restarting scheduler/worker to pick up fresh config cache"
 docker restart servicebox_scheduler servicebox_worker >/dev/null 2>&1 \
   && echo "    scheduler/worker restarted OK" || echo "    [warn] scheduler/worker restart failed"
 
-# ── 6.3. Ensure MAX bot env vars are set ─────────────────────────
-grep -q "MAX_BOT_TOKEN" .env 2>/dev/null || echo 'MAX_BOT_TOKEN=f9LHodD0cOItzTlvLnyl7pimZBACt8DDrsgvV3IBQNr-dTRLEaHCdZEEgMst7eCrXul74IPdxRRIoBzs6wv-' >> .env
-grep -q "MAX_BOT_USERNAME" .env 2>/dev/null || echo 'MAX_BOT_USERNAME=id143302395207_bot' >> .env
-grep -q "MAX_WEBHOOK_SECRET" .env 2>/dev/null || echo 'MAX_WEBHOOK_SECRET=sbmaxhook2024' >> .env
-
-# ── 6.3.а. Русская локаль — дефолтные сообщения валидации Laravel
-# (required/email/max/...) переведены в lang/ru/validation.php, но без
-# APP_LOCALE=ru фреймворк их не подхватывает и молча отдаёт английский.
-grep -q "^APP_LOCALE=" .env 2>/dev/null || echo 'APP_LOCALE=ru' >> .env
-
-# ── 6.3.1. Register MAX webhook ───────────────────────────────────
-MAX_TOKEN=$(env_get MAX_BOT_TOKEN)
-MAX_SECRET=$(env_get MAX_WEBHOOK_SECRET)
-if [ -n "$MAX_TOKEN" ] && [ -n "$MAX_SECRET" ]; then
-  curl -s -X POST https://platform-api.max.ru/subscriptions \
-    -H "Authorization: ${MAX_TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "{\"url\":\"${APP_URL}/api/webhook/max/${MAX_SECRET}\",\"update_types\":[\"message_created\",\"message_callback\",\"bot_started\"]}" \
-    | grep -q '"ok"' && echo "    → MAX webhook registered OK" || echo "    → MAX webhook response received"
-fi
+# ── 6.3. Register bot webhooks (Telegram + MAX) на текущий APP_URL ─
+# Идемпотентно (webhooks:register сверяет установленный URL). Секреты MAX и
+# домен больше НЕ вшиты сюда — их место в /var/www/servicebox/.env
+# (см. .env.example). Токен MAX раньше лежал в этом скрипте открытым текстом
+# и утёк в публичную историю git — при первой возможности перевыпустить.
+docker exec servicebox_app php artisan webhooks:register || echo "    [warn] webhooks:register failed"
 
 # ── 6.4. Add claude access key to authorized_keys ────────────────
 CLAUDE_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINEyduj3rSiQMLKEr8z0jxJEQ2g2Mk2UTk8xdtK/aWG2 claude-access"
