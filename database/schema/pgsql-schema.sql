@@ -701,6 +701,23 @@ CREATE TABLE IF NOT EXISTS public.shop_features (
 
 
 --
+-- Name: shop_feature_audit; Type: TABLE; Schema: public; Owner: -
+-- Журнал переключений фич/рубильников магазина из суперадминки: кто, что, когда.
+-- feature_key = ключ из App\Support\ShopFeatures (в т.ч. псевдо-ключ 'customer_push'
+-- для колонки shops.customer_push_enabled).
+--
+
+CREATE TABLE IF NOT EXISTS public.shop_feature_audit (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    shop_id uuid NOT NULL,
+    actor_user_id uuid,
+    feature_key character varying(255) NOT NULL,
+    enabled boolean NOT NULL,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: shop_staff; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -764,6 +781,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     chat_customer_delete_enabled boolean DEFAULT false NOT NULL,
     reviews_last_seen_at timestamp(0) without time zone,
     mail_failures_last_seen_at timestamp(0) without time zone,
+    customer_push_enabled boolean DEFAULT true NOT NULL,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
 
@@ -956,6 +974,14 @@ ALTER TABLE ONLY public.shop_features
 
 
 --
+-- Name: shop_feature_audit shop_feature_audit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_feature_audit
+    ADD CONSTRAINT shop_feature_audit_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: shop_features shop_features_shop_id_feature_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1094,6 +1120,13 @@ CREATE INDEX shop_features_shop_id_index ON public.shop_features USING btree (sh
 
 
 --
+-- Name: shop_feature_audit_shop_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shop_feature_audit_shop_id_created_at_index ON public.shop_feature_audit USING btree (shop_id, created_at);
+
+
+--
 -- Name: shop_staff_invite_token_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1177,6 +1210,14 @@ CREATE INDEX telegram_messages_type_index ON public.telegram_messages USING btre
 
 ALTER TABLE ONLY public.shop_features
     ADD CONSTRAINT shop_features_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
+
+
+--
+-- Name: shop_feature_audit shop_feature_audit_shop_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_feature_audit
+    ADD CONSTRAINT shop_feature_audit_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
 
 
 --

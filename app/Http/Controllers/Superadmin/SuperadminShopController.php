@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shop;
+use App\Models\ShopFeature;
+use App\Support\ShopFeatures;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class SuperadminShopController extends Controller
 {
@@ -46,6 +49,69 @@ class SuperadminShopController extends Controller
             'created_at'           => $shop->created_at,
             'user'                 => $shop->user,
         ]);
+    }
+
+    // GET /api/superadmin/shops/{id}/features
+    public function features(string $id)
+    {
+        $shop = Shop::findOrFail($id);
+
+        return response()->json(['features' => $this->featureState($shop)]);
+    }
+
+    // PUT /api/superadmin/shops/{id}/features
+    public function toggleFeature(Request $request, string $id)
+    {
+        $data = $request->validate([
+            'feature_key' => ['required', 'string', Rule::in(ShopFeatures::keys())],
+            'enabled'     => ['required', 'boolean'],
+        ]);
+
+        $shop    = Shop::findOrFail($id);
+        $key     = $data['feature_key'];
+        $enabled = $data['enabled'];
+        $meta    = ShopFeatures::catalog()[$key];
+
+        if (($meta['type'] ?? 'feature') === 'flag') {
+            $shop->forceFill([$meta['column'] => $enabled])->save();
+        } else {
+            ShopFeature::updateOrCreate(
+                ['shop_id' => $shop->id, 'feature_key' => $key],
+                ['enabled' => $enabled],
+            );
+        }
+
+        // След: кто из платформы и когда переключил чужую (оплаченную) функцию.
+        DB::table('shop_feature_audit')->insert([
+            'shop_id'       => $shop->id,
+            'actor_user_id' => $request->user()->id,
+            'feature_key'   => $key,
+            'enabled'       => $enabled,
+        ]);
+
+        return response()->json(['features' => $this->featureState($shop->refresh())]);
+    }
+
+    /** @return array<int, array{key:string, label:string, description:string, enabled:bool}> */
+    private function featureState(Shop $shop): array
+    {
+        $rows = ShopFeature::where('shop_id', $shop->id)->pluck('enabled', 'feature_key');
+
+        $out = [];
+        foreach (ShopFeatures::catalog() as $key => $meta) {
+            $enabled = ($meta['type'] ?? 'feature') === 'flag'
+                ? (bool) $shop->{$meta['column']}
+                : (bool) $rows->get($key, $meta['default']);
+
+            $out[] = [
+                'key'         => $key,
+                'label'       => $meta['label'],
+                'description' => $meta['description'],
+                'enabled'     => $enabled,
+            ];
+        }
+
+        return $out;
     }
 
     // GET /api/superadmin/shops/{id}/cascade-debug

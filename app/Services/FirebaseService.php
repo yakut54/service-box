@@ -124,6 +124,13 @@ class FirebaseService implements PushTransport
         string $entityType,
         ?string $entityId = null,
     ): bool {
+        // Аварийный выключатель на магазин (мастер-админка → «Push покупателям»).
+        // Единственная точка гейта — сюда сходятся все пуши покупателю. Мессенджеры
+        // при этом продолжают работать (фолбэк в Notifier).
+        if (!$shop->customer_push_enabled) {
+            return false;
+        }
+
         $tokens = $customer->pushTokens()->pluck('token');
         if ($tokens->isEmpty()) {
             return false;

@@ -43,6 +43,7 @@ class Shop extends Model
         'chat_customer_delete_enabled',
         'reviews_last_seen_at',
         'mail_failures_last_seen_at',
+        'customer_push_enabled',
     ];
 
     protected $casts = [
@@ -60,6 +61,7 @@ class Shop extends Model
         'prepayment_enabled'    => 'boolean',
         'prepayment_amount'     => 'integer',
         'hide_customer_phone'   => 'boolean',
+        'customer_push_enabled' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
