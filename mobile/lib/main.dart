@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
 import 'core/flavor_config.dart';
+import 'services/push_router.dart';
 import 'data/auth_token_store.dart';
 import 'data/catalog_repository.dart';
 import 'data/shop_cache.dart';
@@ -92,6 +93,11 @@ class _AppState extends State<_App> {
         MaterialPageRoute(builder: (_) => ChatScreen(sharedImagePath: path)),
       );
     });
+
+    // Диплинк по тапу на push (холодный старт + фон) — регистрируем здесь, до
+    // первой отрисовки, иначе initial message теряется.
+    final auth = context.read<AuthState>();
+    PushRouter.attach(navigatorKey, auth.waitUntilReady);
   }
 
   @override

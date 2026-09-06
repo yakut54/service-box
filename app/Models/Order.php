@@ -101,6 +101,8 @@ class Order extends Model
 
     public function markAsPaid(string $paymentId): void
     {
+        $wasPaid = $this->status === 'paid';
+
         $this->update([
             'status' => 'paid',
             'payment_id' => $paymentId,
@@ -110,6 +112,10 @@ class Order extends Model
 
         if ($this->customer) {
             $this->customer->updateStats();
+        }
+
+        if (!$wasPaid) {
+            \App\Jobs\SendOrderStatusPush::dispatchFor($this, 'paid');
         }
     }
 

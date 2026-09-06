@@ -336,6 +336,10 @@ class OrderController extends Controller
 
         $order->update(['status' => $newStatus]);
 
+        if ($newStatus !== $oldStatus) {
+            \App\Jobs\SendOrderStatusPush::dispatchFor($order, $newStatus);
+        }
+
         if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
             // Возвращаем товары на склад
             foreach ($order->items as $item) {

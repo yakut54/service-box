@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\PushTransport;
+use App\Models\Customer;
 use App\Models\CustomerPushToken;
 use App\Models\Order;
 use App\Models\Shop;
@@ -107,6 +108,41 @@ class FirebaseService implements PushTransport
         }
     }
 
+    /**
+     * Отправить один PushMessage на ВСЕ токены покупателя. Мёртвый токен
+     * (InvalidToken) удаляется из customer_push_tokens и пишется в push_failures.
+     * Вызывать только в тенантном контексте магазина ($shop). Ничего не бросает.
+     *
+     * @param string      $entityType для push_failures ('order_surcharge', 'order_status', ...)
+     * @param string|null $entityId   id связанной сущности (для отладки)
+     */
+    public static function sendToCustomer(
+        Shop $shop,
+        Customer $customer,
+        PushMessage $message,
+        string $entityType,
+        ?string $entityId = null,
+    ): void {
+        $tokens = $customer->pushTokens()->pluck('token');
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $transport = app(PushTransport::class);
+
+        foreach ($tokens as $token) {
+            if ($transport->send($token, $message) === PushSendResult::InvalidToken) {
+                CustomerPushToken::where('token', $token)->delete();
+                PushFailureRecorder::record([
+                    'shop_id'     => $shop->id,
+                    'customer_id' => $customer->id,
+                    'entity_type' => $entityType,
+                    'entity_id'   => $entityId,
+                ], 'FCM token no longer registered', tokenInvalidated: true);
+            }
+        }
+    }
+
     /** Доплата за перевзвешенный заказ (см. OrderReweighService::finalizeOrder). */
     public static function notifySurcharge(Order $order, Shop $shop): void
     {
@@ -115,34 +151,13 @@ class FirebaseService implements PushTransport
             return;
         }
 
-        $tokens = $customer->pushTokens()->pluck('token');
-        if ($tokens->isEmpty()) {
-            return;
-        }
-
         $amount = Money::rubles($order->surcharge_amount);
 
-        $message = new PushMessage(
+        self::sendToCustomer($shop, $customer, new PushMessage(
             title: 'Требуется доплата',
             body: "Фактический вес больше заявленного — доплатите {$amount} ₽",
             data: ['type' => 'order_surcharge', 'order_id' => (string) $order->id],
             channelId: 'orders',
-        );
-
-        $transport = app(PushTransport::class);
-
-        foreach ($tokens as $token) {
-            $result = $transport->send($token, $message);
-
-            if ($result === PushSendResult::InvalidToken) {
-                CustomerPushToken::where('token', $token)->delete();
-                PushFailureRecorder::record([
-                    'shop_id'     => $shop->id,
-                    'customer_id' => $customer->id,
-                    'entity_type' => 'order_surcharge',
-                    'entity_id'   => $order->id,
-                ], 'FCM token no longer registered', tokenInvalidated: true);
-            }
-        }
+        ), 'order_surcharge', (string) $order->id);
     }
 }
