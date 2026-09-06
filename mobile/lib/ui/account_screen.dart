@@ -10,6 +10,7 @@ import '../state/auth_state.dart';
 import '../state/chat_state.dart';
 import 'addresses_screen.dart';
 import 'chat_screen.dart';
+import 'notification_settings_screen.dart';
 import 'orders_screen.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/editable_avatar.dart';
@@ -219,18 +220,30 @@ class _AccountScreenState extends State<AccountScreen> with WidgetsBindingObserv
             );
           },
         ),
-        if (_offerEnableNotifications)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.notifications_off_outlined,
-              color: theme.colorScheme.error,
-            ),
-            title: const Text('Уведомления выключены'),
-            subtitle: const Text('Статус заказа и сообщения от магазина'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: NotificationPermission.openSystemSettings,
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(
+            _offerEnableNotifications
+                ? Icons.notifications_off_outlined
+                : Icons.notifications_none_rounded,
+            color: _offerEnableNotifications ? theme.colorScheme.error : null,
           ),
+          title: const Text('Уведомления'),
+          subtitle: Text(
+            _offerEnableNotifications
+                ? 'Выключены в настройках телефона'
+                : 'Заказы, напоминания, акции',
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const NotificationSettingsScreen(),
+              ),
+            );
+            _refreshNotificationState();
+          },
+        ),
         const SizedBox(height: 12),
         OutlinedButton(
           onPressed: () async {

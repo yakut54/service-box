@@ -68,4 +68,30 @@ class ApiProfileRepository implements ProfileRepository {
       headers: _authHeaders(sessionToken),
     );
   }
+
+  @override
+  Future<NotificationPrefs> fetchNotificationPrefs(String sessionToken) async {
+    final json = await _client.get(
+      '/widget/profile/notification-prefs',
+      headers: _authHeaders(sessionToken),
+    );
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return NotificationPrefs.fromJson(data);
+  }
+
+  @override
+  Future<NotificationPrefs> updateNotificationPrefs(
+    String sessionToken,
+    NotificationPrefs prefs,
+  ) async {
+    final json = await _client.put(
+      '/widget/profile/notification-prefs',
+      prefs.toJson(),
+      headers: _authHeaders(sessionToken),
+    );
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return NotificationPrefs.fromJson(data);
+  }
 }

@@ -158,6 +158,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         telegram_chat_id BIGINT DEFAULT NULL,
                         max_user_id      BIGINT DEFAULT NULL,
                         fcm_token        TEXT,
+                        notification_prefs JSONB NOT NULL DEFAULT '{}'::jsonb,
                         created_at       TIMESTAMPTZ DEFAULT NOW(),
                         last_order_at    TIMESTAMPTZ
                     )

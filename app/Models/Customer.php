@@ -23,6 +23,7 @@ class Customer extends Model
         'total_orders',
         'total_spent',
         'last_order_at',
+        'notification_prefs',
         // 'fcm_token' — DEPRECATED, токены переехали в customer_push_tokens
         //               (см. pushTokens()). Колонка ещё в БД, дропнем отдельным шагом.
     ];
@@ -32,7 +33,24 @@ class Customer extends Model
         'total_spent' => 'integer',
         'created_at' => 'datetime',
         'last_order_at' => 'datetime',
+        'notification_prefs' => 'array',
     ];
+
+    /**
+     * Хочет ли байер уведомления этой категории. Транзакционные (статус заказа,
+     * доплата, чат) сюда не приходят — они вне настроек. Дефолты: поведенческие
+     * включены, кампании выключены.
+     */
+    public function wantsNotificationCategory(string $category): bool
+    {
+        $prefs = $this->notification_prefs ?? [];
+
+        return match ($category) {
+            'campaign'   => (bool) ($prefs['campaign'] ?? false),
+            'behavioral' => (bool) ($prefs['behavioral'] ?? true),
+            default      => true,
+        };
+    }
 
     public function orders()
     {

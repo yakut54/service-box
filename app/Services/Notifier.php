@@ -47,7 +47,7 @@ class Notifier
         ?string $entityId = null,
         ?string $fallbackText = null,
     ): bool {
-        if ($tier !== self::TIER_TRANSACTIONAL && !self::allowed($shop->id, $customer->id, $tier)) {
+        if ($tier !== self::TIER_TRANSACTIONAL && !self::allowed($shop, $customer, $tier)) {
             return false;
         }
 
@@ -83,8 +83,18 @@ class Notifier
         return false;
     }
 
-    private static function allowed(string $shopId, string $customerId, int $tier): bool
+    private static function allowed(Shop $shop, Customer $customer, int $tier): bool
     {
+        $shopId = $shop->id;
+        $customerId = $customer->id;
+
+        // Байер отключил эту категорию в профиле (tier 2 → поведенческие,
+        // tier 3 → кампании). Транзакционные сюда не доходят.
+        $category = $tier === self::TIER_CAMPAIGN ? 'campaign' : 'behavioral';
+        if (!$customer->wantsNotificationCategory($category)) {
+            return false;
+        }
+
         // Недавно было транзакционное — не мешаем поверх него поведенческим/промо.
         if (Cache::has("notif:t1:{$shopId}:{$customerId}")) {
             return false;

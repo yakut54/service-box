@@ -118,6 +118,48 @@ class ProfileController extends Controller
         return response()->json(['message' => 'ok']);
     }
 
+    /**
+     * GET /api/widget/profile/notification-prefs
+     *
+     * Настраиваемые категории — только поведенческие и промо (см. Notifier,
+     * тиры 2 и 3). Транзакционные (статус заказа, доплата, чат) не отключаются
+     * и здесь не фигурируют.
+     */
+    public function getNotificationPrefs(Request $request): JsonResponse
+    {
+        $customer = $this->customer($request);
+
+        return response()->json(['data' => $this->presentPrefs($customer)]);
+    }
+
+    /**
+     * PUT /api/widget/profile/notification-prefs
+     */
+    public function updateNotificationPrefs(Request $request): JsonResponse
+    {
+        $customer = $this->customer($request);
+
+        $data = $request->validate([
+            'behavioral' => 'required|boolean',
+            'campaign'   => 'required|boolean',
+        ]);
+
+        $customer->update(['notification_prefs' => [
+            'behavioral' => $data['behavioral'],
+            'campaign'   => $data['campaign'],
+        ]]);
+
+        return response()->json(['data' => $this->presentPrefs($customer)]);
+    }
+
+    private function presentPrefs(Customer $customer): array
+    {
+        return [
+            'behavioral' => $customer->wantsNotificationCategory('behavioral'),
+            'campaign'   => $customer->wantsNotificationCategory('campaign'),
+        ];
+    }
+
     private function customer(Request $request): Customer
     {
         return $request->attributes->get('customer');

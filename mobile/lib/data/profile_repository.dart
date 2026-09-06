@@ -20,5 +20,14 @@ abstract class ProfileRepository {
   /// подключён к main.dart, ждёт google-services.json от шопера).
   Future<void> updateFcmToken(String sessionToken, String fcmToken);
 
+  /// Настройки категорий push (поведенческие / промо). Транзакционные —
+  /// не отключаются, здесь их нет.
+  Future<NotificationPrefs> fetchNotificationPrefs(String sessionToken);
+
+  Future<NotificationPrefs> updateNotificationPrefs(
+    String sessionToken,
+    NotificationPrefs prefs,
+  );
+
   factory ProfileRepository.create() => ApiProfileRepository();
 }

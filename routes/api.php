@@ -156,6 +156,8 @@ Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
         Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1');
         Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar']);
         Route::post('/profile/fcm-token', [ProfileController::class, 'updateFcmToken']);
+        Route::get('/profile/notification-prefs', [ProfileController::class, 'getNotificationPrefs']);
+        Route::put('/profile/notification-prefs', [ProfileController::class, 'updateNotificationPrefs']);
 
         // Чат с магазином — только мобильное приложение (60-дневная сессия),
         // см. PLAN-CHAT.md §3.1. Throttle — именованные лимитеры по токену
