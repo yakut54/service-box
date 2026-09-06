@@ -32,6 +32,17 @@
 2. **Brand/runtime** (`mobile/flavors/<flavor>.json`) — код магазина,
    его `api_key`, имя, цвет темы по умолчанию, адрес бэкенда. Читается
    в Dart через `FlavorConfig` (`lib/core/flavor_config.dart`).
+3. **Firebase / push** — у каждого флейвора свой Firebase-проект (или своё
+   Android-приложение внутри одного проекта) и свой
+   `android/app/src/<flavor>/google-services.json`. Плагин
+   `com.google.gms.google-services` подхватывает файл по имени флейвора;
+   в `android/app/` общего `google-services.json` быть НЕ должно — он стал бы
+   fallback-ом на все флейворы и уронил бы сборку чужого шопера («no matching
+   client for package name»). В Dart конфиг Firebase не хранится:
+   `FcmService` вызывает `Firebase.initializeApp()` без `options`, SDK читает
+   ресурсы, сгенерированные Gradle-плагином из `google-services.json` этого
+   флейвора. Файла `lib/firebase_options.dart` нет намеренно. Метаданные
+   FlutterFire CLI — `mobile/firebase.json`, секция `buildConfigurations.<flavor>`.
 
 Сейчас заведён один флейвор:
 
@@ -58,3 +69,4 @@ flutter build apk --flavor barbariska --dart-define-from-file=flavors/barbariska
 2. `android/app/src/<shop_code>/res/values/strings.xml` → имя приложения
 3. `android/app/src/<shop_code>/res/mipmap-*/ic_launcher.png` → иконка (когда будет)
 4. `mobile/flavors/<shop_code>.json` → `SHOP_CODE`, `SHOP_API_KEY` (из `shops.api_key`), `SHOP_NAME`, `SHOP_PRIMARY_COLOR`
+5. `android/app/src/<shop_code>/google-services.json` → зарегистрировать Android-приложение с этим `applicationId` в Firebase Console, скачать файл сюда (не в `android/app/`). Добавить запись в `mobile/firebase.json` → `platforms.android.buildConfigurations.<shop_code>`. **Файл обязателен для каждого флейвора:** плагин `com.google.gms.google-services` применяется всегда и роняет сборку, если своего `google-services.json` нет. Если конкретному шоперу push реально не нужен — делать применение плагина условным (отдельная задача), а не класть общий файл в `android/app/`

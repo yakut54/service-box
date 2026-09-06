@@ -7,14 +7,18 @@
 // (см. ProfileController::updateFcmToken), FirebaseService на бэкенде тоже
 // написан и молча не отправляет push, пока не задан FIREBASE_CREDENTIALS_PATH.
 //
-// У каждого флейвора (шопера) — свой Firebase-проект и свой google-services.json
-// в android/app/src/<flavor>/, см. mobile/README.md.
+// Конфиг Firebase — per-flavor и только Android: у каждого флейвора свой
+// google-services.json в android/app/src/<flavor>/ (плагин
+// com.google.gms.google-services подхватывает его по имени флейвора).
+// Firebase.initializeApp() вызывается БЕЗ options — SDK берёт конфиг из
+// ресурсов, которые Gradle-плагин сгенерировал из google-services.json этого
+// флейвора. Никакого firebase_options.dart (он хардкодил один проект на все
+// сборки и ломал бы второго шопера). См. mobile/README.md.
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../data/profile_repository.dart';
-import '../firebase_options.dart';
 
 class FcmService {
   /// Запрашивает разрешение, получает device token и регистрирует его на
@@ -27,9 +31,7 @@ class FcmService {
   /// вызове для default-приложения, поэтому проверяем Firebase.apps.
   static Future<void> initialize(String sessionToken) async {
     if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      await Firebase.initializeApp();
     }
 
     final messaging = FirebaseMessaging.instance;

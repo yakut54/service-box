@@ -195,7 +195,7 @@ service-box/
 6. **`OrderController::store` ↔ `Api\WriteController::storeOrder`** — дублирование целиком (валидация веса, расчёт цены, выбор скидки, проверка мин. суммы). Было до наших правок, не убрано
 7. **Мёртвые файлы-сироты:** `admin/src/components/settings/SettingsApiAccess.vue`, `SettingsMasters.vue` — нигде не импортируются (вкладки скрыты)
 8. **`DEVELOPMENT.md:63`** упоминает несуществующие subscription middlewares
-9. **`google-services.json`** лежит в `mobile/android/app/` (общий на все флейворы), а `mobile/README.md` описывает схему «свой файл на флейвор в `android/app/src/<flavor>/`». Для второго шопера разъедется
+9. ~~**`google-services.json`** лежал в `mobile/android/app/` (общий на все флейворы)~~ — ✅ закрыто 2026-09-06: файл перенесён в `mobile/android/app/src/barbariska/`, `firebase_options.dart` удалён (`FcmService` зовёт `Firebase.initializeApp()` без options — SDK читает конфиг из ресурсов Gradle-плагина), конвенция задокументирована в `mobile/README.md`. Плагин `com.google.gms.google-services` применяется всегда → каждый новый флейвор ОБЯЗАН иметь свой `google-services.json`, иначе сборка падает (либо делать применение плагина условным)
 10. **SMS не отправляются.** `WidgetPhoneVerificationController` генерирует случайный код (`random_int`, не «1111»), но реальная отправка — `TODO`, код открыто возвращается клиенту как `_dev_code`
 11. **Писем нет** при оплате и смене статуса заказа. `SendBookingReminders` шлёт только магазинам с Telegram/MAX — магазины на одном email не получают ни напоминаний, ни запроса оценки
 12. **`shop_staff.role`** — `varchar(20)` без CHECK-констрейнта, набор ролей ограничен только кодом
