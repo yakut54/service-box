@@ -27,7 +27,6 @@ class _NotificationSettingsScreenState
 
   NotificationPrefs? _prefs;
   bool _loading = true;
-  bool _saving = false;
   AppException? _error;
   bool _systemBlocked = false;
 
@@ -64,30 +63,32 @@ class _NotificationSettingsScreenState
     }
   }
 
-  Future<void> _save(NotificationPrefs next) async {
+  /// Переключатель отзывается сразу (оптимистично), запрос уходит в фон.
+  /// Другие тумблеры не блокируем — каждый сохраняется сам по себе; при
+  /// ошибке откатывается только тот, что не сохранился.
+  Future<void> _toggle(bool campaign, bool value) async {
     final token = _token;
-    final previous = _prefs;
-    if (token == null || previous == null || _saving) return;
+    final current = _prefs;
+    if (token == null || current == null) return;
 
-    // Оптимистично — переключатель отзывчивый, при ошибке откатываем.
-    setState(() {
-      _prefs = next;
-      _saving = true;
-    });
+    final next = campaign
+        ? current.copyWith(campaign: value)
+        : current.copyWith(behavioral: value);
+    setState(() => _prefs = next);
+
     try {
-      final saved = await _repo.updateNotificationPrefs(token, next);
-      if (!mounted) return;
-      setState(() => _prefs = saved);
+      await _repo.updateNotificationPrefs(token, next);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _prefs = previous);
+      final now = _prefs!;
+      setState(() => _prefs = campaign
+          ? now.copyWith(campaign: !value)
+          : now.copyWith(behavioral: !value));
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(
           const SnackBar(content: Text('Не удалось сохранить, попробуйте ещё раз')),
         );
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -154,9 +155,7 @@ class _NotificationSettingsScreenState
         const Divider(height: 8),
         SwitchListTile(
           value: prefs.behavioral,
-          onChanged: _saving
-              ? null
-              : (v) => _save(prefs.copyWith(behavioral: v)),
+          onChanged: (v) => _toggle(false, v),
           contentPadding: EdgeInsets.zero,
           secondary: const Icon(Icons.lightbulb_outline_rounded),
           title: const Text('Полезные напоминания'),
@@ -166,9 +165,7 @@ class _NotificationSettingsScreenState
         ),
         SwitchListTile(
           value: prefs.campaign,
-          onChanged: _saving
-              ? null
-              : (v) => _save(prefs.copyWith(campaign: v)),
+          onChanged: (v) => _toggle(true, v),
           contentPadding: EdgeInsets.zero,
           secondary: const Icon(Icons.local_offer_outlined),
           title: const Text('Акции и новости магазина'),
