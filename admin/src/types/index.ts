@@ -47,6 +47,13 @@ export interface SuperadminShop {
   user?: { id: string; name: string; email: string; created_at: string } | null
 }
 
+export interface SuperadminShopFeature {
+  key: string
+  label: string
+  description: string
+  enabled: boolean
+}
+
 export interface SuperadminRevenue {
   commission_total_kopecks: number
   commission_total_rubles: number

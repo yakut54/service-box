@@ -2,7 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/api'
-import type { SuperadminShop } from '@/types'
+import ShopFeaturePanel from './ShopFeaturePanel.vue'
+import type { SuperadminShop, SuperadminShopFeature } from '@/types'
 
 const shops = ref<SuperadminShop[]>([])
 const loading = ref(true)
@@ -10,6 +11,13 @@ const error = ref<string | null>(null)
 const search = ref('')
 const currentPage = ref(1)
 const totalPages = ref(1)
+
+// Панель функций магазина (МФ5): раскрывается по клику, грузится лениво.
+const expandedId = ref<string | null>(null)
+const featuresByShop = ref<Record<string, SuperadminShopFeature[]>>({})
+const featuresLoading = ref<Record<string, boolean>>({})
+const featuresError = ref<Record<string, string>>({})
+const togglingKey = ref<string | null>(null)
 
 async function load() {
   loading.value = true
@@ -24,6 +32,47 @@ async function load() {
     error.value = e instanceof ApiError ? e.message : 'Ошибка загрузки'
   } finally {
     loading.value = false
+  }
+}
+
+async function toggleExpand(shopId: string) {
+  if (expandedId.value === shopId) {
+    expandedId.value = null
+    return
+  }
+  expandedId.value = shopId
+  if (featuresByShop.value[shopId]) return
+
+  featuresLoading.value = { ...featuresLoading.value, [shopId]: true }
+  featuresError.value = { ...featuresError.value, [shopId]: '' }
+  try {
+    const res = await api.superadminGetShopFeatures(shopId)
+    featuresByShop.value = { ...featuresByShop.value, [shopId]: res.features }
+  } catch (e) {
+    featuresError.value = {
+      ...featuresError.value,
+      [shopId]: e instanceof ApiError ? e.message : 'Не удалось загрузить функции',
+    }
+  } finally {
+    featuresLoading.value = { ...featuresLoading.value, [shopId]: false }
+  }
+}
+
+async function setFeature(shopId: string, feature: SuperadminShopFeature, next: boolean) {
+  togglingKey.value = `${shopId}:${feature.key}`
+  const prev = feature.enabled
+  feature.enabled = next // оптимистично
+  try {
+    const res = await api.superadminToggleShopFeature(shopId, feature.key, next)
+    featuresByShop.value = { ...featuresByShop.value, [shopId]: res.features }
+  } catch (e) {
+    feature.enabled = prev // откат
+    featuresError.value = {
+      ...featuresError.value,
+      [shopId]: e instanceof ApiError ? e.message : 'Не удалось сохранить',
+    }
+  } finally {
+    togglingKey.value = null
   }
 }
 
@@ -78,23 +127,45 @@ onMounted(load)
               <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Магазин</th>
               <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Владелец</th>
               <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Создан</th>
+              <th class="w-24"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
             <tr v-if="shops.length === 0">
-              <td colspan="3" class="py-12 text-center text-gray-400">Магазины не найдены</td>
+              <td colspan="4" class="py-12 text-center text-gray-400">Магазины не найдены</td>
             </tr>
-            <tr v-for="shop in shops" :key="shop.id" class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-              <td class="py-3 px-4">
-                <div class="font-medium text-gray-900 dark:text-white">{{ shop.name }}</div>
-                <div v-if="shop.domain" class="text-xs text-gray-400">{{ shop.domain }}</div>
-              </td>
-              <td class="py-3 px-4 text-gray-600 dark:text-gray-400">
-                <div>{{ shop.user?.name || '—' }}</div>
-                <div class="text-xs text-gray-400">{{ shop.user?.email }}</div>
-              </td>
-              <td class="py-3 px-4 text-gray-400 text-xs">{{ formatDate(shop.created_at) }}</td>
-            </tr>
+            <template v-for="shop in shops" :key="shop.id">
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                <td class="py-3 px-4">
+                  <div class="font-medium text-gray-900 dark:text-white">{{ shop.name }}</div>
+                  <div v-if="shop.domain" class="text-xs text-gray-400">{{ shop.domain }}</div>
+                </td>
+                <td class="py-3 px-4 text-gray-600 dark:text-gray-400">
+                  <div>{{ shop.user?.name || '—' }}</div>
+                  <div class="text-xs text-gray-400">{{ shop.user?.email }}</div>
+                </td>
+                <td class="py-3 px-4 text-gray-400 text-xs">{{ formatDate(shop.created_at) }}</td>
+                <td class="py-3 px-4 text-right">
+                  <button class="btn-ghost text-xs px-2 py-1" @click="toggleExpand(shop.id)">
+                    {{ expandedId === shop.id ? 'Скрыть' : 'Функции' }}
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="expandedId === shop.id">
+                <td colspan="4" class="bg-gray-50 dark:bg-gray-800/40 px-4 py-3">
+                  <div class="max-w-2xl">
+                    <ShopFeaturePanel
+                      :shop-id="shop.id"
+                      :features="featuresByShop[shop.id]"
+                      :loading="featuresLoading[shop.id]"
+                      :error="featuresError[shop.id]"
+                      :toggling-key="togglingKey"
+                      @set="(f, n) => setFeature(shop.id, f, n)"
+                    />
+                  </div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -118,6 +189,20 @@ onMounted(load)
           </div>
 
           <div class="text-xs text-gray-400">Создан: {{ formatDate(shop.created_at) }}</div>
+
+          <button class="btn-ghost text-xs px-2 py-1 self-start" @click="toggleExpand(shop.id)">
+            {{ expandedId === shop.id ? 'Скрыть функции' : 'Функции' }}
+          </button>
+
+          <ShopFeaturePanel
+            v-if="expandedId === shop.id"
+            :shop-id="shop.id"
+            :features="featuresByShop[shop.id]"
+            :loading="featuresLoading[shop.id]"
+            :error="featuresError[shop.id]"
+            :toggling-key="togglingKey"
+            @set="(f, n) => setFeature(shop.id, f, n)"
+          />
         </div>
       </div>
     </template>

@@ -17,6 +17,7 @@ import type {
   TelegramStatus,
   PaginatedResponse,
   SuperadminShop,
+  SuperadminShopFeature,
   SuperadminRevenue,
   Commission,
 } from '@/types'
@@ -693,6 +694,17 @@ class ApiClient {
 
   async superadminGetRevenue() {
     return this.request<SuperadminRevenue>('/superadmin/revenue')
+  }
+
+  async superadminGetShopFeatures(id: string) {
+    return this.request<{ features: SuperadminShopFeature[] }>(`/superadmin/shops/${id}/features`)
+  }
+
+  async superadminToggleShopFeature(id: string, featureKey: string, enabled: boolean) {
+    return this.request<{ features: SuperadminShopFeature[] }>(`/superadmin/shops/${id}/features`, {
+      method: 'PUT',
+      body: JSON.stringify({ feature_key: featureKey, enabled }),
+    })
   }
 
   // ==========================================
