@@ -95,12 +95,6 @@ const weightStepDisplay = weightFieldProxy('weight_step_grams')
 const weightMinDisplay = weightFieldProxy('weight_min_grams')
 const weightMaxDisplay = weightFieldProxy('weight_max_grams')
 
-const saleModeConfig = {
-  piece: { icon: '🍉', label: 'Штучный', desc: 'Цена за штуку' },
-  weight_fixed: { icon: '🍬', label: 'По весу (фасовка)', desc: 'Продавец фасует ровно под заказ' },
-  weight_variable: { icon: '🥩', label: 'По весу (перевзвешивание)', desc: 'Вес плавает, взвешивают при сборке' },
-}
-
 // Произвольные характеристики «label: value» — общие для товара любого типа
 // (см. ProductAttribute на бэкенде). Перезаписываются целиком при сохранении.
 const attributes = ref<KeyValueRow[]>([])
@@ -108,14 +102,55 @@ const attributes = ref<KeyValueRow[]>([])
 // Оси вариативности + матрица вариантов (одежда/обувь) — только штучный физ-товар.
 const variantOptions = ref<ProductOption[]>([])
 const variants = ref<ProductVariant[]>([])
-const variantsEnabled = computed(() =>
-  form.value.type === 'physical' && physicalDetails.value.sale_mode === 'piece')
 
-function quickStart(kind: 'clothing' | 'shoes') {
-  variantOptions.value = kind === 'clothing'
-    ? [{ name: 'Размер', values: [] }, { name: 'Цвет', values: [] }]
-    : [{ name: 'Размер', values: [] }]
+// ── «Что продаём?» ──────────────────────────────────────────
+// Шаг мастера, а не поле в БД: проставляет sale_mode и решает, какие секции
+// показывать. Одежду/обувь не вываливаем продавцу бананов, и наоборот.
+type ProductKind = 'plain' | 'clothing' | 'shoes' | 'weight_fixed' | 'weight_variable'
+
+const kindConfig: Record<ProductKind, { icon: string; label: string; desc: string }> = {
+  plain:           { icon: '📦', label: 'Обычный товар',  desc: 'Штучный: товар, набор, упаковка' },
+  clothing:        { icon: '👕', label: 'Одежда',          desc: 'Размеры, цвета, размерная сетка' },
+  shoes:           { icon: '👟', label: 'Обувь',           desc: 'Размеры, размерная сетка' },
+  weight_fixed:    { icon: '🍬', label: 'Развес (фасовка)', desc: 'Продавец фасует под заказ' },
+  weight_variable: { icon: '🥩', label: 'Развес (взвешивание)', desc: 'Вес плавает, взвешивают при сборке' },
 }
+
+const productKind = ref<ProductKind>('plain')
+const plainHasVariants = ref(false)
+
+function applyKind(kind: ProductKind) {
+  productKind.value = kind
+  physicalDetails.value.sale_mode =
+    (kind === 'weight_fixed' || kind === 'weight_variable') ? kind : 'piece'
+
+  if (kind === 'clothing' && variantOptions.value.length === 0) {
+    variantOptions.value = [{ name: 'Размер', values: [] }, { name: 'Цвет', values: [] }]
+  } else if (kind === 'shoes' && variantOptions.value.length === 0) {
+    variantOptions.value = [{ name: 'Размер', values: [] }]
+  }
+  if (kind === 'plain') plainHasVariants.value = variantOptions.value.length > 0
+}
+
+const showVariantsSection = computed(() =>
+  form.value.type === 'physical' &&
+  physicalDetails.value.sale_mode === 'piece' &&
+  (productKind.value === 'clothing' || productKind.value === 'shoes' || plainHasVariants.value))
+
+const showSizeChartSection = computed(() =>
+  form.value.type === 'physical' &&
+  physicalDetails.value.sale_mode === 'piece' &&
+  (productKind.value === 'clothing' || productKind.value === 'shoes' || form.value.size_chart_id != null))
+
+const attributeSuggestions = computed(() => {
+  if (productKind.value === 'clothing') {
+    return ['Состав', 'Страна', 'Уход', 'Сезон', 'Крой', 'Бренд']
+  }
+  if (productKind.value === 'shoes') {
+    return ['Материал верха', 'Материал подошвы', 'Сезон', 'Страна', 'Бренд']
+  }
+  return ['Состав', 'Страна', 'Бренд', 'Материал', 'Вес', 'Срок годности', 'Условия хранения', 'Пищевая ценность', 'Гарантия']
+})
 
 const digitalDetails = ref({
   delivery_type: 'download',
@@ -227,6 +262,22 @@ onMounted(async () => {
           unit_label: p.physical.unit_label || '',
           marking_code: p.physical.marking_code || '',
         }
+
+        // «Что продаём?» у существующего товара выводим по данным — типа в БД нет.
+        const sm = physicalDetails.value.sale_mode
+        if (sm === 'weight_fixed' || sm === 'weight_variable') {
+          productKind.value = sm
+        } else {
+          const names = variantOptions.value.map(o => o.name.toLowerCase())
+          if (names.some(n => n.includes('цвет'))) {
+            productKind.value = 'clothing'
+          } else if (names.some(n => n.includes('размер'))) {
+            productKind.value = 'shoes'
+          } else {
+            productKind.value = 'plain'
+            plainHasVariants.value = variantOptions.value.length > 0
+          }
+        }
       }
       if (p.digital) {
         digitalDetails.value = {
@@ -278,9 +329,10 @@ async function handleSubmit() {
   // Отбрасываем пустые строки — бэкенд сделает то же, но не гоняем мусор по сети.
   data.attributes = attributes.value.filter(a => a.label.trim() && a.value.trim())
 
-  // Варианты — только для штучного физ-товара; иначе бэкенд их всё равно
-  // зачистит, но не шлём лишнее. options → значения строками.
-  if (variantsEnabled.value) {
+  // Варианты — только когда секция реально показана (одежда/обувь или
+  // «обычный + есть варианты»). Иначе бэкенд их всё равно зачистит, но не
+  // шлём лишнее. options → значения строками.
+  if (showVariantsSection.value) {
     data.options = variantOptions.value
       .filter(o => o.name.trim() && o.values.length > 0)
       .map(o => ({ name: o.name.trim(), values: o.values.map(v => v.value) }))
@@ -319,8 +371,9 @@ async function handleSubmit() {
       <div class="card">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Основная информация</h2>
         <div class="space-y-4">
-          <!-- Тип товара -->
-          <div>
+          <!-- Тип товара (только редактирование существующих цифровых/услуг —
+               физические заводятся и остаются физическими) -->
+          <div v-if="isEditing && form.type !== 'physical'">
             <p class="label">Тип товара</p>
             <div :class="['grid gap-3', Object.keys(pickableTypeConfig).length > 1 ? 'grid-cols-3' : 'grid-cols-1']">
               <button
@@ -333,6 +386,24 @@ async function handleSubmit() {
                 <div class="text-xl sm:text-2xl mb-1">{{ cfg.icon }}</div>
                 <div class="text-xs sm:text-sm font-semibold">{{ cfg.label }}</div>
                 <div class="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{{ cfg.desc }}</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Что продаём? — задаёт режим продажи и какие секции показывать -->
+          <div v-if="form.type === 'physical'">
+            <p class="label">Что продаём?</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <button
+                v-for="(cfg, key) in kindConfig"
+                :key="key"
+                type="button"
+                @click="applyKind(key as ProductKind)"
+                :class="['p-2 sm:p-3 rounded-lg border-2 text-center transition-all', productKind === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
+              >
+                <div class="text-xl mb-0.5">{{ cfg.icon }}</div>
+                <div class="text-xs font-semibold leading-tight">{{ cfg.label }}</div>
+                <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{{ cfg.desc }}</div>
               </button>
             </div>
           </div>
@@ -421,25 +492,18 @@ async function handleSubmit() {
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Параметры физического товара</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Склад, габариты и характеристики</p>
         <div class="space-y-4">
-          <!-- Режим продажи -->
-          <div>
-            <p class="label flex items-center gap-1">
-              Режим продажи
-              <UiHint>{{ saleModeConfig[physicalDetails.sale_mode].desc }}</UiHint>
-            </p>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                v-for="(cfg, key) in saleModeConfig"
-                :key="key"
-                type="button"
-                @click="physicalDetails.sale_mode = key"
-                :class="['min-w-0 flex sm:block items-center gap-2 sm:gap-0 p-2 rounded-lg border-2 text-left sm:text-center transition-colors', physicalDetails.sale_mode === key ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600']"
-              >
-                <div class="text-lg sm:mb-0.5">{{ cfg.icon }}</div>
-                <div class="text-xs font-semibold leading-tight">{{ cfg.label }}</div>
-              </button>
+          <!-- «Обычный товар»: варианты по желанию (кружка в 3 цветах и т.п.) -->
+          <label v-if="productKind === 'plain'" class="flex items-center gap-3 cursor-pointer select-none">
+            <div class="relative">
+              <input type="checkbox" v-model="plainHasVariants" class="sr-only peer" />
+              <div class="w-11 h-6 bg-gray-200 peer-checked:bg-primary-600 rounded-full transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
             </div>
-          </div>
+            <span class="text-gray-700 dark:text-gray-300 text-sm flex items-center gap-1">
+              У товара есть варианты — цвет, размер, объём…
+              <UiHint>Например одна «Кружка», а продаётся в 3 цветах, у каждого свой остаток.</UiHint>
+            </span>
+          </label>
 
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -649,22 +713,17 @@ async function handleSubmit() {
       </div>
 
       <!-- ══════════ ВАРИАНТЫ (размер / цвет) ══════════ -->
-      <div v-if="variantsEnabled" class="card">
+      <div v-if="showVariantsSection" class="card">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Варианты: размер, цвет</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-          Для одежды и обуви — оси выбора и таблица комбинаций, у каждой свой остаток, цена и SKU.
-          Если вариантов нет — оставьте пусто, товар продаётся как обычно.
+          Оси выбора и таблица комбинаций — у каждой свой остаток, цена и SKU.
+          Пусто — товар продаётся как обычный.
         </p>
-        <div v-if="!isEditing && variantOptions.length === 0" class="flex flex-wrap gap-2 mb-3">
-          <span class="text-sm text-gray-500 dark:text-gray-400 self-center">Быстрый старт:</span>
-          <button type="button" class="btn-ghost text-sm px-3 py-1.5" @click="quickStart('clothing')">👕 Одежда (размер + цвет)</button>
-          <button type="button" class="btn-ghost text-sm px-3 py-1.5" @click="quickStart('shoes')">👟 Обувь (размер)</button>
-        </div>
         <ProductVariantsEditor v-model:options="variantOptions" v-model:variants="variants" />
       </div>
 
       <!-- ══════════ РАЗМЕРНАЯ СЕТКА ══════════ -->
-      <div v-if="form.type === 'physical'" class="card">
+      <div v-if="showSizeChartSection" class="card">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Размерная сетка</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Для одежды и обуви — таблица размеров, которую покупатель откроет в приложении
@@ -684,8 +743,8 @@ async function handleSubmit() {
           v-model="attributes"
           label-placeholder="Например: Состав"
           value-placeholder="Например: 100% хлопок"
+          :suggestions="attributeSuggestions"
           add-label="+ Добавить характеристику"
-          :suggestions="['Состав', 'Страна', 'Бренд', 'Материал', 'Вес', 'Срок годности', 'Условия хранения', 'Пищевая ценность', 'Гарантия']"
         />
       </div>
 
