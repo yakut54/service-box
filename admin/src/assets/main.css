@@ -29,6 +29,21 @@
     scrollbar-width: thin;
     scrollbar-color: theme('colors.gray.300') transparent;
   }
+
+  /* Убираем нативные стрелки-спиннеры у <input type="number"> — в тёмной
+     теме Chrome они выглядят инородно и мешают в узких ячейках (матрица
+     вариантов, таблица размерной сетки). Поле остаётся числовым:
+     min/max/step и v-model.number работают как прежде, просто без стрелок. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 }
 
 @layer components {
