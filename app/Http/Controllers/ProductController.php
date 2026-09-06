@@ -262,6 +262,40 @@ class ProductController extends Controller
         if ($product->type === 'service' && $request->has('service')) {
             $product->service()->create($request->service);
         }
+
+        $this->syncAttributes($product, $request);
+    }
+
+    /**
+     * Произвольные характеристики «label: value» — перезаписываются целиком
+     * при каждом сохранении товара. Ключ 'attributes' в запросе отсутствует →
+     * не трогаем (форма всегда его шлёт, но внешний API v1 может и не слать).
+     * Пустые строки и лишние поля отбрасываем, порядок = порядок в форме.
+     */
+    protected function syncAttributes(Product $product, Request $request): void
+    {
+        if (!$request->has('attributes')) {
+            return;
+        }
+
+        $rows = collect($request->input('attributes', []))
+            ->map(fn ($a) => [
+                'label' => trim((string) ($a['label'] ?? '')),
+                'value' => trim((string) ($a['value'] ?? '')),
+            ])
+            ->filter(fn ($a) => $a['label'] !== '' && $a['value'] !== '')
+            ->values()
+            ->map(fn ($a, $i) => [
+                'label'      => mb_substr($a['label'], 0, 255),
+                'value'      => mb_substr($a['value'], 0, 1000),
+                'sort_order' => $i,
+            ])
+            ->all();
+
+        $product->productAttributes()->delete();
+        if ($rows) {
+            $product->productAttributes()->createMany($rows);
+        }
     }
 
     protected function updateProductDetails(Product $product, Request $request): void
@@ -291,5 +325,7 @@ class ProductController extends Controller
                 $product->service()->create($request->service);
             }
         }
+
+        $this->syncAttributes($product, $request);
     }
 }

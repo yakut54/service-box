@@ -6,7 +6,8 @@ import { parseApiError } from '@/lib/parseApiError'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
 import ProductImageGallery from '@/components/ProductImageGallery.vue'
-import { UiHint } from '@/shared/ui'
+import { UiHint, KeyValueEditor } from '@/shared/ui'
+import type { KeyValueRow } from '@/shared/ui'
 import type { ProductImage } from '@/types'
 
 const route = useRoute()
@@ -94,6 +95,10 @@ const saleModeConfig = {
   weight_variable: { icon: '🥩', label: 'По весу (перевзвешивание)', desc: 'Вес плавает, взвешивают при сборке' },
 }
 
+// Произвольные характеристики «label: value» — общие для товара любого типа
+// (см. ProductAttribute на бэкенде). Перезаписываются целиком при сохранении.
+const attributes = ref<KeyValueRow[]>([])
+
 const digitalDetails = ref({
   delivery_type: 'download',
   access_days: null as number | null, download_url: '',
@@ -170,6 +175,7 @@ onMounted(async () => {
         image_url: p.image_url || ''
       }
       productImages.value = p.images || []
+      attributes.value = (p.product_attributes || []).map(a => ({ label: a.label, value: a.value }))
       if (p.physical) {
         physicalDetails.value = {
           sku: p.physical.sku || '',
@@ -232,6 +238,9 @@ async function handleSubmit() {
   if (form.value.type === 'physical') data.physical = physicalDetails.value
   if (form.value.type === 'digital') data.digital = digitalDetails.value
   if (form.value.type === 'service') data.service = serviceDetails.value
+
+  // Отбрасываем пустые строки — бэкенд сделает то же, но не гоняем мусор по сети.
+  data.attributes = attributes.value.filter(a => a.label.trim() && a.value.trim())
 
   try {
     if (isEditing.value) { await api.updateProduct(route.params.id as string, data) }
@@ -565,6 +574,22 @@ async function handleSubmit() {
             </span>
           </label>
         </div>
+      </div>
+
+      <!-- ══════════ ХАРАКТЕРИСТИКИ ══════════ -->
+      <div class="card">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Характеристики</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Произвольные пары «характеристика: значение» — состав, страна, тех. параметры и т.п.
+          Показываются в приложении отдельным блоком под ценой.
+        </p>
+        <KeyValueEditor
+          v-model="attributes"
+          label-placeholder="Например: Состав"
+          value-placeholder="Например: 100% хлопок"
+          add-label="+ Добавить характеристику"
+          :suggestions="['Состав', 'Страна', 'Бренд', 'Материал', 'Вес', 'Срок годности', 'Условия хранения', 'Пищевая ценность', 'Гарантия']"
+        />
       </div>
 
       <!-- ══════════ КНОПКИ ══════════ -->

@@ -24,6 +24,11 @@ class StoreProductRequest extends FormRequest
             'is_active' => 'nullable|boolean',
             'category_id' => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
+
+            // Произвольные характеристики «label: value» (см. ProductController::syncAttributes)
+            'attributes' => 'nullable|array|max:30',
+            'attributes.*.label' => 'nullable|string|max:255|required_with:attributes.*.value',
+            'attributes.*.value' => 'nullable|string|max:1000|required_with:attributes.*.label',
         ];
 
         if ($this->type === 'physical') {

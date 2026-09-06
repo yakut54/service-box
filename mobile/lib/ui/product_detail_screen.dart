@@ -11,6 +11,7 @@ import 'widgets/error_view.dart';
 import 'widgets/product_price_row.dart';
 import 'widgets/product_rating_ask_row.dart';
 import 'widgets/related_products.dart';
+import 'widgets/spec_list.dart';
 
 /// Карточка товара: GET /widget/products/{id}. Открывается тапом по
 /// карточке в каталоге (см. ProductCard).
@@ -79,6 +80,19 @@ class _ProductDetailBody extends StatelessWidget {
     final inStock = product.inStock;
     final discountEndsAt = product.discountEndsAt;
 
+    // Структурные поля физ-товара + произвольные характеристики из админки —
+    // один блок «Характеристики» (Baymard принцип 6: сухие факты отдельно
+    // от описания).
+    final specRows = <(String, String)>[
+      if (product.physical?.weightGrams != null)
+        ('Вес', '${product.physical!.weightGrams} г'),
+      if ((product.physical?.dimensions ?? '').isNotEmpty)
+        ('Размер', product.physical!.dimensions!),
+      if ((product.physical?.color ?? '').isNotEmpty)
+        ('Цвет', product.physical!.color!),
+      for (final a in product.attributes) (a.label, a.value),
+    ];
+
     return Column(
       children: [
         Expanded(
@@ -142,9 +156,9 @@ class _ProductDetailBody extends StatelessWidget {
               ProductRatingAskRow(product: product),
               // Характеристики (сухие факты) — перед описанием (текст), не
               // после, тоже часть того же согласованного порядка.
-              if (product.physical != null) ...[
+              if (specRows.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _CharacteristicsList(physical: product.physical!),
+                SpecList(rows: specRows),
               ],
               if (product.description != null &&
                   product.description!.isNotEmpty) ...[
@@ -258,49 +272,4 @@ class _ProductGalleryState extends State<_ProductGallery> {
   }
 }
 
-class _CharacteristicsList extends StatelessWidget {
-  final ProductPhysical physical;
-
-  const _CharacteristicsList({required this.physical});
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <(String, String)>[
-      if (physical.weightGrams != null) ('Вес', '${physical.weightGrams} г'),
-      if (physical.dimensions != null && physical.dimensions!.isNotEmpty)
-        ('Размер', physical.dimensions!),
-      if (physical.color != null && physical.color!.isNotEmpty)
-        ('Цвет', physical.color!),
-    ];
-
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Характеристики', style: theme.textTheme.titleSmall),
-        const SizedBox(height: 8),
-        for (final (label, value) in rows)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 100,
-                  child: Text(
-                    label,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
 

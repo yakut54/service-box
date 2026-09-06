@@ -144,6 +144,21 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 $sql$, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.product_images(product_id)', p_schema_name);
 
+                -- product_attributes: произвольные пары «характеристика: значение»,
+                -- которые шопер добавляет сам (состав/КБЖУ для еды, тех-спеки для
+                -- электроники и т.п.) — без новой колонки под каждую категорию.
+                EXECUTE format($sql$
+                    CREATE TABLE %I.product_attributes (
+                        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        product_id UUID NOT NULL REFERENCES %I.products(id) ON DELETE CASCADE,
+                        label      TEXT NOT NULL,
+                        value      TEXT NOT NULL,
+                        sort_order INTEGER NOT NULL DEFAULT 0,
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.product_attributes(product_id)', p_schema_name);
+
                 -- customers
                 EXECUTE format($sql$
                     CREATE TABLE %I.customers (

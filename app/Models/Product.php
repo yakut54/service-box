@@ -61,6 +61,15 @@ class Product extends Model
     }
 
     /**
+     * Произвольные характеристики «label: value» (см. ProductAttribute).
+     * Сериализуется в JSON как product_attributes.
+     */
+    public function productAttributes()
+    {
+        return $this->hasMany(ProductAttribute::class, 'product_id')->orderBy('sort_order');
+    }
+
+    /**
      * Доп. фото галереи (не включает обложку — см. image_url).
      */
     public function images()
@@ -86,6 +95,7 @@ class Product extends Model
     public function loadDetails(): self
     {
         return $this->load([
+            'productAttributes',
             'physical' => function ($query) {
                 return $this->type === 'physical' ? $query : $query->whereRaw('false');
             },

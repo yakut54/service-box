@@ -24,6 +24,11 @@ class UpdateProductRequest extends FormRequest
             'is_active' => 'sometimes|boolean',
             'category_id' => 'nullable|string',
             'sort_order' => 'sometimes|integer|min:0',
+
+            // Произвольные характеристики «label: value» (см. ProductController::syncAttributes)
+            'attributes' => 'sometimes|nullable|array|max:30',
+            'attributes.*.label' => 'nullable|string|max:255|required_with:attributes.*.value',
+            'attributes.*.value' => 'nullable|string|max:1000|required_with:attributes.*.label',
         ];
 
         $rules = array_merge($rules, [

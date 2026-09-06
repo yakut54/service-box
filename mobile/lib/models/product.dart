@@ -79,6 +79,23 @@ enum ProductSaleMode {
   };
 }
 
+/// Произвольная характеристика товара — пара «label: value», которую шопер
+/// завёл в админке (см. ProductAttribute на бэкенде). Показывается в блоке
+/// «Характеристики» на карточке товара вместе со структурными полями.
+class ProductAttribute {
+  final String label;
+  final String value;
+
+  const ProductAttribute({required this.label, required this.value});
+
+  factory ProductAttribute.fromJson(Map<String, dynamic> json) => ProductAttribute(
+    label: (json['label'] as String?)?.trim() ?? '',
+    value: (json['value'] as String?)?.trim() ?? '',
+  );
+
+  bool get isEmpty => label.isEmpty || value.isEmpty;
+}
+
 /// Физический товар. MVP мобильного приложения показывает только этот тип
 /// (см. PLAN.md, «Флот Шоперов») — услуги и цифровые товары не запрашиваются.
 class Product {
@@ -129,6 +146,11 @@ class Product {
   /// как раньше.
   final List<String> images;
 
+  /// Произвольные характеристики «label: value» из админки. Пусто, если шопер
+  /// ничего не завёл — блок «Характеристики» тогда покажет только структурные
+  /// поля (вес/размер/цвет), как раньше.
+  final List<ProductAttribute> attributes;
+
   const Product({
     required this.id,
     required this.name,
@@ -144,6 +166,7 @@ class Product {
     this.rating,
     this.reviewCount = 0,
     this.images = const [],
+    this.attributes = const [],
   });
 
   double get priceRubles => priceKopecks / 100;
@@ -222,6 +245,10 @@ class Product {
     reviewCount: (json['review_count'] as num?)?.toInt() ?? 0,
     images: (json['images'] as List<dynamic>? ?? const [])
         .map((img) => (img as Map<String, dynamic>)['url'] as String)
+        .toList(),
+    attributes: (json['product_attributes'] as List<dynamic>? ?? const [])
+        .map((a) => ProductAttribute.fromJson(a as Map<String, dynamic>))
+        .where((a) => !a.isEmpty)
         .toList(),
   );
 }
