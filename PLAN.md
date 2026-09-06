@@ -201,11 +201,15 @@ service-box/
 - **Поведение не изменилось** — креды Firebase всё ещё не заданы, канал молчит (Шаг 2).
 - **Проверено на сервере.** Обе таблицы + индексы + PK на месте, `create_shop_schema` содержит `customer_push_tokens`, `php -l` чисто на всех 13 файлах. Пост-деплой: `updateOrCreate` по одному token дважды → 1 строка; `push:prune-stale-tokens` отрабатывает.
 
-### Шаг 2 — Включить канал: серверные креды Firebase
-- **Что.** (за пользователем) Service-account JSON проекта `ServiceBox54` → на сервер вне git. (код/конфиг) `FIREBASE_CREDENTIALS_PATH` в `.env` + проброс в `docker-compose.prod.yml` в контейнер `app` (рядом с `TELEGRAM_SECRET_TOKEN`). Живая проверка `FirebaseService::configured()` для будущего бейджа в админке (по образцу `MailFailureController::mailConfigured`).
-- **Стоп.** `FirebaseService::configured()` возвращает true на сервере.
-- **Коммит.** `chore(push): wire FIREBASE_CREDENTIALS_PATH into app container`
-- **Проверка.** На тестовом устройстве с `barbariska`: войти → в `customer_push_tokens` появился реальный токен. `plink` → tinker: вызвать `FirebaseService::notifySurcharge($order)` на тестовом заказе с `weight_variable`-позицией → на телефон приходит push «Требуется доплата». `push_failures` пуст.
+### Шаг 2 — Включить канал: серверные креды Firebase — 🟡 код готов (2026-09-06), ждёт JSON от пользователя
+- **Сделано (код).** `FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}` проброшен в `docker-compose.prod.yml` → контейнеры `app`, `worker`, `scheduler` (все трое шлют push: sync-доплата в `app`, очередь в `worker`, крон в `scheduler`). `.env.example` и `.gitignore` (`/firebase-credentials.json`) обновлены. `config/services.php` уже читал переменную. `FirebaseService::configured()` есть (Шаг 1). Коммит `chore(push): wire FIREBASE_CREDENTIALS_PATH into containers`.
+- **Осталось (за пользователем):**
+  1. Firebase Console → проект **ServiceBox54** → ⚙ Project settings → вкладка **Service accounts** → **Generate new private key** → скачать JSON.
+  2. Залить на сервер: `pscp firebase-adminsdk-xxxxx.json root@193.168.49.102:/var/www/servicebox/firebase-credentials.json`
+  3. В `/var/www/servicebox/.env` добавить строку: `FIREBASE_CREDENTIALS_PATH=/var/www/html/firebase-credentials.json`
+  4. Передать мне device-token тестового устройства (или сказать «готово» — я перезапущу контейнеры и проверю).
+- **Стоп.** `FirebaseService::configured()` → true на сервере.
+- **Проверка (моя, после шага 4).** `plink` → перезапуск `app worker scheduler` → `configured()` = true. Затем tinker: `FirebaseService::notifySurcharge($order, $shop)` на тестовом заказе с `weight_variable` → push «Требуется доплата» на устройство, `push_failures` пуст.
 
 ### Шаг 3 — Android: разрешение + каналы + soft-ask
 - **Что.** Notification channels: «Заказы» (HIGH), «Доставка» (HIGH), «Чат» (HIGH), «Акции магазина» (DEFAULT), «Напоминания о записи» (HIGH, создавать только если у магазина флаг `booking`). `POST_NOTIFICATIONS` в манифесте, `targetSdk ≥ 33`. Своя шторка-объяснение перед системным диалогом; показывать **после первого оформленного заказа** (или при первом входе в чат), не на старте. При окончательном отказе — строка в профиле «Уведомления выключены · Включить» → системные настройки.

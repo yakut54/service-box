@@ -3,6 +3,7 @@
 widget/node_modules/
 admin/node_modules/
 /.env
+/firebase-credentials.json
 /storage/*.key
 /storage/framework/cache/data/*
 !/storage/framework/cache/data/.gitkeep
