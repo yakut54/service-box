@@ -81,7 +81,11 @@ Route::prefix('auth')->group(function () {
 // ============================================================================
 // WIDGET API (Public, X-Shop-ID header, no auth)
 // ============================================================================
-Route::prefix('widget')->middleware(['tenant'])->group(function () {
+// api.cors ПЕРЕД tenant: виджет встраивается на сайт шопера и ходит сюда
+// кросс-доменно; ApiCors отвечает на preflight OPTIONS раньше, чем tenant
+// успеет отклонить запрос без X-Shop-ID. HandleCors этот префикс не трогает
+// (его нет в config/cors.php paths).
+Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
     // Shop info
     Route::get('/shop', [ShopController::class, 'getPublicInfo']);
 

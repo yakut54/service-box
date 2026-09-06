@@ -28,8 +28,9 @@ class ApiCors
     {
         return [
             'Access-Control-Allow-Origin'  => '*',
-            'Access-Control-Allow-Methods' => 'GET, POST, PATCH, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers' => 'X-API-Key, Content-Type, Accept',
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+            // X-Shop-ID / X-Phone-* — виджет и мобилка (/api/widget/*); X-API-Key — внешний API v1
+            'Access-Control-Allow-Headers' => 'X-Shop-ID, X-API-Key, X-Phone-Token, X-Phone-Session, Content-Type, Accept',
             'Access-Control-Max-Age'       => '86400',
         ];
     }
