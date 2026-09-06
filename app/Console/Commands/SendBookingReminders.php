@@ -67,6 +67,11 @@ class SendBookingReminders extends Command
                     'start_time' => $booking->start_time,
                 ]);
                 try {
+                    // ЗАГЛУШКА (PLAN.md → Шаг 9): push-напоминание о записи отложено —
+                    // в мобильном приложении записей пока нет, открывать push некуда.
+                    // Когда появятся: здесь, ПАРАЛЛЕЛЬНО мессенджеру (не вместо),
+                    // диспатчить джобу push по $booking->customer_id (если не null),
+                    // канал 'booking' (5-й Android-канал, MainActivity.kt → пересборка APK).
                     if ($shop->telegram_bot_connected) {
                         TelegramService::notifyBookingReminder($shop, $booking, $type);
                     }
