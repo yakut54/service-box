@@ -118,6 +118,7 @@ class ProductController extends Controller
             'image_url',
             'is_active',
             'category_id',
+            'size_chart_id',
             'sort_order',
         ]));
 
@@ -183,6 +184,7 @@ class ProductController extends Controller
             'image_url',
             'is_active',
             'category_id',
+            'size_chart_id',
             'sort_order',
         ]));
 

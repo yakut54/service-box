@@ -192,6 +192,12 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::patch('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
+    // Size charts (must be before the products apiResource {product} wildcard is irrelevant — different path)
+    Route::get('/size-charts', [\App\Http\Controllers\SizeChartController::class, 'index']);
+    Route::post('/size-charts', [\App\Http\Controllers\SizeChartController::class, 'store']);
+    Route::put('/size-charts/{sizeChart}', [\App\Http\Controllers\SizeChartController::class, 'update']);
+    Route::delete('/size-charts/{sizeChart}', [\App\Http\Controllers\SizeChartController::class, 'destroy']);
+
     // Products
     Route::apiResource('products', ProductController::class);
     Route::post('/products/{product}/images', [ProductImageController::class, 'store']);

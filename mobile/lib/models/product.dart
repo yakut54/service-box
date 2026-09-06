@@ -1,3 +1,5 @@
+import 'size_chart.dart';
+
 /// Складские данные физического товара (GET /widget/products, /widget/products/{id}).
 class ProductPhysical {
   final String? sku;
@@ -154,6 +156,9 @@ class Product {
   final bool categoryAgeRestricted;
   final bool categoryNoReturn;
 
+  /// Размерная сетка (одежда/обувь) — кнопка «Таблица размеров» на карточке.
+  final SizeChart? sizeChart;
+
   final ProductPhysical? physical;
 
   /// Средний рейтинг и количество отзывов — считаются на бэкенде по
@@ -185,6 +190,7 @@ class Product {
     this.categoryId,
     this.categoryAgeRestricted = false,
     this.categoryNoReturn = false,
+    this.sizeChart,
     this.physical,
     this.rating,
     this.reviewCount = 0,
@@ -274,6 +280,9 @@ class Product {
         (json['category'] as Map<String, dynamic>?)?['age_restricted'] as bool? ?? false,
     categoryNoReturn:
         (json['category'] as Map<String, dynamic>?)?['no_return'] as bool? ?? false,
+    sizeChart: json['size_chart'] != null
+        ? SizeChart.fromJson(json['size_chart'] as Map<String, dynamic>)
+        : null,
     physical: json['physical'] != null
         ? ProductPhysical.fromJson(json['physical'] as Map<String, dynamic>)
         : null,

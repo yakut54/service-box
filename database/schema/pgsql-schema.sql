@@ -67,6 +67,21 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE INDEX ON %I.categories(parent_id)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.categories(is_visible)', p_schema_name);
 
+                -- size_charts: размерные сетки уровня магазина, переиспользуются
+                -- многими товарами. columns — заголовки ["Размер","Обхват груди, см"],
+                -- rows — строки [["S","82-86"],["M","86-90"]] (всё строками).
+                EXECUTE format($sql$
+                    CREATE TABLE %I.size_charts (
+                        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        kind       TEXT NOT NULL DEFAULT 'custom' CHECK (kind IN ('clothing','shoes','custom')),
+                        name       TEXT NOT NULL,
+                        columns    JSONB NOT NULL DEFAULT '[]'::jsonb,
+                        rows       JSONB NOT NULL DEFAULT '[]'::jsonb,
+                        created_at TIMESTAMPTZ DEFAULT NOW(),
+                        updated_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name);
+
                 -- products
                 EXECUTE format($sql$
                     CREATE TABLE %I.products (
@@ -81,11 +96,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         is_active     BOOLEAN DEFAULT TRUE,
                         auto_hidden   BOOLEAN DEFAULT FALSE,
                         category_id   UUID REFERENCES %I.categories(id) ON DELETE SET NULL,
+                        size_chart_id UUID REFERENCES %I.size_charts(id) ON DELETE SET NULL,
                         sort_order    INTEGER DEFAULT 0,
                         created_at    TIMESTAMPTZ DEFAULT NOW(),
                         updated_at    TIMESTAMPTZ DEFAULT NOW()
                     )
-                $sql$, p_schema_name, p_schema_name);
+                $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.products(is_active)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.products(type)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.products(category_id)', p_schema_name);

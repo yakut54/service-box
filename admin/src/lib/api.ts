@@ -3,6 +3,7 @@ import type {
   Category,
   Product,
   ProductImage,
+  SizeChart,
   Order, OrderStats, OrderChartPoint,
   Customer,
   Booking, BookingStats, AvailableSlotsResponse,
@@ -265,6 +266,31 @@ class ApiClient {
 
   async deleteProduct(id: string) {
     return this.request<{ message: string }>(`/admin/products/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // ── Size charts ──────────────────────────────────────────────
+  async getSizeCharts() {
+    return this.request<{ data: SizeChart[] }>('/admin/size-charts')
+  }
+
+  async createSizeChart(data: Partial<SizeChart>) {
+    return this.request<{ data: SizeChart }>('/admin/size-charts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateSizeChart(id: string, data: Partial<SizeChart>) {
+    return this.request<{ data: SizeChart }>(`/admin/size-charts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteSizeChart(id: string) {
+    return this.request<{ message: string }>(`/admin/size-charts/${id}`, {
       method: 'DELETE',
     })
   }

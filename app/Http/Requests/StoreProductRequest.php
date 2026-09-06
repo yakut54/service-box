@@ -23,6 +23,7 @@ class StoreProductRequest extends FormRequest
             'image_url' => 'nullable|url|max:500',
             'is_active' => 'nullable|boolean',
             'category_id' => 'nullable|string',
+            'size_chart_id' => 'nullable|uuid',
             'sort_order' => 'nullable|integer|min:0',
 
             // Произвольные характеристики «label: value» (см. ProductController::syncAttributes)

@@ -6,6 +6,7 @@ import { parseApiError } from '@/lib/parseApiError'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
 import ProductImageGallery from '@/components/ProductImageGallery.vue'
+import SizeChartPicker from '@/components/SizeChartPicker.vue'
 import { UiHint, KeyValueEditor } from '@/shared/ui'
 import type { KeyValueRow } from '@/shared/ui'
 import type { ProductImage } from '@/types'
@@ -26,6 +27,7 @@ const form = ref({
   compare_price: null as number | null,
   type: 'physical' as string,
   category_id: '',
+  size_chart_id: null as string | null,
   is_active: true,
   image_url: '',
 })
@@ -174,6 +176,7 @@ onMounted(async () => {
         compare_price: p.compare_price != null ? p.compare_price / 100 : null,
         type: p.type,
         category_id: p.category_id || '',
+        size_chart_id: p.size_chart_id ?? null,
         is_active: p.is_active,
         image_url: p.image_url || ''
       }
@@ -237,6 +240,7 @@ async function handleSubmit() {
     compare_price: form.value.compare_price ? Math.round(form.value.compare_price * 100) : null,
     type: form.value.type,
     category_id: form.value.category_id || null,
+    size_chart_id: form.value.type === 'physical' ? form.value.size_chart_id : null,
     is_active: form.value.is_active,
     image_url: form.value.image_url.trim() || null,
   }
@@ -604,6 +608,16 @@ async function handleSubmit() {
             </span>
           </label>
         </div>
+      </div>
+
+      <!-- ══════════ РАЗМЕРНАЯ СЕТКА ══════════ -->
+      <div v-if="form.type === 'physical'" class="card">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Размерная сетка</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Для одежды и обуви — таблица размеров, которую покупатель откроет в приложении
+          кнопкой «Таблица размеров». Одна сетка переиспользуется в нескольких товарах.
+        </p>
+        <SizeChartPicker v-model="form.size_chart_id" />
       </div>
 
       <!-- ══════════ ХАРАКТЕРИСТИКИ ══════════ -->

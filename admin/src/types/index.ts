@@ -208,6 +208,18 @@ export interface ProductAttribute {
   sort_order?: number
 }
 
+export type SizeChartKind = 'clothing' | 'shoes' | 'custom'
+
+export interface SizeChart {
+  id: string
+  kind: SizeChartKind
+  name: string
+  columns: string[]
+  rows: string[][]
+  created_at?: string
+  updated_at?: string
+}
+
 export interface ProductImage {
   id: string
   product_id: string
@@ -234,6 +246,8 @@ export interface Product {
   service?: ProductService | null
   images?: ProductImage[]
   product_attributes?: ProductAttribute[]
+  size_chart_id?: string | null
+  size_chart?: SizeChart | null
   created_at: string
   updated_at: string
 }

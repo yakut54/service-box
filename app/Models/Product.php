@@ -23,6 +23,7 @@ class Product extends Model
         'image_url',
         'is_active',
         'category_id',
+        'size_chart_id',
         'sort_order',
     ];
 
@@ -38,6 +39,11 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function sizeChart()
+    {
+        return $this->belongsTo(SizeChart::class, 'size_chart_id');
     }
 
     public function physical()
@@ -96,6 +102,7 @@ class Product extends Model
     {
         return $this->load([
             'productAttributes',
+            'sizeChart',
             'physical' => function ($query) {
                 return $this->type === 'physical' ? $query : $query->whereRaw('false');
             },

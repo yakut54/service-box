@@ -12,6 +12,7 @@ import 'widgets/error_view.dart';
 import 'widgets/product_price_row.dart';
 import 'widgets/product_rating_ask_row.dart';
 import 'widgets/related_products.dart';
+import 'widgets/size_chart_sheet.dart';
 import 'widgets/spec_list.dart';
 
 /// Карточка товара: GET /widget/products/{id}. Открывается тапом по
@@ -205,6 +206,22 @@ class _ProductDetailBody extends StatelessWidget {
               ],
               const SizedBox(height: 12),
               ProductRatingAskRow(product: product),
+              if (product.sizeChart?.isUsable ?? false) ...[
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () =>
+                        SizeChartSheet.show(context, product.sizeChart!),
+                    icon: const Icon(Icons.straighten_rounded, size: 18),
+                    label: const Text('Таблица размеров'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
+              ],
               // Характеристики (сухие факты) — перед описанием (текст), не
               // после, тоже часть того же согласованного порядка.
               if (specRows.isNotEmpty) ...[
