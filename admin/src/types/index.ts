@@ -173,6 +173,9 @@ export interface ProductPhysical {
   weight_min_grams: number | null
   weight_max_grams: number | null
   stock_weight_grams: number
+  units_per_pack: number | null
+  unit_label: string | null
+  marking_code: string | null
 }
 
 export interface ProductDigital {

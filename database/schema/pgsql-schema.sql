@@ -103,7 +103,14 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         weight_step_grams    INTEGER DEFAULT 100,
                         weight_min_grams     INTEGER DEFAULT 100,
                         weight_max_grams     INTEGER DEFAULT 5000,
-                        stock_weight_grams   INTEGER DEFAULT 0
+                        stock_weight_grams   INTEGER DEFAULT 0,
+                        -- Многоштучная упаковка: цена за единицу на карточке
+                        -- (Baymard принцип 3) — «1 250 ₽ · 208 ₽/шт».
+                        units_per_pack       INTEGER,
+                        unit_label           TEXT,
+                        -- Код маркировки «Честный знак» (обувь, одежда и др.) —
+                        -- хранится и показывается, без интеграции с ГИС МТ.
+                        marking_code         TEXT
                     )
                 $sql$, p_schema_name, p_schema_name);
 

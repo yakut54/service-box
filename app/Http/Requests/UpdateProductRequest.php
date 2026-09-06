@@ -47,6 +47,9 @@ class UpdateProductRequest extends FormRequest
             // Реальная привязка "нужное поле для режима" — в ProductController
             // (нормализует перед записью), тут просто мягкая валидация типа.
             'physical.stock_weight_grams' => 'sometimes|nullable|integer|min:0',
+            'physical.units_per_pack' => 'nullable|integer|min:1|max:100000',
+            'physical.unit_label' => 'nullable|string|max:20',
+            'physical.marking_code' => 'nullable|string|max:255',
 
             'digital.delivery_type' => 'sometimes|in:download,link,code',
             'digital.access_days' => 'nullable|integer|min:1',

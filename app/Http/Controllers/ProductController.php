@@ -245,7 +245,19 @@ class ProductController extends Controller
             $data['stock_weight_grams'] = 0;
         } else {
             $data['stock_quantity'] = 0;
+            // Цена за единицу упаковки — понятие только для штучного товара;
+            // у весового уже есть цена за кг.
+            $data['units_per_pack'] = null;
+            $data['unit_label'] = null;
         }
+
+        // Пустые строки → NULL, чтобы карточка не рисовала «· /» без единицы.
+        foreach (['unit_label', 'marking_code'] as $k) {
+            if (isset($data[$k]) && trim((string) $data[$k]) === '') {
+                $data[$k] = null;
+            }
+        }
+
         return $data;
     }
 

@@ -52,6 +52,10 @@ class StoreProductRequest extends FormRequest
                 // и weight_variable, но enforce на бэкенде только у первого
                 // (второй режим сам как фича ещё не построен).
                 'physical.stock_weight_grams' => 'nullable|required_if:physical.sale_mode,weight_fixed,weight_variable|integer|min:0',
+                // Многоштучная упаковка + маркировка (Фаза 2)
+                'physical.units_per_pack' => 'nullable|integer|min:1|max:100000',
+                'physical.unit_label' => 'nullable|string|max:20',
+                'physical.marking_code' => 'nullable|string|max:255',
             ]);
         }
 

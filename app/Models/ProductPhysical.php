@@ -31,6 +31,9 @@ class ProductPhysical extends Model
         'weight_min_grams',
         'weight_max_grams',
         'stock_weight_grams',
+        'units_per_pack',
+        'unit_label',
+        'marking_code',
     ];
 
     protected $casts = [
@@ -44,6 +47,7 @@ class ProductPhysical extends Model
         'weight_min_grams' => 'integer',
         'weight_max_grams' => 'integer',
         'stock_weight_grams' => 'integer',
+        'units_per_pack' => 'integer',
     ];
 
     public function product()

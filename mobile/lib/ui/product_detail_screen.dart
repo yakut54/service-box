@@ -83,14 +83,16 @@ class _ProductDetailBody extends StatelessWidget {
     // Структурные поля физ-товара + произвольные характеристики из админки —
     // один блок «Характеристики» (Baymard принцип 6: сухие факты отдельно
     // от описания).
+    final physical = product.physical;
     final specRows = <(String, String)>[
-      if (product.physical?.weightGrams != null)
-        ('Вес', '${product.physical!.weightGrams} г'),
-      if ((product.physical?.dimensions ?? '').isNotEmpty)
-        ('Размер', product.physical!.dimensions!),
-      if ((product.physical?.color ?? '').isNotEmpty)
-        ('Цвет', product.physical!.color!),
+      if (physical?.weightGrams != null) ('Вес', '${physical!.weightGrams} г'),
+      if ((physical?.dimensions ?? '').isNotEmpty) ('Размер', physical!.dimensions!),
+      if ((physical?.color ?? '').isNotEmpty) ('Цвет', physical!.color!),
+      if ((physical?.unitsPerPack ?? 0) > 1)
+        ('В упаковке', '${physical!.unitsPerPack} ${product.unitLabel}'),
       for (final a in product.attributes) (a.label, a.value),
+      if ((physical?.markingCode ?? '').isNotEmpty)
+        ('Маркировка', physical!.markingCode!),
     ];
 
     return Column(
@@ -124,6 +126,16 @@ class _ProductDetailBody extends StatelessWidget {
                   ],
                 ],
               ),
+              // Цена за единицу упаковки — Baymard принцип 3 (сравнимость).
+              if (product.unitPriceKopecks != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '${formatRubles(product.unitPriceKopecks! / 100)}/${product.unitLabel}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               if (discountEndsAt != null) ...[
                 const SizedBox(height: 4),
                 Text(

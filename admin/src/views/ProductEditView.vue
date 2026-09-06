@@ -44,6 +44,9 @@ const physicalDetails = ref({
   weight_min_grams: 100 as number | null,
   weight_max_grams: 5000 as number | null,
   stock_weight_grams: 0,
+  units_per_pack: null as number | null,
+  unit_label: '',
+  marking_code: '',
 })
 
 const isWeightMode = computed(() =>
@@ -191,6 +194,9 @@ onMounted(async () => {
           weight_min_grams: p.physical.weight_min_grams ?? 100,
           weight_max_grams: p.physical.weight_max_grams ?? 5000,
           stock_weight_grams: p.physical.stock_weight_grams ?? 0,
+          units_per_pack: p.physical.units_per_pack ?? null,
+          unit_label: p.physical.unit_label || '',
+          marking_code: p.physical.marking_code || '',
         }
       }
       if (p.digital) {
@@ -483,6 +489,30 @@ async function handleSubmit() {
           <div>
             <p class="label">Бренд</p>
             <input v-model="physicalDetails.brand" type="text" class="input" :placeholder="ep('MyBrand')" />
+          </div>
+
+          <!-- Многоштучная упаковка — только для штучного режима.
+               Показывает «цена за единицу» на карточке в приложении. -->
+          <div v-if="physicalDetails.sale_mode === 'piece'" class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="label flex items-center gap-1">
+                Штук в упаковке
+                <UiHint>Если товар — упаковка/набор. В приложении покажется цена за штуку.</UiHint>
+              </p>
+              <input v-model.number="physicalDetails.units_per_pack" type="number" min="1" step="1" class="input" :placeholder="ep('6')" />
+            </div>
+            <div>
+              <p class="label">Единица</p>
+              <input v-model="physicalDetails.unit_label" type="text" class="input" maxlength="20" :placeholder="ep('шт')" />
+            </div>
+          </div>
+
+          <div>
+            <p class="label flex items-center gap-1">
+              Код маркировки «Честный знак»
+              <UiHint>Для обуви, одежды, парфюмерии и др. маркируемых товаров. Хранится и показывается покупателю.</UiHint>
+            </p>
+            <input v-model="physicalDetails.marking_code" type="text" class="input" maxlength="255" :placeholder="ep('01046..., необязательно')" />
           </div>
         </div>
       </div>

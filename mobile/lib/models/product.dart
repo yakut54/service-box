@@ -18,6 +18,14 @@ class ProductPhysical {
   final int weightMinGrams;
   final int weightMaxGrams;
 
+  /// Многоштучная упаковка: сколько единиц в товаре и как их называть
+  /// («6», «шт»). null → товар не упаковка, цену за единицу не показываем.
+  final int? unitsPerPack;
+  final String? unitLabel;
+
+  /// Код маркировки «Честный знак» — показываем в характеристиках как есть.
+  final String? markingCode;
+
   /// Остаток на складе в граммах — для weightFixed списывается сразу при
   /// заказе; для weightVariable списывается позже, при фактическом
   /// взвешивании (см. OrderReweighService на бэкенде), поэтому на клиенте
@@ -36,6 +44,9 @@ class ProductPhysical {
     this.weightMinGrams = 100,
     this.weightMaxGrams = 5000,
     this.stockWeightGrams = 0,
+    this.unitsPerPack,
+    this.unitLabel,
+    this.markingCode,
   });
 
   /// В наличии ли товар — с учётом того, что магазин разрешает
@@ -64,6 +75,9 @@ class ProductPhysical {
         weightMinGrams: (json['weight_min_grams'] as num?)?.toInt() ?? 100,
         weightMaxGrams: (json['weight_max_grams'] as num?)?.toInt() ?? 5000,
         stockWeightGrams: (json['stock_weight_grams'] as num?)?.toInt() ?? 0,
+        unitsPerPack: (json['units_per_pack'] as num?)?.toInt(),
+        unitLabel: (json['unit_label'] as String?)?.trim(),
+        markingCode: (json['marking_code'] as String?)?.trim(),
       );
 }
 
@@ -181,6 +195,21 @@ class Product {
   int priceForWeightGrams(int grams) => (priceKopecks * grams / 1000).round();
 
   bool get hasDiscount => discountPercent != null;
+
+  /// Цена за единицу для многоштучной упаковки — «208 ₽/шт» рядом с ценой
+  /// (Baymard принцип 3: сравнимость выгодности покупки). null, если товар
+  /// не упаковка (меньше 2 единиц) или продаётся по весу.
+  int? get unitPriceKopecks {
+    final n = physical?.unitsPerPack;
+    if (isWeightBased || n == null || n < 2) return null;
+    return (displayPriceKopecks / n).round();
+  }
+
+  /// Как называть единицу упаковки («шт», «пара», «саше») — «шт» по умолчанию.
+  String get unitLabel {
+    final l = physical?.unitLabel;
+    return (l != null && l.isNotEmpty) ? l : 'шт';
+  }
 
   /// Процент скидки для бейджа на карточке — null, если скидки нет.
   /// Приоритет: реальная скидка из раздела «Скидки» (discountPercentFromDiscounts),
