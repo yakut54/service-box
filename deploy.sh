@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-REPO_DIR="/var/www/servicebox"
+# Каталог репозитория — от расположения самого скрипта, не константой.
+# Переезд в каталог с другим именем не требует правок здесь.
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BRANCH="flutter-app"
 
 # Единая точка чтения серверного .env (он вне git). Раньше связка grep|cut|tr

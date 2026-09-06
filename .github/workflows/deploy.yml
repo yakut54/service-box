@@ -18,8 +18,10 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
+          # Незаданный секрет = пустая строка → || даёт фолбэк, текущая
+          # настройка продолжит работать без добавления SSH_PORT / DEPLOY_PATH.
+          port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
           script: |
-            cd /var/www/servicebox
+            cd ${{ secrets.DEPLOY_PATH || '/var/www/servicebox' }}
             bash deploy.sh
