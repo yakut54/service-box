@@ -29,6 +29,12 @@ import 'widgets/error_view.dart';
 /// текста и фото. Доставка — WebSocket (Reverb) как основной путь, обычный
 /// опрос остаётся редкой подстраховкой на случай обрыва сокета (см.
 /// PLAN-CHAT.md §12).
+///
+/// [chatScreenOpen] — экран чата смонтирован и на переднем плане. Читает
+/// PushRouter: если пришёл foreground-push о новом сообщении, а чат и так
+/// открыт — системную плашку/баннер не показываем (WS уже доставил).
+bool chatScreenOpen = false;
+
 class ChatScreen extends StatefulWidget {
   /// Путь к файлу, с которым открыли приложение через системное
   /// «Поделиться» (Android, см. main.dart + MainActivity.kt) — фото сразу
@@ -93,6 +99,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    chatScreenOpen = true;
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     _draftController.addListener(_onDraftChanged);
@@ -114,6 +121,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    chatScreenOpen = false;
     WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _shopTypingClearTimer?.cancel();

@@ -2,28 +2,32 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
+import '../ui/chat_screen.dart';
 import '../ui/order_detail_screen.dart';
 
-/// Куда вести байера по тапу на push.
+/// Куда вести байера по push и что показывать, пока приложение открыто.
 ///
-/// Два входа: приложение было убито и открыто тапом по уведомлению
-/// (getInitialMessage — проверяется один раз на старте) и приложение было в
-/// фоне (onMessageOpenedApp — подписка). Foreground-сообщения (onMessage) —
-/// это Шаг 5 (in-app), здесь не трогаем.
+///  - холодный старт тапом по уведомлению → getInitialMessage (один раз);
+///  - тап по уведомлению из фона → onMessageOpenedApp;
+///  - приложение на переднем плане → onMessage: системная плашка НЕ появляется,
+///    решаем сами — открытый тред чата глушим (WS уже доставил), иначе
+///    показываем in-app баннер с переходом.
 ///
-/// Хендлер регистрируется в main.dart ДО отрисовки первого экрана, иначе
-/// холодный старт теряет initial message.
+/// Регистрируется в main.dart ДО первого кадра, иначе холодный старт теряет
+/// initial message.
 class PushRouter {
   static bool _attached = false;
+  static GlobalKey<NavigatorState>? _navKey;
+  static Future<void> Function()? _waitAuthReady;
 
-  /// [waitAuthReady] — future, который резолвится, когда AuthState.load()
-  /// закончил читать сессию (экран заказа ей пользуется).
   static Future<void> attach(
     GlobalKey<NavigatorState> navKey,
     Future<void> Function() waitAuthReady,
   ) async {
     if (_attached) return;
     _attached = true;
+    _navKey = navKey;
+    _waitAuthReady = waitAuthReady;
 
     try {
       if (Firebase.apps.isEmpty) {
@@ -34,32 +38,67 @@ class PushRouter {
     }
 
     final initial = await FirebaseMessaging.instance.getInitialMessage();
-    if (initial != null) {
-      _route(navKey, waitAuthReady, initial.data);
-    }
+    if (initial != null) _openFrom(initial.data);
 
-    FirebaseMessaging.onMessageOpenedApp.listen(
-      (m) => _route(navKey, waitAuthReady, m.data),
-    );
+    FirebaseMessaging.onMessageOpenedApp.listen((m) => _openFrom(m.data));
+    FirebaseMessaging.onMessage.listen(_onForeground);
   }
 
-  static Future<void> _route(
-    GlobalKey<NavigatorState> navKey,
-    Future<void> Function() waitAuthReady,
-    Map<String, dynamic> data,
-  ) async {
-    final type = data['type'];
-    final orderId = data['order_id'] as String?;
+  /// Тап по уведомлению → сразу на нужный экран.
+  static Future<void> _openFrom(Map<String, dynamic> data) async {
+    final route = _routeFor(data);
+    if (route == null) return;
+    await _waitAuthReady?.call();
+    _navKey?.currentState?.push(route);
+  }
 
-    if ((type == 'order_status' || type == 'order_surcharge') &&
-        orderId != null &&
-        orderId.isNotEmpty) {
-      await waitAuthReady();
+  /// Приложение открыто, push пришёл в onMessage (Android плашку не рисует).
+  static void _onForeground(RemoteMessage m) {
+    final data = m.data;
+    final type = data['type'];
+
+    // Открыт именно этот чат — ничего не делаем, сообщение и так в ленте.
+    if (type == 'chat' && chatScreenOpen) return;
+
+    final messenger = _navKey?.currentState != null
+        ? ScaffoldMessenger.maybeOf(_navKey!.currentContext!)
+        : null;
+    if (messenger == null) return;
+
+    final n = m.notification;
+    final title = n?.title ?? data['title'] as String? ?? 'Уведомление';
+    final body = n?.body ?? data['body'] as String? ?? '';
+
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(body.isEmpty ? title : '$title: $body',
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+          action: SnackBarAction(
+            label: 'Открыть',
+            onPressed: () => _openFrom(data),
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+  }
+
+  static Route<void>? _routeFor(Map<String, dynamic> data) {
+    final type = data['type'];
+
+    if (type == 'chat') {
+      return MaterialPageRoute(builder: (_) => const ChatScreen());
+    }
+
+    if (type == 'order_status' || type == 'order_surcharge') {
+      final orderId = data['order_id'] as String?;
+      if (orderId == null || orderId.isEmpty) return null;
       // Экран сам грузит заказ и показывает ErrorView, если его больше нет —
       // протухший диплинк не роняет приложение.
-      navKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)),
-      );
+      return MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId));
     }
+
+    return null;
   }
 }

@@ -152,6 +152,7 @@ class ChatController extends Controller
         $thread->increment('unread_by_customer');
 
         ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'message.new', ['message' => $message]);
+        \App\Jobs\SendChatPush::dispatchFor($thread, $message);
 
         return response()->json(['data' => $message], 201);
     }
