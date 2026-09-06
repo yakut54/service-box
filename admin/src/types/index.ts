@@ -208,6 +208,31 @@ export interface ProductAttribute {
   sort_order?: number
 }
 
+export interface ProductOptionValue {
+  id?: string
+  value: string
+  position?: number
+}
+
+export interface ProductOption {
+  id?: string
+  name: string
+  position?: number
+  values: ProductOptionValue[]
+}
+
+export interface ProductVariant {
+  id?: string
+  sku: string | null
+  price: number | null
+  stock_quantity: number
+  allow_backorder: boolean
+  image_url: string | null
+  option_values: string[]
+  is_active: boolean
+  position?: number
+}
+
 export type SizeChartKind = 'clothing' | 'shoes' | 'custom'
 
 export interface SizeChart {
@@ -248,6 +273,8 @@ export interface Product {
   product_attributes?: ProductAttribute[]
   size_chart_id?: string | null
   size_chart?: SizeChart | null
+  options?: ProductOption[]
+  variants?: ProductVariant[]
   created_at: string
   updated_at: string
 }

@@ -7,9 +7,10 @@ import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
 import ProductImageGallery from '@/components/ProductImageGallery.vue'
 import SizeChartPicker from '@/components/SizeChartPicker.vue'
+import ProductVariantsEditor from '@/components/ProductVariantsEditor.vue'
 import { UiHint, KeyValueEditor } from '@/shared/ui'
 import type { KeyValueRow } from '@/shared/ui'
-import type { ProductImage } from '@/types'
+import type { ProductImage, ProductOption, ProductVariant } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -104,6 +105,18 @@ const saleModeConfig = {
 // (см. ProductAttribute на бэкенде). Перезаписываются целиком при сохранении.
 const attributes = ref<KeyValueRow[]>([])
 
+// Оси вариативности + матрица вариантов (одежда/обувь) — только штучный физ-товар.
+const variantOptions = ref<ProductOption[]>([])
+const variants = ref<ProductVariant[]>([])
+const variantsEnabled = computed(() =>
+  form.value.type === 'physical' && physicalDetails.value.sale_mode === 'piece')
+
+function quickStart(kind: 'clothing' | 'shoes') {
+  variantOptions.value = kind === 'clothing'
+    ? [{ name: 'Размер', values: [] }, { name: 'Цвет', values: [] }]
+    : [{ name: 'Размер', values: [] }]
+}
+
 const digitalDetails = ref({
   delivery_type: 'download',
   access_days: null as number | null, download_url: '',
@@ -182,6 +195,19 @@ onMounted(async () => {
       }
       productImages.value = p.images || []
       attributes.value = (p.product_attributes || []).map(a => ({ label: a.label, value: a.value }))
+      variantOptions.value = (p.options || []).map(o => ({
+        name: o.name,
+        values: (o.values || []).map(v => ({ value: v.value })),
+      }))
+      variants.value = (p.variants || []).map(v => ({
+        sku: v.sku ?? null,
+        price: v.price ?? null,
+        stock_quantity: v.stock_quantity ?? 0,
+        allow_backorder: v.allow_backorder ?? false,
+        image_url: v.image_url ?? null,
+        option_values: v.option_values ?? [],
+        is_active: v.is_active ?? true,
+      }))
       if (p.physical) {
         physicalDetails.value = {
           sku: p.physical.sku || '',
@@ -251,6 +277,18 @@ async function handleSubmit() {
 
   // Отбрасываем пустые строки — бэкенд сделает то же, но не гоняем мусор по сети.
   data.attributes = attributes.value.filter(a => a.label.trim() && a.value.trim())
+
+  // Варианты — только для штучного физ-товара; иначе бэкенд их всё равно
+  // зачистит, но не шлём лишнее. options → значения строками.
+  if (variantsEnabled.value) {
+    data.options = variantOptions.value
+      .filter(o => o.name.trim() && o.values.length > 0)
+      .map(o => ({ name: o.name.trim(), values: o.values.map(v => v.value) }))
+    data.variants = variants.value
+  } else {
+    data.options = []
+    data.variants = []
+  }
 
   try {
     if (isEditing.value) { await api.updateProduct(route.params.id as string, data) }
@@ -608,6 +646,21 @@ async function handleSubmit() {
             </span>
           </label>
         </div>
+      </div>
+
+      <!-- ══════════ ВАРИАНТЫ (размер / цвет) ══════════ -->
+      <div v-if="variantsEnabled" class="card">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Варианты: размер, цвет</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+          Для одежды и обуви — оси выбора и таблица комбинаций, у каждой свой остаток, цена и SKU.
+          Если вариантов нет — оставьте пусто, товар продаётся как обычно.
+        </p>
+        <div v-if="!isEditing && variantOptions.length === 0" class="flex flex-wrap gap-2 mb-3">
+          <span class="text-sm text-gray-500 dark:text-gray-400 self-center">Быстрый старт:</span>
+          <button type="button" class="btn-ghost text-sm px-3 py-1.5" @click="quickStart('clothing')">👕 Одежда (размер + цвет)</button>
+          <button type="button" class="btn-ghost text-sm px-3 py-1.5" @click="quickStart('shoes')">👟 Обувь (размер)</button>
+        </div>
+        <ProductVariantsEditor v-model:options="variantOptions" v-model:variants="variants" />
       </div>
 
       <!-- ══════════ РАЗМЕРНАЯ СЕТКА ══════════ -->
