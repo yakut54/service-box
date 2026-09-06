@@ -252,6 +252,21 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 $sql$, p_schema_name);
                 EXECUTE format('CREATE UNIQUE INDEX ON %I.customers(phone)', p_schema_name);
 
+                -- stock_subscriptions: «сообщить о поступлении». Одна подписка
+                -- на (покупатель, товар, вариант); строка удаляется после
+                -- уведомления, notified_at — на всякий случай.
+                EXECUTE format($sql$
+                    CREATE TABLE %I.stock_subscriptions (
+                        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        product_id  UUID NOT NULL REFERENCES %I.products(id) ON DELETE CASCADE,
+                        variant_id  UUID REFERENCES %I.product_variants(id) ON DELETE CASCADE,
+                        customer_id UUID NOT NULL REFERENCES %I.customers(id) ON DELETE CASCADE,
+                        notified_at TIMESTAMPTZ,
+                        created_at  TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.stock_subscriptions(product_id, variant_id)', p_schema_name);
+
                 -- discounts
                 EXECUTE format($sql$
                     CREATE TABLE %I.discounts (

@@ -92,6 +92,11 @@ class Product extends Model
         return $this->options()->exists();
     }
 
+    public function stockSubscriptions()
+    {
+        return $this->hasMany(StockSubscription::class, 'product_id');
+    }
+
     /**
      * Доп. фото галереи (не включает обложку — см. image_url).
      */

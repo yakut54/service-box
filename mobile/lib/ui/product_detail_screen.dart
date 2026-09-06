@@ -10,6 +10,7 @@ import 'widgets/add_to_cart_control.dart';
 import 'widgets/cart_button.dart';
 import 'widgets/discount_badge.dart';
 import 'widgets/error_view.dart';
+import 'widgets/notify_back_in_stock_button.dart';
 import 'widgets/product_price_row.dart';
 import 'widgets/product_rating_ask_row.dart';
 import 'widgets/related_products.dart';
@@ -321,7 +322,10 @@ class _ProductDetailBodyState extends State<_ProductDetailBody> {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: AddToCartControl(product: product, variant: variant),
+            child: (!resolvedInStock &&
+                    !(product.hasVariants && variant == null))
+                ? NotifyBackInStockButton(product: product, variant: variant)
+                : AddToCartControl(product: product, variant: variant),
           ),
         ),
       ],

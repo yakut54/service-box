@@ -44,4 +44,17 @@ class ApiCatalogRepository implements CatalogRepository {
     if (data == null) throw AppException.notFound();
     return Product.fromJson(data);
   }
+
+  @override
+  Future<void> notifyWhenBackInStock(
+    String sessionToken,
+    String productId, {
+    String? variantId,
+  }) async {
+    await _client.post(
+      '/widget/products/$productId/notify-me',
+      {'variant_id': variantId},
+      headers: {'X-Phone-Session': sessionToken},
+    );
+  }
 }

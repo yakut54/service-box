@@ -76,7 +76,13 @@ class PhysicalStockService
         // Вариантная позиция — вернуть остаток именно варианту.
         if ($item->variant_id) {
             $variant = ProductVariant::find($item->variant_id);
-            $variant?->increment('stock_quantity', $item->quantity);
+            if ($variant) {
+                $was = $variant->stock_quantity;
+                $variant->increment('stock_quantity', $item->quantity);
+                if ($was <= 0 && $variant->stock_quantity > 0) {
+                    \App\Jobs\NotifyBackInStock::dispatchFor($product->id, $variant->id);
+                }
+            }
             return;
         }
 
@@ -88,7 +94,11 @@ class PhysicalStockService
         $saleMode = $physical->sale_mode ?? 'piece';
 
         if ($saleMode === 'piece') {
+            $wasPiece = $physical->stock_quantity;
             $physical->increment('stock_quantity', $item->quantity);
+            if ($wasPiece <= 0 && $physical->stock_quantity > 0 && !$product->options()->exists()) {
+                \App\Jobs\NotifyBackInStock::dispatchFor($product->id, null);
+            }
         } elseif ($saleMode === 'weight_fixed' && $item->weight_grams) {
             $physical->increment('stock_weight_grams', $item->weight_grams);
         } elseif ($saleMode === 'weight_variable' && $item->actual_weight_grams) {

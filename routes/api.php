@@ -159,6 +159,10 @@ Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
         Route::get('/profile/notification-prefs', [ProfileController::class, 'getNotificationPrefs']);
         Route::put('/profile/notification-prefs', [ProfileController::class, 'updateNotificationPrefs']);
 
+        // «Сообщить о поступлении»
+        Route::post('/products/{product}/notify-me', [\App\Http\Controllers\StockSubscriptionController::class, 'store'])
+            ->middleware('throttle:20,1');
+
         // Чат с магазином — только мобильное приложение (60-дневная сессия),
         // см. PLAN-CHAT.md §3.1. Throttle — именованные лимитеры по токену
         // сессии, не по IP (см. PLAN-CHAT.md §3.3 / AppServiceProvider).

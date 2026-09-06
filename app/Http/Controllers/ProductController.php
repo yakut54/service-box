@@ -175,6 +175,12 @@ class ProductController extends Controller
 
         $oldImageUrl = $product->image_url;
 
+        // Остатки ДО обновления — для «сообщить о поступлении» (0 → >0).
+        $oldStock = [
+            'simple'   => $product->physical()->value('stock_quantity') ?? 0,
+            'variants' => $product->variants()->pluck('stock_quantity', 'id')->all(),
+        ];
+
         $product->update($request->only([
             'type',
             'name',
@@ -195,12 +201,41 @@ class ProductController extends Controller
 
         $this->updateProductDetails($product, $request);
 
+        $this->notifyBackInStock($product, $oldStock);
+
         $product->refresh()->load('category:id,name,slug,age_restricted,no_return')->loadDetails();
 
         return response()->json([
             'message' => 'Товар обновлён',
             'data'    => $product,
         ]);
+    }
+
+    /**
+     * Остаток товара/варианта перешёл из 0 в положительный → уведомить
+     * подписчиков «сообщить о поступлении».
+     *
+     * @param array{simple:int, variants:array<string,int>} $oldStock
+     */
+    protected function notifyBackInStock(Product $product, array $oldStock): void
+    {
+        $hasVariants = $product->options()->exists();
+
+        if (!$hasVariants) {
+            $new = $product->physical()->value('stock_quantity') ?? 0;
+            if (($oldStock['simple'] ?? 0) <= 0 && $new > 0) {
+                \App\Jobs\NotifyBackInStock::dispatchFor($product->id, null);
+            }
+            return;
+        }
+
+        // sync сохраняет id совпавших по кортезу комбинаций — сравниваем по id.
+        foreach ($product->variants()->get(['id', 'stock_quantity']) as $v) {
+            $old = $oldStock['variants'][$v->id] ?? null;
+            if ($old !== null && $old <= 0 && $v->stock_quantity > 0) {
+                \App\Jobs\NotifyBackInStock::dispatchFor($product->id, $v->id);
+            }
+        }
     }
 
     /**

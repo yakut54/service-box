@@ -13,5 +13,13 @@ abstract class CatalogRepository {
   /// удалён/деактивирован между открытием каталога и переходом в карточку.
   Future<Product> fetchProduct(String id);
 
+  /// «Сообщить о поступлении» — подписка на товар или конкретный вариант.
+  /// Требует сессию по телефону (иначе AppException с кодом 401).
+  Future<void> notifyWhenBackInStock(
+    String sessionToken,
+    String productId, {
+    String? variantId,
+  });
+
   factory CatalogRepository.create() => ApiCatalogRepository();
 }
