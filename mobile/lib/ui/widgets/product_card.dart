@@ -1,6 +1,9 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../models/product.dart';
+import '../../services/age_gate.dart';
 import '../product_detail_screen.dart';
 import 'add_to_cart_control.dart';
 import 'discount_badge.dart';
@@ -13,6 +16,21 @@ class ProductCard extends StatelessWidget {
 
   const ProductCard({super.key, required this.product});
 
+  /// Открыть карточку товара, спросив возраст, если категория 18+ и байер
+  /// ещё не подтверждал.
+  Future<void> _open(BuildContext context) async {
+    if (product.categoryAgeRestricted && !AgeGate.confirmed.value) {
+      final ok = await AgeGate.ensure(context);
+      if (!ok) return;
+    }
+    if (!context.mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProductDetailScreen(productId: product.id),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -21,11 +39,7 @@ class ProductCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ProductDetailScreen(productId: product.id),
-          ),
-        ),
+        onTap: () => _open(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -44,6 +58,40 @@ class ProductCard extends StatelessWidget {
                           )
                         : _placeholderIcon(theme),
                   ),
+                  // 18+ категория: блюр фото + плашка, пока байер не подтвердил
+                  // возраст (research §5.4 — гейт до показа фото).
+                  if (product.categoryAgeRestricted)
+                    ValueListenableBuilder<bool>(
+                      valueListenable: AgeGate.confirmed,
+                      builder: (context, confirmed, _) {
+                        if (confirmed) return const SizedBox.shrink();
+                        return ClipRect(
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                            child: Container(
+                              alignment: Alignment.center,
+                              color: theme.colorScheme.surface.withValues(alpha: 0.35),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '18+',
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   if (!product.inStock)
                     Positioned(
                       top: 8,

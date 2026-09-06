@@ -144,6 +144,8 @@ export interface Category {
   description: string | null
   image_url: string | null
   is_visible: boolean
+  age_restricted: boolean
+  no_return: boolean
   sort_order: number
   products_count?: number
   children?: Category[]

@@ -44,7 +44,7 @@ class ProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Product::query()->with('category:id,name,slug');
+        $query = Product::query()->with('category:id,name,slug,age_restricted,no_return');
 
         if ($request->has('type')) {
             $query->ofType($request->type);
@@ -123,7 +123,7 @@ class ProductController extends Controller
 
         $this->storeProductDetails($product, $request);
 
-        $product->load('category:id,name,slug');
+        $product->load('category:id,name,slug,age_restricted,no_return');
         $product->loadDetails();
 
         return response()->json([
@@ -139,7 +139,7 @@ class ProductController extends Controller
      */
     public function show(Request $request, string $product): JsonResponse
     {
-        $product = Product::with(['category:id,name,slug', 'images:id,product_id,url,sort_order'])
+        $product = Product::with(['category:id,name,slug,age_restricted,no_return', 'images:id,product_id,url,sort_order'])
                           ->withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
                           ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)])
                           ->findOrFail($product);
@@ -192,7 +192,7 @@ class ProductController extends Controller
 
         $this->updateProductDetails($product, $request);
 
-        $product->refresh()->load('category:id,name,slug')->loadDetails();
+        $product->refresh()->load('category:id,name,slug,age_restricted,no_return')->loadDetails();
 
         return response()->json([
             'message' => 'Товар обновлён',

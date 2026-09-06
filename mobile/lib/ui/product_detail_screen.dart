@@ -4,6 +4,7 @@ import '../core/app_exception.dart';
 import '../core/format.dart';
 import '../data/catalog_repository.dart';
 import '../models/product.dart';
+import '../services/age_gate.dart';
 import 'widgets/add_to_cart_control.dart';
 import 'widgets/cart_button.dart';
 import 'widgets/discount_badge.dart';
@@ -31,6 +32,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void initState() {
     super.initState();
     _future = CatalogRepository.create().fetchProduct(widget.productId);
+    _maybeAgeGate();
+  }
+
+  /// Открыли карточку 18+ товара (напр. по deep-link) — спрашиваем возраст
+  /// поверх, отказ закрывает экран.
+  void _maybeAgeGate() {
+    _future
+        .then((product) async {
+          if (!mounted ||
+              !product.categoryAgeRestricted ||
+              AgeGate.confirmed.value) {
+            return;
+          }
+          final ok = await AgeGate.ensure(context);
+          if (!ok && mounted) Navigator.of(context).pop();
+        })
+        .catchError((_) {}); // ошибку загрузки покажет FutureBuilder
   }
 
   void _retry() {
@@ -162,6 +180,27 @@ class _ProductDetailBody extends StatelessWidget {
                       color: theme.colorScheme.onErrorContainer,
                     ),
                   ),
+                ),
+              ],
+              // Возврату не подлежит (гигиена, интимные товары) — рядом с
+              // ценой, не мелким текстом внизу (research §3, принцип 5).
+              if (product.categoryNoReturn) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.block_rounded,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Возврату не подлежит',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ],
               const SizedBox(height: 12),

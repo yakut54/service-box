@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
 import 'core/flavor_config.dart';
+import 'services/age_gate.dart';
 import 'services/push_router.dart';
 import 'data/auth_token_store.dart';
 import 'data/catalog_repository.dart';
@@ -37,6 +38,9 @@ void main() {
   // Дублируется в манифесте (android:screenOrientation) — тот ловит поворот
   // ещё до старта Flutter-движка (сплэш).
   SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+  // Подтягиваем сохранённое 18+ подтверждение заранее (fire-and-forget) —
+  // вернувшийся байер не увидит мигания блюра на карточках 18+ категорий.
+  AgeGate.load();
   runApp(const MyApp());
 }
 

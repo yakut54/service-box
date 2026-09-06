@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../models/category.dart';
 import '../models/saved_shop.dart';
+import '../services/age_gate.dart';
 import '../state/cart_state.dart';
 import '../state/catalog_state.dart';
 import 'widgets/account_button.dart';
@@ -196,6 +197,15 @@ class _CategoryChips extends StatelessWidget {
 
   const _CategoryChips({required this.categories});
 
+  /// 18+ категория — спрашиваем возраст до фильтрации по ней.
+  Future<void> _selectCategory(BuildContext context, Category category) async {
+    if (category.ageRestricted && !AgeGate.confirmed.value) {
+      if (!await AgeGate.ensure(context)) return;
+      if (!context.mounted) return;
+    }
+    context.read<CatalogState>().selectCategory(category.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<CatalogState>();
@@ -219,8 +229,7 @@ class _CategoryChips extends StatelessWidget {
               context,
               label: category.name,
               selected: state.selectedCategoryId == category.id,
-              onTap: () =>
-                  context.read<CatalogState>().selectCategory(category.id),
+              onTap: () => _selectCategory(context, category),
             ),
         ],
       ),

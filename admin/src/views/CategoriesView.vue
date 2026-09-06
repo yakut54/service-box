@@ -13,6 +13,7 @@ import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 import UiHint from '@/shared/ui/UiHint.vue'
+import UiToggle from '@/shared/ui/UiToggle.vue'
 
 const categoriesStore = useCategoriesStore()
 const toast = useToast()
@@ -64,6 +65,8 @@ const emptyForm = () => ({
   description: '',
   image_url:   '',
   is_visible:  true,
+  age_restricted: false,
+  no_return:   false,
   sort_order:  0,
 })
 
@@ -134,6 +137,8 @@ function openEdit(cat: Category) {
     description: cat.description ?? '',
     image_url:   cat.image_url ?? '',
     is_visible:  cat.is_visible,
+    age_restricted: cat.age_restricted ?? false,
+    no_return:   cat.no_return ?? false,
     sort_order:  cat.sort_order,
   }
   modalError.value = ''
@@ -152,6 +157,8 @@ async function save() {
       description: form.value.description.trim() || null,
       image_url:   form.value.image_url.trim() || null,
       is_visible:  form.value.is_visible,
+      age_restricted: form.value.age_restricted,
+      no_return:   form.value.no_return,
       sort_order:  form.value.sort_order,
     }
     if (modalMode.value === 'create') {
@@ -427,6 +434,22 @@ async function doDelete() {
           <button type="button" @click="form.is_visible = !form.is_visible" :class="['relative w-11 h-6 rounded-full transition-colors', form.is_visible ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600']">
             <span :class="['absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform', form.is_visible ? 'translate-x-5' : '']" />
           </button>
+        </div>
+
+        <div class="flex items-center justify-between py-2">
+          <span class="label mb-0 flex items-center gap-1">
+            Товары 18+
+            <UiHint>Приложение спросит возраст и заблюрит фото товаров этой категории до подтверждения.</UiHint>
+          </span>
+          <UiToggle v-model="form.age_restricted" />
+        </div>
+
+        <div class="flex items-center justify-between py-2">
+          <span class="label mb-0 flex items-center gap-1">
+            Возврату не подлежит
+            <UiHint>Бейдж рядом с ценой в карточке товара (гигиена, интимные товары и т.п.).</UiHint>
+          </span>
+          <UiToggle v-model="form.no_return" />
         </div>
       </div>
 

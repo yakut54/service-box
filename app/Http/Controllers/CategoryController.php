@@ -42,6 +42,8 @@ class CategoryController extends Controller
             'image_url'   => 'nullable|string',
             'is_visible'  => 'boolean',
             'sort_order'  => 'integer',
+            'age_restricted' => 'boolean',
+            'no_return'   => 'boolean',
         ]);
 
         // Ограничение: 1 уровень вложенности — parent_id должен быть top-level
@@ -74,6 +76,8 @@ class CategoryController extends Controller
             'image_url'   => 'nullable|string',
             'is_visible'  => 'boolean',
             'sort_order'  => 'integer',
+            'age_restricted' => 'boolean',
+            'no_return'   => 'boolean',
         ]);
 
         // Ограничение: 1 уровень вложенности
@@ -173,11 +177,12 @@ class CategoryController extends Controller
         $categories = Category::where('is_visible', true)
             ->whereNull('parent_id')
             ->with(['children' => function ($q) {
-                $q->where('is_visible', true)->orderBy('sort_order')->orderBy('name');
+                $q->where('is_visible', true)->orderBy('sort_order')->orderBy('name')
+                  ->select('id', 'name', 'slug', 'parent_id', 'sort_order', 'age_restricted', 'no_return');
             }])
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'parent_id', 'sort_order']);
+            ->get(['id', 'name', 'slug', 'parent_id', 'sort_order', 'age_restricted', 'no_return']);
 
         return response()->json(['data' => $categories]);
     }

@@ -52,6 +52,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         image_url   TEXT,
                         is_visible  BOOLEAN NOT NULL DEFAULT TRUE,
                         sort_order  INTEGER NOT NULL DEFAULT 0,
+                        -- 18+: приложение спрашивает возраст перед показом
+                        -- товаров и блюрит их фото до подтверждения.
+                        age_restricted BOOLEAN NOT NULL DEFAULT FALSE,
+                        -- Бейдж «возврату не подлежит» на карточке товара
+                        -- (гигиена, интимные товары и т.п.).
+                        no_return   BOOLEAN NOT NULL DEFAULT FALSE,
                         deleted_at  TIMESTAMPTZ,
                         created_at  TIMESTAMPTZ DEFAULT NOW(),
                         updated_at  TIMESTAMPTZ DEFAULT NOW()

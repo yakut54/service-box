@@ -20,10 +20,14 @@ class Category extends Model
         'image_url',
         'is_visible',
         'sort_order',
+        'age_restricted',
+        'no_return',
     ];
 
     protected $casts = [
         'is_visible'  => 'boolean',
+        'age_restricted' => 'boolean',
+        'no_return'   => 'boolean',
         'sort_order'  => 'integer',
         'created_at'  => 'datetime',
         'updated_at'  => 'datetime',

@@ -147,6 +147,13 @@ class Product {
 
   final String? imageUrl;
   final String? categoryId;
+
+  /// Флаги категории товара, продублированные на товар для карточки:
+  /// 18+ гейт и «возврату не подлежит» (см. Category). Берутся из вложенного
+  /// объекта category в ответе /widget/products(/{id}).
+  final bool categoryAgeRestricted;
+  final bool categoryNoReturn;
+
   final ProductPhysical? physical;
 
   /// Средний рейтинг и количество отзывов — считаются на бэкенде по
@@ -176,6 +183,8 @@ class Product {
     this.discountEndsAt,
     this.imageUrl,
     this.categoryId,
+    this.categoryAgeRestricted = false,
+    this.categoryNoReturn = false,
     this.physical,
     this.rating,
     this.reviewCount = 0,
@@ -261,6 +270,10 @@ class Product {
         : null,
     imageUrl: json['image_url'] as String?,
     categoryId: json['category_id'] as String?,
+    categoryAgeRestricted:
+        (json['category'] as Map<String, dynamic>?)?['age_restricted'] as bool? ?? false,
+    categoryNoReturn:
+        (json['category'] as Map<String, dynamic>?)?['no_return'] as bool? ?? false,
     physical: json['physical'] != null
         ? ProductPhysical.fromJson(json['physical'] as Map<String, dynamic>)
         : null,
