@@ -282,9 +282,19 @@ service-box/
   JSON `options`/`variants` виджет-эндпоинта сверена с парсером на сервере. Бэкенд-путь заказа
   варианта проверен в Фазе 4 (HTTP).
 
-### Фаза 7 — «Сообщить о поступлении» 🔜
-`stock_subscriptions` + джоба на переход остатка 0→>0 + `Notifier` tier 2 + мобилка
-`NotifyBackInStockButton` вместо `OutOfStockChip`.
+### Фаза 7 — «Сообщить о поступлении» ✅ (2026-09-07, `f19378d`)
+- **Сделано.** Тенантная `stock_subscriptions (product_id, variant_id?, customer_id, notified_at)`.
+  `POST /widget/products/{product}/notify-me` (сессия по телефону) → firstOrCreate подписку,
+  повторная подписка сбрасывает `notified_at`. Джоба `NotifyBackInStock`: остаток товара/
+  варианта 0→>0 → push tier 2 (поведенческий, уважает настройки байера и кап) «Товар снова в
+  наличии», затем удаляет одноразовую подписку. Триггеры: `ProductController::update` (шопер
+  пополняет склад — снимок старых остатков по id варианта, диспатч на каждый поднявшийся
+  уровень) и `PhysicalStockService::release` (отмена заказа вернула остаток). Мобилка:
+  `CatalogRepository.notifyWhenBackInStock`; `NotifyBackInStockButton` (нужна сессия, иначе
+  подсказка зайти в профиль) вместо мёртвого чипа «нет в наличии» на sticky-баре карточки.
+- **Проверено на сервере.** CC1–CC4: подписка создаётся, повтор не дублирует, склад 0→5
+  диспатчит джобу (sync) → уведомила + удалила подписку, обновление не-из-нуля не падает.
+  `flutter analyze` чисто, APK собирается.
 
 ### Фаза 8 — Редизайн grid-карточки + сквозная проверка флоу 🔜
 `product_card.dart` + `catalog_screen.dart` grid — по Baymard (рейтинг на карточке, «₽/шт»/«₽/кг»,

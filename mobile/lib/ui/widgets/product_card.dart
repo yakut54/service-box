@@ -9,6 +9,7 @@ import '../product_detail_screen.dart';
 import 'add_to_cart_control.dart';
 import 'discount_badge.dart';
 import 'product_price_row.dart';
+import 'star_rating.dart';
 
 /// Карточка товара в сетке каталога: фото, название, цена, бейдж наличия.
 /// Тап открывает карточку товара (ProductDetailScreen).
@@ -123,35 +124,69 @@ class ProductCard extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  if (product.hasVariants && product.variantPriceRangeKopecks != null)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      _rangeLabel(product.variantPriceRangeKopecks!),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
                       ),
-                    )
-                  else
-                    ProductPriceRow(product: product),
-                ],
+                    ),
+                    // Рейтинг рядом с ценой, не в подвале карточки (Baymard №7).
+                    if (product.reviewCount > 0) ...[
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          StarRating(value: product.rating ?? 0, size: 12),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              '${(product.rating ?? 0).toStringAsFixed(1)} · ${product.reviewCount}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const Spacer(),
+                    if (product.hasVariants &&
+                        product.variantPriceRangeKopecks != null)
+                      Text(
+                        _rangeLabel(product.variantPriceRangeKopecks!),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize:
+                              (theme.textTheme.titleSmall?.fontSize ?? 14) * 1.1,
+                        ),
+                      )
+                    else
+                      ProductPriceRow(product: product),
+                    // Цена за единицу — Baymard №3 (сравнимость выгодности).
+                    if (product.unitPriceKopecks != null)
+                      Text(
+                        '${formatRubles(product.unitPriceKopecks! / 100)}/${product.unitLabel}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(6, 14, 6, 10),
+              padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
               child: product.hasVariants
                   ? _ChooseButton(product: product, theme: theme)
                   : AddToCartControl(product: product, compact: true),
