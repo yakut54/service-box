@@ -222,17 +222,40 @@ service-box/
   `length/width/height_cm` вместо строки `dimensions`; габариты упаковки (крупногабарит) —
   вернуться, когда появится реальный продавец такой категории.
 
-### Фаза 3 — Размерные сетки 🔜
-`size_charts` (kind clothing/shoes/custom, columns/rows JSONB, на магазин) + `products.size_chart_id`.
-`SizeChartController` CRUD; `SizeChartPicker.vue` с фронт-пресетами RU/EU/US. Мобилка:
-`SizeChartSheet` + кнопка «Таблица размеров».
+### Фаза 3 — Размерные сетки ✅ (2026-09-07, `4fe63cc`)
+- **Сделано.** `size_charts` (kind, name, columns/rows JSONB, уровень магазина) +
+  `products.size_chart_id` (ON DELETE SET NULL). `SizeChartController` CRUD под
+  `/admin/size-charts` (collector 403, owner/admin ок), ширина строк нормализуется по числу
+  колонок, пустые строки убираются. `Product::sizeChart()` в `loadDetails()` → вложенный
+  `size_chart` в `/widget/products(/{id})`. Админка: `SizeChartPicker.vue` (выбор/создание из
+  пресета RU/EU/US/детская/обувь + правка таблицы инлайн, add/remove столбцов и строк),
+  пресеты в `shared/lib/sizeChartPresets.ts`, карточка «Размерная сетка» в форме (physical).
+  Мобилка: `SizeChartSheet` (bottom sheet, скроллируемая `DataTable`) + кнопка «Таблица
+  размеров» на карточке товара.
+- **Проверено на сервере.** CC1–CC4: нормализация ширины/пустых строк, вложенный `size_chart`
+  у товара, `ON DELETE SET NULL` при удалении сетки, валидация `columns` обязательны.
 
-### Фаза 4 — Варианты: бэкенд + модель 🔜
-`product_options` / `product_option_values` / `product_variants` (≤3 оси, строка на реальную
-комбинацию, свой SKU/цена/остаток/фото). `order_items` += `variant_id`, `variant_label`.
-`PhysicalStockService` variant-aware; `OrderController::store` + `Api/WriteController::storeOrder`
-принимают `variant_id` — заодно свести дублирование (техдолг #6). Отзывы остаются на `product_id`.
-Варианты только для `sale_mode = piece`.
+### Фаза 4 — Варианты: бэкенд + модель ✅ (2026-09-07, `07e1057`)
+- **Сделано.** Тенантные `product_options` / `product_option_values` / `product_variants`
+  (`option_values` — массив значений текстом, **без FK** к values, чтобы переименование
+  значения не рушило каскадом варианты). `order_items` += `variant_id` (FK ON DELETE SET NULL)
+  + `variant_label` (снимок). Модели + `Product::options()/variants()/hasVariants()`, свёрнуто
+  в `loadDetails()`. `ProductController::syncOptionsAndVariants` — опции replace-all, варианты
+  синхронизируются по кортежу `option_values` (совпавшие сохраняют id + остаток, пропавшие
+  удаляются, новые создаются → `order_items.variant_id` переживает пере-сохранение); только
+  physical + `sale_mode=piece`, иначе всё зачищается; декартова проверка отбрасывает варианты
+  с неопределёнными значениями. `OrderController::store` резолвит `items.*.variant_id` (lock,
+  принадлежность товару, `is_active`), цена = цена варианта ?? цена товара, пишет
+  `variant_id` + `variant_label`, 422 если у вариантного товара вариант не выбран.
+  `PhysicalStockService::reserve/release` — остаток на строке варианта.
+- **Проверено на сервере.** CC1–CC9: sync (2 опции/4 значения/3 варианта, XL/Синий вне
+  декартова набора отброшен, id стабилен при пере-сохранении, остаток сохраняется),
+  weight-режим зачищает варианты, отсутствие ключа не трогает; HTTP-заказ варианта →
+  `order_items.variant_label="Размер: M"`, цена варианта 1700₽ (не 1500₽ товара), остаток
+  2→1; заказ без варианта → 422; битый вариант → 422; `release` возвращает 1→2; каскад при
+  удалении товара.
+- **Осознанно отложено:** `Api/WriteController::storeOrder` (внешний API v1) варианты пока
+  не принимает; свод дублирования `OrderController`↔`WriteController` (техдолг #6) — отдельно.
 
 ### Фаза 5 — Варианты: админка 🔜
 `ProductOptionsEditor` + `ProductVariantsTable` + быстрый старт «Одежда»/«Обувь» (фронт-пресеты
