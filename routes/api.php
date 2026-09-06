@@ -86,6 +86,11 @@ Route::prefix('auth')->group(function () {
 // успеет отклонить запрос без X-Shop-ID. HandleCors этот префикс не трогает
 // (его нет в config/cors.php paths).
 Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
+    // Явный OPTIONS-роут: без него Laravel отвечает на preflight сам, в обход
+    // middleware, и ApiCors не успевает выставить Access-Control-*. Замыкание
+    // не выполняется — api.cors коротко замыкает OPTIONS раньше.
+    Route::options('/{any}', fn () => response('', 204))->where('any', '.*');
+
     // Shop info
     Route::get('/shop', [ShopController::class, 'getPublicInfo']);
 
