@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\StorageService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,16 +15,15 @@ class StorageCleanup extends Command
 
     public function handle(): int
     {
-        $disk    = Storage::disk('public');
-        $baseUrl = $disk->url('');
-        $files   = $disk->files('uploads');
+        $disk  = Storage::disk('public');
+        $files = $disk->files('uploads');
 
         if (empty($files)) {
             $this->info('uploads/ is empty — nothing to clean.');
             return self::SUCCESS;
         }
 
-        $usedPaths = $this->collectUsedPaths($baseUrl);
+        $usedPaths = $this->collectUsedPaths();
         $dry       = $this->option('dry-run');
         $deleted   = 0;
         $skipped   = 0;
@@ -54,7 +54,7 @@ class StorageCleanup extends Command
     }
 
     /** @return array<string, true> hash-set of relative storage paths referenced in DB */
-    private function collectUsedPaths(string $baseUrl): array
+    private function collectUsedPaths(): array
     {
         $urls = [];
 
@@ -104,23 +104,17 @@ class StorageCleanup extends Command
             }
         }
 
-        // Build a hash-set keyed by relative storage path for O(1) lookup
+        // Build a hash-set keyed by relative storage path for O(1) lookup.
+        // Сопоставление по пути (StorageService::relativeStoragePath), не по
+        // полному URL с доменом — иначе смена APP_URL = все картинки «осиротели».
         $paths = [];
         foreach ($urls as $url) {
-            $path = $this->urlToPath((string) $url, $baseUrl);
+            $path = StorageService::relativeStoragePath((string) $url);
             if ($path !== null) {
                 $paths[$path] = true;
             }
         }
 
         return $paths;
-    }
-
-    private function urlToPath(string $url, string $baseUrl): ?string
-    {
-        if (!str_starts_with($url, $baseUrl)) {
-            return null;
-        }
-        return ltrim(substr($url, strlen($baseUrl)), '/');
     }
 }
