@@ -11,7 +11,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Единственная реализация транспорта push. Позже рядом встанет
+        // RuStore Universal Push / HMS — тогда здесь появится выбор по платформе.
+        $this->app->bind(\App\Contracts\PushTransport::class, \App\Services\FirebaseService::class);
     }
 
     public function boot(): void

@@ -141,7 +141,7 @@ class OrderReweighService
         try { MailService::notifySurcharge($shop, $order); } catch (\Throwable $e) {
             Log::warning('notifySurcharge (email) failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
         }
-        try { FirebaseService::notifySurcharge($order); } catch (\Throwable $e) {
+        try { FirebaseService::notifySurcharge($order, $shop); } catch (\Throwable $e) {
             Log::warning('notifySurcharge (push) failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
         }
     }

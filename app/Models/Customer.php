@@ -23,7 +23,8 @@ class Customer extends Model
         'total_orders',
         'total_spent',
         'last_order_at',
-        'fcm_token',
+        // 'fcm_token' — DEPRECATED, токены переехали в customer_push_tokens
+        //               (см. pushTokens()). Колонка ещё в БД, дропнем отдельным шагом.
     ];
 
     protected $casts = [
@@ -51,6 +52,11 @@ class Customer extends Model
     public function chatThread()
     {
         return $this->hasOne(ChatThread::class);
+    }
+
+    public function pushTokens()
+    {
+        return $this->hasMany(CustomerPushToken::class);
     }
 
     public function getTotalSpentRublesAttribute(): float

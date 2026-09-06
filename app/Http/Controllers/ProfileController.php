@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerPushToken;
 use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -92,9 +93,9 @@ class ProfileController extends Controller
     /**
      * POST /api/widget/profile/fcm-token
      *
-     * Токен устройства для Firebase push (см. FirebaseService::notifySurcharge).
-     * Один токен на покупателя — упрощение v1, переустановка/новый телефон
-     * затирает предыдущий (см. PLAN.md).
+     * Токен устройства для push. Upsert в customer_push_tokens (у покупателя может
+     * быть несколько устройств). last_seen_at обновляется каждый раз — по нему
+     * крон push:prune-stale-tokens чистит заброшенные.
      */
     public function updateFcmToken(Request $request): JsonResponse
     {
@@ -102,9 +103,17 @@ class ProfileController extends Controller
 
         $data = $request->validate([
             'fcm_token' => 'required|string|max:255',
+            'platform'  => 'sometimes|in:android,ios',
         ]);
 
-        $customer->update(['fcm_token' => $data['fcm_token']]);
+        CustomerPushToken::updateOrCreate(
+            ['token' => $data['fcm_token']],
+            [
+                'customer_id'  => $customer->id,
+                'platform'     => $data['platform'] ?? 'android',
+                'last_seen_at' => now(),
+            ],
+        );
 
         return response()->json(['message' => 'ok']);
     }

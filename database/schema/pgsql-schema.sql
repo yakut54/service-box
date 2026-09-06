@@ -442,6 +442,20 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE INDEX ON %I.chat_messages(thread_id, created_at)', p_schema_name);
                 EXECUTE format('CREATE UNIQUE INDEX ON %I.chat_messages(thread_id, client_message_id) WHERE client_message_id IS NOT NULL', p_schema_name);
 
+                -- customer_push_tokens (заменяет одно поле customers.fcm_token — у покупателя может быть несколько устройств)
+                EXECUTE format($sql$
+                    CREATE TABLE %I.customer_push_tokens (
+                        id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        customer_id  UUID NOT NULL REFERENCES %I.customers(id) ON DELETE CASCADE,
+                        token        TEXT NOT NULL,
+                        platform     TEXT NOT NULL DEFAULT 'android',
+                        last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        created_at   TIMESTAMPTZ DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE UNIQUE INDEX ON %I.customer_push_tokens(token)', p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.customer_push_tokens(customer_id)', p_schema_name);
+
             END;
             $_$;
 
@@ -573,6 +587,22 @@ CREATE TABLE IF NOT EXISTS public.mail_failures (
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT mail_failures_entity_type_check CHECK (((entity_type)::text = ANY ((ARRAY['order'::character varying, 'booking'::character varying])::text[]))),
     CONSTRAINT mail_failures_recipient_type_check CHECK (((recipient_type)::text = ANY ((ARRAY['shop_owner'::character varying, 'buyer'::character varying])::text[])))
+);
+
+
+--
+-- Name: push_failures; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE IF NOT EXISTS public.push_failures (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    shop_id uuid NOT NULL,
+    customer_id uuid,
+    entity_type character varying(255) NOT NULL,
+    entity_id uuid,
+    token_invalidated boolean DEFAULT false NOT NULL,
+    error_message text,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -885,6 +915,14 @@ ALTER TABLE ONLY public.mail_failures
 
 
 --
+-- Name: push_failures push_failures_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.push_failures
+    ADD CONSTRAINT push_failures_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1024,6 +1062,13 @@ CREATE INDEX jobs_queue_index ON public.jobs USING btree (queue);
 --
 
 CREATE INDEX mail_failures_shop_id_created_at_index ON public.mail_failures USING btree (shop_id, created_at);
+
+
+--
+-- Name: push_failures_shop_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX push_failures_shop_id_created_at_index ON public.push_failures USING btree (shop_id, created_at);
 
 
 --
