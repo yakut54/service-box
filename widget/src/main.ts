@@ -5,6 +5,32 @@ import { useShopStore, type WidgetMode } from './stores/shop'
 import widgetCss from './styles/widget.css?inline'
 import fabCss from './styles/fab.css?inline'
 
+// Захватываем СИНХРОННО при выполнении widget.js: document.currentScript
+// не-null только во время начального выполнения скрипта и становится null
+// внутри отложенного DOMContentLoaded-обработчика (из-за этого раньше
+// <script src="widget.js" data-shop-id="…"> в <head> не автоинициализировался).
+const CURRENT_SCRIPT = (typeof document !== 'undefined'
+  ? (document.currentScript as HTMLScriptElement | null)
+  : null)
+
+// База API, по приоритету:
+//  1) явный apiUrl / data-api-url — ручной оверрайд;
+//  2) origin самого widget.js — виджет всегда грузится с платформы, поэтому
+//     доменно-независимо: смена домена НЕ требует пересборки widget.js;
+//  3) VITE_API_URL — сборки без тега (npm run dev, ES-модуль);
+//  4) localhost — dev-фолбэк.
+function resolveApiUrl(explicit?: string): string {
+  if (explicit) return explicit
+  if (CURRENT_SCRIPT?.src) {
+    try {
+      return new URL(CURRENT_SCRIPT.src, window.location.href).origin + '/api'
+    } catch {
+      // невалидный src — падаем на следующий вариант
+    }
+  }
+  return (import.meta.env.VITE_API_URL as string) || 'http://localhost:8080/api'
+}
+
 interface WidgetOptions {
   shopId: string
   apiUrl?: string
@@ -31,10 +57,8 @@ function init(options: WidgetOptions | string): WidgetInstance {
     throw new Error('[ServiceBox] shopId is required')
   }
 
-  // Resolve API URL
-  const apiUrl = opts.apiUrl
-    || import.meta.env.VITE_API_URL
-    || 'http://localhost:8080/api'
+  // Resolve API URL — см. resolveApiUrl (origin widget.js → домен-независимо)
+  const apiUrl = resolveApiUrl(opts.apiUrl)
 
   // Find or create container
   let container: HTMLElement
@@ -248,7 +272,9 @@ function autoInit() {
   }
 
   // 1. Script tag: <script src="widget.js" data-shop-id="xxx">
-  const script = document.currentScript as HTMLScriptElement | null
+  // CURRENT_SCRIPT захвачен на старте модуля — document.currentScript здесь
+  // уже null, если autoInit отложился до DOMContentLoaded.
+  const script = CURRENT_SCRIPT
   if (script?.getAttribute('data-shop-id')) {
     init(fromEl(script))
     return

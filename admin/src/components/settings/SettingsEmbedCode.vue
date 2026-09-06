@@ -32,7 +32,8 @@ const embedProductOptions = computed(() => [
 
 const generatedEmbedCode = computed(() => {
   const apiKey = authStore.shop?.api_key || 'YOUR_API_KEY'
-  const src = 'https://cdn.servicebox.ru/widget.js'
+  // Виджет отдаётся с того же домена, что и админка (nginx: /widget.js).
+  const src = `${window.location.origin}/widget.js`
   const extras: string[] = []
   if (embedServiceId.value.trim())    extras.push(`data-service-id="${embedServiceId.value.trim()}"`)
   const extrasStr = extras.length ? ' ' + extras.join(' ') : ''
