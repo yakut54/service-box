@@ -163,9 +163,9 @@ class MailService
         ];
     }
 
-    /** Деньги в проекте — копейки. Письма показывают целые рубли (см. widget/src/lib/utils.ts formatPrice). */
+    /** Деньги в проекте — копейки. Форматирование — единая точка App\Support\Money. */
     private static function rubles(int $kopecks): string
     {
-        return number_format(round($kopecks / 100), 0, '.', ' ');
+        return \App\Support\Money::rubles($kopecks);
     }
 }

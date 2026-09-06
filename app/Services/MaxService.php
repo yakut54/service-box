@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Shop;
+use App\Support\Money;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -123,7 +124,7 @@ class MaxService
     {
         if (!$shop->max_bot_connected) return;
 
-        $total = number_format($order->total_price, 0, '.', ' ');
+        $total = Money::rubles($order->total_price);
 
         $deliveryLabels = [
             'pickup'  => 'Самовывоз',
@@ -143,7 +144,7 @@ class MaxService
             $icon  = $method === 'pickup' ? '🏪' : '📦';
             $deliveryLine = "\n{$icon} {$label}";
             if ($order->delivery_price > 0) {
-                $deliveryLine .= ' — ' . number_format($order->delivery_price, 0, '.', ' ') . ' ₽';
+                $deliveryLine .= ' — ' . Money::rubles($order->delivery_price) . ' ₽';
             }
             $text .= $deliveryLine;
         }
@@ -190,7 +191,7 @@ class MaxService
         $service = $booking->service?->name ?? '—';
         $master  = $booking->master?->name;
         $price   = $booking->service?->price
-            ? '💰 ' . number_format($booking->service->price, 0, '.', ' ') . " ₽\n"
+            ? '💰 ' . Money::rubles($booking->service->price) . " ₽\n"
             : '';
 
         $text  = "📅 <b>Новая запись!</b>\n\n";
@@ -264,7 +265,7 @@ class MaxService
      */
     public static function notifyOwnerSurchargeExpired(Shop $shop, $order): void
     {
-        $amount = number_format(($order->surcharge_amount ?? 0) / 100, 0, '.', ' ');
+        $amount = Money::rubles($order->surcharge_amount);
         $name   = $order->customer_name ?? $order->customer_phone;
 
         $text = "⚠️ <b>Не оплачена доплата за заказ №" . substr($order->id, 0, 8) . "</b>\n\n"
@@ -468,7 +469,7 @@ class MaxService
 
         $tz       = $shop->timezone ?? 'Europe/Moscow';
         $deadline = \Carbon\Carbon::parse($order->surcharge_deadline_at)->setTimezone($tz)->locale('ru');
-        $amount   = number_format($order->surcharge_amount / 100, 0, ',', ' ');
+        $amount   = Money::rubles($order->surcharge_amount);
 
         $text  = "⚠️ <b>Требуется доплата за заказ</b>\n\n";
         $text .= "Фактический вес товара оказался больше заявленного при оформлении.\n";

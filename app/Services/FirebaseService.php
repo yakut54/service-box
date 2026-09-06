@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Support\Money;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Factory;
@@ -53,7 +54,7 @@ class FirebaseService
             return;
         }
 
-        $amount = number_format(($order->surcharge_amount ?? 0) / 100, 0, ',', ' ');
+        $amount = Money::rubles($order->surcharge_amount);
 
         $message = CloudMessage::withTargetToken($token)
             ->withNotification(Notification::create(

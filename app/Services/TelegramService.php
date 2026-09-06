@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\SendTelegramMessage as SendTelegramMessageJob;
 use App\Models\Shop;
 use App\Models\TelegramMessage;
+use App\Support\Money;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -59,7 +60,7 @@ class TelegramService
      */
     public static function notifyNewOrder(Shop $shop, $order): void
     {
-        $total = number_format($order->total_price, 0, '.', ' ');
+        $total = Money::rubles($order->total_price);
 
         $text  = "🛒 <b>Новый заказ!</b>\n\n";
         $text .= "🔖 №" . substr($order->id, 0, 8) . "\n";
@@ -79,7 +80,7 @@ class TelegramService
             $icon  = $method === 'pickup' ? '🏪' : '📦';
             $deliveryLine = "{$icon} {$label}";
             if ($order->delivery_price > 0) {
-                $deliveryLine .= ' — ' . number_format($order->delivery_price, 0, '.', ' ') . ' ₽';
+                $deliveryLine .= ' — ' . Money::rubles($order->delivery_price) . ' ₽';
             }
             $text .= "\n{$deliveryLine}\n";
         }
@@ -132,7 +133,7 @@ class TelegramService
         $master  = $booking->master?->name;
 
         $price = $booking->service?->price
-            ? '💰 ' . number_format($booking->service->price, 0, '.', ' ') . " ₽\n"
+            ? '💰 ' . Money::rubles($booking->service->price) . " ₽\n"
             : '';
 
         $text  = "📅 <b>Новая запись!</b>\n\n";
@@ -189,7 +190,7 @@ class TelegramService
 
         $tz       = $shop->timezone ?? 'Europe/Moscow';
         $deadline = \Carbon\Carbon::parse($order->surcharge_deadline_at)->setTimezone($tz);
-        $amount   = number_format($order->surcharge_amount / 100, 0, ',', ' ');
+        $amount   = Money::rubles($order->surcharge_amount);
 
         $text  = "⚠️ <b>Требуется доплата за заказ</b>\n\n";
         $text .= "Фактический вес товара оказался больше заявленного при оформлении.\n";
@@ -218,7 +219,7 @@ class TelegramService
      */
     public static function notifyOwnerSurchargeExpired(Shop $shop, $order): void
     {
-        $amount = number_format(($order->surcharge_amount ?? 0) / 100, 0, '.', ' ');
+        $amount = Money::rubles($order->surcharge_amount);
         $name   = $order->customer_name ?? $order->customer_phone;
 
         $text = "⚠️ <b>Не оплачена доплата за заказ №" . substr($order->id, 0, 8) . "</b>\n\n"
