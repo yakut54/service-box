@@ -77,7 +77,7 @@ class FirebaseService implements PushTransport
             $data['channel_id'] = $message->channelId;
         }
 
-        $cloud = CloudMessage::withTargetToken($token)
+        $cloud = CloudMessage::withTarget('token', $token)
             ->withNotification(Notification::create($message->title, $message->body))
             ->withData($data)
             ->withAndroidConfig(AndroidConfig::fromArray($android));
