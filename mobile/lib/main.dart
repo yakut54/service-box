@@ -32,6 +32,10 @@ void main() {
   // синхронно с началом анимации, а не когда захочет ОС.
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  // Только портрет — приложение под одну руку, альбомная вёрстки не имеет.
+  // Дублируется в манифесте (android:screenOrientation) — тот ловит поворот
+  // ещё до старта Flutter-движка (сплэш).
+  SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
   runApp(const MyApp());
 }
 
