@@ -11,6 +11,8 @@ use App\Support\PushMessage;
 use App\Support\PushSendResult;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Exception\Messaging\AuthenticationError as FcmAuthError;
+use Kreait\Firebase\Exception\Messaging\InvalidArgument as FcmInvalidArgument;
 use Kreait\Firebase\Exception\Messaging\NotFound as FcmTokenNotFound;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\AndroidConfig;
@@ -86,7 +88,18 @@ class FirebaseService implements PushTransport
             $messaging->send($cloud);
             return PushSendResult::Ok;
         } catch (FcmTokenNotFound) {
-            return PushSendResult::InvalidToken;
+            return PushSendResult::InvalidToken; // 404 UNREGISTERED
+        } catch (FcmInvalidArgument $e) {
+            // 400 от FCM. Как правило — про токен («not a valid FCM registration
+            // token»). Если про полезную нагрузку — это наш баг, токен не трогаем.
+            if (stripos($e->getMessage(), 'token') !== false) {
+                return PushSendResult::InvalidToken;
+            }
+            Log::error('Firebase send: bad message payload', ['error' => $e->getMessage()]);
+            return PushSendResult::TransientError;
+        } catch (FcmAuthError $e) {
+            Log::error('Firebase auth error — проверь FIREBASE_CREDENTIALS_PATH', ['error' => $e->getMessage()]);
+            return PushSendResult::TransientError;
         } catch (\Throwable $e) {
             Log::warning('Firebase send failed', ['error' => $e->getMessage()]);
             return PushSendResult::TransientError;
