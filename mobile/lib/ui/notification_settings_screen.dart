@@ -144,13 +144,21 @@ class _NotificationSettingsScreenState
             ),
           ),
         const SizedBox(height: 8),
-        const SwitchListTile(
-          value: true,
-          onChanged: null,
+        // Транзакционные не отключаются — показываем как справку, без тумблера:
+        // «мёртвый» серый переключатель читался бы как «сломалось». Замочек
+        // справа сообщает, что строка не кликабельна намеренно.
+        ListTile(
           contentPadding: EdgeInsets.zero,
-          secondary: Icon(Icons.receipt_long_outlined),
-          title: Text('О заказах и сообщениях'),
-          subtitle: Text('Статус заказа, доплата, ответы магазина. Всегда включено.'),
+          leading: const Icon(Icons.receipt_long_outlined),
+          title: const Text('О заказах и сообщениях'),
+          subtitle: const Text(
+            'Статус заказа, доплата, ответы магазина — приходят всегда.',
+          ),
+          trailing: Icon(
+            Icons.lock_outline_rounded,
+            size: 18,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const Divider(height: 8),
         SwitchListTile(
