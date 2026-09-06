@@ -257,14 +257,30 @@ service-box/
 - **Осознанно отложено:** `Api/WriteController::storeOrder` (внешний API v1) варианты пока
   не принимает; свод дублирования `OrderController`↔`WriteController` (техдолг #6) — отдельно.
 
-### Фаза 5 — Варианты: админка 🔜
-`ProductOptionsEditor` + `ProductVariantsTable` + быстрый старт «Одежда»/«Обувь» (фронт-пресеты
-опций и сетки, нового `products.type` нет). Разбор `ProductEditView.vue` на секции.
+### Фаза 5 — Варианты: админка ✅ (2026-09-07, `a825bed`)
+- **Сделано.** `ProductVariantsEditor.vue` — до 3 осей (тег-ввод значений) + матрица =
+  декартово произведение; строка «продаётся» решает попадание комбинации в `variants[]`
+  (снятая → бэкенд-sync её удалит), SKU/цена (пусто = как товар)/остаток/фото/активность,
+  массовое заполнение цены и остатка. `flush:'sync'` seed чтобы строки существовали до
+  отрисовки; emit защищён от петли emit→props→reseed. `ProductEditView`: карточка «Варианты»
+  (physical + `sale_mode=piece`), быстрый старт «Одежда»/«Обувь» префилит оси у новых товаров;
+  грузит `p.options`/`p.variants`, шлёт `options` как `{name, values:[str]}` + `variants[]`.
+  Типы `ProductOption(Value)`/`ProductVariant`. `vite build` проходит.
 
-### Фаза 6 — Варианты: мобилка 🔜
-`VariantSelector` (чипы-кнопки на опцию, OOS зачёркнут); `CartState`/`CartItem`/`AddToCartControl`
-— ключ `productId:variantId`; свап фото/цены на карточке; подписи корзины; payload чекаута +=
-`variant_id`; показ в заказе. Полный флоу покупки одежды/обуви.
+### Фаза 6 — Варианты: мобилка ✅ (2026-09-07, `68629d1`)
+- **Сделано.** Модели `ProductOption`/`ProductVariant`; `Product.hasVariants` / `resolveVariant`
+  / `isOptionValueAvailable` / `variantPriceRangeKopecks`. `VariantSelector` — ряд чипов-кнопок
+  на ось (Baymard №1), недоступные значения зачёркнуты. На карточке товара над sticky-CTA;
+  цена = цена выбранного варианта или «от N ₽» до выбора; галерея свапается на фото варианта;
+  кнопка «Таблица размеров» рядом. `CartState`/`CartItem` — ключ `productId:variantId`;
+  `add`/`setQuantity`/`quantityOf` принимают вариант; `remove(key)`. `AddToCartControl`
+  variant-aware — «Выберите вариант» (disabled) до выбора, дальше остаток/цена от варианта.
+  Строка корзины показывает комбинацию + цену за ед. варианта; payload чекаута += `variant_id`;
+  экран заказа и `OrderItem` показывают `variant_label`. Grid-карточка: у вариантных товаров
+  «от N ₽» + кнопка «Выбрать» (открывает карточку) вместо быстрого «в корзину».
+- **Проверено.** `flutter analyze` — чисто; debug-APK флейвора `barbariska` собирается; форма
+  JSON `options`/`variants` виджет-эндпоинта сверена с парсером на сервере. Бэкенд-путь заказа
+  варианта проверен в Фазе 4 (HTTP).
 
 ### Фаза 7 — «Сообщить о поступлении» 🔜
 `stock_subscriptions` + джоба на переход остатка 0→>0 + `Notifier` tier 2 + мобилка
