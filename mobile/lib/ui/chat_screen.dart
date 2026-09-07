@@ -66,7 +66,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _loadingOlder = false;
   bool _hasMoreOlder = true;
   bool _isBlockedByShop = false;
-  bool _initialScrollSettled = false;
   final Map<String, GlobalKey> _messageKeys = {};
   String? _jumpingToMessageId;
   String? _highlightedMessageId;
@@ -241,7 +240,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       _startPolling();
       if (_threadId != null) _connectRealtime(_threadId!);
-      _scrollToBottom(force: true);
+      _scrollToBottom();
     } on AppException catch (e) {
       setState(() => _error = e);
     } catch (_) {
@@ -287,82 +286,55 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (mounted) context.read<ChatState>().clearUnread();
       }
       if (newOnes.isNotEmpty && (wasAtBottom || newOnes.any((m) => m.isMine))) {
-        // force для своих сообщений — тот же список уже вырос ДО этого
-        // вызова (см. setState выше), сравнивать текущий pixels со свежим
-        // maxScrollExtent бессмысленно для бабла выше ~80px, см. комментарий
-        // в _jumpToBottomIfAtBottom.
-        _scrollToBottom(force: newOnes.any((m) => m.isMine));
+        _scrollToBottom(animated: true);
       }
     } catch (_) {
       // фоновый опрос — молча пропускаем
     }
   }
 
+  // Лента строится с reverse:true, поэтому смещение 0 — это низ ленты
+  // (последнее сообщение). Настоящий фиксированный якорь, а не оценка
+  // maxScrollExtent ленивого ListView, из-за которой чат раньше открывался
+  // «где-то в середине», и три страховочных таймера ничего не спасали.
   bool get _isAtBottom {
     if (!_scrollController.hasClients) return true;
-    return _scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 80;
+    return _scrollController.position.pixels <= 80;
   }
 
-  void _scrollToBottom({bool force = false}) {
-    // force — список уже вырос (сообщение дописано в _messages) ДО этого
-    // вызова, поэтому текущий pixels сравнивать с новым maxScrollExtent
-    // бессмысленно: _isAtBottom всегда провалится для бабла выше ~80px,
-    // и мы молча не долистаем до своего же свежего сообщения (баг найден
-    // 2026-08-25 живым тестом). force пропускает эту проверку для первого
-    // прыжка — мы и так точно знаем, что должны оказаться внизу.
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _jumpToBottomIfAtBottom(force: force),
-    );
-    // Фото в истории декодируются асинхронно и увеличивают высоту списка
-    // уже ПОСЛЕ первого прыжка вниз — без повторных попыток байер остаётся
-    // чуть выше настоящего конца чата, пока не долистает руками. Повторяем
-    // прыжок несколько раз с нарастающей паузой, но только если байер за
-    // это время сам никуда не проскроллил.
-    for (final delay in const [
-      Duration(milliseconds: 150),
-      Duration(milliseconds: 400),
-      Duration(milliseconds: 900),
-    ]) {
-      Future.delayed(delay, _jumpToBottomIfAtBottom);
-    }
-  }
-
-  void _jumpToBottomIfAtBottom({bool force = false}) {
-    if (!mounted || !_scrollController.hasClients) return;
-    if (!force && !_isAtBottom) return;
-    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-    // Разрешаем автоподгрузку старой истории по скроллу только после того,
-    // как мы хотя бы раз осознанно долистали до низа. Иначе ScrollController
-    // успевает уведомить _onScroll о pixels=0 ещё на самом первом кадре,
-    // ДО этого прыжка — тот читает это как "долистали до самого верха" и
-    // сразу тянет ещё страницу истории, чей anchor-jump уносит байера в
-    // середину объединённого списка вместо низа (баг найден 2026-08-25
-    // живым тестом — ровно то самое "открываю чат и я где-то в центре").
-    _initialScrollSettled = true;
+  void _scrollToBottom({bool animated = false}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      if (animated) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      } else {
+        _scrollController.jumpTo(0);
+      }
+    });
   }
 
   void _onScroll() {
-    if (!_initialScrollSettled) return;
     if (!_scrollController.hasClients || _loadingOlder || !_hasMoreOlder) {
       return;
     }
-    if (_scrollController.position.pixels <= 60) {
+    final pos = _scrollController.position;
+    // Верх reverse-ленты — это maxScrollExtent. Пока сообщений меньше экрана,
+    // maxScrollExtent == 0 — это ещё не «долистали до истории».
+    if (pos.maxScrollExtent <= 0) return;
+    if (pos.pixels >= pos.maxScrollExtent - 300) {
       _loadOlder();
     }
   }
 
   Future<void> _loadOlder() async {
-    final prevExtent = _scrollController.hasClients
-        ? _scrollController.position.maxScrollExtent
-        : 0.0;
-    final fetched = await _fetchOlderBatch();
-    if (!fetched) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      final newExtent = _scrollController.position.maxScrollExtent;
-      _scrollController.jumpTo(newExtent - prevExtent);
-    });
+    // В reverse-ленте более старые сообщения встают в конец списка (визуально
+    // — вверх). Смещение отсчитывается от низа и от этого не меняется, поэтому
+    // байер остаётся ровно на том же месте — anchor-jump больше не нужен.
+    await _fetchOlderBatch();
   }
 
   /// Подгружает одну страницу более старых сообщений и добавляет их в
@@ -423,8 +395,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         // появится только после того, как элемент реально попадёт в кадр.
         // Грубо прыгаем в его окрестность по индексу в списке, чтобы
         // попасть в зону построения, и на следующем кадре пробуем снова.
+        // Лента reverse: смещение 0 — последнее сообщение, поэтому индекс
+        // считаем от конца списка.
+        final reverseIndex = _messages.length - 1 - index;
         final approx =
-            (index / _messages.length) *
+            (reverseIndex / _messages.length) *
             _scrollController.position.maxScrollExtent;
         _scrollController.jumpTo(
           approx.clamp(0, _scrollController.position.maxScrollExtent),
@@ -558,7 +533,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (_threadId != null && !_realtime.isConnected) {
         _connectRealtime(_threadId!);
       }
-      _scrollToBottom(force: true);
+      _scrollToBottom(animated: true);
     } catch (e) {
       if (mounted) {
         _showError(
@@ -747,13 +722,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 )
               : ListView.builder(
                   controller: _scrollController,
+                  // reverse: низ ленты (последнее сообщение) — это смещение 0,
+                  // фиксированная точка. Открытие всегда на последнем
+                  // сообщении без прыжков; подгрузка старых сверху не двигает
+                  // позицию. Индекс 0 — самое новое сообщение, спиннер
+                  // «загрузка старых» уезжает в конец (визуально — наверх).
+                  reverse: true,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
                   itemCount: _messages.length + (_loadingOlder ? 1 : 0),
                   itemBuilder: (context, index) {
-                    if (_loadingOlder && index == 0) {
+                    if (_loadingOlder && index == _messages.length) {
                       return const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: Center(
@@ -765,7 +746,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         ),
                       );
                     }
-                    final message = _messages[index - (_loadingOlder ? 1 : 0)];
+                    final message = _messages[_messages.length - 1 - index];
                     final key = _messageKeys.putIfAbsent(
                       message.id,
                       () => GlobalKey(),
