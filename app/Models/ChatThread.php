@@ -19,6 +19,7 @@ class ChatThread extends Model
         'unread_by_customer',
         'shop_last_read_at',
         'customer_last_read_at',
+        'customer_last_seen_at',
         'is_blocked_by_shop',
     ];
 
@@ -29,6 +30,7 @@ class ChatThread extends Model
         'last_message_at'       => 'datetime',
         'shop_last_read_at'     => 'datetime',
         'customer_last_read_at' => 'datetime',
+        'customer_last_seen_at' => 'datetime',
         'created_at'            => 'datetime',
         'updated_at'            => 'datetime',
     ];

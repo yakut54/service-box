@@ -387,6 +387,9 @@ export interface ChatThread {
   unread_by_customer: number
   shop_last_read_at: string | null
   customer_last_read_at: string | null
+  // Когда покупатель последний раз был в чате (открыл / опросил / печатал).
+  // По этой метке админка показывает «в сети» / «был(а) N назад».
+  customer_last_seen_at: string | null
   is_blocked_by_shop: boolean
   created_at: string
   customer?: Pick<Customer, 'id' | 'name' | 'phone'> & {

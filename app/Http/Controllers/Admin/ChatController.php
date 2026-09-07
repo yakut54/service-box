@@ -87,9 +87,10 @@ class ChatController extends Controller
         return response()->json([
             'data'   => $messages,
             'thread' => [
-                'id'                 => $thread->id,
-                'is_blocked_by_shop' => $thread->is_blocked_by_shop,
-                'customer'           => $thread->customer,
+                'id'                    => $thread->id,
+                'is_blocked_by_shop'    => $thread->is_blocked_by_shop,
+                'customer_last_seen_at' => $thread->customer_last_seen_at,
+                'customer'              => $thread->customer,
             ],
         ]);
     }

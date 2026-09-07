@@ -744,7 +744,7 @@ class ApiClient {
 
   async getChatMessages(threadId: string, params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<{ data: ChatMessage[]; thread: { id: string; is_blocked_by_shop: boolean; customer: ChatThread['customer'] } }>(
+    return this.request<{ data: ChatMessage[]; thread: { id: string; is_blocked_by_shop: boolean; customer_last_seen_at: string | null; customer: ChatThread['customer'] } }>(
       `/admin/chat/threads/${threadId}/messages${query}`
     )
   }

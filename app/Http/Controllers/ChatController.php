@@ -36,6 +36,7 @@ class ChatController extends Controller
 
         $customer = $this->customer($request);
         $thread   = $customer->chatThread;
+        $this->touchSeen($thread);
 
         if (!$thread) {
             return response()->json(['data' => [], 'thread' => null]);
@@ -161,6 +162,7 @@ class ChatController extends Controller
     {
         $customer = $this->customer($request);
         $thread   = $customer->chatThread;
+        $this->touchSeen($thread);
 
         if (!$thread) {
             return response()->json(['message' => 'Диалог не найден'], 404);
@@ -202,6 +204,7 @@ class ChatController extends Controller
     {
         $customer = $this->customer($request);
         $thread   = $customer->chatThread;
+        $this->touchSeen($thread);
 
         if (!$thread) {
             return response()->json(['message' => 'Диалог не найден'], 404);
@@ -240,6 +243,7 @@ class ChatController extends Controller
 
         $customer = $this->customer($request);
         $thread   = $customer->chatThread;
+        $this->touchSeen($thread);
         if (!$thread) {
             return response()->json(['message' => 'Диалог не найден'], 404);
         }
@@ -285,6 +289,7 @@ class ChatController extends Controller
 
         $customer = $this->customer($request);
         $thread   = $customer->chatThread;
+        $this->touchSeen($thread);
 
         if (!$thread) {
             return response()->json(['has_new' => false, 'unread_total' => 0, 'shop_read_up_to' => null]);
@@ -404,6 +409,23 @@ class ChatController extends Controller
     private function customer(Request $request): Customer
     {
         return $request->attributes->get('customer');
+    }
+
+    /**
+     * Отметить, что покупатель сейчас в чате — для индикатора «в сети» в
+     * админке (chat_threads.customer_last_seen_at). Пишем не чаще раза в 20с,
+     * чтобы poll (каждые несколько секунд) не долбил UPDATE.
+     */
+    private function touchSeen(?ChatThread $thread): void
+    {
+        if (!$thread) {
+            return;
+        }
+        if ($thread->customer_last_seen_at
+            && $thread->customer_last_seen_at->diffInSeconds(now()) < 20) {
+            return;
+        }
+        $thread->forceFill(['customer_last_seen_at' => now()])->saveQuietly();
     }
 
     /**

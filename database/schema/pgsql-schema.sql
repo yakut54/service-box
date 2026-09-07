@@ -522,6 +522,10 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         unread_by_customer    INTEGER NOT NULL DEFAULT 0,
                         shop_last_read_at     TIMESTAMPTZ,
                         customer_last_read_at TIMESTAMPTZ,
+                        -- Когда покупатель последний раз был активен в своём
+                        -- чате (открыл, опросил, печатал) — админка по этому
+                        -- полю показывает «в сети» / «был(а) N назад».
+                        customer_last_seen_at TIMESTAMPTZ,
                         is_blocked_by_shop    BOOLEAN NOT NULL DEFAULT FALSE,
                         created_at            TIMESTAMPTZ DEFAULT NOW(),
                         updated_at            TIMESTAMPTZ DEFAULT NOW()

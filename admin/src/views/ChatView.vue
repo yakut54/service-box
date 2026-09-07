@@ -100,9 +100,43 @@ const customerIsTyping = ref(false)
 const customerLastActiveAt = ref<number | null>(null)
 let typingClearTimer: ReturnType<typeof setTimeout> | null = null
 
-const customerOnline = computed(() =>
-  customerLastActiveAt.value !== null && Date.now() - customerLastActiveAt.value < PRESENCE_ONLINE_WINDOW_MS,
-)
+// Второй, более широкий признак присутствия — метка chat_threads.customer_last_seen_at
+// из БД. Её пишет любой запрос покупателя к чату (мобилка, пока экран чата
+// открыт, дёргает poll раз в 20с). В отличие от эфемерного .presence-пинга
+// выше она есть у каждого треда в списке и переживает перезагрузку страницы.
+const PRESENCE_SEEN_WINDOW_MS = 75_000
+
+// Тикаем «сейчас», чтобы «в сети» / «был(а) N назад» сами гасли по времени,
+// а не только при следующем ответе сервера.
+const nowTick = ref(Date.now())
+const nowTickTimer = setInterval(() => { nowTick.value = Date.now() }, 15_000)
+
+function threadSeenOnline(t: Pick<ChatThread, 'customer_last_seen_at'> | null): boolean {
+  if (!t?.customer_last_seen_at) return false
+  return nowTick.value - Date.parse(t.customer_last_seen_at) < PRESENCE_SEEN_WINDOW_MS
+}
+
+function lastSeenLabel(t: Pick<ChatThread, 'customer_last_seen_at'> | null): string {
+  const iso = t?.customer_last_seen_at
+  if (!iso) return ''
+  const diff = nowTick.value - Date.parse(iso)
+  if (diff < PRESENCE_SEEN_WINDOW_MS) return 'в сети'
+  const min = Math.floor(diff / 60_000)
+  if (min < 60) return `был(а) ${min} мин назад`
+  const hrs = Math.floor(min / 60)
+  if (hrs < 24) return `был(а) ${hrs} ч назад`
+  return `был(а) ${Math.floor(hrs / 24)} дн назад`
+}
+
+const customerOnline = computed(() => {
+  if (
+    customerLastActiveAt.value !== null &&
+    nowTick.value - customerLastActiveAt.value < PRESENCE_ONLINE_WINDOW_MS
+  ) {
+    return true
+  }
+  return threadSeenOnline(selectedThread.value)
+})
 
 function resetPresence() {
   customerIsTyping.value = false
@@ -150,7 +184,10 @@ function unsubscribeRealtime() {
   resetPresence()
 }
 
-onUnmounted(() => unsubscribeRealtime())
+onUnmounted(() => {
+  unsubscribeRealtime()
+  clearInterval(nowTickTimer)
+})
 
 // ── Звук нового сообщения — только пока чат открыт, только на входящее
 // (не на своё же исходящее), с переключателем в localStorage (§11.7).
@@ -222,6 +259,9 @@ async function pollOpenThread() {
   if (!selectedThread.value) return
   try {
     const data = await api.getChatMessages(selectedThread.value.id)
+    if (selectedThread.value && data.thread) {
+      selectedThread.value.customer_last_seen_at = data.thread.customer_last_seen_at
+    }
     const fresh = [...data.data].reverse()
     const known = new Set(messages.value.map(m => m.id))
     const newOnes = fresh.filter(m => !known.has(m.id))
@@ -510,7 +550,14 @@ loadThreads()
                 : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             ]"
           >
-            <UiAvatar :src="t.customer?.avatar_url" :name="t.customer?.name" />
+            <div class="relative shrink-0">
+              <UiAvatar :src="t.customer?.avatar_url" :name="t.customer?.name" />
+              <span
+                v-if="threadSeenOnline(t)"
+                class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-900"
+                title="В сети"
+              />
+            </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">
@@ -549,7 +596,13 @@ loadThreads()
             <button type="button" @click="backToList" class="sm:hidden btn-ghost btn-sm -ml-2">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <UiAvatar :src="selectedThread.customer?.avatar_url" :name="selectedThread.customer?.name" size="sm" />
+            <div class="relative shrink-0">
+              <UiAvatar :src="selectedThread.customer?.avatar_url" :name="selectedThread.customer?.name" size="sm" />
+              <span
+                v-if="customerOnline"
+                class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-900"
+              />
+            </div>
             <div class="min-w-0 flex-1">
               <RouterLink
                 :to="`/customers/${selectedThread.customer_id}`"
@@ -564,6 +617,7 @@ loadThreads()
                 {{ selectedThread.customer?.phone }}
                 <span v-if="selectedThread.customer?.total_orders">· {{ selectedThread.customer.total_orders }} {{ selectedThread.customer.total_orders === 1 ? 'заказ' : 'заказов' }}</span>
                 <span v-if="customerOnline" class="text-emerald-500 dark:text-emerald-400">· в сети</span>
+                <span v-else-if="lastSeenLabel(selectedThread)">· {{ lastSeenLabel(selectedThread) }}</span>
               </p>
             </div>
             <button
