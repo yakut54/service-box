@@ -504,10 +504,10 @@ loadThreads()
 </script>
 
 <template>
-  <div class="lg:flex-1 lg:min-h-0 flex flex-col">
+  <div class="flex flex-col min-h-0 h-[calc(100svh-8.5rem)] lg:h-auto lg:flex-1 lg:min-h-0">
     <PageHeader class="mb-4" title="Чат с покупателями" />
 
-    <div class="card p-0 overflow-hidden flex-1 min-h-0 flex" style="min-height: 60vh">
+    <div class="card p-0 overflow-hidden flex-1 min-h-0 flex lg:[min-height:60vh]">
       <!-- Список диалогов -->
       <div
         :class="[
@@ -547,7 +547,9 @@ loadThreads()
               'w-full text-left flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-800/50 transition-colors',
               selectedThread?.id === t.id
                 ? 'bg-primary-50 dark:bg-primary-900/20'
-                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                : t.is_blocked_by_shop
+                  ? 'bg-red-50/60 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             ]"
           >
             <div class="relative shrink-0">
@@ -566,16 +568,22 @@ loadThreads()
                 <span v-if="t.last_message_at" class="text-[11px] text-gray-400 shrink-0">{{ formatTime(t.last_message_at) }}</span>
               </div>
               <div class="flex items-center justify-between gap-2 mt-0.5">
-                <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ t.last_message_preview || '—' }}</span>
+                <span
+                  v-if="t.is_blocked_by_shop"
+                  class="inline-flex items-center gap-1 text-[11px] font-medium text-red-600 dark:text-red-400 shrink-0"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  заблокирован
+                </span>
+                <span v-else class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ t.last_message_preview || '—' }}</span>
                 <span
                   v-if="t.unread_by_shop > 0"
                   class="min-w-[1.1rem] h-[1.1rem] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold leading-none shrink-0"
                 >
                   {{ t.unread_by_shop > 99 ? '99+' : t.unread_by_shop }}
                 </span>
-                <svg v-if="t.is_blocked_by_shop" class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
               </div>
             </div>
           </button>
@@ -666,7 +674,7 @@ loadThreads()
                   :key="m.id"
                   :class="['group flex mb-2', m.sender_type === 'shop' ? 'justify-end' : 'justify-start']"
                 >
-                  <div class="relative max-w-[75%] flex items-end gap-1.5" :class="m.sender_type === 'shop' ? 'flex-row' : 'flex-row-reverse'">
+                  <div class="relative max-w-[75%] min-w-0 flex items-end gap-1.5" :class="m.sender_type === 'shop' ? 'flex-row' : 'flex-row-reverse'">
                     <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 mb-1">
                       <button
                         type="button"
@@ -702,7 +710,7 @@ loadThreads()
                     </div>
                     <div
                       :class="[
-                        'rounded-2xl px-3 py-2',
+                        'rounded-2xl px-3 py-2 min-w-0',
                         m.sender_type === 'shop'
                           ? 'bg-primary-600 text-white rounded-br-sm'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'
@@ -731,7 +739,7 @@ loadThreads()
                         class="rounded-lg max-w-full max-h-64 mb-1 cursor-pointer"
                         @click="openImage(m.image_url)"
                       />
-                      <p v-if="m.body" class="text-sm whitespace-pre-wrap break-words">{{ m.body }}</p>
+                      <p v-if="m.body" class="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{{ m.body }}</p>
                       <div class="flex items-center gap-1 justify-end mt-0.5">
                         <span v-if="m.edited_at" :class="['text-[10px] italic', m.sender_type === 'shop' ? 'text-white/60' : 'text-gray-400']">изменено</span>
                         <span :class="['text-[10px]', m.sender_type === 'shop' ? 'text-white/70' : 'text-gray-400']">{{ formatTime(m.created_at) }}</span>
