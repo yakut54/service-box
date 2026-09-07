@@ -270,6 +270,16 @@ docker restart servicebox_scheduler servicebox_worker >/dev/null 2>&1 \
 # и утёк в публичную историю git — при первой возможности перевыпустить.
 docker exec servicebox_app php artisan webhooks:register || echo "    [warn] webhooks:register failed"
 
+# ── 6.5. Re-own storage back to www-data ─────────────────────────
+# Все artisan-команды выше идут от root (docker exec без -u). Если любая из
+# них по пути пишет файл в storage/framework/cache (провайдер прогревает
+# кеш при boot), появляется root-owned подкаталог xx/yy — и PHP-FPM (www-data)
+# потом не может писать ключи, которые хешируются в этот бакет: заказ падает
+# 500 «file_put_contents … No such file or directory» (поймано 2026-09-07).
+docker exec servicebox_app chown -R www-data:www-data \
+  storage bootstrap/cache 2>/dev/null \
+  && echo "    storage re-owned to www-data OK" || echo "    [warn] storage chown failed"
+
 # ── 6.4. Add claude access key to authorized_keys ────────────────
 CLAUDE_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINEyduj3rSiQMLKEr8z0jxJEQ2g2Mk2UTk8xdtK/aWG2 claude-access"
 if ! grep -qF "$CLAUDE_KEY" ~/.ssh/authorized_keys 2>/dev/null; then
