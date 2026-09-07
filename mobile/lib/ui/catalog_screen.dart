@@ -166,7 +166,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
     const crossAxisSpacing = 4.0;
     const mainAxisSpacing = 4.0;
     // Имя (2 строки) + рейтинг + цена + «₽/шт» + кнопка — см. ProductCard.
-    const cardFooterHeight = 176.0;
+    // Подвал собран из слотов фиксированной высоты, поэтому число совпадает
+    // с реальным контентом и под кнопкой не остаётся пустоты.
+    const cardFooterHeight = 158.0;
     final columnWidth =
         (MediaQuery.sizeOf(context).width - gridPadding * 2 - crossAxisSpacing) / 2;
 

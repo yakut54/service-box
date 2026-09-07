@@ -124,42 +124,61 @@ class ProductCard extends StatelessWidget {
                 ],
               ),
             ),
+            // Подвал карточки — фиксированные «слоты» одинаковой высоты на
+            // каждом товаре (имя всегда 2 строки, рейтинг рендерится всегда,
+            // строка «₽/шт» зарезервирована). Так у карточек без фото/отзывов
+            // не появляется дыра в середине: контент прижат кверху, а высоту
+            // ячейки задаёт catalog_screen (cardFooterHeight).
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.2,
+                    SizedBox(
+                      height: 34,
+                      child: Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 3),
                     // Рейтинг рядом с ценой, не в подвале карточки (Baymard №7).
-                    if (product.reviewCount > 0) ...[
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          StarRating(value: product.rating ?? 0, size: 12),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              '${(product.rating ?? 0).toStringAsFixed(1)} · ${product.reviewCount}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                    // Слот присутствует всегда — при отсутствии отзывов
+                    // приглушённое «Нет отзывов», чтобы ритм карточек совпадал.
+                    SizedBox(
+                      height: 16,
+                      child: product.reviewCount > 0
+                          ? Row(
+                              children: [
+                                StarRating(value: product.rating ?? 0, size: 12),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    '${(product.rating ?? 0).toStringAsFixed(1)} · ${product.reviewCount}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Нет отзывов',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const Spacer(),
+                    ),
+                    const SizedBox(height: 6),
                     if (product.hasVariants &&
                         product.variantPriceRangeKopecks != null)
                       Text(
@@ -174,13 +193,19 @@ class ProductCard extends StatelessWidget {
                     else
                       ProductPriceRow(product: product),
                     // Цена за единицу — Baymard №3 (сравнимость выгодности).
-                    if (product.unitPriceKopecks != null)
-                      Text(
-                        '${formatRubles(product.unitPriceKopecks! / 100)}/${product.unitLabel}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                    // Слот зарезервирован всегда, чтобы высота подвала не
+                    // «плавала» между товарами с ценой за штуку и без.
+                    SizedBox(
+                      height: 14,
+                      child: product.unitPriceKopecks != null
+                          ? Text(
+                              '${formatRubles(product.unitPriceKopecks! / 100)}/${product.unitLabel}',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            )
+                          : null,
+                    ),
                   ],
                 ),
               ),
