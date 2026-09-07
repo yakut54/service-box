@@ -106,12 +106,14 @@ const variants = ref<ProductVariant[]>([])
 // ── «Что продаём?» ──────────────────────────────────────────
 // Шаг мастера, а не поле в БД: проставляет sale_mode и решает, какие секции
 // показывать. Одежду/обувь не вываливаем продавцу бананов, и наоборот.
-type ProductKind = 'plain' | 'clothing' | 'shoes' | 'weight_fixed' | 'weight_variable'
+// Одежда и обувь — одна карточка: структурно они идентичны (piece + варианты
+// + размерная сетка), различие живёт только в самой таблице размеров, а её
+// выбирает продавец в SizeChartPicker (там есть пресеты и одежды, и обуви).
+type ProductKind = 'plain' | 'apparel' | 'weight_fixed' | 'weight_variable'
 
 const kindConfig: Record<ProductKind, { icon: string; label: string; desc: string }> = {
   plain:           { icon: '📦', label: 'Обычный товар',  desc: 'Штучный: товар, набор, упаковка' },
-  clothing:        { icon: '👕', label: 'Одежда',          desc: 'Размеры, цвета, размерная сетка' },
-  shoes:           { icon: '👟', label: 'Обувь',           desc: 'Размеры, размерная сетка' },
+  apparel:         { icon: '👕', label: 'Одежда и обувь', desc: 'Размеры, цвета, размерная сетка' },
   weight_fixed:    { icon: '🍬', label: 'Развес (фасовка)', desc: 'Продавец фасует под заказ' },
   weight_variable: { icon: '🥩', label: 'Развес (взвешивание)', desc: 'Вес плавает, взвешивают при сборке' },
 }
@@ -124,9 +126,8 @@ function applyKind(kind: ProductKind) {
   physicalDetails.value.sale_mode =
     (kind === 'weight_fixed' || kind === 'weight_variable') ? kind : 'piece'
 
-  if (kind === 'clothing' && variantOptions.value.length === 0) {
-    variantOptions.value = [{ name: 'Размер', values: [] }, { name: 'Цвет', values: [] }]
-  } else if (kind === 'shoes' && variantOptions.value.length === 0) {
+  if (kind === 'apparel' && variantOptions.value.length === 0) {
+    // «Размер» нужен и одежде, и обуви; «Цвет» продавец добавит одним кликом.
     variantOptions.value = [{ name: 'Размер', values: [] }]
   }
   if (kind === 'plain') plainHasVariants.value = variantOptions.value.length > 0
@@ -135,19 +136,16 @@ function applyKind(kind: ProductKind) {
 const showVariantsSection = computed(() =>
   form.value.type === 'physical' &&
   physicalDetails.value.sale_mode === 'piece' &&
-  (productKind.value === 'clothing' || productKind.value === 'shoes' || plainHasVariants.value))
+  (productKind.value === 'apparel' || plainHasVariants.value))
 
 const showSizeChartSection = computed(() =>
   form.value.type === 'physical' &&
   physicalDetails.value.sale_mode === 'piece' &&
-  (productKind.value === 'clothing' || productKind.value === 'shoes' || form.value.size_chart_id != null))
+  (productKind.value === 'apparel' || form.value.size_chart_id != null))
 
 const attributeSuggestions = computed(() => {
-  if (productKind.value === 'clothing') {
-    return ['Состав', 'Страна', 'Уход', 'Сезон', 'Крой', 'Бренд']
-  }
-  if (productKind.value === 'shoes') {
-    return ['Материал верха', 'Материал подошвы', 'Сезон', 'Страна', 'Бренд']
+  if (productKind.value === 'apparel') {
+    return ['Состав', 'Страна', 'Материал верха', 'Материал подошвы', 'Сезон', 'Уход', 'Крой', 'Бренд']
   }
   return ['Состав', 'Страна', 'Бренд', 'Материал', 'Вес', 'Срок годности', 'Условия хранения', 'Пищевая ценность', 'Гарантия']
 })
@@ -269,10 +267,8 @@ onMounted(async () => {
           productKind.value = sm
         } else {
           const names = variantOptions.value.map(o => o.name.toLowerCase())
-          if (names.some(n => n.includes('цвет'))) {
-            productKind.value = 'clothing'
-          } else if (names.some(n => n.includes('размер'))) {
-            productKind.value = 'shoes'
+          if (names.some(n => n.includes('размер') || n.includes('цвет')) || form.value.size_chart_id != null) {
+            productKind.value = 'apparel'
           } else {
             productKind.value = 'plain'
             plainHasVariants.value = variantOptions.value.length > 0
@@ -393,7 +389,7 @@ async function handleSubmit() {
           <!-- Что продаём? — задаёт режим продажи и какие секции показывать -->
           <div v-if="form.type === 'physical'">
             <p class="label">Что продаём?</p>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 v-for="(cfg, key) in kindConfig"
                 :key="key"
