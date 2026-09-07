@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
@@ -16,13 +16,21 @@ const success        = ref(false)
 const error          = ref('')
 const uploadingLogo  = ref(false)
 
-onMounted(() => {
-  const wc = authStore.shop?.widget_config
-  if (wc) {
-    if (wc.primary_color) color.value = wc.primary_color
-    logoUrl.value = wc.logo_url ?? null
-    logoFit.value = (wc.logo_fit as 'contain' | 'cover') ?? 'contain'
-  }
+const loaded = ref(false)
+
+function hydrate(wc: Record<string, unknown> | null | undefined) {
+  if (!wc) return
+  if (wc.primary_color) color.value = wc.primary_color as string
+  logoUrl.value = (wc.logo_url as string | null) ?? null
+  logoFit.value = (wc.logo_fit as 'contain' | 'cover') ?? 'contain'
+  loaded.value = true
+}
+
+onMounted(() => hydrate(authStore.shop?.widget_config))
+// authStore.shop может подъехать после mount (жёсткий refresh) — тогда
+// заполняем поля из него, иначе Сохранить ушёл бы с null logo_url.
+watch(() => authStore.shop?.widget_config, (wc) => {
+  if (!loaded.value) hydrate(wc)
 })
 
 function onLogoChange(newUrl: string | null) {
@@ -31,6 +39,11 @@ function onLogoChange(newUrl: string | null) {
 }
 
 async function save() {
+  // Не сохраняем, пока не подтянули текущий widget_config — иначе ушёл бы
+  // null logo_url и затёр логотип (баг найден 2026-09-07).
+  if (!loaded.value) hydrate(authStore.shop?.widget_config)
+  if (!loaded.value) { error.value = 'Магазин ещё грузится, повторите'; return }
+
   saving.value  = true
   error.value   = ''
   success.value = false

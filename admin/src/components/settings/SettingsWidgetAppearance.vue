@@ -33,8 +33,11 @@ const showPrice       = ref(true)
 const showDuration    = ref(true)
 const showMasterName  = ref(true)
 const showDescription = ref(true)
-const logoUrl        = ref<string | null>(null)
-const logoFit        = ref<'contain' | 'cover'>('contain')
+// Логотипом владеет ТОЛЬКО SettingsBrand. Раньше этот компонент тоже тащил
+// logo_url в payload «чтобы не потерять» — но если authStore.shop ещё не
+// загрузился на mount, logoUrl был null, и Сохранить здесь затирал логотип
+// (а бэкенд ещё и удалял файл). Больше не трогаем — backend merge сохранит
+// незатронутые ключи widget_config.
 const whiteLabel     = ref(false)
 const customCss      = ref('')
 const saving         = ref(false)
@@ -76,8 +79,6 @@ onMounted(() => {
     if (wc.show_duration    != null) showDuration.value    = wc.show_duration
     if (wc.show_master_name != null) showMasterName.value  = wc.show_master_name
     if (wc.show_description != null) showDescription.value = wc.show_description
-    logoUrl.value    = wc.logo_url   ?? null
-    logoFit.value    = (wc.logo_fit as 'contain' | 'cover') ?? 'contain'
     whiteLabel.value = wc.white_label ?? false
     customCss.value  = wc.custom_css  ?? ''
   }
@@ -124,8 +125,6 @@ async function saveConfig() {
         page_bg_color:    pageBgEnabled.value ? pageBgColor.value : null,
         text_color:       textColorEnabled.value ? textColor.value : null,
         border_radius:    borderRadius.value,
-        logo_url:         logoUrl.value,
-        logo_fit:         logoFit.value,
         show_price:       showPrice.value,
         show_duration:    showDuration.value,
         show_master_name: showMasterName.value,
