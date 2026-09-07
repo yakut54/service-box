@@ -163,10 +163,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _startPolling() {
     _pollTimer?.cancel();
-    // Раньше это был единственный путь доставки (4с) — теперь основной путь
-    // это WebSocket, poll остаётся редкой подстраховкой на случай обрыва
-    // сокета/пропущенного события при реконнекте.
-    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
+    // Основной путь доставки — WebSocket (ChatRealtimeClient сам держит
+    // keepalive и переподключается). Poll — подстраховка на моменты, когда
+    // сокет переустанавливается: 5с, чтобы «пришло из админки, а в чате
+    // тишина» не длилось дольше пары секунд, если WS моргнул.
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _poll());
   }
 
   void _connectRealtime(String threadId) {
