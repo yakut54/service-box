@@ -79,12 +79,20 @@ class FirebaseService implements PushTransport
         // уведомление на дефолтном канале (не 'chat'/'orders') и без нашего
         // звука. channel_id направляет на нужный канал, sound — кастомный
         // «пульк» (ресурс android/.../res/raw/<name>, как в веб-админке).
+        // dataOnly — «тихий» служебный push (напр. «сообщение удалено»): без
+        // notification-блока Android не рисует плашку, сообщение уходит прямо
+        // в обработчик приложения (в т.ч. фоновый).
         $notification = [];
-        if ($message->channelId) {
-            $notification['channel_id'] = $message->channelId;
-        }
-        if ($message->androidSound) {
-            $notification['sound'] = $message->androidSound;
+        if (!$message->dataOnly) {
+            if ($message->channelId) {
+                $notification['channel_id'] = $message->channelId;
+            }
+            if ($message->androidSound) {
+                $notification['sound'] = $message->androidSound;
+            }
+            if ($message->androidTag) {
+                $notification['tag'] = $message->androidTag;
+            }
         }
         if ($notification) {
             $android['notification'] = $notification;
@@ -96,9 +104,14 @@ class FirebaseService implements PushTransport
         }
 
         $cloud = CloudMessage::withTarget('token', $token)
-            ->withNotification(Notification::create($message->title, $message->body))
             ->withData($data)
             ->withAndroidConfig(AndroidConfig::fromArray($android));
+
+        if (!$message->dataOnly) {
+            $cloud = $cloud->withNotification(
+                Notification::create($message->title, $message->body)
+            );
+        }
 
         try {
             $messaging->send($cloud);

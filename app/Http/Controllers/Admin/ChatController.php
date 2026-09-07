@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Events\ChatMessageBroadcast;
 use App\Http\Controllers\Controller;
+use App\Jobs\SendChatMessageDeletedPush;
 use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\ShopStaff;
@@ -226,6 +227,12 @@ class ChatController extends Controller
         ]);
 
         ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'message.deleted', ['id' => $chatMessage->id]);
+
+        // Сообщение от магазина могло уже уйти байеру пушем и висеть в шторке —
+        // шлём «тихий» push, чтобы приложение сняло эту плашку.
+        if ($chatMessage->sender_type === 'shop') {
+            SendChatMessageDeletedPush::dispatchFor($thread);
+        }
 
         return response()->json(['message' => 'Сообщение удалено']);
     }

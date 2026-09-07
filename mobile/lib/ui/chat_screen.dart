@@ -17,6 +17,7 @@ import '../core/uuid.dart';
 import '../data/chat_realtime_client.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_message.dart';
+import '../services/chat_notifications.dart';
 import '../services/notification_permission.dart';
 import '../state/auth_state.dart';
 import '../state/chat_state.dart';
@@ -239,7 +240,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         // нет диалога — нечего отмечать прочитанным, это нормально
       }
       _startPolling();
-      if (_threadId != null) _connectRealtime(_threadId!);
+      if (_threadId != null) {
+        _connectRealtime(_threadId!);
+        // Байер открыл чат — плашки этого треда в шторке больше не нужны.
+        ChatNotifications.dismissThread(_threadId!);
+      }
       _scrollToBottom();
     } on AppException catch (e) {
       setState(() => _error = e);

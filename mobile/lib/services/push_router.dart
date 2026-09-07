@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../ui/chat_screen.dart';
 import '../ui/order_detail_screen.dart';
+import 'chat_notifications.dart';
 
 /// Куда вести байера по push и что показывать, пока приложение открыто.
 ///
@@ -37,6 +38,10 @@ class PushRouter {
       return; // нет Google Play Services и т.п.
     }
 
+    // Фоновый обработчик — гасит плашку чата по тихому push «сообщение
+    // удалено», пока приложение свёрнуто. Регистрируем до подписок.
+    FirebaseMessaging.onBackgroundMessage(chatFirebaseBackgroundHandler);
+
     final initial = await FirebaseMessaging.instance.getInitialMessage();
     if (initial != null) _openFrom(initial.data);
 
@@ -56,6 +61,13 @@ class PushRouter {
   static void _onForeground(RemoteMessage m) {
     final data = m.data;
     final type = data['type'];
+
+    // Тихий сигнал «сообщение удалено» — гасим плашку этого треда, баннер не
+    // показываем.
+    if (type == 'chat_deleted') {
+      ChatNotifications.handleRemoteMessage(m);
+      return;
+    }
 
     // Открыт именно этот чат — ничего не делаем, сообщение и так в ленте.
     if (type == 'chat' && chatScreenOpen) return;

@@ -84,6 +84,10 @@ class SendChatPush implements ShouldQueue
                     channelId: 'chat',
                     collapseKey: "chat:{$this->threadId}",
                     androidSound: 'chat_notify',
+                    // Один тег на тред: новое сообщение заменяет прежнюю плашку
+                    // в шторке, а приложение может снять её по этому тегу, когда
+                    // сообщение удалили (см. SendChatMessageDeletedPush).
+                    androidTag: "chat-{$this->threadId}",
                 ),
                 entityType: 'chat',
                 entityId: (string) $this->threadId,
