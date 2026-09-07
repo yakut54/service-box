@@ -504,7 +504,7 @@ loadThreads()
 </script>
 
 <template>
-  <div class="flex flex-col min-h-0 h-[calc(100svh-8.5rem)] lg:h-auto lg:flex-1 lg:min-h-0">
+  <div class="flex flex-col min-h-0 h-[calc(100dvh_-_8.5rem)] lg:h-auto lg:flex-1 lg:min-h-0">
     <PageHeader class="mb-4" title="Чат с покупателями" />
 
     <div class="card p-0 overflow-hidden flex-1 min-h-0 flex lg:[min-height:60vh]">
