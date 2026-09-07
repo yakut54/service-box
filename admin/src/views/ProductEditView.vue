@@ -8,7 +8,7 @@ import ImageUpload from '@/components/ImageUpload.vue'
 import ProductImageGallery from '@/components/ProductImageGallery.vue'
 import SizeChartPicker from '@/components/SizeChartPicker.vue'
 import ProductVariantsEditor from '@/components/ProductVariantsEditor.vue'
-import { UiHint, KeyValueEditor } from '@/shared/ui'
+import { UiHint, KeyValueEditor, UiNumberField } from '@/shared/ui'
 import type { KeyValueRow } from '@/shared/ui'
 import type { ProductImage, ProductOption, ProductVariant } from '@/types'
 
@@ -355,7 +355,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="max-w-2xl">
+  <div class="max-w-[70rem]">
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ isEditing ? 'Редактировать товар' : 'Новый товар' }}</h1>
     </div>
@@ -512,7 +512,7 @@ async function handleSubmit() {
             </div>
             <div v-if="!isWeightMode">
               <p class="label">Кол-во на складе</p>
-              <input v-model.number="physicalDetails.stock_quantity" type="number" min="0" class="input" placeholder="0" />
+              <UiNumberField v-model="physicalDetails.stock_quantity" :min="0" placeholder="0" />
             </div>
             <div v-else>
               <p class="label flex items-center gap-1">
@@ -521,7 +521,7 @@ async function handleSubmit() {
                   Пока не влияет на приём заказов — режим «перевзвешивание» в разработке
                 </UiHint>
               </p>
-              <input v-model.number="stockWeightKg" type="number" min="0" step="0.1" class="input" placeholder="0" />
+              <UiNumberField v-model="stockWeightKg" :min="0" :step="0.1" placeholder="0" />
             </div>
           </div>
 
@@ -541,7 +541,7 @@ async function handleSubmit() {
                 Вес (грамм)
                 <UiHint>Необязательно, только для показа в карточке</UiHint>
               </p>
-              <input v-model.number="physicalDetails.weight_grams" type="number" min="0" class="input" :placeholder="ep('350')" />
+              <UiNumberField v-model="physicalDetails.weight_grams" :min="0" :placeholder="ep('350')" />
             </div>
             <div>
               <p class="label">Размер (Д×Ш×В)</p>
@@ -605,7 +605,7 @@ async function handleSubmit() {
                 Штук в упаковке
                 <UiHint>Если товар — упаковка/набор. В приложении покажется цена за штуку.</UiHint>
               </p>
-              <input v-model.number="physicalDetails.units_per_pack" type="number" min="1" step="1" class="input" :placeholder="ep('6')" />
+              <UiNumberField v-model="physicalDetails.units_per_pack" :min="1" :placeholder="ep('6')" />
             </div>
             <div>
               <p class="label">Единица</p>
@@ -656,11 +656,11 @@ async function handleSubmit() {
           <div class="grid grid-cols-2 gap-4">
             <div>
               <p class="label">Срок<span class="hidden sm:inline"> доступа</span> (дней)</p>
-              <input v-model.number="digitalDetails.access_days" type="number" min="1" class="input" placeholder="Бессрочно" />
+              <UiNumberField v-model="digitalDetails.access_days" :min="1" placeholder="Бессрочно" />
             </div>
             <div>
               <p class="label">Размер файла (МБ)</p>
-              <input v-model.number="digitalDetails.file_size_mb" type="number" min="0" step="0.1" class="input" :placeholder="ep('256')" />
+              <UiNumberField v-model="digitalDetails.file_size_mb" :min="0" :step="0.1" :placeholder="ep('256')" />
             </div>
           </div>
           <div>
@@ -681,14 +681,14 @@ async function handleSubmit() {
                 Длительность (мин) *
                 <UiHint>Шаг: 5 минут</UiHint>
               </p>
-              <input v-model.number="serviceDetails.duration_minutes" type="number" min="5" step="5" class="input" placeholder="60" />
+              <UiNumberField v-model="serviceDetails.duration_minutes" :min="5" :step="5" placeholder="60" />
             </div>
             <div>
               <p class="label flex items-center gap-1">
                 Перерыв (мин)
                 <UiHint>Время на подготовку</UiHint>
               </p>
-              <input v-model.number="serviceDetails.break_minutes" type="number" min="0" step="5" class="input" placeholder="0" />
+              <UiNumberField v-model="serviceDetails.break_minutes" :min="0" :step="5" placeholder="0" />
             </div>
           </div>
           <div>
@@ -696,7 +696,7 @@ async function handleSubmit() {
               Макс. одновременных записей
               <UiHint>Сколько клиентов одновременно могут быть записаны</UiHint>
             </p>
-            <input v-model.number="serviceDetails.max_concurrent" type="number" min="1" class="input" placeholder="1" />
+            <UiNumberField v-model="serviceDetails.max_concurrent" :min="1" placeholder="1" />
           </div>
           <label class="flex items-center gap-3 cursor-pointer select-none">
             <div class="relative">
