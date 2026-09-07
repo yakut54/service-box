@@ -2,7 +2,9 @@ package com.example.mobile
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ContentResolver
 import android.content.Intent
+import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -74,14 +76,36 @@ class MainActivity : FlutterActivity() {
         val nm = getSystemService(NotificationManager::class.java) ?: return
         val high = NotificationManager.IMPORTANCE_HIGH
         val default = NotificationManager.IMPORTANCE_DEFAULT
+
         listOf(
             Triple("orders", "Заказы", high),
             Triple("delivery", "Доставка", high),
-            Triple("chat", "Чат", high),
             Triple("promo", "Акции магазина", default),
         ).forEach { (id, name, importance) ->
             nm.createNotificationChannel(NotificationChannel(id, name, importance))
         }
+
+        // Чат — свой звук «пульк» (res/raw/chat_notify), такой же, как в
+        // веб-админке. Звук канала нельзя поменять после создания, поэтому
+        // при апдейте удаляем старый канал и пересоздаём.
+        val chatSound = Uri.parse(
+            "${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/raw/chat_notify"
+        )
+        val existingChat = nm.getNotificationChannel("chat")
+        if (existingChat == null || existingChat.sound != chatSound) {
+            nm.deleteNotificationChannel("chat")
+        }
+        nm.createNotificationChannel(
+            NotificationChannel("chat", "Чат", high).apply {
+                setSound(
+                    chatSound,
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                        .build(),
+                )
+            }
+        )
     }
 
     override fun onNewIntent(intent: Intent) {

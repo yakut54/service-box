@@ -75,6 +75,21 @@ class FirebaseService implements PushTransport
             $android['collapse_key'] = $message->collapseKey;
         }
 
+        // notification-блок: без него FCM при закрытом приложении показывает
+        // уведомление на дефолтном канале (не 'chat'/'orders') и без нашего
+        // звука. channel_id направляет на нужный канал, sound — кастомный
+        // «пульк» (ресурс android/.../res/raw/<name>, как в веб-админке).
+        $notification = [];
+        if ($message->channelId) {
+            $notification['channel_id'] = $message->channelId;
+        }
+        if ($message->androidSound) {
+            $notification['sound'] = $message->androidSound;
+        }
+        if ($notification) {
+            $android['notification'] = $notification;
+        }
+
         $data = $message->data;
         if ($message->channelId) {
             $data['channel_id'] = $message->channelId;

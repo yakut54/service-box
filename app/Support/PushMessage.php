@@ -16,6 +16,8 @@ final class PushMessage
      * @param string|null $collapseKey    FCM collapse key: если устройство офлайн,
      *                                    доедет только последнее сообщение с этим ключом
      * @param string $priority            'high' (будит в Doze, для видимого пользователю) | 'normal'
+     * @param string|null $androidSound   имя ресурса в android/.../res/raw без расширения
+     *                                    (напр. 'chat_notify'); null — системный звук канала
      */
     public function __construct(
         public readonly string $title,
@@ -24,5 +26,6 @@ final class PushMessage
         public readonly ?string $channelId = null,
         public readonly ?string $collapseKey = null,
         public readonly string $priority = 'high',
+        public readonly ?string $androidSound = null,
     ) {}
 }

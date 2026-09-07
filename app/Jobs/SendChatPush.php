@@ -83,6 +83,7 @@ class SendChatPush implements ShouldQueue
                     ],
                     channelId: 'chat',
                     collapseKey: "chat:{$this->threadId}",
+                    androidSound: 'chat_notify',
                 ),
                 entityType: 'chat',
                 entityId: (string) $this->threadId,
