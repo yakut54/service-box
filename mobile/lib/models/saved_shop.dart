@@ -65,6 +65,10 @@ class SavedShop {
   /// Приходит с сервера, а не зашита в приложении, чтобы не рассинхронизироваться.
   final int minOrderAmountKopecks;
 
+  /// Магазин разрешил покупателям удалять свои сообщения в чате
+  /// (shops.chat_customer_delete_enabled). false — «Удалить» не показываем.
+  final bool chatCustomerDeleteEnabled;
+
   const SavedShop({
     required this.appCode,
     required this.shopId,
@@ -73,6 +77,7 @@ class SavedShop {
     this.timezone,
     this.pickupAddress,
     this.minOrderAmountKopecks = 0,
+    this.chatCustomerDeleteEnabled = false,
   });
 
   /// Разбор настоящего ответа GET /widget/shop. Здесь нет api_key в теле
@@ -99,6 +104,8 @@ class SavedShop {
           : null,
       minOrderAmountKopecks:
           (json['min_order_amount_kopecks'] as num?)?.toInt() ?? 0,
+      chatCustomerDeleteEnabled:
+          json['chat_customer_delete_enabled'] as bool? ?? false,
     );
   }
 
@@ -111,6 +118,8 @@ class SavedShop {
     pickupAddress: json['pickup_address'] as String?,
     minOrderAmountKopecks:
         (json['min_order_amount_kopecks'] as num?)?.toInt() ?? 0,
+    chatCustomerDeleteEnabled:
+        json['chat_customer_delete_enabled'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -121,5 +130,6 @@ class SavedShop {
     'timezone': timezone,
     'pickup_address': pickupAddress,
     'min_order_amount_kopecks': minOrderAmountKopecks,
+    'chat_customer_delete_enabled': chatCustomerDeleteEnabled,
   };
 }

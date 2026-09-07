@@ -49,6 +49,7 @@ class ShopController extends Controller
             'name'                => $shop->name,
             'widget_config'       => $shop->widget_config,
             'timezone'            => $shop->timezone,
+            'chat_customer_delete_enabled' => (bool) $shop->chat_customer_delete_enabled,
             'prepayment_enabled'  => (bool) $shop->prepayment_enabled,
             'prepayment_amount'   => (int) $shop->prepayment_amount,
             'delivery_settings'   => $enabledMethods ?: null,

@@ -20,6 +20,7 @@ import '../models/chat_message.dart';
 import '../services/notification_permission.dart';
 import '../state/auth_state.dart';
 import '../state/chat_state.dart';
+import '../state/shop_state.dart';
 import 'widgets/photo_picker_sheet.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/chat_background.dart';
@@ -774,7 +775,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       isHighlighted: _highlightedMessageId == message.id,
                       onLongPress: () => _openMessageMenu(message),
                       onSwipeReply: () => _startReply(message),
-                      onDelete: message.isMine ? () => _deleteMessage(message) : null,
+                      // «Удалить» — только если магазин это разрешил
+                      // (shops.chat_customer_delete_enabled); сервер тоже
+                      // проверяет, но не показываем мёртвую кнопку.
+                      onDelete: (message.isMine &&
+                              (context.read<ShopState>().shop
+                                      ?.chatCustomerDeleteEnabled ??
+                                  false))
+                          ? () => _deleteMessage(message)
+                          : null,
                       onQuoteTap: message.replyToMessageId != null
                           ? () => _jumpToMessage(message.replyToMessageId!)
                           : null,
