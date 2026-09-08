@@ -8,10 +8,31 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Удаляет файлы из storage/app/public/uploads, на которые нигде в БД нет
+ * ссылки. Раньше список «где искать ссылки» был захардкожен по таблицам —
+ * и каждый раз, когда добавляли новую колонку с картинкой, забывали её сюда
+ * дописать, а команда по ночам удаляла живые файлы:
+ *   - 2026-08-22: product_images.url, customers.avatar_url
+ *   - 2026-09-08: users.avatar_url (аватар в админке), product_variants.image_url
+ *
+ * Теперь колонки НЕ хардкодятся: пробегаем по всем текстовым и JSON-колонкам
+ * во всех схемах (public + shop_*), достаём из значений любые пути вида
+ * `uploads/<...>` регуляркой (работает и для JSON, и для составных строк).
+ * Плюс защита: 7 дней «карантина» для свежих файлов, стоп-кран на массовое
+ * удаление и отказ работать, если скан ссылок прошёл не полностью.
+ */
 class StorageCleanup extends Command
 {
     protected $signature   = 'storage:cleanup {--dry-run : List orphaned files without deleting them}';
     protected $description = 'Delete uploaded images not referenced anywhere in the database';
+
+    /** Свежие файлы не трогаем неделю — запас на рассинхрон БД/диска. */
+    private const GRACE_SECONDS = 7 * 24 * 3600;
+
+    /** Стоп-кран: не удаляем разом, если это похоже на сломанный скан. */
+    private const MAX_DELETE_ABS = 40;
+    private const MAX_DELETE_RATIO = 0.25;
 
     public function handle(): int
     {
@@ -23,98 +44,146 @@ class StorageCleanup extends Command
             return self::SUCCESS;
         }
 
-        $usedPaths = $this->collectUsedPaths();
-        $dry       = $this->option('dry-run');
-        $deleted   = 0;
-        $skipped   = 0;
+        [$usedPaths, $scanComplete] = $this->collectUsedPaths();
 
+        if (!$scanComplete) {
+            Log::critical('[StorageCleanup] reference scan incomplete — aborting, nothing deleted');
+            $this->error('Reference scan did not cover all schemas — nothing deleted.');
+            return self::FAILURE;
+        }
+
+        $dry = (bool) $this->option('dry-run');
+        $now = time();
+
+        $orphans = [];
+        $skipped = 0;
         foreach ($files as $file) {
-            // Skip files younger than 1 hour — might be a mid-session upload
-            if (time() - $disk->lastModified($file) < 3600) {
+            if ($now - $disk->lastModified($file) < self::GRACE_SECONDS) {
                 $skipped++;
                 continue;
             }
-
             if (!isset($usedPaths[$file])) {
-                if ($dry) {
-                    $this->line("[dry-run] {$file}");
-                } else {
-                    $disk->delete($file);
-                    Log::info('[StorageCleanup] deleted orphaned file', ['path' => $file]);
-                    $this->line("Deleted: {$file}");
-                }
-                $deleted++;
+                $orphans[] = $file;
             }
         }
 
+        $total = count($files);
+        if (!$dry
+            && count($orphans) > self::MAX_DELETE_ABS
+            && count($orphans) > $total * self::MAX_DELETE_RATIO
+        ) {
+            Log::critical('[StorageCleanup] refusing to delete — looks like a broken scan', [
+                'orphans' => count($orphans),
+                'total'   => $total,
+            ]);
+            $this->error(sprintf(
+                'Would delete %d of %d files — too many, aborting. Run with --dry-run to inspect.',
+                count($orphans),
+                $total,
+            ));
+            return self::FAILURE;
+        }
+
+        $deleted = 0;
+        foreach ($orphans as $file) {
+            if ($dry) {
+                $this->line("[dry-run] {$file}");
+            } else {
+                $disk->delete($file);
+                Log::info('[StorageCleanup] deleted orphaned file', ['path' => $file]);
+                $this->line("Deleted: {$file}");
+            }
+            $deleted++;
+        }
+
         $label = $dry ? 'Would delete' : 'Deleted';
-        $this->info("{$label}: {$deleted} file(s). Skipped (< 1h old): {$skipped}.");
+        $this->info("{$label}: {$deleted} file(s). Kept (referenced): "
+            . ($total - $skipped - $deleted) . ". Skipped (< 7d old): {$skipped}.");
 
         return self::SUCCESS;
     }
 
-    /** @return array<string, true> hash-set of relative storage paths referenced in DB */
+    /**
+     * Собирает множество относительных путей (`uploads/xxx.webp`), на которые
+     * есть хоть одна ссылка в БД — из ЛЮБОЙ текстовой/JSON-колонки любой схемы.
+     *
+     * @return array{0: array<string, true>, 1: bool} [пути, скан прошёл полностью]
+     */
     private function collectUsedPaths(): array
     {
-        $urls = [];
+        $shopSchemas = DB::table('shops')->pluck('schema_name')
+            ->filter()
+            ->values()
+            ->all();
 
-        // Shop widget logos (stored as JSON)
-        DB::table('shops')
-            ->whereNotNull('widget_config')
-            ->whereRaw("widget_config->>'logo_url' IS NOT NULL")
-            ->selectRaw("widget_config->>'logo_url' as logo_url")
-            ->pluck('logo_url')
-            ->each(function (string $url) use (&$urls) { $urls[] = $url; });
+        $schemas = array_values(array_unique(array_merge(['public'], $shopSchemas)));
 
-        // shop_staff живёт в public-схеме, не в тенантной — отдельный запрос
-        DB::table('shop_staff')
-            ->whereNotNull('avatar_url')
-            ->pluck('avatar_url')
-            ->each(function (string $url) use (&$urls) { $urls[] = $url; });
-
-        // Per-shop tenant schemas
-        $schemas = DB::table('shops')->pluck('schema_name');
-
-        // ВНИМАНИЕ: любая колонка с URL картинки на диске public, которой нет
-        // в этом списке, будет считаться «осиротевшей» и удалена через час —
-        // отсюда пропали доп. фото товаров (product_images.url) и аватары
-        // покупателей (customers.avatar_url), их тут не было (баг найден
-        // 2026-08-22, удалялись каждую ночь по расписанию 03:00).
-        $columns = [
-            'products'       => 'image_url',
-            'product_images' => 'url',
-            'masters'        => 'avatar_url',
-            'categories'     => 'image_url',
-            'customers'      => 'avatar_url',
-            'chat_messages'  => 'image_url',
-        ];
+        $paths = [];
+        $schemasScanned = 0;
 
         foreach ($schemas as $schema) {
-            foreach ($columns as $table => $col) {
+            try {
+                $columns = DB::select(
+                    "SELECT table_name, column_name
+                       FROM information_schema.columns
+                      WHERE table_schema = ?
+                        AND data_type IN ('character varying', 'text', 'character', 'json', 'jsonb')",
+                    [$schema]
+                );
+            } catch (\Throwable $e) {
+                Log::warning('[StorageCleanup] could not list columns', [
+                    'schema' => $schema, 'error' => $e->getMessage(),
+                ]);
+                continue;
+            }
+
+            if (empty($columns)) {
+                continue;
+            }
+
+            $schemasScanned++;
+
+            foreach ($columns as $c) {
+                $col = $this->quoteIdent($c->column_name);
+                $tbl = $this->quoteIdent($schema) . '.' . $this->quoteIdent($c->table_name);
+
                 try {
+                    // ::text — чтобы одинаково работать с varchar, json и jsonb.
+                    // Фильтр по 'uploads' без слэша: тип `json` (не `jsonb`)
+                    // хранит исходный текст с экранированными слэшами (`uploads\/`),
+                    // поэтому 'uploads/' их бы не поймал.
                     $rows = DB::select(
-                        "SELECT {$col} FROM \"{$schema}\".{$table} WHERE {$col} IS NOT NULL"
+                        "SELECT DISTINCT {$col}::text AS v FROM {$tbl} WHERE {$col}::text LIKE '%uploads%'"
                     );
-                    foreach ($rows as $row) {
-                        $urls[] = $row->$col;
-                    }
                 } catch (\Throwable) {
-                    // Schema or table may not exist yet — skip
+                    continue; // недоступная таблица/колонка — не роняем весь прогон
+                }
+
+                foreach ($rows as $row) {
+                    if ($row->v === null) {
+                        continue;
+                    }
+                    // Снимаем JSON-экранирование слэшей: `https:\/\/…\/uploads\/x` → `…/uploads/x`.
+                    $value = str_replace('\\/', '/', $row->v);
+                    if (preg_match_all('#uploads/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*#', $value, $m)) {
+                        foreach ($m[0] as $raw) {
+                            $path = StorageService::relativeStoragePath($raw) ?? ltrim($raw, '/');
+                            $paths[$path] = true;
+                        }
+                    }
                 }
             }
         }
 
-        // Build a hash-set keyed by relative storage path for O(1) lookup.
-        // Сопоставление по пути (StorageService::relativeStoragePath), не по
-        // полному URL с доменом — иначе смена APP_URL = все картинки «осиротели».
-        $paths = [];
-        foreach ($urls as $url) {
-            $path = StorageService::relativeStoragePath((string) $url);
-            if ($path !== null) {
-                $paths[$path] = true;
-            }
-        }
+        // Скан валиден только если реально прошли public + все схемы магазинов.
+        $complete = $schemasScanned >= count($schemas);
 
-        return $paths;
+        return [$paths, $complete];
+    }
+
+    /** Экранирование идентификатора из information_schema для подстановки в SQL. */
+    private function quoteIdent(string $ident): string
+    {
+        return '"' . str_replace('"', '""', $ident) . '"';
     }
 }
