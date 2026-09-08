@@ -796,27 +796,36 @@ loadThreads()
                 type="button"
                 @click="pickImage"
                 :disabled="selectedThread.is_blocked_by_shop || uploadingImage || !!editingMessage"
-                class="btn-ghost btn-sm shrink-0 disabled:opacity-40"
+                title="Прикрепить фото"
+                aria-label="Прикрепить фото"
+                class="shrink-0 w-9 h-9 grid place-items-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h4M13 3l6 6m0-6v6h-6" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
               </button>
               <textarea
                 v-model="draft"
                 rows="1"
-                class="input flex-1 min-w-0 resize-none text-sm"
-                :placeholder="editingMessage ? 'Изменить текст...' : 'Сообщение...'"
+                class="flex-1 min-w-0 resize-none text-sm rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 border-0 px-4 py-2 max-h-32 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset disabled:opacity-60"
+                :placeholder="editingMessage ? 'Изменить текст…' : 'Сообщение…'"
                 :disabled="selectedThread.is_blocked_by_shop"
                 @keydown.enter.exact.prevent="sendMessage"
                 @keydown.esc="cancelEdit(); cancelReply()"
               />
               <button
                 type="submit"
-                class="btn-primary btn-sm shrink-0"
+                :title="editingMessage ? 'Сохранить' : 'Отправить'"
+                :aria-label="editingMessage ? 'Сохранить' : 'Отправить'"
+                class="shrink-0 w-9 h-9 grid place-items-center rounded-full bg-primary-600 hover:bg-primary-700 text-white transition-colors disabled:opacity-40 disabled:hover:bg-primary-600"
                 :disabled="sending || selectedThread.is_blocked_by_shop || (!draft.trim() && !pendingImageUrl)"
               >
-                {{ editingMessage ? 'Сохранить' : 'Отправить' }}
+                <svg v-if="editingMessage" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <svg v-else class="w-5 h-5 -ml-px" :class="{ 'animate-pulse': sending }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12 3.269 3.125A59.769 59.769 0 0121.485 12 59.768 59.768 0 013.27 20.875L5.999 12zm0 0h7.5" />
+                </svg>
               </button>
             </form>
           </div>
