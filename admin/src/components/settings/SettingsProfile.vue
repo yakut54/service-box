@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { handlePhoneInput } from '@/composables/usePhoneInput'
 import ImageUpload from '@/components/ImageUpload.vue'
 
 const authStore = useAuthStore()
 
-const avatarUrl = ref<string | null>(authStore.user?.avatar_url ?? null)
+const storeAvatar = () => authStore.user?.avatar_url ?? null
+
+const avatarUrl = ref<string | null>(storeAvatar())
 const uploading = ref(false)
 const name       = ref(authStore.user?.name ?? '')
 const phone      = ref(authStore.user?.phone ?? '')
@@ -14,6 +16,17 @@ const nameTouched = ref(false)
 const saving  = ref(false)
 const success = ref(false)
 const error   = ref('')
+
+// user в сторе может дозагрузиться/обновиться уже после монтирования —
+// подхватываем аватар, пока пользователь сам его не менял в этой форме.
+// Без этого форма могла уйти с avatar_url: null и осиротить файл.
+const avatarTouched = ref(false)
+watch(() => authStore.user?.avatar_url, (v) => {
+  if (!avatarTouched.value) avatarUrl.value = v ?? null
+})
+watch(avatarUrl, (v) => {
+  if (v !== storeAvatar()) avatarTouched.value = true
+})
 
 async function save() {
   nameTouched.value = true
@@ -23,13 +36,20 @@ async function save() {
   error.value   = ''
   success.value = false
 
-  const result = await authStore.updateProfile({
+  const payload: { name: string; phone: string | null; avatar_url?: string | null } = {
     name: name.value.trim(),
     phone: phone.value || null,
-    avatar_url: avatarUrl.value,
-  })
+  }
+  // Отправляем avatar_url только если пользователь реально его менял —
+  // иначе бэкенд не трогает аватар вообще (см. AuthController::updateProfile).
+  if (avatarUrl.value !== storeAvatar()) {
+    payload.avatar_url = avatarUrl.value
+  }
+
+  const result = await authStore.updateProfile(payload)
 
   if (result.success) {
+    avatarTouched.value = false
     success.value = true
     setTimeout(() => success.value = false, 3000)
   } else {

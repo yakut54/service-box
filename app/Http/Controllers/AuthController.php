@@ -248,17 +248,23 @@ class AuthController extends Controller
             'avatar_url' => 'nullable|url|max:1000',
         ]);
 
-        $oldAvatarUrl = $user->avatar_url;
+        $user->name  = trim($data['name']);
+        $user->phone = isset($data['phone']) ? trim($data['phone']) : null;
 
-        $user->update([
-            'name'       => trim($data['name']),
-            'phone'      => isset($data['phone']) ? trim($data['phone']) : null,
-            'avatar_url' => $data['avatar_url'] ?? $user->avatar_url,
-        ]);
-
-        if (array_key_exists('avatar_url', $data) && $data['avatar_url'] !== $oldAvatarUrl) {
-            StorageService::deleteByUrl($oldAvatarUrl);
+        // avatar_url трогаем ТОЛЬКО если ключ реально прислали и ссылка
+        // изменилась. null = «убрать аватар». Старый раскладка была битой:
+        // `$data['avatar_url'] ?? $user->avatar_url` при null оставлял ссылку в
+        // БД, а условие ниже всё равно удаляло файл — в итоге БД показывала
+        // мёртвую ссылку (та же болячка, что была у логотипа магазина).
+        if ($request->has('avatar_url')) {
+            $newAvatarUrl = $data['avatar_url'] ?? null;
+            if ($newAvatarUrl !== $user->avatar_url) {
+                StorageService::deleteByUrl($user->avatar_url);
+                $user->avatar_url = $newAvatarUrl;
+            }
         }
+
+        $user->save();
 
         [, $role] = $this->resolveShopAndRole($user);
 
