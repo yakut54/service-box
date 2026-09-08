@@ -3,6 +3,13 @@ import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
+  // Прокручивается <main> в AppLayout, а не окно (см. разметку там) —
+  // поэтому при переходе между страницами сбрасываем наверх именно его,
+  // иначе новая страница открывается там же, где был скролл прошлой.
+  scrollBehavior() {
+    document.querySelector('main')?.scrollTo({ top: 0 })
+    return { top: 0 }
+  },
   routes: [
     {
       path: '/login',
