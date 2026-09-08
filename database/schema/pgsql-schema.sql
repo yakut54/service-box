@@ -342,7 +342,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     CREATE TABLE %I.order_items (
                         id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                         order_id     UUID NOT NULL REFERENCES %I.orders(id) ON DELETE CASCADE,
-                        product_id   UUID NOT NULL REFERENCES %I.products(id) ON DELETE RESTRICT,
+                        -- Товар удалили из каталога → product_id обнуляется, а
+                        -- строка заказа живёт по снимку (product_name / price /
+                        -- product_type / weight_grams ниже) — то же решение, что
+                        -- и для variant_id. Раньше был ON DELETE RESTRICT, из-за
+                        -- чего нельзя было удалить товар, который хоть раз заказали.
+                        product_id   UUID REFERENCES %I.products(id) ON DELETE SET NULL,
                         -- Вариант (размер/цвет), если товар с вариантами. Снимок
                         -- подписи «Размер: M · Цвет: Чёрный» — variant_label, как
                         -- product_name: переживает удаление/правку варианта.

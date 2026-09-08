@@ -249,7 +249,21 @@ class ProductController extends Controller
 
         $imageUrl = $product->image_url;
         $galleryUrls = $product->images->pluck('url');
-        $product->delete();
+
+        try {
+            $product->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            // На order_items.product_id стоит ON DELETE SET NULL, так что заказы
+            // удалению не мешают. Но если когда-нибудь появится другая ссылка с
+            // RESTRICT — отдаём понятный ответ, а не «500 Server Error».
+            if ((int) ($e->getCode()) === 23503) {
+                return response()->json([
+                    'message' => 'Товар связан с другими записями и не может быть удалён. Скройте его, отключив «Активен».',
+                ], 409);
+            }
+            throw $e;
+        }
+
         StorageService::deleteByUrl($imageUrl);
         $galleryUrls->each(fn ($url) => StorageService::deleteByUrl($url));
 
