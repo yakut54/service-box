@@ -10,7 +10,6 @@ use App\Models\Shop;
 use App\Models\ShopStaff;
 use App\Models\User;
 use App\Services\StorageService;
-use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +17,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -38,17 +36,18 @@ class AuthController extends Controller
                 'terms_accepted_ip'  => $request->ip(),
             ]);
 
-            $schemaName = 'shop_' . strtolower(Str::random(12));
-
+            // schema_name/api_key/widget_config и создание тенантной схемы —
+            // всё в Shop::boot() (creating/created). Раньше эта же схема
+            // создавалась ещё раз вручную через TenantService::createSchema()
+            // сразу после Shop::create(), а create_shop_schema() начинается с
+            // DROP SCHEMA IF EXISTS ... CASCADE — то есть свежесозданная схема
+            // сносилась и создавалась заново вторым вызовом.
             $shop = Shop::create([
                 'user_id' => $user->id,
                 'name' => $request->shop_name,
                 'domain' => $request->shop_domain,
-                'schema_name' => $schemaName,
                 'timezone' => $request->timezone ?? 'Europe/Moscow',
             ]);
-
-            TenantService::createSchema($schemaName);
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
