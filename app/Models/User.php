@@ -19,6 +19,7 @@ class User extends Authenticatable
         'terms_accepted_at',
         'terms_accepted_ip',
         'is_superadmin',
+        'is_chain_owner',
         'avatar_url',
         'phone',
     ];
@@ -35,6 +36,7 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'terms_accepted_at' => 'datetime',
             'is_superadmin'     => 'boolean',
+            'is_chain_owner'    => 'boolean',
         ];
     }
 
