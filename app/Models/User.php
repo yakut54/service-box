@@ -48,7 +48,7 @@ class User extends Authenticatable
      */
     public function shop()
     {
-        return $this->hasOne(Shop::class)->oldestOfMany();
+        return $this->hasOne(Shop::class)->oldestOfMany('created_at');
     }
 
     public function shops()
