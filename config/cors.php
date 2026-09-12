@@ -18,6 +18,7 @@ return [
         'api/master/*',
         'api/invite/*',
         'api/superadmin/*',
+        'api/chain/*',
         'api/broadcasting/*',
         'sanctum/csrf-cookie',
     ],
