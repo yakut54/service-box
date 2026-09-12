@@ -40,9 +40,20 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Самый старый магазин пользователя. Для одиночного шопера это и есть
+     * «его магазин» — но у владельца сети (is_chain_owner) магазинов
+     * несколько, и это НЕ «его магазин», а произвольная первая запись.
+     * В таких случаях использовать shops() и App\Support\ShopAccess.
+     */
     public function shop()
     {
-        return $this->hasOne(Shop::class);
+        return $this->hasOne(Shop::class)->oldestOfMany();
+    }
+
+    public function shops()
+    {
+        return $this->hasMany(Shop::class);
     }
 
     public function staffShops()
