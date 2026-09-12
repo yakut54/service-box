@@ -96,7 +96,13 @@ class InviteController extends Controller
                 // регистрация вообще возможна.
                 $existingUser = User::where('email', $staff->invite_email)->first();
 
-                if ($existingUser && $existingUser->shop) {
+                // Не $existingUser->shop (hasOne — у владельца сети магазинов
+                // несколько, вернул бы произвольный). Настоящая причина
+                // запрета та же, что в StaffController::store(): owner-путь в
+                // SetShopFromAuth всегда выигрывает у staff-пути, поэтому
+                // владелец чужого магазина, приняв приглашение, всё равно
+                // продолжит попадать в свой — приглашение окажется мёртвым.
+                if ($existingUser && ($existingUser->shops()->exists() || $existingUser->is_chain_owner)) {
                     DB::rollBack();
                     return response()->json([
                         'message' => 'На этот email уже зарегистрирован аккаунт владельца магазина. '
@@ -113,6 +119,23 @@ class InviteController extends Controller
                 $staff->user_id = $user->id;
             } else {
                 $user = User::findOrFail($staff->user_id);
+            }
+
+            // Один человек — одна точка: между отправкой этого приглашения и
+            // его принятием пользователь мог успеть принять другое (или на
+            // момент отправки в StaffController::store() ещё не работал
+            // нигде, а сейчас уже работает) — перепроверяем на приёме, а не
+            // только на отправке.
+            $hasOtherShop = ShopStaff::where('user_id', $user->id)
+                ->whereNotNull('accepted_at')
+                ->where('shop_id', '!=', $staff->shop_id)
+                ->exists();
+
+            if ($hasOtherShop) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Этот пользователь уже работает в другом магазине и не может принять это приглашение',
+                ], 422);
             }
 
             // Принять приглашение и аннулировать токен (одноразовый)
