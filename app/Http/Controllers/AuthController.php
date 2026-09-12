@@ -10,6 +10,7 @@ use App\Models\Shop;
 use App\Models\ShopStaff;
 use App\Models\User;
 use App\Services\StorageService;
+use App\Support\ShopAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -91,19 +93,25 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        [$shop, $role] = $this->resolveShopAndRole($user);
+        // Свежий вход всегда ведёт в панель сети — заголовок X-Acting-Shop-Id
+        // тут сознательно не читаем (владелец сети сам выберет точку внутри).
+        $ctx = ShopAccess::defaultFor($user);
 
-        if (!$shop) {
+        if (!$ctx && !$user->is_chain_owner) {
             return response()->json([
                 'message' => 'Магазин не найден',
             ], 404);
         }
 
+        $shop = $ctx['shop'] ?? null;
+
         // Уже открытая вкладка на другом устройстве узнаёт об этом входе в
         // реальном времени и покажет предупреждение до того, как её токен
         // реально удалят строкой ниже — WS-соединение не привязано к
-        // валидности токена, которым его когда-то авторизовали.
-        $totalUsers = 1 + ShopStaff::where('shop_id', $shop->id)
+        // валидности токена, которым его когда-то авторизовали. У владельца
+        // сети без выбранной точки считаем по всем его магазинам разом.
+        $shopIds = $shop ? [$shop->id] : $user->shops()->pluck('id')->all();
+        $totalUsers = 1 + ShopStaff::whereIn('shop_id', $shopIds)
             ->whereNotNull('accepted_at')
             ->count();
         UserSessionSuperseded::dispatch((string) $user->id, $request->ip(), $totalUsers);
@@ -113,16 +121,9 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Вход выполнен',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar_url' => $user->avatar_url,
-                'phone' => $user->phone,
-                'is_superadmin' => (bool) $user->is_superadmin,
-                'role' => $role,
-            ],
-            'shop' => $this->shopPayload($shop),
+            'user' => $this->userPayload($user, $ctx),
+            'shop' => $shop ? $this->shopPayload($shop) : null,
+            'chain' => $this->chainPayload($user),
             'token' => $token,
         ]);
     }
@@ -146,52 +147,90 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        [$shop, $role] = $this->resolveShopAndRole($user);
+        [$ctx, $error] = $this->resolveActingContext($request, $user);
+        if ($error) {
+            return $error;
+        }
 
-        if (!$shop) {
+        if (!$ctx && !$user->is_chain_owner) {
             return response()->json(['message' => 'Магазин не найден'], 404);
         }
 
+        $shop = $ctx['shop'] ?? null;
+
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar_url' => $user->avatar_url,
-                'phone' => $user->phone,
-                'is_superadmin' => (bool) $user->is_superadmin,
-                'role' => $role,
-            ],
-            'shop' => array_merge($this->shopPayload($shop), [
+            'user' => $this->userPayload($user, $ctx),
+            'shop' => $shop ? array_merge($this->shopPayload($shop), [
                 'domain'             => $shop->domain,
                 'min_booking_notice' => $shop->min_booking_notice,
                 'prepayment_enabled' => (bool) $shop->prepayment_enabled,
                 'prepayment_amount'  => (int) $shop->prepayment_amount,
                 'delivery_settings'  => $shop->delivery_settings,
-            ]),
+            ]) : null,
+            'chain' => $this->chainPayload($user),
         ]);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private function resolveShopAndRole(User $user): array
+    /**
+     * X-Acting-Shop-Id для эндпоинтов вне группы /api/admin/* (auth.shop туда
+     * не подключён, поэтому тут своя проверка — те же правила, что в
+     * SetShopFromAuth: владение/членство проверяется заново, заголовку самому
+     * по себе не доверяем).
+     *
+     * @return array{0: ?array, 1: ?JsonResponse}
+     */
+    private function resolveActingContext(Request $request, User $user): array
     {
-        // Owner
-        if ($user->shop) {
-            return [$user->shop, 'owner'];
+        $actingShopId = $request->header('X-Acting-Shop-Id');
+
+        if ($actingShopId === null || $actingShopId === '') {
+            return [ShopAccess::defaultFor($user), null];
         }
 
-        // Staff member
-        $staff = ShopStaff::where('user_id', $user->id)
-            ->whereNotNull('accepted_at')
-            ->with('shop')
-            ->first();
-
-        if ($staff && $staff->shop) {
-            return [$staff->shop, $staff->role];
+        if (!Str::isUuid($actingShopId)) {
+            return [null, response()->json([
+                'message' => 'Некорректный магазин',
+                'code'    => 'acting_shop_invalid',
+            ], 400)];
         }
 
-        return [null, null];
+        $ctx = ShopAccess::forShop($user, $actingShopId);
+
+        if (!$ctx) {
+            return [null, response()->json([
+                'message' => 'Нет доступа к этому магазину',
+                'code'    => 'acting_shop_forbidden',
+            ], 403)];
+        }
+
+        return [$ctx, null];
+    }
+
+    /** @param ?array{shop: Shop, role: string, staff: mixed} $ctx */
+    private function userPayload(User $user, ?array $ctx): array
+    {
+        return [
+            'id'             => $user->id,
+            'name'           => $user->name,
+            'email'          => $user->email,
+            'avatar_url'     => $user->avatar_url,
+            'phone'          => $user->phone,
+            'is_superadmin'  => (bool) $user->is_superadmin,
+            'is_chain_owner' => (bool) $user->is_chain_owner,
+            'role'           => $ctx['role'] ?? ($user->is_chain_owner ? 'chain_owner' : null),
+        ];
+    }
+
+    /** Только для владельца сети — сколько у него точек. */
+    private function chainPayload(User $user): ?array
+    {
+        if (!$user->is_chain_owner) {
+            return null;
+        }
+
+        return ['shops_count' => $user->shops()->count()];
     }
 
     private function shopPayload(Shop $shop): array
@@ -265,18 +304,13 @@ class AuthController extends Controller
 
         $user->save();
 
-        [, $role] = $this->resolveShopAndRole($user);
+        [$ctx, $error] = $this->resolveActingContext($request, $user);
+        if ($error) {
+            return $error;
+        }
 
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar_url' => $user->avatar_url,
-                'phone' => $user->phone,
-                'is_superadmin' => (bool) $user->is_superadmin,
-                'role' => $role,
-            ],
+            'user' => $this->userPayload($user, $ctx),
         ]);
     }
 
