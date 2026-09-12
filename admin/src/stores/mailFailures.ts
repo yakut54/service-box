@@ -16,5 +16,9 @@ export const useMailFailuresStore = defineStore('mailFailures', () => {
     catch { /* тихо игнорируем — не критично для бейджа */ }
   }
 
-  return { pendingCount, fetchPendingCount }
+  function $reset() {
+    pendingCount.value = 0
+  }
+
+  return { pendingCount, fetchPendingCount, $reset }
 })

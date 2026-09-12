@@ -22,5 +22,9 @@ export const useReviewsStore = defineStore('reviews', () => {
     catch { /* тихо игнорируем — не критично для бейджа/баннера */ }
   }
 
-  return { pendingCount, fetchPendingCount }
+  function $reset() {
+    pendingCount.value = 0
+  }
+
+  return { pendingCount, fetchPendingCount, $reset }
 })

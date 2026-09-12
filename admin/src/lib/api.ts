@@ -20,13 +20,17 @@ import type {
   SuperadminShop,
   SuperadminShopFeature,
   SuperadminRevenue,
+  SuperadminOwner,
+  ChainInfo,
+  ChainShop,
+  ChainRevenue,
   Commission,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public code?: string) {
     super(message)
     this.name = 'ApiError'
   }
@@ -34,11 +38,34 @@ export class ApiError extends Error {
 
 class ApiClient {
   private token: string | null = null
+  private actingShopId: string | null = null
   private unauthorizedHandler: (() => void) | null = null
+  private actingShopErrorHandler: ((code: string) => void) | null = null
 
   constructor() {
     // Restore token from whichever storage it was saved to
     this.token = localStorage.getItem('auth_token') ?? sessionStorage.getItem('auth_token')
+    // Активный магазин владельца сети — только в sessionStorage: вкладки
+    // должны жить в разных точках независимо, а новая вкладка приземляется
+    // в панель сети (безвредно, не в чужой магазин).
+    this.actingShopId = sessionStorage.getItem('acting_shop_id')
+  }
+
+  setActingShopId(id: string | null) {
+    this.actingShopId = id
+    if (id) sessionStorage.setItem('acting_shop_id', id)
+    else sessionStorage.removeItem('acting_shop_id')
+  }
+
+  getActingShopId(): string | null {
+    return this.actingShopId
+  }
+
+  private authHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {}
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`
+    if (this.actingShopId) headers['X-Acting-Shop-Id'] = this.actingShopId
+    return headers
   }
 
   setToken(token: string | null, remember = true) {
@@ -65,6 +92,14 @@ class ApiClient {
     this.unauthorizedHandler = handler
   }
 
+  // Владелец сети без выбранной точки (409 shop_not_selected) или с
+  // магазином, который перестал быть его (403 acting_shop_forbidden, точку
+  // удалили/передали, пока он был внутри) — уводим в панель сети, а не
+  // молча показываем сломанный экран.
+  setActingShopErrorHandler(handler: (code: string) => void) {
+    this.actingShopErrorHandler = handler
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -73,10 +108,7 @@ class ApiClient {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       ...(options.headers as Record<string, string>),
-    }
-
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`
+      ...this.authHeaders(),
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -92,7 +124,11 @@ class ApiClient {
         this.unauthorizedHandler?.()
       }
 
-      throw new ApiError(response.status, error.message || 'Ошибка запроса')
+      if (error.code === 'acting_shop_forbidden' || error.code === 'shop_not_selected') {
+        this.actingShopErrorHandler?.(error.code)
+      }
+
+      throw new ApiError(response.status, error.message || 'Ошибка запроса', error.code)
     }
 
     return response.json()
@@ -116,7 +152,7 @@ class ApiClient {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
-        ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}),
+        ...this.authHeaders(),
       },
       body: formData,
     })
@@ -132,7 +168,7 @@ class ApiClient {
     if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
 
     const response = await fetch(url.toString(), {
-      headers: { ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}) },
+      headers: this.authHeaders(),
     })
 
     if (!response.ok) throw new ApiError(response.status, 'Ошибка экспорта')
@@ -168,7 +204,7 @@ class ApiClient {
   }
 
   async login(data: { email: string; password: string }) {
-    return this.request<{ user: User; shop: Shop; token: string }>('/auth/login', {
+    return this.request<{ user: User; shop: Shop | null; chain: ChainInfo | null; token: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -183,7 +219,7 @@ class ApiClient {
   }
 
   async me() {
-    return this.request<{ user: User; shop: Shop }>('/auth/me')
+    return this.request<{ user: User; shop: Shop | null; chain: ChainInfo | null }>('/auth/me')
   }
 
   async refreshToken() {
@@ -733,6 +769,39 @@ class ApiClient {
     })
   }
 
+  async superadminGetOwners(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<{ data: SuperadminOwner[]; total: number; per_page: number; current_page: number }>(`/superadmin/owners${query}`)
+  }
+
+  async superadminToggleChainOwner(userId: string, enabled: boolean) {
+    return this.request<{ id: string; is_chain_owner: boolean }>(`/superadmin/owners/${userId}/chain`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    })
+  }
+
+  // ==========================================
+  // CHAIN (панель владельца сети)
+  // ==========================================
+
+  async chainGetShops() {
+    return this.request<{ data: ChainShop[] }>('/chain/shops')
+  }
+
+  async chainCreateShop(data: { name: string; domain?: string | null; timezone?: string | null }) {
+    // Бэкенд отдаёт только базовые поля магазина — revenue/orders/staff_count
+    // у новой точки всегда 0, отдельно их не считаем (см. ChainShopController::store).
+    return this.request<{ data: Pick<ChainShop, 'id' | 'name' | 'domain' | 'timezone' | 'created_at'> }>('/chain/shops', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async chainGetRevenue(days = 30) {
+    return this.request<ChainRevenue>(`/chain/revenue?days=${days}`)
+  }
+
   // ==========================================
   // CHAT
   // ==========================================
@@ -803,7 +872,7 @@ class ApiClient {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
-        ...(this.token ? { 'Authorization': `Bearer ${this.token}` } : {}),
+        ...this.authHeaders(),
       },
       body: formData,
     })
