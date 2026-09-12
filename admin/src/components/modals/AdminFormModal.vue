@@ -2,9 +2,12 @@
 import { ref, computed, watch } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { handlePhoneInput, applyPhoneMask } from '@/composables/usePhoneInput'
+import { useAuthStore } from '@/stores/auth'
 import { UiModal, UiHint } from '@/shared/ui'
 import ImageUpload from '@/components/ImageUpload.vue'
 import type { StaffMember } from '@/types'
+
+const authStore = useAuthStore()
 
 const props = defineProps<{
   modelValue: boolean
@@ -58,7 +61,11 @@ watch(() => props.modelValue, (open) => {
     phone.value     = props.admin.phone ? applyPhoneMask(props.admin.phone) : ''
     avatarUrl.value = props.admin.avatar_url ?? null
   } else {
-    role.value      = 'admin'
+    // Управляющий точки (не владелец) может звать только сборщиков —
+    // сервер это и так проверяет (StaffController::store), но незачем
+    // показывать ему переключатель ролей, которым он всё равно не может
+    // воспользоваться.
+    role.value      = authStore.isOwner ? 'admin' : 'collector'
     name.value      = ''
     email.value     = ''
     phone.value     = ''
@@ -131,8 +138,8 @@ async function save() {
         {{ error }}
       </div>
 
-      <!-- Role -->
-      <div v-if="mode === 'create'">
+      <!-- Role — только владелец выбирает, управляющий точки зовёт только сборщиков -->
+      <div v-if="mode === 'create' && authStore.isOwner">
         <p class="label flex items-center gap-1">
           Роль
           <UiHint>{{ role === 'collector'

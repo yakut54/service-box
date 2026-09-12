@@ -33,6 +33,13 @@ class DeliverySettingsController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
+        // Яндекс.Доставка несёт API-токен — интеграция остаётся владельцу.
+        // Ручные способы (самовывоз/курьер/почта) управляющему точки доступны,
+        // сам маршрут теперь без middleware('owner') (см. routes/api.php).
+        if ($request->attributes->get('staff_role') === 'admin' && $request->has('yandex')) {
+            return response()->json(['message' => 'Доступно только владельцу магазина'], 403);
+        }
+
         $request->validate([
             'pickup.enabled'   => 'boolean',
             'pickup.price'     => 'integer|min:0',

@@ -31,12 +31,15 @@ const mailFailuresStore = useMailFailuresStore()
 // 'profile' — ownerOnly: аватар/телефон владельца живут в public.users, у
 // сотрудников (admin/collector) своя запись в shop_staff и своё редактирование
 // через "Команду" (см. AdminFormModal) — самообслуживание для них не добавляли.
+// 'notifications'/'payments' — ownerOnly: боты магазина и платёжные ключи
+// остаются владельцу, управляющему точки (роль admin) видна только вкладка
+// "Основное" (там часы работы) и "Доставка".
 const tabs = [
   { id: 'profile',       label: 'Профиль', ownerOnly: true },
   { id: 'main',          label: 'Основное' },
   { id: 'widget',        label: 'Виджет', hidden: true },
-  { id: 'notifications', label: 'Уведомления' },
-  { id: 'payments',      label: 'Платежи' },
+  { id: 'notifications', label: 'Уведомления', ownerOnly: true },
+  { id: 'payments',      label: 'Платежи', ownerOnly: true },
   { id: 'delivery',      label: 'Доставка' },
 ] as const
 
@@ -93,15 +96,16 @@ function setTab(id: TabId) {
       <SettingsPassword />
     </div>
 
-    <!-- Основное -->
+    <!-- Основное: SettingsShopInfo/Brand/ChatModeration — только владелец,
+         часы работы доступны и управляющему точки -->
     <div v-show="activeTab === 'main'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <div class="flex flex-col gap-6">
+      <div v-if="authStore.isOwner" class="flex flex-col gap-6">
         <SettingsShopInfo />
         <SettingsBrand />
       </div>
       <div class="flex flex-col gap-6">
         <SettingsWorkHours />
-        <SettingsChatModeration />
+        <SettingsChatModeration v-if="authStore.isOwner" />
       </div>
     </div>
 
@@ -126,10 +130,10 @@ function setTab(id: TabId) {
       <SettingsYookassa />
     </div>
 
-    <!-- Доставка -->
+    <!-- Доставка: SettingsYandexDelivery несёт API-ключ — только владелец -->
     <div v-show="activeTab === 'delivery'" class="max-w-xl space-y-6">
       <SettingsDelivery />
-      <SettingsYandexDelivery />
+      <SettingsYandexDelivery v-if="authStore.isOwner" />
     </div>
   </div>
 </template>

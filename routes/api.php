@@ -184,9 +184,9 @@ Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
 // ADMIN API (Bearer token + Shop context)
 // ============================================================================
 Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', 'collector.only'])->group(function () {
-    // Shop (owner only)
+    // Shop — GET всем, PUT владельцу целиком / управляющему только часы работы (см. ShopController::update)
     Route::get('/shop', [ShopController::class, 'show']);
-    Route::put('/shop', [ShopController::class, 'update'])->middleware('owner');
+    Route::put('/shop', [ShopController::class, 'update']);
     Route::post('/api-key/regenerate', [ShopController::class, 'regenerateApiKey'])->middleware('owner');
 
     // Widget analytics funnel (Pro)
@@ -260,16 +260,16 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::get('/mail-failures/pending-count', [MailFailureController::class, 'pendingCount'])->middleware('owner');
     Route::post('/mail-failures/mark-seen', [MailFailureController::class, 'markSeen'])->middleware('owner');
 
-    // Delivery settings (owner only for write)
+    // Delivery settings — управляющему точки тоже доступно
     Route::get('/delivery-settings', [DeliverySettingsController::class, 'show']);
-    Route::put('/delivery-settings',  [DeliverySettingsController::class, 'update'])->middleware('owner');
+    Route::put('/delivery-settings',  [DeliverySettingsController::class, 'update']);
 
-    // Staff management (owner only)
-    Route::get('/staff',              [StaffController::class, 'index'])->middleware('owner');
-    Route::post('/staff',             [StaffController::class, 'store'])->middleware(['owner', 'throttle:5,1']);
-    Route::put('/staff/{id}',         [StaffController::class, 'update'])->middleware('owner');
-    Route::post('/staff/{id}/resend', [StaffController::class, 'resend'])->middleware(['owner', 'throttle:5,1']);
-    Route::delete('/staff/{id}',      [StaffController::class, 'destroy'])->middleware('owner');
+    // Staff management (owner full access; admin — collectors only, see StaffController)
+    Route::get('/staff',              [StaffController::class, 'index']);
+    Route::post('/staff',             [StaffController::class, 'store'])->middleware('throttle:5,1');
+    Route::put('/staff/{id}',         [StaffController::class, 'update']);
+    Route::post('/staff/{id}/resend', [StaffController::class, 'resend'])->middleware('throttle:5,1');
+    Route::delete('/staff/{id}',      [StaffController::class, 'destroy']);
 
     // Чат с покупателями — общий почтовый ящик владельца + администраторов
     // (мастера не видят — RequireNotMaster уже стоит на всей группе /admin),

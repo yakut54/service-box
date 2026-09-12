@@ -38,19 +38,28 @@ async function save() {
   error.value   = ''
   success.value = false
   try {
-    const updated = await api.updateShop({
-      work_start:          workStart.value,
-      work_end:            workEnd.value,
-      slot_duration:       Number(slotDuration.value),
-      min_booking_notice:  Number(minBookingNotice.value),
-      timezone:            timezone.value,
-    })
+    // Управляющий точки (роль admin) может менять только часы работы —
+    // остальные поля тут же в форме, но принадлежат владельцу (см.
+    // ShopController::update). Не шлём их за админа, иначе весь запрос
+    // упадёт на 403 (валидный набор для его роли — только work_start/end).
+    const payload: Record<string, unknown> = {
+      work_start: workStart.value,
+      work_end:   workEnd.value,
+    }
+    if (authStore.isOwner) {
+      payload.slot_duration      = Number(slotDuration.value)
+      payload.min_booking_notice = Number(minBookingNotice.value)
+      payload.timezone           = timezone.value
+    }
+    const updated = await api.updateShop(payload)
     if (authStore.shop) {
-      authStore.shop.work_start          = updated.work_start
-      authStore.shop.work_end            = updated.work_end
-      authStore.shop.slot_duration       = updated.slot_duration
-      authStore.shop.min_booking_notice  = updated.min_booking_notice
-      authStore.shop.timezone            = updated.timezone
+      authStore.shop.work_start = updated.work_start
+      authStore.shop.work_end   = updated.work_end
+      if (authStore.isOwner) {
+        authStore.shop.slot_duration      = updated.slot_duration
+        authStore.shop.min_booking_notice = updated.min_booking_notice
+        authStore.shop.timezone           = updated.timezone
+      }
     }
     success.value = true
     setTimeout(() => success.value = false, 3000)
@@ -78,7 +87,7 @@ async function save() {
       </div>
     </div>
 
-    <div class="mb-4">
+    <div v-if="authStore.isOwner" class="mb-4">
       <p class="label flex items-center gap-1">
         Часовой пояс
         <UiHint>Используется для корректного отображения слотов записи</UiHint>

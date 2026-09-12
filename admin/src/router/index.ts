@@ -133,7 +133,6 @@ const router = createRouter({
           path: 'staff',
           name: 'staff',
           component: () => import('@/views/StaffView.vue'),
-          meta: { requiresOwner: true },
         },
         {
           path: 'commission',
@@ -151,7 +150,6 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
-          meta: { requiresOwner: true },
         },
         // Superadmin routes
         {

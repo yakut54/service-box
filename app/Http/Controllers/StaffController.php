@@ -21,6 +21,7 @@ class StaffController extends Controller
         $shop = $request->attributes->get('shop');
 
         $staff = ShopStaff::where('shop_id', $shop->id)
+            ->when($request->attributes->get('staff_role') === 'admin', fn ($q) => $q->where('role', 'collector'))
             ->with('user:id,name,email')
             ->orderBy('created_at', 'desc')
             ->get()
@@ -62,9 +63,16 @@ class StaffController extends Controller
             'phone'     => 'nullable|string|max:20',
         ]);
 
-        $role  = $data['role'] ?? 'admin';
+        $isActingAdmin = $request->attributes->get('staff_role') === 'admin';
+        $role  = $data['role'] ?? ($isActingAdmin ? 'collector' : 'admin');
         $email = strtolower(trim($data['email']));
         $name  = isset($data['name']) ? trim($data['name']) : null;
+
+        // Управляющий точки (роль admin) приглашает только сборщиков —
+        // владелец решает, кто становится admin/master.
+        if ($isActingAdmin && $role !== 'collector') {
+            return response()->json(['message' => 'Администратор может приглашать только сборщиков'], 422);
+        }
 
         if ($request->user()->email === $email) {
             return response()->json(['message' => 'Нельзя пригласить себя'], 422);
@@ -213,9 +221,11 @@ class StaffController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
+        $allowedRoles = $request->attributes->get('staff_role') === 'admin' ? ['collector'] : ['admin', 'collector'];
+
         $staffRecord = ShopStaff::where('id', $id)
             ->where('shop_id', $shop->id)
-            ->whereIn('role', ['admin', 'collector'])
+            ->whereIn('role', $allowedRoles)
             ->firstOrFail();
 
         $data = $request->validate([
@@ -248,6 +258,7 @@ class StaffController extends Controller
 
         $staffRecord = ShopStaff::where('id', $id)
             ->where('shop_id', $shop->id)
+            ->when($request->attributes->get('staff_role') === 'admin', fn ($q) => $q->where('role', 'collector'))
             ->whereNull('accepted_at')
             ->firstOrFail();
 
@@ -281,6 +292,7 @@ class StaffController extends Controller
 
         $staffRecord = ShopStaff::where('id', $id)
             ->where('shop_id', $shop->id)
+            ->when($request->attributes->get('staff_role') === 'admin', fn ($q) => $q->where('role', 'collector'))
             ->firstOrFail();
 
         if ($staffRecord->user_id && $staffRecord->accepted_at) {

@@ -147,6 +147,15 @@ class ShopController extends Controller
             'widget_config.font_family.in' => 'Недопустимый шрифт',
         ]);
 
+        // Управляющий точки (роль admin) может менять только часы работы —
+        // бренд, платежи, юр. документы, интеграции остаются владельцу.
+        if ($request->attributes->get('staff_role') === 'admin') {
+            $disallowed = array_diff(array_keys($validated), ['work_start', 'work_end']);
+            if (!empty($disallowed)) {
+                return response()->json(['message' => 'Доступно только владельцу магазина'], 403);
+            }
+        }
+
         $wc = $validated['widget_config'] ?? [];
 
         // Защита от CSS-инъекции: запрещаем закрывающий тег </style> и javascript:

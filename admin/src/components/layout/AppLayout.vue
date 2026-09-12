@@ -86,10 +86,10 @@ const navigation = [
   { name: 'Скидки',    href: '/discounts',    icon: 'discount' },
   { name: 'Отзывы',    href: '/reviews',      icon: 'reviews' },
   // Магазин
-  { name: 'Команда',   href: '/staff',        icon: 'staff',        ownerOnly: true },
+  { name: 'Команда',   href: '/staff',        icon: 'staff' },
   { name: 'Комиссия',  href: '/commission',   icon: 'commission',   ownerOnly: true },
   { name: 'Документы', href: '/legal',        icon: 'legal',        ownerOnly: true },
-  { name: 'Настройки', href: '/settings',     icon: 'settings',     ownerOnly: true },
+  { name: 'Настройки', href: '/settings',     icon: 'settings' },
 ]
 
 const visibleNavigation = computed(() =>
