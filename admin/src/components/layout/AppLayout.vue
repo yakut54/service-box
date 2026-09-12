@@ -98,6 +98,7 @@ const visibleNavigation = computed(() =>
 
 const superadminNavigation = [
   { name: 'Магазины', href: '/superadmin/shops', icon: 'sa-shops' },
+  { name: 'Владельцы', href: '/superadmin/owners', icon: 'sa-owners' },
   { name: 'Выручка', href: '/superadmin/revenue', icon: 'sa-revenue' },
 ]
 
@@ -109,6 +110,10 @@ function isActive(href: string) {
 async function handleLogout() {
   await authStore.logout()
   router.push('/login')
+}
+
+async function leaveChain() {
+  await authStore.leaveShop()
 }
 </script>
 
@@ -136,6 +141,17 @@ async function handleLogout() {
           </div>
           <span class="font-semibold text-gray-900 dark:text-white">ServiceBox</span>
         </RouterLink>
+      </div>
+
+      <!-- Владелец сети зашёл внутрь одной из своих точек -->
+      <div v-if="authStore.actingShopId" class="px-4 py-3 border-b border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 flex-shrink-0">
+        <p class="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">Вы в точке сети</p>
+        <div class="flex items-center justify-between gap-2">
+          <p class="font-medium text-gray-900 dark:text-white truncate text-sm">{{ authStore.shop?.name }}</p>
+          <button @click="leaveChain" class="text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline shrink-0">
+            ← Сеть
+          </button>
+        </div>
       </div>
 
       <!-- Shop name -->
@@ -239,6 +255,10 @@ async function handleLogout() {
           <!-- Revenue icon -->
           <svg v-else-if="item.icon === 'sa-revenue'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <!-- Owners icon -->
+          <svg v-else-if="item.icon === 'sa-owners'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           {{ item.name }}
         </RouterLink>

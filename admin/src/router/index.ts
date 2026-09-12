@@ -164,6 +164,29 @@ const router = createRouter({
           component: () => import('@/views/superadmin/RevenueView.vue'),
           meta: { requiresSuperadmin: true },
         },
+        {
+          path: 'superadmin/owners',
+          name: 'superadmin-owners',
+          component: () => import('@/views/superadmin/OwnersView.vue'),
+          meta: { requiresSuperadmin: true },
+        },
+      ],
+    },
+    {
+      path: '/chain',
+      component: () => import('@/components/layout/ChainLayout.vue'),
+      meta: { requiresAuth: true, requiresChain: true },
+      children: [
+        {
+          path: '',
+          name: 'chain-shops',
+          component: () => import('@/views/chain/ChainShopsView.vue'),
+        },
+        {
+          path: 'revenue',
+          name: 'chain-revenue',
+          component: () => import('@/views/chain/ChainRevenueView.vue'),
+        },
       ],
     },
     {
@@ -233,10 +256,11 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // Мастер/сборщик после логина/регистрации → в свой кабинет, не в dashboard
+  // Мастер/сборщик/владелец сети после логина/регистрации → в свой кабинет
   if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
     if (authStore.isMaster) { next({ name: 'master-schedule' }); return }
     if (authStore.isCollector) { next({ name: 'collector-orders' }); return }
+    if (authStore.isChainOwner && !authStore.actingShopId) { next({ name: 'chain-shops' }); return }
     next({ name: 'dashboard' })
     return
   }
@@ -261,6 +285,26 @@ router.beforeEach(async (to, _from, next) => {
 
   // Не-сборщик пытается открыть раздел сборщика
   if (to.meta.requiresCollector && !authStore.isCollector) {
+    next({ name: 'dashboard' })
+    return
+  }
+
+  // Владелец сети без выбранной точки — на любом обычном разделе (кроме
+  // самой панели сети и суперадминки — теоретически можно быть и тем, и
+  // другим одновременно, панели независимы, см. PLAN.md) всё равно получит
+  // 409 от бэкенда, поэтому сразу уводим в панель, а не показываем
+  // сломанный экран.
+  if (
+    authStore.isChainOwner && !authStore.actingShopId &&
+    !to.meta.requiresChain && !to.meta.requiresSuperadmin &&
+    requiresAuth && to.name !== 'not-found'
+  ) {
+    next({ name: 'chain-shops' })
+    return
+  }
+
+  // Не-владелец сети пытается открыть панель сети
+  if (to.meta.requiresChain && !authStore.isChainOwner) {
     next({ name: 'dashboard' })
     return
   }

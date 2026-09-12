@@ -27,6 +27,11 @@ const CRUMBS: Record<string, CrumbDef> = {
   'reviews':         { label: 'Отзывы',          to: '/reviews',      parent: 'dashboard' },
   'commission':      { label: 'Комиссия',        to: '/commission',   parent: 'dashboard' },
   'settings':        { label: 'Настройки',       to: '/settings',     parent: 'dashboard' },
+  'superadmin-shops':   { label: 'Магазины',  to: '/superadmin/shops' },
+  'superadmin-owners':  { label: 'Владельцы', to: '/superadmin/owners' },
+  'superadmin-revenue': { label: 'Выручка',   to: '/superadmin/revenue' },
+  'chain-shops':     { label: 'Мои точки', to: '/chain' },
+  'chain-revenue':   { label: 'Выручка',   to: '/chain/revenue', parent: 'chain-shops' },
 }
 
 const route = useRoute()
