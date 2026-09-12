@@ -43,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify.phone'   => \App\Http\Middleware\VerifyPhoneToken::class,
             'verify.phone.session' => \App\Http\Middleware\VerifyPhoneSession::class,
             'superadmin'     => \App\Http\Middleware\RequireSuperadmin::class,
+            'chain'          => \App\Http\Middleware\RequireChainOwner::class,
             'force.json'     => \App\Http\Middleware\ForceJson::class,
             'api.auth'       => \App\Http\Middleware\ApiKeyAuth::class,
             'api.ratelimit'  => \App\Http\Middleware\ApiRateLimit::class,

@@ -30,7 +30,8 @@ final class ShopRevenueAggregator
      *     period_kopecks: int,
      *     period_days: int,
      *     orders_total: int,
-     *     per_shop: array<string, array{name: string, total_kopecks: int, period_kopecks: int, orders: int}>
+     *     period_orders: int,
+     *     per_shop: array<string, array{name: string, total_kopecks: int, period_kopecks: int, orders: int, period_orders: int}>
      * }
      */
     public static function totals(Collection $shops, string $column, array $excludeStatuses, int $periodDays): array
@@ -41,6 +42,7 @@ final class ShopRevenueAggregator
         $totalKopecks  = 0;
         $periodKopecks = 0;
         $ordersTotal   = 0;
+        $periodOrders  = 0;
         $perShop       = [];
 
         foreach ($shops as $shop) {
@@ -53,10 +55,11 @@ final class ShopRevenueAggregator
                 SELECT
                     COALESCE(SUM({$column}), 0) AS total,
                     COALESCE(SUM({$column}) FILTER (WHERE created_at >= ?), 0) AS period,
-                    COUNT(*) AS orders
+                    COUNT(*) AS orders,
+                    COUNT(*) FILTER (WHERE created_at >= ?) AS period_orders
                 FROM \"{$schema}\".orders
                 WHERE status NOT IN (" . self::placeholders($excludeStatuses) . ')
-            ', array_merge([$since], $excludeStatuses));
+            ', array_merge([$since, $since], $excludeStatuses));
 
             if ($row === null) {
                 continue;
@@ -65,12 +68,14 @@ final class ShopRevenueAggregator
             $totalKopecks  += (int) $row->total;
             $periodKopecks += (int) $row->period;
             $ordersTotal   += (int) $row->orders;
+            $periodOrders  += (int) $row->period_orders;
 
             $perShop[$shop->id] = [
                 'name'           => $shop->name,
                 'total_kopecks'  => (int) $row->total,
                 'period_kopecks' => (int) $row->period,
                 'orders'         => (int) $row->orders,
+                'period_orders'  => (int) $row->period_orders,
             ];
         }
 
@@ -79,6 +84,7 @@ final class ShopRevenueAggregator
             'period_kopecks' => $periodKopecks,
             'period_days'    => $periodDays,
             'orders_total'   => $ordersTotal,
+            'period_orders'  => $periodOrders,
             'per_shop'       => $perShop,
         ];
     }

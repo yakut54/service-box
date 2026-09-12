@@ -16,7 +16,7 @@ class SuperadminShopController extends Controller
     public function index(Request $request)
     {
         $query = Shop::query()
-            ->with('user:id,name,email,created_at')
+            ->with('user:id,name,email,created_at,is_chain_owner')
             ->orderByDesc('created_at');
 
         if ($search = $request->query('search')) {
@@ -40,7 +40,7 @@ class SuperadminShopController extends Controller
     // GET /api/superadmin/shops/{id}
     public function show(string $id)
     {
-        $shop = Shop::with('user:id,name,email,created_at')->findOrFail($id);
+        $shop = Shop::with('user:id,name,email,created_at,is_chain_owner')->findOrFail($id);
 
         return response()->json([
             'id'                   => $shop->id,
