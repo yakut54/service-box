@@ -945,6 +945,23 @@ CREATE TABLE IF NOT EXISTS public.telegram_messages (
 
 
 --
+-- Name: user_flag_audit; Type: TABLE; Schema: public; Owner: -
+-- Журнал переключений флагов на пользователе из суперадминки: кто, что, когда.
+-- Отдельно от shop_feature_audit, потому что там shop_id NOT NULL — этот
+-- журнал для флагов на юзере (например is_chain_owner), не на магазине.
+--
+
+CREATE TABLE IF NOT EXISTS public.user_flag_audit (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    actor_user_id uuid,
+    flag_key character varying(255) NOT NULL,
+    enabled boolean NOT NULL,
+    created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -961,7 +978,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     terms_accepted_ip character varying(45),
     is_superadmin boolean DEFAULT false NOT NULL,
     avatar_url character varying(1000),
-    phone character varying(20)
+    phone character varying(20),
+    is_chain_owner boolean DEFAULT false NOT NULL
 );
 
 
@@ -1178,6 +1196,14 @@ ALTER TABLE ONLY public.telegram_messages
 
 
 --
+-- Name: user_flag_audit user_flag_audit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_flag_audit
+    ADD CONSTRAINT user_flag_audit_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: users users_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1321,6 +1347,13 @@ CREATE INDEX telegram_messages_type_index ON public.telegram_messages USING btre
 
 
 --
+-- Name: user_flag_audit_user_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_flag_audit_user_id_created_at_index ON public.user_flag_audit USING btree (user_id, created_at);
+
+
+--
 -- Name: shop_features shop_features_shop_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1366,6 +1399,14 @@ ALTER TABLE ONLY public.telegram_codes
 
 ALTER TABLE ONLY public.telegram_messages
     ADD CONSTRAINT telegram_messages_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_flag_audit user_flag_audit_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_flag_audit
+    ADD CONSTRAINT user_flag_audit_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
