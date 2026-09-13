@@ -255,8 +255,13 @@ class _AccountScreenState extends State<AccountScreen> with WidgetsBindingObserv
             );
             if (!confirmed || !context.mounted) return;
 
+            // Раньше здесь был Navigator.pop() — AccountScreen попадали
+            // сюда только пушем (см. AccountButton, удалён вместе с нижней
+            // навигацией). Теперь это постоянная вкладка (см. HomeShell) —
+            // после выхода просто ничего не делаем, обёртка _RequiresLogin
+            // сама покажет экран входа, как только AuthState.isLoggedIn
+            // станет false (она уже слушает этот стор).
             await context.read<AuthState>().logout();
-            if (context.mounted) Navigator.of(context).pop();
           },
           child: const Text('Выйти'),
         ),

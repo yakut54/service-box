@@ -8,8 +8,6 @@ import '../models/saved_shop.dart';
 import '../services/age_gate.dart';
 import '../state/cart_state.dart';
 import '../state/catalog_state.dart';
-import 'widgets/account_button.dart';
-import 'widgets/cart_button.dart';
 import 'widgets/chat_button.dart';
 import 'widgets/error_view.dart';
 import 'widgets/mini_cart_bar.dart';
@@ -63,14 +61,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        // Корзина/Профиль переехали в нижнюю навигацию (см. HomeShell) —
+        // здесь остаётся только чат. Заголовок — Expanded+ellipsis, иначе
+        // длинное название точки наезжает на иконки (баг найден вживую,
+        // см. PLAN.md).
         title: Row(
           children: [
             ShopAvatar(shop: widget.shop, size: 28),
             const SizedBox(width: 12),
-            Text(widget.shop.name),
+            Expanded(
+              child: Text(widget.shop.name, overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
-        actions: const [ChatButton(), AccountButton(), CartButton()],
+        actions: const [ChatButton()],
       ),
       body: Stack(
         children: [

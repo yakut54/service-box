@@ -24,7 +24,7 @@ void openChat(BuildContext context, {String? initialDraft}) {
 }
 
 /// Иконка чата с бейджем непрочитанных — если байер не вошёл, сперва просит
-/// войти по телефону (переписка привязана к сессии), как и AccountButton.
+/// войти по телефону (переписка привязана к сессии).
 /// Сама включает/выключает опрос бейджа в ChatState при входе/выходе —
 /// единственное место в дереве, которое видит и AuthState, и ChatState.
 class ChatButton extends StatefulWidget {

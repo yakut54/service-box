@@ -16,8 +16,8 @@ import 'state/cart_state.dart';
 import 'state/catalog_state.dart';
 import 'state/chat_state.dart';
 import 'state/shop_state.dart';
-import 'ui/catalog_screen.dart';
 import 'ui/chat_screen.dart';
+import 'ui/home_shell.dart';
 import 'ui/splash_intro_screen.dart';
 import 'ui/widgets/error_view.dart';
 
@@ -171,6 +171,6 @@ class _BootScreenState extends State<_BootScreen> {
       );
     }
 
-    return CatalogScreen(shop: state.shop!);
+    return HomeShell(shop: state.shop!);
   }
 }
