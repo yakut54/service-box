@@ -21,31 +21,47 @@ class StaffController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        $staff = ShopStaff::where('shop_id', $shop->id)
+        $staffRows = ShopStaff::where('shop_id', $shop->id)
             ->when($request->attributes->get('staff_role') === 'admin', fn ($q) => $q->where('role', 'collector'))
             ->with('user:id,name,email')
             ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(fn($s) => [
-                'id'                => $s->id,
-                'role'              => $s->role,
-                'master_id'         => $s->master_id,
-                'category_ids'      => $s->category_ids,
-                'invite_email'      => $s->invite_email,
-                'invite_name'       => $s->invite_name,
-                'avatar_url'        => $s->avatar_url,
-                'phone'             => $s->phone,
-                'last_login_at'     => $s->last_login_at,
-                'accepted_at'       => $s->accepted_at,
-                'invite_expires_at' => $s->invite_expires_at,
-                'is_pending'        => !$s->isAccepted(),
-                'is_expired'        => !$s->isAccepted() && $s->invite_expires_at?->isPast(),
-                'user'              => $s->user ? [
-                    'id'    => $s->user->id,
-                    'name'  => $s->user->name,
-                    'email' => $s->user->email,
-                ] : null,
-            ]);
+            ->get();
+
+        // "Онлайн" — не "входил в последние 5 минут" (last_login_at не
+        // отражает выход: logout() ничего в нём не меняет, поэтому вышедший
+        // ещё до 5 минут выглядел бы активным). Настоящий источник истины —
+        // есть ли у аккаунта хоть один живой Sanctum-токен прямо сейчас:
+        // login() всегда сносит старые токены перед выдачей нового
+        // (tokens()->delete()), logout() удаляет свой при выходе — значит
+        // "нет токена" = точно не в системе. Один запрос на всех, не N+1.
+        $userIds = $staffRows->pluck('user_id')->filter()->values();
+        $onlineUserIds = $userIds->isEmpty() ? collect() : DB::table('personal_access_tokens')
+            ->where('tokenable_type', User::class)
+            ->whereIn('tokenable_id', $userIds)
+            ->pluck('tokenable_id')
+            ->unique();
+
+        $staff = $staffRows->map(fn($s) => [
+            'id'                => $s->id,
+            'role'              => $s->role,
+            'master_id'         => $s->master_id,
+            'category_ids'      => $s->category_ids,
+            'invite_email'      => $s->invite_email,
+            'invite_name'       => $s->invite_name,
+            'avatar_url'        => $s->avatar_url,
+            'phone'             => $s->phone,
+            'last_login_at'     => $s->last_login_at,
+            'accepted_at'       => $s->accepted_at,
+            'invite_expires_at' => $s->invite_expires_at,
+            'is_pending'        => !$s->isAccepted(),
+            'is_expired'        => !$s->isAccepted() && $s->invite_expires_at?->isPast(),
+            'is_online'         => $s->user_id && $onlineUserIds->contains($s->user_id),
+            'user'              => $s->user ? [
+                'id'    => $s->user->id,
+                'name'  => $s->user->name,
+                'email' => $s->user->email,
+            ] : null,
+        ]);
 
         return response()->json(['data' => $staff]);
     }

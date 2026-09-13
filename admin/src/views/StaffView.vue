@@ -105,11 +105,14 @@ function initials(admin: StaffMember) {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
+// "Онлайн" — не по last_login_at (тот не меняется при выходе, поэтому
+// вышедший ещё до 5 минут выглядел бы активным), а по admin.is_online —
+// считает бэкенд по реальному наличию токена (см. StaffController::index).
 function lastLoginText(admin: StaffMember): string {
+  if (admin.is_online) return 'Сейчас онлайн'
   if (!admin.last_login_at) return 'Ещё не входил'
   const diff = Date.now() - new Date(admin.last_login_at).getTime()
   const min  = Math.floor(diff / 60000)
-  if (min < 5)   return 'Сейчас онлайн'
   if (min < 60)  return `${min} мин. назад`
   const hrs = Math.floor(min / 60)
   if (hrs < 24)  return `${hrs} ч. назад`
@@ -121,9 +124,9 @@ function lastLoginText(admin: StaffMember): string {
 }
 
 function lastLoginColor(admin: StaffMember): string {
+  if (admin.is_online) return 'text-green-600 dark:text-green-400'
   if (!admin.last_login_at) return 'text-gray-400 dark:text-gray-500'
   const days = Math.floor((Date.now() - new Date(admin.last_login_at).getTime()) / 86400000)
-  if (days < 1)  return 'text-green-600 dark:text-green-400'
   if (days < 7)  return 'text-gray-500 dark:text-gray-400'
   return 'text-amber-500 dark:text-amber-400'
 }

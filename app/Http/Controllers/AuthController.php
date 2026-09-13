@@ -118,6 +118,14 @@ class AuthController extends Controller
         $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Владелец мог держать открытой «Команду» — статус «Активен»/
+        // «онлайн» у этого сотрудника обновится без перезагрузки страницы
+        // (см. StaffController::index — "онлайн" считается по наличию
+        // токена, не по last_login_at).
+        if ($ctx['staff'] ?? null) {
+            \App\Events\StaffUpdated::dispatch($ctx['staff']->shop_id);
+        }
+
         return response()->json([
             'message' => 'Вход выполнен',
             'user' => $this->userPayload($user, $ctx),
@@ -131,7 +139,17 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        // До удаления токена — иначе "онлайн" в StaffController::index уже
+        // не найдёт его и не поймёт, чей это был токен для уведомления.
+        $staff = ShopStaff::where('user_id', $user->id)->whereNotNull('accepted_at')->first();
+
+        $user->currentAccessToken()->delete();
+
+        if ($staff) {
+            \App\Events\StaffUpdated::dispatch($staff->shop_id);
+        }
 
         return response()->json([
             'message' => 'Выход выполнен',

@@ -593,6 +593,7 @@ export interface StaffMember {
   accepted_at: string | null
   invite_expires_at: string | null
   is_pending: boolean
+  is_online: boolean
   is_expired: boolean
   user: {
     id: string
