@@ -32,6 +32,7 @@ const CRUMBS: Record<string, CrumbDef> = {
   'superadmin-revenue': { label: 'Выручка',   to: '/superadmin/revenue' },
   'chain-shops':     { label: 'Мои точки', to: '/chain' },
   'chain-revenue':   { label: 'Выручка',   to: '/chain/revenue', parent: 'chain-shops' },
+  'chain-settings':  { label: 'Настройки', to: '/chain/settings', parent: 'chain-shops' },
 }
 
 const route = useRoute()

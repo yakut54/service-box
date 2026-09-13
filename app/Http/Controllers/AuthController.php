@@ -240,6 +240,7 @@ class AuthController extends Controller
         return [
             'shops_count' => $user->shops()->count(),
             'name'        => $user->chain_name,
+            'logo_url'    => $user->chain_logo_url,
         ];
     }
 

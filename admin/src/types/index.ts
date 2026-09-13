@@ -21,6 +21,7 @@ export interface User {
 export interface ChainInfo {
   shops_count: number
   name: string | null
+  logo_url: string | null
 }
 
 export interface ChainShop {

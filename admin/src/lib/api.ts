@@ -802,6 +802,13 @@ class ApiClient {
     return this.request<ChainRevenue>(`/chain/revenue?days=${days}`)
   }
 
+  async chainUpdateSettings(data: { name: string; logo_url?: string | null }) {
+    return this.request<{ data: ChainInfo }>('/chain/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
   // ==========================================
   // CHAT
   // ==========================================

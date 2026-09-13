@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/flavor_config.dart';
 import '../models/category.dart';
 import '../models/saved_shop.dart';
 import '../services/age_gate.dart';
@@ -63,11 +64,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        // Заголовок — имя СЕТИ (один APK = одна сеть, зашито на этапе сборки),
+        // а не имя текущей точки (widget.shop.name): у сети может быть
+        // несколько точек с разными названиями, шапка не должна прыгать между
+        // ними. См. FlavorConfig.shopName и обсуждение "приложение одно на сеть".
         title: Row(
           children: [
             ShopAvatar(shop: widget.shop, size: 28),
             const SizedBox(width: 12),
-            Text(widget.shop.name),
+            Expanded(
+              child: Text(
+                FlavorConfig.shopName,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         actions: const [ChatButton(), AccountButton(), CartButton()],

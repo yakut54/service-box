@@ -44,6 +44,13 @@ async function logout() {
                   ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800']"
             >Выручка</RouterLink>
+            <RouterLink
+              :to="{ name: 'chain-settings' }"
+              :class="['px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                isActive('chain-settings')
+                  ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800']"
+            >Настройки</RouterLink>
           </nav>
         </div>
 
@@ -87,6 +94,13 @@ async function logout() {
               ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800']"
         >Выручка</RouterLink>
+        <RouterLink
+          :to="{ name: 'chain-settings' }"
+          :class="['flex-1 text-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+            isActive('chain-settings')
+              ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800']"
+        >Настройки</RouterLink>
       </nav>
     </header>
 

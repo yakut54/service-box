@@ -5,6 +5,7 @@ use App\Http\Controllers\Superadmin\SuperadminRevenueController;
 use App\Http\Controllers\Superadmin\SuperadminOwnerController;
 use App\Http\Controllers\Chain\ChainShopController;
 use App\Http\Controllers\Chain\ChainRevenueController;
+use App\Http\Controllers\Chain\ChainSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ProductController;
@@ -404,7 +405,8 @@ Route::prefix('superadmin')->middleware(['auth:sanctum', 'superadmin'])->group(f
 // CHAIN OWNER (a user who owns more than one shop, see users.is_chain_owner)
 // ============================================================================
 Route::prefix('chain')->middleware(['auth:sanctum', 'chain'])->group(function () {
-    Route::get('/shops',   [ChainShopController::class, 'index'])->middleware('throttle:chain-read');
-    Route::post('/shops',  [ChainShopController::class, 'store'])->middleware('throttle:chain-write');
-    Route::get('/revenue', [ChainRevenueController::class, 'index'])->middleware('throttle:chain-read');
+    Route::get('/shops',    [ChainShopController::class, 'index'])->middleware('throttle:chain-read');
+    Route::post('/shops',   [ChainShopController::class, 'store'])->middleware('throttle:chain-write');
+    Route::get('/revenue',  [ChainRevenueController::class, 'index'])->middleware('throttle:chain-read');
+    Route::put('/settings', [ChainSettingsController::class, 'update'])->middleware('throttle:chain-write');
 });

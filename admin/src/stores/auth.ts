@@ -155,6 +155,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateChainSettings(data: { name: string; logo_url?: string | null }) {
+    try {
+      const response = await api.chainUpdateSettings(data)
+      chain.value = response.data
+      return { success: true }
+    } catch (err: unknown) {
+      const message = err instanceof ApiError ? err.message : 'Ошибка обновления'
+      return { success: false, error: message }
+    }
+  }
+
   async function updateProfile(data: { name: string; phone?: string | null; avatar_url?: string | null }) {
     try {
       const response = await api.updateProfile(data)
@@ -239,6 +250,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithToken,
     updateShop,
     updateProfile,
+    updateChainSettings,
     enterShop,
     leaveShop,
   }

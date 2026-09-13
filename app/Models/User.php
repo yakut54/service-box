@@ -21,6 +21,7 @@ class User extends Authenticatable
         'is_superadmin',
         'is_chain_owner',
         'chain_name',
+        'chain_logo_url',
         'avatar_url',
         'phone',
     ];

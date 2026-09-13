@@ -187,6 +187,11 @@ const router = createRouter({
           name: 'chain-revenue',
           component: () => import('@/views/chain/ChainRevenueView.vue'),
         },
+        {
+          path: 'settings',
+          name: 'chain-settings',
+          component: () => import('@/views/chain/ChainSettingsView.vue'),
+        },
       ],
     },
     {

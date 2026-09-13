@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
@@ -84,8 +85,23 @@ async function save() {
         </div>
       </div>
 
-      <!-- Logo -->
-      <div>
+      <!-- Логотип: точки сети своего логотипа не имеют — один логотип на
+           всю сеть настраивается в "Моя сеть → Настройки" (см. диалог про
+           "У нас Один единый логотип сети!!"). Для одиночного шопера
+           (не в сети) логотип остаётся здесь как раньше. -->
+      <div v-if="authStore.isChainOwner">
+        <p class="label mb-2">Логотип</p>
+        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <img v-if="authStore.chain?.logo_url" :src="authStore.chain.logo_url" class="w-10 h-10 rounded object-contain bg-white" alt="" />
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Логотип общий для всей сети — настраивается один раз в
+            <RouterLink :to="{ name: 'chain-settings' }" class="text-indigo-600 dark:text-indigo-400 hover:underline">Моя сеть → Настройки</RouterLink>,
+            у отдельных точек своего логотипа нет.
+          </p>
+        </div>
+      </div>
+
+      <div v-else>
         <p class="label mb-2">Логотип магазина</p>
         <div class="flex items-start gap-4">
           <ImageUpload
