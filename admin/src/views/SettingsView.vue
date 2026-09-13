@@ -31,6 +31,11 @@ const mailFailuresStore = useMailFailuresStore()
 // 'profile' — ownerOnly: аватар/телефон владельца живут в public.users, у
 // сотрудников (admin/collector) своя запись в shop_staff и своё редактирование
 // через "Команду" (см. AdminFormModal) — самообслуживание для них не добавляли.
+// Для владельца СЕТИ эта вкладка дополнительно скрыта: профиль/пароль у него
+// один на все точки (это тот же users.id), редактируется в "Моя сеть →
+// Настройки" — показывать те же формы ещё и внутри каждой точки было бы тем
+// самым дублированием, которого сторонимся (см. диалог "почему в Точке
+// профиль Сетевика?").
 // 'notifications'/'payments' — ownerOnly: боты магазина и платёжные ключи
 // остаются владельцу, управляющему точки (роль admin) видна только вкладка
 // "Основное" (там часы работы) и "Доставка".
@@ -47,6 +52,7 @@ type TabId = (typeof tabs)[number]['id']
 
 const visibleTabs = computed(() => tabs.filter(tab =>
   !('hidden' in tab && tab.hidden) &&
+  !(tab.id === 'profile' && authStore.isChainOwner) &&
   (!('ownerOnly' in tab && tab.ownerOnly) || authStore.isOwner)
 ))
 
@@ -55,6 +61,7 @@ const activeTab = computed<TabId>(() => {
   const match = tabs.find(tab => tab.id === t)
   if (!match) return 'main'
   if ('hidden' in match && match.hidden) return 'main'
+  if (match.id === 'profile' && authStore.isChainOwner) return 'main'
   if ('ownerOnly' in match && match.ownerOnly && !authStore.isOwner) return 'main'
   return match.id
 })
