@@ -170,11 +170,20 @@ class AuthController extends Controller
     /** @param ?array{shop: Shop, role: string, staff: mixed} $ctx */
     private function userPayload(User $user, ?array $ctx): array
     {
+        // Аватар сотрудника (admin/collector) задаёт владелец при
+        // приглашении — хранится на shop_staff, не на users (у сотрудников
+        // нет своей вкладки «Профиль», чтобы задать его самим, см.
+        // SettingsView.vue). users.avatar_url остаётся первым — вдруг
+        // самообслуживание когда-нибудь появится — но сегодня он для
+        // сотрудника всегда пуст, и без этой строки в углу экрана у них
+        // всегда была буква вместо фото, которое им же и поставил владелец.
+        $avatarUrl = $user->avatar_url ?? ($ctx['staff']->avatar_url ?? null);
+
         return [
             'id'             => $user->id,
             'name'           => $user->name,
             'email'          => $user->email,
-            'avatar_url'     => $user->avatar_url,
+            'avatar_url'     => $avatarUrl,
             'phone'          => $user->phone,
             'is_superadmin'  => (bool) $user->is_superadmin,
             'role'           => $ctx['role'] ?? ($user->is_superadmin ? 'superadmin' : null),

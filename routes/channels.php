@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ChatThread;
+use App\Models\Shop;
 use App\Models\ShopStaff;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Broadcast;
@@ -39,6 +40,28 @@ Broadcast::channel('chat.thread.{shopApiKey}.{threadId}', function ($user, strin
     TenantService::resetContext();
 
     return $allowed;
+});
+
+/**
+ * Магазин целиком — сейчас только для App\Events\StaffUpdated («сотрудник
+ * принял приглашение с другого устройства», см. InviteController::accept),
+ * но канал общий на весь магазин, не только на это событие — можно
+ * переиспользовать для других живых уведомлений владельцу/админам позже.
+ */
+Broadcast::channel('shop.{shopId}', function ($user, string $shopId) {
+    $shop = Shop::find($shopId);
+    if (!$shop) {
+        return false;
+    }
+
+    if ($user->id === $shop->user_id) {
+        return true;
+    }
+
+    return ShopStaff::where('shop_id', $shopId)
+        ->where('user_id', $user->id)
+        ->whereNotNull('accepted_at')
+        ->exists();
 });
 
 /**

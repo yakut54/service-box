@@ -158,6 +158,11 @@ class InviteController extends Controller
 
             DB::commit();
 
+            // Владелец мог держать открытой страницу «Команда» на другом
+            // устройстве всё это время — пусть статус обновится сам, без
+            // перезагрузки (см. App\Events\StaffUpdated).
+            \App\Events\StaffUpdated::dispatch($staff->shop_id);
+
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([

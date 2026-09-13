@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
+import { getEcho } from '@/lib/echo'
 import PageHeader from '@/components/PageHeader.vue'
 import AdminFormModal from '@/components/modals/AdminFormModal.vue'
 import { UiConfirmDialog, UiEmptyState, UiSpinner, UiTooltip } from '@/shared/ui'
 import type { StaffMember } from '@/types'
 
 const toast = useToast()
+const authStore = useAuthStore()
 
 const staff   = ref<StaffMember[]>([])
 const loading = ref(false)
@@ -125,7 +128,24 @@ function lastLoginColor(admin: StaffMember): string {
   return 'text-amber-500 dark:text-amber-400'
 }
 
-onMounted(load)
+// Сотрудник может принять приглашение с другого устройства, пока страница
+// уже открыта — статус «Ожидает» → «Активен» обновляется само, без
+// перезагрузки (см. App\Events\StaffUpdated, тот же приём, что у чата).
+let channelName: string | null = null
+
+onMounted(() => {
+  load()
+
+  const shopId = authStore.shop?.id
+  if (shopId) {
+    channelName = `shop.${shopId}`
+    getEcho().private(channelName).listen('.staff.updated', () => load())
+  }
+})
+
+onUnmounted(() => {
+  if (channelName) getEcho().leave(channelName)
+})
 </script>
 
 <template>
