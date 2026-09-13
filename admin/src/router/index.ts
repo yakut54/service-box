@@ -256,11 +256,14 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // Мастер/сборщик/владелец сети после логина/регистрации → в свой кабинет
+  // Мастер/сборщик/владелец сети/чистый суперадмин после логина → в свой кабинет
   if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
     if (authStore.isMaster) { next({ name: 'master-schedule' }); return }
     if (authStore.isCollector) { next({ name: 'collector-orders' }); return }
     if (authStore.isChainOwner && !authStore.actingShopId) { next({ name: 'chain-shops' }); return }
+    // Аккаунт управления платформой без собственного магазина (суперадмин,
+    // но не шопер) — ему некуда идти на обычный дашборд, там ему нечего делать.
+    if (authStore.user?.is_superadmin && !authStore.shop) { next({ name: 'superadmin-shops' }); return }
     next({ name: 'dashboard' })
     return
   }
@@ -300,6 +303,19 @@ router.beforeEach(async (to, _from, next) => {
     requiresAuth && to.name !== 'not-found'
   ) {
     next({ name: 'chain-shops' })
+    return
+  }
+
+  // Чистый суперадмин без своего магазина (аккаунт управления платформой) —
+  // на любом обычном разделе неизбежен 401 от auth.shop (там нет магазина по
+  // умолчанию), поэтому сразу уводим в суперадминку, а не показываем
+  // сломанный экран.
+  if (
+    authStore.user?.is_superadmin && !authStore.shop &&
+    !to.meta.requiresSuperadmin && !to.meta.requiresChain &&
+    requiresAuth && to.name !== 'not-found'
+  ) {
+    next({ name: 'superadmin-shops' })
     return
   }
 

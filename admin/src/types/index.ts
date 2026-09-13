@@ -10,7 +10,7 @@ export interface User {
   phone?: string | null
   is_superadmin: boolean
   is_chain_owner: boolean
-  role: 'owner' | 'admin' | 'master' | 'collector' | 'chain_owner'
+  role: 'owner' | 'admin' | 'master' | 'collector' | 'chain_owner' | 'superadmin' | null
   created_at: string
 }
 

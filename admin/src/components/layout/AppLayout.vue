@@ -22,15 +22,20 @@ const route = useRoute()
 const router = useRouter()
 const { isDark, toggle } = useTheme()
 
-chatStore.poll()
-useAutoRefresh(() => chatStore.poll(), 15_000)
+// AppLayout хостит и обычную админку, и раздел Суперадмина — «чистый»
+// суперадмин (аккаунт управления платформой, без своего магазина) сюда тоже
+// заходит, а эти три запроса идут через auth.shop и без магазина вернут 401
+// → сработает общий unauthorizedHandler → мгновенный разлогин. Поэтому все
+// три — только когда магазин есть.
+if (authStore.shop) chatStore.poll()
+useAutoRefresh(() => { if (authStore.shop) chatStore.poll() }, 15_000)
 
-reviewsStore.fetchPendingCount()
-useAutoRefresh(() => reviewsStore.fetchPendingCount(), 60_000)
+if (authStore.shop) reviewsStore.fetchPendingCount()
+useAutoRefresh(() => { if (authStore.shop) reviewsStore.fetchPendingCount() }, 60_000)
 
 // Владелец-only — эндпоинт защищён middleware 'owner', сотрудникам его дёргать незачем
-if (authStore.isOwner) mailFailuresStore.fetchPendingCount()
-useAutoRefresh(() => { if (authStore.isOwner) mailFailuresStore.fetchPendingCount() }, 60_000)
+if (authStore.isOwner && authStore.shop) mailFailuresStore.fetchPendingCount()
+useAutoRefresh(() => { if (authStore.isOwner && authStore.shop) mailFailuresStore.fetchPendingCount() }, 60_000)
 
 const sidebarOpen = ref(false)
 const menuOpen    = ref(false)
@@ -155,15 +160,21 @@ async function leaveChain() {
       </div>
 
       <!-- Shop name -->
-      <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+      <div v-if="authStore.shop || !authStore.user?.is_superadmin" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Интернет-Магазин</p>
         <p class="font-medium text-gray-900 dark:text-white truncate">
           {{ authStore.shop?.name || 'Загрузка...' }}
         </p>
       </div>
+      <div v-else class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Аккаунт</p>
+        <p class="font-medium text-gray-900 dark:text-white truncate">Управление платформой</p>
+      </div>
 
-      <!-- Navigation -->
-      <nav class="p-4 space-y-1 flex-1 overflow-y-auto">
+      <!-- Navigation — скрыто для «чистого» суперадмина без своего магазина:
+           каждый пункт всё равно 401-ится и роутер тут же отбрасывает его
+           обратно в Суперадминку, показывать нечего. -->
+      <nav v-if="authStore.shop" class="p-4 space-y-1 flex-1 overflow-y-auto">
         <RouterLink
             v-for="item in visibleNavigation"
             :key="item.href"
@@ -281,7 +292,9 @@ async function leaveChain() {
             <UiAvatar :src="authStore.user?.avatar_url" :name="authStore.user?.name || authStore.user?.email" size="sm" />
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-gray-900 dark:text-white truncate leading-tight">{{ authStore.user?.name || authStore.user?.email }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 leading-tight">{{ authStore.isOwner ? 'Владелец' : 'Администратор' }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 leading-tight">
+                {{ authStore.user?.is_superadmin && !authStore.shop ? 'Платформа' : authStore.isOwner ? 'Владелец' : 'Администратор' }}
+              </p>
             </div>
             <svg
               class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-150"

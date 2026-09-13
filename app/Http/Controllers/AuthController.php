@@ -97,7 +97,10 @@ class AuthController extends Controller
         // тут сознательно не читаем (владелец сети сам выберет точку внутри).
         $ctx = ShopAccess::defaultFor($user);
 
-        if (!$ctx && !$user->is_chain_owner) {
+        // is_superadmin — отдельный аккаунт управления платформой, не шопер;
+        // магазина у него может не быть вообще (см. Superadmin\*, роуты вне
+        // auth.shop). Владелец сети — тот же принцип, уже был.
+        if (!$ctx && !$user->is_chain_owner && !$user->is_superadmin) {
             return response()->json([
                 'message' => 'Магазин не найден',
             ], 404);
@@ -152,7 +155,7 @@ class AuthController extends Controller
             return $error;
         }
 
-        if (!$ctx && !$user->is_chain_owner) {
+        if (!$ctx && !$user->is_chain_owner && !$user->is_superadmin) {
             return response()->json(['message' => 'Магазин не найден'], 404);
         }
 
@@ -219,7 +222,11 @@ class AuthController extends Controller
             'phone'          => $user->phone,
             'is_superadmin'  => (bool) $user->is_superadmin,
             'is_chain_owner' => (bool) $user->is_chain_owner,
-            'role'           => $ctx['role'] ?? ($user->is_chain_owner ? 'chain_owner' : null),
+            'role'           => $ctx['role'] ?? match (true) {
+                $user->is_chain_owner => 'chain_owner',
+                $user->is_superadmin  => 'superadmin',
+                default               => null,
+            },
         ];
     }
 
