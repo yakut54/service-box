@@ -67,6 +67,7 @@ const hasShortage = computed(() =>
 // Причина, по которой слайдер сейчас не двигается — без неё выглядит как
 // баг «слайдер не шевелится», а не как «сначала сделай вот это».
 const finishBlockedReason = computed(() => {
+  if (order.value && !order.value.paid_at) return 'Заказ ещё не оплачен'
   if (order.value?.surcharge_status === 'pending') return 'Ждём от покупателя оплату доплаты за перевес'
   if (!allResolved.value) return 'Сначала разберите все позиции'
   if (hasShortage.value && !shortageNote.value.trim()) return 'Укажите причину недобора выше'
@@ -143,6 +144,8 @@ async function confirmWeight(item: OrderItem) {
   }
 }
 
+const slideRef = ref<InstanceType<typeof UiSlideConfirm> | null>(null)
+
 async function finish() {
   if (!order.value) return
   finishing.value = true
@@ -152,6 +155,9 @@ async function finish() {
     toast.success('Заказ собран')
   } catch (e) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось завершить заказ')
+    // Сервер отклонил (например, кто-то не оплатил заказ) — бегунок иначе
+    // так и остаётся у конца дорожки, будто всё получилось.
+    slideRef.value?.reset()
   } finally {
     finishing.value = false
   }
@@ -396,6 +402,7 @@ onUnmounted(() => {
             class="input w-full"
           />
           <UiSlideConfirm
+            ref="slideRef"
             label="Готово — сдвиньте"
             :disabled-reason="finishBlockedReason"
             :disabled="!!finishBlockedReason"

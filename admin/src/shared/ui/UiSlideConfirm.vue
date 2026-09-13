@@ -64,6 +64,14 @@ function onPointerUp() {
     dragPx.value = 0
   }
 }
+
+// Слайдер сам не знает, чем закончилось подтверждение (запрос асинхронный
+// и может быть отклонён сервером) — родитель зовёт reset(), когда action
+// на confirm провалился, иначе бегунок так и остаётся у конца дорожки.
+function reset() {
+  dragPx.value = 0
+}
+defineExpose({ reset })
 </script>
 
 <template>
