@@ -162,12 +162,19 @@ class OrderController extends Controller
             ]);
         }
 
+        // needs_attention всегда первыми, а не где придётся по дате — иначе
+        // пагинация могла законно унести проблемный заказ на 2-3 страницу,
+        // и владелец бы его просто не увидел, не листая дальше.
+        $orderByNeedsAttention = fn ($q) => $q
+            ->orderByRaw("(status = 'needs_attention') DESC")
+            ->latest('created_at');
+
         if ($request->filled('page')) {
             $perPage = min((int) $request->input('per_page', 30), 100);
-            return response()->json($this->paginatedResponse($query->latest('created_at')->paginate($perPage)));
+            return response()->json($this->paginatedResponse($orderByNeedsAttention($query)->paginate($perPage)));
         }
 
-        $orders = $query->latest('created_at')->get();
+        $orders = $orderByNeedsAttention($query)->get();
 
         return response()->json([
             'data' => $orders,
