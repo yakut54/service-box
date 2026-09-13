@@ -819,19 +819,43 @@ class OrderController extends Controller
     }
 
     /**
-     * Счётчик для бейджа «Заказы» в сайдбаре — сборщик пометил заказ
-     * проблемным (needs_attention), владелец должен это заметить, даже не
-     * заходя в «Заказы» (см. StaffView.vue/OrderDetailView.vue — заметка
-     * там видна, но только если знать, что туда нужно зайти).
+     * Счётчик для бейджа «Заказы» в сайдбаре — не «сколько всего проблемных»
+     * (та цифра не убывала бы, пока сборщик/владелец не решит проблему —
+     * а зайти и посмотреть, что случилось, можно и раньше), а «сколько
+     * новых с прошлого визита в «Заказы»» — тот же приём, что уже есть у
+     * Отзывов (см. ReviewController::pendingCount/markSeen). Отдельная
+     * сортировка «проблемные — наверх списка» на это не влияет и остаётся
+     * как есть.
      *
      * GET /api/admin/orders/needs-attention-count
      */
     public function needsAttentionCount(Request $request): JsonResponse
     {
-        $query = Order::query()->where('status', 'needs_attention');
+        $shop = $request->attributes->get('shop');
+
+        $query = Order::query()
+            ->where('status', 'needs_attention')
+            ->when(
+                $shop->orders_last_seen_at,
+                fn ($q) => $q->where('updated_at', '>', $shop->orders_last_seen_at),
+            );
         $this->applyCategoryScope($query, $request);
 
         return response()->json(['count' => $query->count()]);
+    }
+
+    /**
+     * Отметить «Заказы» просмотренными — сбрасывает бейдж в сайдбаре не
+     * дожидаясь решения проблемных заказов (см. needsAttentionCount).
+     *
+     * POST /api/admin/orders/mark-seen
+     */
+    public function markSeen(Request $request): JsonResponse
+    {
+        $shop = $request->attributes->get('shop');
+        $shop->update(['orders_last_seen_at' => now()]);
+
+        return response()->json(['message' => 'Отмечено просмотренным']);
     }
 
     /**

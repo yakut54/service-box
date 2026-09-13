@@ -348,6 +348,10 @@ class ApiClient {
     return this.request<{ count: number }>('/admin/orders/needs-attention-count')
   }
 
+  async markOrdersSeen() {
+    return this.request<{ message: string }>('/admin/orders/mark-seen', { method: 'POST' })
+  }
+
   async updateOrderStatus(id: string, status: string, note?: string) {
     return this.request<{ message: string; data: Order }>(`/admin/orders/${id}/status`, {
       method: 'PATCH',

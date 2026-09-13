@@ -913,6 +913,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     chat_customer_delete_enabled boolean DEFAULT false NOT NULL,
     reviews_last_seen_at timestamp(0) without time zone,
     mail_failures_last_seen_at timestamp(0) without time zone,
+    orders_last_seen_at timestamp(0) without time zone,
     customer_push_enabled boolean DEFAULT true NOT NULL,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
