@@ -178,6 +178,7 @@ class AuthController extends Controller
             'phone'          => $user->phone,
             'is_superadmin'  => (bool) $user->is_superadmin,
             'role'           => $ctx['role'] ?? ($user->is_superadmin ? 'superadmin' : null),
+            'category_ids'   => $ctx['staff']->category_ids ?? null,
         ];
     }
 

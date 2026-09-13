@@ -658,10 +658,10 @@ class ApiClient {
     return this.request<{ data: StaffMember[] }>('/admin/staff')
   }
 
-  async createAdmin(name: string, email: string) {
+  async createAdmin(name: string, email: string, categoryIds?: string[] | null) {
     return this.request<{ message: string; data: StaffMember }>('/admin/staff', {
       method: 'POST',
-      body: JSON.stringify({ name, email, role: 'admin' }),
+      body: JSON.stringify({ name, email, role: 'admin', category_ids: categoryIds ?? undefined }),
     })
   }
 
@@ -672,7 +672,7 @@ class ApiClient {
     })
   }
 
-  async updateAdmin(id: string, data: { name: string; phone?: string | null; avatar_url?: string | null }) {
+  async updateAdmin(id: string, data: { name: string; phone?: string | null; avatar_url?: string | null; category_ids?: string[] | null }) {
     return this.request<{ message: string }>(`/admin/staff/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

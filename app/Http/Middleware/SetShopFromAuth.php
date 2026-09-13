@@ -30,6 +30,7 @@ class SetShopFromAuth
         $request->attributes->set('shop', $shop);
         $request->attributes->set('staff_role', $ctx['role']);
         $request->attributes->set('staff_master_id', $staff?->master_id);
+        $request->attributes->set('staff_category_ids', $staff?->category_ids);
 
         // Обновляем last_login_at не чаще раза в 5 минут
         if ($staff && (is_null($staff->last_login_at) || $staff->last_login_at->diffInMinutes(now()) >= 5)) {

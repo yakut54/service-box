@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\StorageService;
+use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,15 +14,20 @@ class CategoryController extends Controller
 {
     /**
      * GET /admin/categories
-     * Список категорий с дочерними и счётчиком товаров.
+     * Список категорий с дочерними и счётчиком товаров. Админ, ограниченный
+     * владельцем конкретными категориями (см. CategoryAccess), видит только
+     * их — с их дочерними целиком (доступ не режется по уровню вложенности).
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $allowedIds = CategoryAccess::allowedTopLevelIds($request);
+
         $categories = Category::withCount('products')
             ->with(['children' => function ($q) {
                 $q->withCount('products')->orderBy('sort_order')->orderBy('name');
             }])
             ->whereNull('parent_id')
+            ->when($allowedIds !== null, fn ($q) => $q->whereIn('id', $allowedIds))
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -30,10 +36,28 @@ class CategoryController extends Controller
     }
 
     /**
+     * Категории — структурная вещь, ограниченному по категориям админу
+     * трогать нельзя (он работает с товарами внутри уже заданных категорий,
+     * не с самим деревом). Обычного, неограниченного админа не касается.
+     */
+    private function denyIfCategoryScoped(Request $request): ?JsonResponse
+    {
+        if (CategoryAccess::allowedTopLevelIds($request) !== null) {
+            return response()->json(['message' => 'Категориями управляет только владелец'], 403);
+        }
+
+        return null;
+    }
+
+    /**
      * POST /admin/categories
      */
     public function store(Request $request): JsonResponse
     {
+        if ($denied = $this->denyIfCategoryScoped($request)) {
+            return $denied;
+        }
+
         $data = $request->validate([
             'name'        => 'required|string|max:255',
             'slug'        => 'nullable|string|max:255',
@@ -66,6 +90,10 @@ class CategoryController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
+        if ($denied = $this->denyIfCategoryScoped($request)) {
+            return $denied;
+        }
+
         $category = Category::findOrFail($id);
 
         $data = $request->validate([
@@ -115,6 +143,10 @@ class CategoryController extends Controller
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
+        if ($denied = $this->denyIfCategoryScoped($request)) {
+            return $denied;
+        }
+
         $category = Category::with('children')->findOrFail($id);
         $action   = $request->query('action', 'hide');
 
@@ -156,6 +188,10 @@ class CategoryController extends Controller
      */
     public function reorder(Request $request): JsonResponse
     {
+        if ($denied = $this->denyIfCategoryScoped($request)) {
+            return $denied;
+        }
+
         $items = $request->validate([
             'items'              => 'required|array',
             'items.*.id'         => 'required|string',

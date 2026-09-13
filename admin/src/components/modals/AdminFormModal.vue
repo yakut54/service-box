@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { handlePhoneInput, applyPhoneMask } from '@/composables/usePhoneInput'
 import { useAuthStore } from '@/stores/auth'
+import { useCategoriesStore } from '@/stores/categories'
 import { UiModal, UiHint } from '@/shared/ui'
 import ImageUpload from '@/components/ImageUpload.vue'
 import type { StaffMember } from '@/types'
 
 const authStore = useAuthStore()
+const categoriesStore = useCategoriesStore()
+
+onMounted(() => {
+  if (categoriesStore.categories.length === 0) categoriesStore.fetchCategories()
+})
 
 const props = defineProps<{
   modelValue: boolean
@@ -22,6 +28,7 @@ const emit = defineEmits<{
 const mode = computed(() => props.admin ? 'edit' : 'create')
 
 const role       = ref<'admin' | 'collector'>('admin')
+const categoryIds = ref<string[]>([])
 const name       = ref('')
 const email      = ref('')
 const phone      = ref('')
@@ -55,7 +62,8 @@ watch(() => props.modelValue, (open) => {
   nameTouched.value  = false
   emailTouched.value = false
   if (props.admin) {
-    role.value      = props.admin.role === 'collector' ? 'collector' : 'admin'
+    role.value        = props.admin.role === 'collector' ? 'collector' : 'admin'
+    categoryIds.value = props.admin.category_ids ? [...props.admin.category_ids] : []
     name.value      = props.admin.invite_name ?? props.admin.user?.name ?? ''
     email.value     = props.admin.invite_email ?? props.admin.user?.email ?? ''
     phone.value     = props.admin.phone ? applyPhoneMask(props.admin.phone) : ''
@@ -65,13 +73,20 @@ watch(() => props.modelValue, (open) => {
     // сервер это и так проверяет (StaffController::store), но незачем
     // показывать ему переключатель ролей, которым он всё равно не может
     // воспользоваться.
-    role.value      = authStore.isOwner ? 'admin' : 'collector'
+    role.value        = authStore.isOwner ? 'admin' : 'collector'
+    categoryIds.value = []
     name.value      = ''
     email.value     = ''
     phone.value     = ''
     avatarUrl.value = null
   }
 })
+
+function toggleCategory(id: string) {
+  const i = categoryIds.value.indexOf(id)
+  if (i === -1) categoryIds.value.push(id)
+  else categoryIds.value.splice(i, 1)
+}
 
 async function save() {
   nameTouched.value  = true
@@ -84,7 +99,7 @@ async function save() {
     if (mode.value === 'create') {
       const res = role.value === 'collector'
         ? await api.createCollector(name.value.trim(), email.value.trim())
-        : await api.createAdmin(name.value.trim(), email.value.trim())
+        : await api.createAdmin(name.value.trim(), email.value.trim(), categoryIds.value.length ? categoryIds.value : null)
       // Если при создании уже загрузили аватар/телефон — сразу обновляем
       if (avatarUrl.value || phone.value) {
         await api.updateAdmin(res.data.id, {
@@ -93,18 +108,21 @@ async function save() {
           avatar_url: avatarUrl.value,
         })
       }
-      emit('saved', { ...res.data, avatar_url: avatarUrl.value, phone: phone.value || null }, 'create')
+      emit('saved', { ...res.data, avatar_url: avatarUrl.value, phone: phone.value || null, category_ids: categoryIds.value.length ? categoryIds.value : null }, 'create')
     } else {
-      await api.updateAdmin(props.admin!.id, {
+      const update: Parameters<typeof api.updateAdmin>[1] = {
         name:       name.value.trim(),
         phone:      phone.value || null,
         avatar_url: avatarUrl.value,
-      })
+      }
+      if (role.value === 'admin') update.category_ids = categoryIds.value.length ? categoryIds.value : null
+      await api.updateAdmin(props.admin!.id, update)
       emit('saved', {
         ...props.admin!,
         invite_name: name.value.trim(),
         phone:       phone.value || null,
         avatar_url:  avatarUrl.value,
+        category_ids: update.category_ids ?? props.admin!.category_ids,
       }, 'edit')
     }
     emit('update:modelValue', false)
@@ -168,6 +186,32 @@ async function save() {
             Сборщик
           </button>
         </div>
+      </div>
+
+      <!-- Категории — только для роли admin. Ничего не отмечено = без
+           ограничений, админ видит и работает со всеми категориями (как
+           раньше). Отмеченные — админ видит и работает ТОЛЬКО с ними. -->
+      <div v-if="role === 'admin'">
+        <p class="label flex items-center gap-1">
+          Категории
+          <UiHint>Ничего не отмечено — доступны все категории и товары. Отмеченные — только они.</UiHint>
+        </p>
+        <div v-if="categoriesStore.parentOptions.length" class="flex flex-col gap-1.5 max-h-40 overflow-y-auto p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+          <label
+            v-for="opt in categoriesStore.parentOptions"
+            :key="opt.value"
+            class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+          >
+            <input
+              type="checkbox"
+              :checked="categoryIds.includes(opt.value)"
+              @change="toggleCategory(opt.value)"
+              class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+            />
+            {{ opt.label }}
+          </label>
+        </div>
+        <p v-else class="text-xs text-gray-400">Категорий ещё нет</p>
       </div>
 
       <!-- Avatar -->

@@ -8,6 +8,7 @@ use App\Models\Discount;
 use App\Models\Product;
 use App\Services\DiscountService;
 use App\Services\StorageService;
+use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -73,6 +74,13 @@ class ProductController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
+        // Админ, ограниченный владельцем конкретными категориями (см.
+        // CategoryAccess) — видит только товары из своих категорий.
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+        if ($allowedCategoryIds !== null) {
+            $query->whereIn('category_id', $allowedCategoryIds);
+        }
+
         if ($request->filled('search')) {
             // Только по названию — поиск по description раньше давал
             // случайные совпадения на коротких запросах (например, «св»
@@ -109,6 +117,11 @@ class ProductController extends Controller
      */
     public function store(StoreProductRequest $request): JsonResponse
     {
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+        if ($allowedCategoryIds !== null && !in_array($request->input('category_id'), $allowedCategoryIds, true)) {
+            return response()->json(['message' => 'Категория недоступна'], 422);
+        }
+
         $product = Product::create($request->only([
             'type',
             'name',
@@ -152,6 +165,13 @@ class ProductController extends Controller
             if ($product->type === 'service' && !$shop->hasFeature('booking')) abort(404);
         }
 
+        // Админ, ограниченный категориями — товар вне его набора тоже прячем,
+        // как будто его нет (см. CategoryAccess).
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+        if ($allowedCategoryIds !== null && !in_array($product->category_id, $allowedCategoryIds, true)) {
+            abort(404);
+        }
+
         $product->loadDetails();
         $product->rating = $product->rating !== null ? (float) $product->rating : null;
 
@@ -172,6 +192,18 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, string $product): JsonResponse
     {
         $product = Product::findOrFail($product);
+
+        // Ограниченный по категориям админ может править только СВОИ товары,
+        // и не может увести товар в категорию вне своего набора (см. CategoryAccess).
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+        if ($allowedCategoryIds !== null) {
+            if (!in_array($product->category_id, $allowedCategoryIds, true)) {
+                abort(404);
+            }
+            if ($request->has('category_id') && !in_array($request->input('category_id'), $allowedCategoryIds, true)) {
+                return response()->json(['message' => 'Категория недоступна'], 422);
+            }
+        }
 
         $oldImageUrl = $product->image_url;
 
@@ -243,9 +275,14 @@ class ProductController extends Controller
      *
      * DELETE /api/admin/products/{product}
      */
-    public function destroy(string $product): JsonResponse
+    public function destroy(Request $request, string $product): JsonResponse
     {
         $product = Product::with('images')->findOrFail($product);
+
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+        if ($allowedCategoryIds !== null && !in_array($product->category_id, $allowedCategoryIds, true)) {
+            abort(404);
+        }
 
         $imageUrl = $product->image_url;
         $galleryUrls = $product->images->pluck('url');

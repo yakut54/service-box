@@ -16,6 +16,7 @@ class ShopStaff extends Model
         'user_id',
         'role',
         'master_id',
+        'category_ids',
         'telegram_chat_id',
         'max_user_id',
         'messenger_link_token',
@@ -35,6 +36,7 @@ class ShopStaff extends Model
         'invite_expires_at'              => 'datetime',
         'last_login_at'                  => 'datetime',
         'messenger_link_token_expires_at'=> 'datetime',
+        'category_ids'                   => 'array',
     ];
 
     public function shop()

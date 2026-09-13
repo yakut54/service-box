@@ -6,6 +6,7 @@ import { useOrdersStore } from '@/stores/orders'
 import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
+import { useCategoriesStore } from '@/stores/categories'
 import router from '@/router'
 import type { User, Shop } from '@/types'
 
@@ -156,6 +157,7 @@ export const useAuthStore = defineStore('auth', () => {
     useChatStore().$reset()
     useReviewsStore().$reset()
     useMailFailuresStore().$reset()
+    useCategoriesStore().$reset()
   }
 
   function clearAuth() {

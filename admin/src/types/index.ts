@@ -10,6 +10,7 @@ export interface User {
   phone?: string | null
   is_superadmin: boolean
   role: 'owner' | 'admin' | 'master' | 'collector' | 'superadmin' | null
+  category_ids: string[] | null
   created_at: string
 }
 
@@ -583,6 +584,7 @@ export interface StaffMember {
   id: string
   role: 'admin' | 'master' | 'collector'
   master_id: string | null
+  category_ids: string[] | null
   invite_email: string | null
   invite_name: string | null
   avatar_url: string | null

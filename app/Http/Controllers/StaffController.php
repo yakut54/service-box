@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\StaffInviteMail;
+use App\Models\Category;
 use App\Models\ShopStaff;
 use App\Models\User;
 use App\Services\StorageService;
@@ -29,6 +30,7 @@ class StaffController extends Controller
                 'id'                => $s->id,
                 'role'              => $s->role,
                 'master_id'         => $s->master_id,
+                'category_ids'      => $s->category_ids,
                 'invite_email'      => $s->invite_email,
                 'invite_name'       => $s->invite_name,
                 'avatar_url'        => $s->avatar_url,
@@ -56,11 +58,13 @@ class StaffController extends Controller
         $shop = $request->attributes->get('shop');
 
         $data = $request->validate([
-            'name'      => 'required_if:role,admin,collector|nullable|string|max:255',
-            'email'     => 'required|email|max:255',
-            'role'      => 'sometimes|in:admin,master,collector',
-            'master_id' => 'required_if:role,master|nullable|uuid',
-            'phone'     => 'nullable|string|max:20',
+            'name'           => 'required_if:role,admin,collector|nullable|string|max:255',
+            'email'          => 'required|email|max:255',
+            'role'           => 'sometimes|in:admin,master,collector',
+            'master_id'      => 'required_if:role,master|nullable|uuid',
+            'phone'          => 'nullable|string|max:20',
+            'category_ids'   => 'sometimes|nullable|array',
+            'category_ids.*' => 'uuid',
         ]);
 
         $isActingAdmin = $request->attributes->get('staff_role') === 'admin';
@@ -92,6 +96,17 @@ class StaffController extends Controller
                 ->exists();
             if ($alreadyLinked) {
                 return response()->json(['message' => 'К этому мастеру уже привязан аккаунт'], 409);
+            }
+        }
+
+        // Ограничение по категориям имеет смысл только для admin — пустой
+        // список/значение не прислали → null (без ограничений, как раньше).
+        $categoryIds = null;
+        if ($role === 'admin' && !empty($data['category_ids'])) {
+            $categoryIds = array_values($data['category_ids']);
+            $validCount = Category::whereNull('parent_id')->whereIn('id', $categoryIds)->count();
+            if ($validCount !== count($categoryIds)) {
+                return response()->json(['message' => 'Одна или несколько категорий не найдены'], 422);
             }
         }
 
@@ -161,6 +176,7 @@ class StaffController extends Controller
                     'invite_name'       => $pendingStaff->invite_name,
                     'role'              => $pendingStaff->role,
                     'master_id'         => $pendingStaff->master_id,
+                    'category_ids'      => $pendingStaff->category_ids,
                     'is_pending'        => true,
                     'is_expired'        => false,
                     'accepted_at'       => null,
@@ -177,6 +193,7 @@ class StaffController extends Controller
             'user_id'           => $existingUser?->id,
             'role'              => $role,
             'master_id'         => $masterId,
+            'category_ids'      => $categoryIds,
             'invite_email'      => $email,
             'invite_name'       => $name,
             'phone'             => isset($data['phone']) ? trim($data['phone']) : null,
@@ -201,6 +218,7 @@ class StaffController extends Controller
                 'invite_name'  => $name,
                 'role'         => $role,
                 'master_id'    => $masterId,
+                'category_ids' => $categoryIds,
                 'is_pending'   => true,
                 'is_expired'   => false,
                 'accepted_at'  => null,
@@ -225,18 +243,35 @@ class StaffController extends Controller
             ->firstOrFail();
 
         $data = $request->validate([
-            'name'       => 'required|string|max:255',
-            'phone'      => 'nullable|string|max:20',
-            'avatar_url' => 'nullable|url|max:1000',
+            'name'           => 'required|string|max:255',
+            'phone'          => 'nullable|string|max:20',
+            'avatar_url'     => 'nullable|url|max:1000',
+            'category_ids'   => 'sometimes|nullable|array',
+            'category_ids.*' => 'uuid',
         ]);
 
         $oldAvatarUrl = $staffRecord->avatar_url;
 
-        $staffRecord->update([
+        $update = [
             'invite_name' => trim($data['name']),
             'phone'       => isset($data['phone']) ? trim($data['phone']) : null,
             'avatar_url'  => $data['avatar_url'] ?? $staffRecord->avatar_url,
-        ]);
+        ];
+
+        // Категории назначает только владелец, и только админу — тот же
+        // приём, что при создании (см. store()).
+        if ($request->attributes->get('staff_role') === 'owner' && $staffRecord->role === 'admin' && $request->has('category_ids')) {
+            $categoryIds = empty($data['category_ids']) ? null : array_values($data['category_ids']);
+            if ($categoryIds !== null) {
+                $validCount = Category::whereNull('parent_id')->whereIn('id', $categoryIds)->count();
+                if ($validCount !== count($categoryIds)) {
+                    return response()->json(['message' => 'Одна или несколько категорий не найдены'], 422);
+                }
+            }
+            $update['category_ids'] = $categoryIds;
+        }
+
+        $staffRecord->update($update);
 
         if (array_key_exists('avatar_url', $data) && $data['avatar_url'] !== $oldAvatarUrl) {
             StorageService::deleteByUrl($oldAvatarUrl);
