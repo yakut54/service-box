@@ -288,6 +288,7 @@ class WriteController extends Controller
             try { \App\Services\MailService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
             try { \App\Services\TelegramService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
             try { \App\Services\MaxService::notifyNewOrder($shop, $order); } catch (\Throwable) {}
+            \App\Events\OrdersUpdated::dispatch($shop->id);
         }
 
         return response()->json(['message' => 'Заказ создан', 'data' => $order], 201);
@@ -322,6 +323,11 @@ class WriteController extends Controller
         }
 
         $order->load(['items', 'customer']);
+
+        $shop = $request->get('_shop');
+        if ($shop) {
+            \App\Events\OrdersUpdated::dispatch($shop->id);
+        }
 
         return response()->json(['message' => "Статус заказа изменён на {$newStatus}", 'data' => $order]);
     }

@@ -43,6 +43,10 @@ class Order extends Model
         'surcharge_payment_url',
         'surcharge_requested_at',
         'surcharge_deadline_at',
+        'collector_id',
+        'collector_name',
+        'picking_started_at',
+        'pick_note',
     ];
 
     protected $casts = [
@@ -61,6 +65,7 @@ class Order extends Model
         'surcharge_amount'         => 'integer',
         'surcharge_requested_at'   => 'datetime',
         'surcharge_deadline_at'    => 'datetime',
+        'picking_started_at'       => 'datetime',
     ];
 
     public function customer()

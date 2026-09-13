@@ -25,6 +25,7 @@ class OrderItem extends Model
         'weight_grams',
         'actual_weight_grams',
         'actual_price',
+        'picked_qty',
     ];
 
     protected $casts = [
@@ -33,6 +34,7 @@ class OrderItem extends Model
         'weight_grams' => 'integer',
         'actual_weight_grams' => 'integer',
         'actual_price' => 'integer',
+        'picked_qty' => 'integer',
     ];
 
     public function order()

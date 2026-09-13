@@ -49,48 +49,113 @@ class OrderController extends Controller
     }
 
     /**
+     * Ответ для роли collector — не отдаём Order как есть: сборщику не нужны
+     * (и не должны быть видны) комиссия, статус выплаты, скидки, id/ссылки
+     * платежей и email покупателя. Телефон уважает тот же флаг
+     * shops.hide_customer_phone, что уже скрывает его от мастеров (см.
+     * MasterBotService::buildPayload) — единая настройка «скрыть контакты
+     * покупателя от персонала», не своя для каждой роли.
+     * Единая точка сборки — используется в index/show/claim/pickItem/
+     * updateStatus/submitItemWeight/reportProblem, чтобы ответы не разъезжались.
+     */
+    private function collectorPayload(Order $order, ?Shop $shop): array
+    {
+        $data = $order->toArray();
+
+        unset(
+            $data['commission_amount'],
+            $data['payout_status'],
+            $data['discount_id'],
+            $data['discount_code'],
+            $data['discount_amount'],
+            $data['payment_id'],
+            $data['payment_url'],
+            $data['customer_email'],
+            $data['consent_offer_accepted'],
+            $data['consent_privacy_accepted'],
+            $data['consent_accepted_at'],
+            $data['consent_ip'],
+            $data['consent_ua'],
+            $data['surcharge_payment_id'],
+            $data['surcharge_payment_url'],
+        );
+
+        if ($shop?->hide_customer_phone) {
+            $data['customer_phone'] = null;
+            if (isset($data['customer']) && is_array($data['customer'])) {
+                unset($data['customer']['phone']);
+            }
+        }
+
+        if (isset($data['customer']) && is_array($data['customer'])) {
+            unset($data['customer']['email']);
+        }
+
+        return $data;
+    }
+
+    /**
      * Get list of orders
      *
      * Query params: status, customer_id, date_from, date_to, search
+     * Роль collector: не история, а очередь на сборку — см. §Часть A плана.
      */
     public function index(Request $request): JsonResponse
     {
+        $shop = $request->attributes->get('shop');
+        $isCollector = $request->attributes->get('staff_role') === 'collector';
+
         // items.product.physical — сборщику (роль collector) нужен sale_mode и
         // вес каждой позиции, чтобы показать поле ввода факт. веса только для
         // weight_variable (см. CollectorOrderDetailView.vue).
         $query = Order::query()->with(['items.product.physical', 'customer']);
 
-        if ($request->filled('status')) {
-            $query->withStatus($request->status);
-        }
+        if ($isCollector) {
+            if ($request->input('scope') === 'done') {
+                // «Собранные сегодня» — по таймзоне магазина, не сервера.
+                $todayStart = now($shop->timezone ?? 'Europe/Moscow')->startOfDay();
+                $query->whereIn('status', ['completed', 'cancelled'])
+                      ->where('created_at', '>=', $todayStart);
+            } else {
+                $query->whereIn('status', ['pending', 'paid', 'processing', 'needs_attention']);
+            }
+        } else {
+            if ($request->filled('status')) {
+                $query->withStatus($request->status);
+            }
 
-        if ($request->filled('customer_id')) {
-            $query->where('customer_id', $request->customer_id);
-        }
+            if ($request->filled('customer_id')) {
+                $query->where('customer_id', $request->customer_id);
+            }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
 
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('customer_name', 'ILIKE', "%{$search}%")
-                  ->orWhere('customer_phone', 'ILIKE', "%{$search}%")
-                  ->orWhere('customer_email', 'ILIKE', "%{$search}%");
-            });
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('customer_name', 'ILIKE', "%{$search}%")
+                      ->orWhere('customer_phone', 'ILIKE', "%{$search}%")
+                      ->orWhere('customer_email', 'ILIKE', "%{$search}%");
+                });
+            }
         }
 
         $this->applyCategoryScope($query, $request);
 
-        $orders = $query->latest('created_at')->get();
+        // Сборщику — старые заказы первыми (FIFO, кто дольше ждёт), не
+        // последние сверху, как у владельца в истории.
+        $orders = $isCollector ? $query->oldest('created_at')->get() : $query->latest('created_at')->get();
+
+        $data = $isCollector ? $orders->map(fn ($o) => $this->collectorPayload($o, $shop))->values() : $orders;
 
         return response()->json([
-            'data' => $orders,
+            'data' => $data,
             'count' => $orders->count(),
         ]);
     }
@@ -305,6 +370,10 @@ class OrderController extends Controller
             try {
                 \App\Services\MaxService::notifyNewOrder($shop, $order);
             } catch (\Throwable) {}
+
+            // Открытая очередь сборщика/владельца подхватывает новый заказ
+            // без перезагрузки страницы (см. App\Events\OrdersUpdated).
+            \App\Events\OrdersUpdated::dispatch($shop->id);
         }
 
         // Заказ с товаром «по весу — перевзвешивание» может обернуться доплатой
@@ -352,14 +421,21 @@ class OrderController extends Controller
      */
     public function show(Request $request, string $order): JsonResponse
     {
-        $order = Order::with(['items.product', 'customer'])->findOrFail($order);
+        // .physical — раньше здесь грузился только items.product, из-за чего
+        // экран сборщика не видел sale_mode и не показывал ввод веса для
+        // weight_variable позиций при заходе напрямую на заказ (не из списка).
+        $order = Order::with(['items.product.physical', 'customer'])->findOrFail($order);
 
         if (!$this->orderInScope($order, $request)) {
             abort(404);
         }
 
+        $isCollector = $request->attributes->get('staff_role') === 'collector';
+
         return response()->json([
-            'data' => $order,
+            'data' => $isCollector
+                ? $this->collectorPayload($order, $request->attributes->get('shop'))
+                : $order,
         ]);
     }
 
@@ -370,18 +446,23 @@ class OrderController extends Controller
      */
     public function updateStatus(Request $request, string $order): JsonResponse
     {
-        $order = Order::with('items.product')->findOrFail($order);
+        $order = Order::with('items.product.physical')->findOrFail($order);
 
         if (!$this->orderInScope($order, $request)) {
             abort(404);
         }
+
+        $isCollector = $request->attributes->get('staff_role') === 'collector';
 
         $request->validate([
             // 'paid' сюда сознательно не входит — этот статус проставляет
             // только вебхук ЮKassa (Order::markAsPaid), после реальной
             // оплаты через шлюз. Иначе шопер мог бы щёлкнуть «оплачено»
             // без единого рубля и не заплатить комиссию (см. PLAN.md).
-            'status' => 'required|in:processing,completed,cancelled',
+            // Сборщик отдельно не может «отменить» — это решение владельца/
+            // админа, у сборщика для проблемных заказов есть /problem.
+            'status' => $isCollector ? 'required|in:processing,completed' : 'required|in:processing,completed,cancelled',
+            'note'   => 'nullable|string|max:1000',
         ]);
 
         $newStatus = $request->status;
@@ -398,9 +479,39 @@ class OrderController extends Controller
             ], 422);
         }
 
+        // Сборщик завершает заказ только когда разобрал каждую позицию —
+        // тапом (picked_qty) или взвешиванием (actual_weight_grams для
+        // weight_variable). Гейт только для роли collector: владелец/админ
+        // по-прежнему может завершить заказ напрямую из обычной админки, не
+        // проходя чек-лист сборки (не у всех магазинов вообще есть сборщик).
+        if ($newStatus === 'completed' && $isCollector) {
+            $unresolved = $order->items->contains(function ($item) {
+                return $item->product?->physical?->sale_mode === 'weight_variable'
+                    ? $item->actual_weight_grams === null
+                    : $item->picked_qty === null;
+            });
+
+            if ($unresolved) {
+                return response()->json(['message' => 'Разберите все позиции заказа перед завершением'], 422);
+            }
+
+            $hasShortage = $order->items->contains(
+                fn ($item) => $item->product?->physical?->sale_mode !== 'weight_variable'
+                    && $item->picked_qty < $item->quantity
+            );
+
+            if ($hasShortage && !$request->filled('note')) {
+                return response()->json(['message' => 'Укажите причину недобора перед завершением'], 422);
+            }
+        }
+
         $oldStatus = $order->status;
 
-        $order->update(['status' => $newStatus]);
+        $update = ['status' => $newStatus];
+        if ($request->filled('note')) {
+            $update['pick_note'] = $request->note;
+        }
+        $order->update($update);
 
         if ($newStatus !== $oldStatus) {
             \App\Jobs\SendOrderStatusPush::dispatchFor($order, $newStatus);
@@ -418,11 +529,16 @@ class OrderController extends Controller
             }
         }
 
-        $order->load(['items', 'customer']);
+        $shop = $request->attributes->get('shop');
+        if ($newStatus !== $oldStatus && $shop) {
+            \App\Events\OrdersUpdated::dispatch($shop->id);
+        }
+
+        $order->load(['items.product.physical', 'customer']);
 
         return response()->json([
             'message' => 'Статус заказа обновлён',
-            'data' => $order,
+            'data' => $isCollector ? $this->collectorPayload($order, $shop) : $order,
         ]);
     }
 
@@ -461,11 +577,147 @@ class OrderController extends Controller
 
         OrderReweighService::submitActualWeight($itemModel, (int) $request->actual_weight_grams, $shop);
 
-        $orderModel->refresh()->load('items.product.physical');
+        $orderModel->refresh()->load(['items.product.physical', 'customer']);
+
+        $isCollector = $request->attributes->get('staff_role') === 'collector';
 
         return response()->json([
             'message' => 'Вес подтверждён',
-            'data' => $orderModel,
+            'data' => $isCollector ? $this->collectorPayload($orderModel, $shop) : $orderModel,
+        ]);
+    }
+
+    /**
+     * Сборщик берёт заказ в работу.
+     *
+     * Мягкий лок, не жёсткий: магазин маленький (1-3 сборщика), полная
+     * блокировка чужого заказа только мешала бы, если один отвлёкся —
+     * поэтому вместо запрета даём знать, кто уже собирает, и явную кнопку
+     * «Всё равно взять» (?takeover=1) на фронте, а не тихий автозахват.
+     *
+     * PATCH /api/admin/orders/{order}/claim
+     */
+    public function claim(Request $request, string $order): JsonResponse
+    {
+        $orderModel = Order::with(['items.product.physical', 'customer'])->findOrFail($order);
+
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        if (in_array($orderModel->status, ['completed', 'cancelled'], true)) {
+            return response()->json(['message' => 'Этот заказ уже закрыт'], 422);
+        }
+
+        $staffId = $request->attributes->get('staff_id');
+
+        if ($orderModel->collector_id && $orderModel->collector_id !== $staffId && !$request->boolean('takeover')) {
+            return response()->json([
+                'message' => "Заказ уже собирает {$orderModel->collector_name}",
+                'collector_name' => $orderModel->collector_name,
+            ], 409);
+        }
+
+        $orderModel->update([
+            'collector_id' => $staffId,
+            'collector_name' => $request->user()->name,
+            'picking_started_at' => $orderModel->picking_started_at ?? now(),
+            'status' => in_array($orderModel->status, ['pending', 'paid'], true) ? 'processing' : $orderModel->status,
+        ]);
+
+        $shop = $request->attributes->get('shop');
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        $orderModel->refresh()->load(['items.product.physical', 'customer']);
+
+        return response()->json([
+            'message' => 'Заказ взят в работу',
+            'data' => $this->collectorPayload($orderModel, $shop),
+        ]);
+    }
+
+    /**
+     * Сборщик отмечает штучную позицию собранной (или снимает отметку).
+     * Для weight_variable позиций признаком «собрано» остаётся
+     * actual_weight_grams (см. submitItemWeight) — второй источник правды
+     * не заводим.
+     *
+     * PATCH /api/admin/orders/{order}/items/{item}/pick
+     */
+    public function pickItem(Request $request, string $order, string $item): JsonResponse
+    {
+        $request->validate([
+            'picked_qty' => 'nullable|integer|min:0',
+        ]);
+
+        $orderModel = Order::with(['items.product.physical', 'customer'])->findOrFail($order);
+
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        if (in_array($orderModel->status, ['completed', 'cancelled'], true)) {
+            return response()->json(['message' => 'Заказ уже закрыт'], 422);
+        }
+
+        $itemModel = OrderItem::where('order_id', $orderModel->id)
+            ->with('product.physical')
+            ->findOrFail($item);
+
+        if ($itemModel->product?->physical?->sale_mode === 'weight_variable') {
+            return response()->json(['message' => 'Эта позиция взвешивается, а не отмечается'], 422);
+        }
+
+        $pickedQty = $request->input('picked_qty');
+        if ($pickedQty !== null && $pickedQty > $itemModel->quantity) {
+            return response()->json(['message' => 'Нельзя собрать больше, чем заказано'], 422);
+        }
+
+        $itemModel->update(['picked_qty' => $pickedQty]);
+
+        // Без OrdersUpdated здесь намеренно — это отметка на своём же
+        // открытом экране, рассылать её самому себе незачем (см. план).
+
+        $orderModel->refresh()->load(['items.product.physical', 'customer']);
+
+        return response()->json([
+            'message' => 'Отметка сохранена',
+            'data' => $this->collectorPayload($orderModel, $request->attributes->get('shop')),
+        ]);
+    }
+
+    /**
+     * Сборщик сообщает о проблеме (брак, недобор, нашёл повреждённым и т.п.)
+     * вместо отмены заказа — решение остаётся за владельцем/админом
+     * (см. OrderDetailView.vue — там появится заметка и имя сборщика).
+     *
+     * PATCH /api/admin/orders/{order}/problem
+     */
+    public function reportProblem(Request $request, string $order): JsonResponse
+    {
+        $request->validate([
+            'note' => 'required|string|max:1000',
+        ]);
+
+        $orderModel = Order::with(['items.product.physical', 'customer'])->findOrFail($order);
+
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $orderModel->update([
+            'status' => 'needs_attention',
+            'pick_note' => $request->note,
+        ]);
+
+        $shop = $request->attributes->get('shop');
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        $orderModel->refresh()->load(['items.product.physical', 'customer']);
+
+        return response()->json([
+            'message' => 'Заказ отмечен как проблемный',
+            'data' => $this->collectorPayload($orderModel, $shop),
         ]);
     }
 

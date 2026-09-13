@@ -29,6 +29,7 @@ class SetShopFromAuth
 
         $request->attributes->set('shop', $shop);
         $request->attributes->set('staff_role', $ctx['role']);
+        $request->attributes->set('staff_id', $staff?->id);
         $request->attributes->set('staff_master_id', $staff?->master_id);
         $request->attributes->set('staff_category_ids', $staff?->category_ids);
 
