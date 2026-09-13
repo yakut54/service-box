@@ -6,16 +6,13 @@ import { useOrdersStore } from '@/stores/orders'
 import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
-import { disconnectEcho } from '@/lib/echo'
 import router from '@/router'
-import type { User, Shop, ChainInfo } from '@/types'
+import type { User, Shop } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const shop = ref<Shop | null>(null)
-  const chain = ref<ChainInfo | null>(null)
   const token = ref<string | null>(api.getToken())
-  const actingShopId = ref<string | null>(api.getActingShopId())
   const initialized = ref(false)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -24,7 +21,6 @@ export const useAuthStore = defineStore('auth', () => {
   const isOwner       = computed(() => user.value?.role === 'owner' || user.value?.is_superadmin === true)
   const isMaster       = computed(() => user.value?.role === 'master')
   const isCollector    = computed(() => user.value?.role === 'collector')
-  const isChainOwner   = computed(() => user.value?.is_chain_owner === true)
 
   async function initialize() {
     if (initialized.value) return
@@ -33,12 +29,6 @@ export const useAuthStore = defineStore('auth', () => {
     api.setUnauthorizedHandler(() => {
       clearAuth()
       router.push({ name: 'login' })
-    })
-
-    // Владелец сети без выбранной точки, или точку удалили/передали, пока он
-    // был внутри — не ломаем экран, чистим контекст и уводим в панель сети.
-    api.setActingShopErrorHandler(() => {
-      leaveShop()
     })
 
     try {
@@ -61,7 +51,6 @@ export const useAuthStore = defineStore('auth', () => {
     const data = await api.me()
     user.value = data.user
     shop.value = data.shop
-    chain.value = data.chain
   }
 
   async function login(email: string, password: string, remember = true) {
@@ -73,13 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.token
       user.value = response.user
       shop.value = response.shop
-      chain.value = response.chain
       api.setToken(response.token, remember)
-      // Свежий вход всегда ведёт в панель сети — предыдущая выбранная точка
-      // (если вдруг осталась в sessionStorage от другого пользователя на
-      // этом же устройстве) не должна унаследоваться новой сессией.
-      api.setActingShopId(null)
-      actingShopId.value = null
 
       return { success: true }
     } catch (err: unknown) {
@@ -155,17 +138,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function updateChainSettings(data: { name: string; logo_url?: string | null }) {
-    try {
-      const response = await api.chainUpdateSettings(data)
-      chain.value = response.data
-      return { success: true }
-    } catch (err: unknown) {
-      const message = err instanceof ApiError ? err.message : 'Ошибка обновления'
-      return { success: false, error: message }
-    }
-  }
-
   async function updateProfile(data: { name: string; phone?: string | null; avatar_url?: string | null }) {
     try {
       const response = await api.updateProfile(data)
@@ -177,38 +149,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  /**
-   * Владелец сети заходит внутрь одной из своих точек: дальше всё как у
-   * обычного владельца этого магазина (заголовок на каждый запрос,
-   * see App\Support\ShopAccess::forShop на бэкенде).
-   */
-  async function enterShop(shopId: string) {
-    api.setActingShopId(shopId)
-    actingShopId.value = shopId
-    resetDomainStores()
-    disconnectEcho()
-    await loadUserData()
-    router.push({ name: 'dashboard' })
-  }
-
-  /** Возврат из точки в панель сети (или просто сброс контекста при ошибке). */
-  async function leaveShop() {
-    api.setActingShopId(null)
-    actingShopId.value = null
-    resetDomainStores()
-    disconnectEcho()
-    if (isAuthenticated.value) {
-      await loadUserData().catch(() => { /* сессия могла протухнуть параллельно — initialize/401-хендлер разберутся */ })
-    }
-    router.push({ name: 'chain-shops' })
-  }
-
-  /**
-   * Сбрасывает данные других сторов — чтобы не утекали между аккаунтами
-   * (logout) и между точками одной сети (enter/leaveShop). Раньше вызывалось
-   * только из clearAuth() и не трогало reviews/mailFailures — при
-   * переключении точек это было бы видно чужими бейджами в меню.
-   */
+  /** Сбрасывает данные других сторов при logout — чтобы не утекали между аккаунтами. */
   function resetDomainStores() {
     useProductsStore().$reset()
     useOrdersStore().$reset()
@@ -220,11 +161,8 @@ export const useAuthStore = defineStore('auth', () => {
   function clearAuth() {
     user.value = null
     shop.value = null
-    chain.value = null
     token.value = null
-    actingShopId.value = null
     api.setToken(null)
-    api.setActingShopId(null)
 
     resetDomainStores()
   }
@@ -232,9 +170,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     shop,
-    chain,
     token,
-    actingShopId,
     initialized,
     loading,
     error,
@@ -242,7 +178,6 @@ export const useAuthStore = defineStore('auth', () => {
     isOwner,
     isMaster,
     isCollector,
-    isChainOwner,
     initialize,
     login,
     register,
@@ -250,8 +185,5 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithToken,
     updateShop,
     updateProfile,
-    updateChainSettings,
-    enterShop,
-    leaveShop,
   }
 })

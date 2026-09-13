@@ -19,9 +19,6 @@ class User extends Authenticatable
         'terms_accepted_at',
         'terms_accepted_ip',
         'is_superadmin',
-        'is_chain_owner',
-        'chain_name',
-        'chain_logo_url',
         'avatar_url',
         'phone',
     ];
@@ -38,27 +35,12 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'terms_accepted_at' => 'datetime',
             'is_superadmin'     => 'boolean',
-            'is_chain_owner'    => 'boolean',
         ];
     }
 
-    /**
-     * ВНИМАНИЕ: при нескольких магазинах у одного user_id (владелец сети,
-     * is_chain_owner) отдаёт произвольную строку — Eloquent hasOne не
-     * гарантирует, какую именно. (Детерминированный вариант через
-     * hasOne(...)->oldestOfMany() тут не работает: у ofMany есть встроенный
-     * tie-break через MIN/MAX(id), а id — uuid, для которого в Postgres нет
-     * агрегатных MIN/MAX.) Для владельца сети использовать shops() и
-     * App\Support\ShopAccess, а не это свойство напрямую.
-     */
     public function shop()
     {
         return $this->hasOne(Shop::class);
-    }
-
-    public function shops()
-    {
-        return $this->hasMany(Shop::class);
     }
 
     public function staffShops()

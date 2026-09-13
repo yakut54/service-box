@@ -173,28 +173,6 @@ const router = createRouter({
       ],
     },
     {
-      path: '/chain',
-      component: () => import('@/components/layout/ChainLayout.vue'),
-      meta: { requiresAuth: true, requiresChain: true },
-      children: [
-        {
-          path: '',
-          name: 'chain-shops',
-          component: () => import('@/views/chain/ChainShopsView.vue'),
-        },
-        {
-          path: 'revenue',
-          name: 'chain-revenue',
-          component: () => import('@/views/chain/ChainRevenueView.vue'),
-        },
-        {
-          path: 'settings',
-          name: 'chain-settings',
-          component: () => import('@/views/chain/ChainSettingsView.vue'),
-        },
-      ],
-    },
-    {
       path: '/master',
       component: () => import('@/components/layout/MasterLayout.vue'),
       meta: { requiresAuth: true, requiresMaster: true },
@@ -261,11 +239,10 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // Мастер/сборщик/владелец сети/чистый суперадмин после логина → в свой кабинет
+  // Мастер/сборщик/чистый суперадмин после логина → в свой кабинет
   if (!requiresAuth && authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
     if (authStore.isMaster) { next({ name: 'master-schedule' }); return }
     if (authStore.isCollector) { next({ name: 'collector-orders' }); return }
-    if (authStore.isChainOwner && !authStore.actingShopId) { next({ name: 'chain-shops' }); return }
     // Аккаунт управления платформой без собственного магазина (суперадмин,
     // но не шопер) — ему некуда идти на обычный дашборд, там ему нечего делать.
     if (authStore.user?.is_superadmin && !authStore.shop) { next({ name: 'superadmin-shops' }); return }
@@ -297,36 +274,16 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // Владелец сети без выбранной точки — на любом обычном разделе (кроме
-  // самой панели сети и суперадминки — теоретически можно быть и тем, и
-  // другим одновременно, панели независимы, см. PLAN.md) всё равно получит
-  // 409 от бэкенда, поэтому сразу уводим в панель, а не показываем
-  // сломанный экран.
-  if (
-    authStore.isChainOwner && !authStore.actingShopId &&
-    !to.meta.requiresChain && !to.meta.requiresSuperadmin &&
-    requiresAuth && to.name !== 'not-found'
-  ) {
-    next({ name: 'chain-shops' })
-    return
-  }
-
   // Чистый суперадмин без своего магазина (аккаунт управления платформой) —
   // на любом обычном разделе неизбежен 401 от auth.shop (там нет магазина по
   // умолчанию), поэтому сразу уводим в суперадминку, а не показываем
   // сломанный экран.
   if (
     authStore.user?.is_superadmin && !authStore.shop &&
-    !to.meta.requiresSuperadmin && !to.meta.requiresChain &&
+    !to.meta.requiresSuperadmin &&
     requiresAuth && to.name !== 'not-found'
   ) {
     next({ name: 'superadmin-shops' })
-    return
-  }
-
-  // Не-владелец сети пытается открыть панель сети
-  if (to.meta.requiresChain && !authStore.isChainOwner) {
-    next({ name: 'dashboard' })
     return
   }
 

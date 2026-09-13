@@ -6,7 +6,6 @@ use App\Services\TenantService;
 use App\Support\ShopAccess;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class SetShopFromAuth
@@ -19,44 +18,10 @@ class SetShopFromAuth
             return response()->json(['message' => 'Не авторизован'], 401);
         }
 
-        $actingShopId = $request->header('X-Acting-Shop-Id');
+        $ctx = ShopAccess::defaultFor($user);
 
-        if ($actingShopId !== null && $actingShopId !== '') {
-            if (!Str::isUuid($actingShopId)) {
-                return response()->json([
-                    'message' => 'Некорректный магазин',
-                    'code'    => 'acting_shop_invalid',
-                ], 400);
-            }
-
-            // Владение/членство проверяется на каждый запрос — заголовку
-            // самому по себе не доверяем. Владелец платформы (is_superadmin)
-            // этим путём в чужой магазин не входит: ShopAccess::forShop не
-            // делает для него исключений — так и задумано.
-            $ctx = ShopAccess::forShop($user, $actingShopId);
-
-            if (!$ctx) {
-                return response()->json([
-                    'message' => 'Нет доступа к этому магазину',
-                    'code'    => 'acting_shop_forbidden',
-                ], 403);
-            }
-        } else {
-            $ctx = ShopAccess::defaultFor($user);
-
-            if (!$ctx) {
-                // Владелец сети без выбранной точки — не «не авторизован»,
-                // а «выбери магазин» (фронт по этому коду уводит в панель
-                // сети). Все остальные без магазина — как и раньше, 401.
-                if ($user->is_chain_owner) {
-                    return response()->json([
-                        'message' => 'Выберите магазин',
-                        'code'    => 'shop_not_selected',
-                    ], 409);
-                }
-
-                return response()->json(['message' => 'Не авторизован'], 401);
-            }
+        if (!$ctx) {
+            return response()->json(['message' => 'Не авторизован'], 401);
         }
 
         $shop  = $ctx['shop'];

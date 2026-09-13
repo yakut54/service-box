@@ -21,9 +21,6 @@ import type {
   SuperadminShopFeature,
   SuperadminRevenue,
   SuperadminOwner,
-  ChainInfo,
-  ChainShop,
-  ChainRevenue,
   Commission,
 } from '@/types'
 
@@ -38,33 +35,16 @@ export class ApiError extends Error {
 
 class ApiClient {
   private token: string | null = null
-  private actingShopId: string | null = null
   private unauthorizedHandler: (() => void) | null = null
-  private actingShopErrorHandler: ((code: string) => void) | null = null
 
   constructor() {
     // Restore token from whichever storage it was saved to
     this.token = localStorage.getItem('auth_token') ?? sessionStorage.getItem('auth_token')
-    // Активный магазин владельца сети — только в sessionStorage: вкладки
-    // должны жить в разных точках независимо, а новая вкладка приземляется
-    // в панель сети (безвредно, не в чужой магазин).
-    this.actingShopId = sessionStorage.getItem('acting_shop_id')
-  }
-
-  setActingShopId(id: string | null) {
-    this.actingShopId = id
-    if (id) sessionStorage.setItem('acting_shop_id', id)
-    else sessionStorage.removeItem('acting_shop_id')
-  }
-
-  getActingShopId(): string | null {
-    return this.actingShopId
   }
 
   private authHeaders(): Record<string, string> {
     const headers: Record<string, string> = {}
     if (this.token) headers['Authorization'] = `Bearer ${this.token}`
-    if (this.actingShopId) headers['X-Acting-Shop-Id'] = this.actingShopId
     return headers
   }
 
@@ -92,14 +72,6 @@ class ApiClient {
     this.unauthorizedHandler = handler
   }
 
-  // Владелец сети без выбранной точки (409 shop_not_selected) или с
-  // магазином, который перестал быть его (403 acting_shop_forbidden, точку
-  // удалили/передали, пока он был внутри) — уводим в панель сети, а не
-  // молча показываем сломанный экран.
-  setActingShopErrorHandler(handler: (code: string) => void) {
-    this.actingShopErrorHandler = handler
-  }
-
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -122,10 +94,6 @@ class ApiClient {
       if (response.status === 401 && this.token) {
         this.setToken(null)
         this.unauthorizedHandler?.()
-      }
-
-      if (error.code === 'acting_shop_forbidden' || error.code === 'shop_not_selected') {
-        this.actingShopErrorHandler?.(error.code)
       }
 
       throw new ApiError(response.status, error.message || 'Ошибка запроса', error.code)
@@ -204,7 +172,7 @@ class ApiClient {
   }
 
   async login(data: { email: string; password: string }) {
-    return this.request<{ user: User; shop: Shop | null; chain: ChainInfo | null; token: string }>('/auth/login', {
+    return this.request<{ user: User; shop: Shop | null; token: string }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -219,7 +187,7 @@ class ApiClient {
   }
 
   async me() {
-    return this.request<{ user: User; shop: Shop | null; chain: ChainInfo | null }>('/auth/me')
+    return this.request<{ user: User; shop: Shop | null }>('/auth/me')
   }
 
   async refreshToken() {
@@ -774,37 +742,15 @@ class ApiClient {
     return this.request<{ data: SuperadminOwner[]; total: number; per_page: number; current_page: number }>(`/superadmin/owners${query}`)
   }
 
-  async superadminToggleChainOwner(userId: string, enabled: boolean) {
-    return this.request<{ id: string; is_chain_owner: boolean }>(`/superadmin/owners/${userId}/chain`, {
-      method: 'PUT',
-      body: JSON.stringify({ enabled }),
-    })
-  }
-
-  // ==========================================
-  // CHAIN (панель владельца сети)
-  // ==========================================
-
-  async chainGetShops() {
-    return this.request<{ data: ChainShop[] }>('/chain/shops')
-  }
-
-  async chainCreateShop(data: { name: string; domain?: string | null; timezone?: string | null }) {
-    // Бэкенд отдаёт только базовые поля магазина — revenue/orders/staff_count
-    // у новой точки всегда 0, отдельно их не считаем (см. ChainShopController::store).
-    return this.request<{ data: Pick<ChainShop, 'id' | 'name' | 'domain' | 'timezone' | 'created_at'> }>('/chain/shops', {
+  async superadminCreateOwner(data: {
+    name: string
+    email: string
+    shop_name: string
+    shop_domain?: string | null
+    timezone?: string | null
+  }) {
+    return this.request<SuperadminOwner>('/superadmin/owners', {
       method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  async chainGetRevenue(days = 30) {
-    return this.request<ChainRevenue>(`/chain/revenue?days=${days}`)
-  }
-
-  async chainUpdateSettings(data: { name: string; logo_url?: string | null }) {
-    return this.request<{ data: ChainInfo }>('/chain/settings', {
-      method: 'PUT',
       body: JSON.stringify(data),
     })
   }

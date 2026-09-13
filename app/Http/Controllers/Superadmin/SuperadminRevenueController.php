@@ -8,9 +8,9 @@ use App\Services\ShopRevenueAggregator;
 
 /**
  * Выручка платформы = сумма комиссии (20%, см. PLAN.md) со всех заказов
- * всех магазинов. Считает App\Services\ShopRevenueAggregator — тот же
- * агрегатор использует панель сети (Chain\ChainRevenueController), там
- * вместо комиссии платформы считается оборот самой сети.
+ * всех магазинов. Считает App\Services\ShopRevenueAggregator — общий цикл
+ * по тенантным схемам, вынесенный отдельно, чтобы не быть единственным
+ * его вызывающим.
  */
 class SuperadminRevenueController extends Controller
 {

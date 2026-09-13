@@ -9,49 +9,8 @@ export interface User {
   avatar_url?: string | null
   phone?: string | null
   is_superadmin: boolean
-  is_chain_owner: boolean
-  role: 'owner' | 'admin' | 'master' | 'collector' | 'chain_owner' | 'superadmin' | null
+  role: 'owner' | 'admin' | 'master' | 'collector' | 'superadmin' | null
   created_at: string
-}
-
-// ==========================================
-// CHAIN (владелец сети — несколько магазинов у одного user_id)
-// ==========================================
-
-export interface ChainInfo {
-  shops_count: number
-  name: string | null
-  logo_url: string | null
-}
-
-export interface ChainShop {
-  id: string
-  name: string
-  domain: string | null
-  timezone: string | null
-  created_at: string
-  revenue_30d_kopecks: number
-  orders_30d: number
-  staff_count: number
-}
-
-export interface ChainRevenuePerShop {
-  shop_id: string
-  name: string
-  revenue_kopecks: number
-  orders: number
-  share_percent: number
-}
-
-export interface ChainRevenue {
-  total_kopecks: number
-  period_kopecks: number
-  period_days: number
-  orders_total: number
-  period_orders: number
-  shops_count: number
-  chart: OrderChartPoint[]
-  per_shop: ChainRevenuePerShop[]
 }
 
 export interface SuperadminOwner {
@@ -59,8 +18,7 @@ export interface SuperadminOwner {
   name: string
   email: string
   created_at: string
-  shops_count: number
-  is_chain_owner: boolean
+  shop_name: string | null
 }
 
 // ==========================================

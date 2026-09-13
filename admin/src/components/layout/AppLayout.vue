@@ -116,10 +116,6 @@ async function handleLogout() {
   await authStore.logout()
   router.push('/login')
 }
-
-async function leaveChain() {
-  await authStore.leaveShop()
-}
 </script>
 
 <template>
@@ -146,17 +142,6 @@ async function leaveChain() {
           </div>
           <span class="font-semibold text-gray-900 dark:text-white">ServiceBox</span>
         </RouterLink>
-      </div>
-
-      <!-- Владелец сети зашёл внутрь одной из своих точек -->
-      <div v-if="authStore.actingShopId" class="px-4 py-3 border-b border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 flex-shrink-0">
-        <p class="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">Вы в точке сети</p>
-        <div class="flex items-center justify-between gap-2">
-          <p class="font-medium text-gray-900 dark:text-white truncate text-sm">{{ authStore.shop?.name }}</p>
-          <button @click="leaveChain" class="text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline shrink-0">
-            ← Сеть
-          </button>
-        </div>
       </div>
 
       <!-- Shop name -->

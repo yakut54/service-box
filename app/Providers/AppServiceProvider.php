@@ -79,14 +79,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip())->response($tooManyAttempts);
         });
 
-        // Панель сети — именованные лимитеры по той же причине, что и у чата:
-        // голый throttle:N,1 держит общий счётчик на пользователя без учёта
-        // роута, а тут рядом POST /chain/shops (дорогая операция — DROP/CREATE
-        // SCHEMA + ~30 таблиц) и GET /chain/revenue (цикл по схемам).
-        RateLimiter::for('chain-read', function (Request $request) use ($tooManyAttempts) {
-            return Limit::perMinute(60)->by($request->user()?->id ?? $request->ip())->response($tooManyAttempts);
-        });
-        RateLimiter::for('chain-write', function (Request $request) use ($tooManyAttempts) {
+        // Суперадмин создаёт админа с точкой — дорогая операция (DROP/CREATE
+        // SCHEMA + ~30 таблиц), именованный лимитер вместо голого throttle:N,1
+        // по той же причине, что у чата (общий счётчик без учёта роута).
+        RateLimiter::for('superadmin-write', function (Request $request) use ($tooManyAttempts) {
             return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip())->response($tooManyAttempts);
         });
     }

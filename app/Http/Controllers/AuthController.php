@@ -18,7 +18,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -93,14 +92,12 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        // Свежий вход всегда ведёт в панель сети — заголовок X-Acting-Shop-Id
-        // тут сознательно не читаем (владелец сети сам выберет точку внутри).
         $ctx = ShopAccess::defaultFor($user);
 
         // is_superadmin — отдельный аккаунт управления платформой, не шопер;
         // магазина у него может не быть вообще (см. Superadmin\*, роуты вне
-        // auth.shop). Владелец сети — тот же принцип, уже был.
-        if (!$ctx && !$user->is_chain_owner && !$user->is_superadmin) {
+        // auth.shop).
+        if (!$ctx && !$user->is_superadmin) {
             return response()->json([
                 'message' => 'Магазин не найден',
             ], 404);
@@ -111,9 +108,8 @@ class AuthController extends Controller
         // Уже открытая вкладка на другом устройстве узнаёт об этом входе в
         // реальном времени и покажет предупреждение до того, как её токен
         // реально удалят строкой ниже — WS-соединение не привязано к
-        // валидности токена, которым его когда-то авторизовали. У владельца
-        // сети без выбранной точки считаем по всем его магазинам разом.
-        $shopIds = $shop ? [$shop->id] : $user->shops()->pluck('id')->all();
+        // валидности токена, которым его когда-то авторизовали.
+        $shopIds = $shop ? [$shop->id] : [];
         $totalUsers = 1 + ShopStaff::whereIn('shop_id', $shopIds)
             ->whereNotNull('accepted_at')
             ->count();
@@ -126,7 +122,6 @@ class AuthController extends Controller
             'message' => 'Вход выполнен',
             'user' => $this->userPayload($user, $ctx),
             'shop' => $shop ? $this->shopPayload($shop) : null,
-            'chain' => $this->chainPayload($user),
             'token' => $token,
         ]);
     }
@@ -150,12 +145,9 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        [$ctx, $error] = $this->resolveActingContext($request, $user);
-        if ($error) {
-            return $error;
-        }
+        $ctx = ShopAccess::defaultFor($user);
 
-        if (!$ctx && !$user->is_chain_owner && !$user->is_superadmin) {
+        if (!$ctx && !$user->is_superadmin) {
             return response()->json(['message' => 'Магазин не найден'], 404);
         }
 
@@ -170,46 +162,10 @@ class AuthController extends Controller
                 'prepayment_amount'  => (int) $shop->prepayment_amount,
                 'delivery_settings'  => $shop->delivery_settings,
             ]) : null,
-            'chain' => $this->chainPayload($user),
         ]);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-
-    /**
-     * X-Acting-Shop-Id для эндпоинтов вне группы /api/admin/* (auth.shop туда
-     * не подключён, поэтому тут своя проверка — те же правила, что в
-     * SetShopFromAuth: владение/членство проверяется заново, заголовку самому
-     * по себе не доверяем).
-     *
-     * @return array{0: ?array, 1: ?JsonResponse}
-     */
-    private function resolveActingContext(Request $request, User $user): array
-    {
-        $actingShopId = $request->header('X-Acting-Shop-Id');
-
-        if ($actingShopId === null || $actingShopId === '') {
-            return [ShopAccess::defaultFor($user), null];
-        }
-
-        if (!Str::isUuid($actingShopId)) {
-            return [null, response()->json([
-                'message' => 'Некорректный магазин',
-                'code'    => 'acting_shop_invalid',
-            ], 400)];
-        }
-
-        $ctx = ShopAccess::forShop($user, $actingShopId);
-
-        if (!$ctx) {
-            return [null, response()->json([
-                'message' => 'Нет доступа к этому магазину',
-                'code'    => 'acting_shop_forbidden',
-            ], 403)];
-        }
-
-        return [$ctx, null];
-    }
 
     /** @param ?array{shop: Shop, role: string, staff: mixed} $ctx */
     private function userPayload(User $user, ?array $ctx): array
@@ -221,26 +177,7 @@ class AuthController extends Controller
             'avatar_url'     => $user->avatar_url,
             'phone'          => $user->phone,
             'is_superadmin'  => (bool) $user->is_superadmin,
-            'is_chain_owner' => (bool) $user->is_chain_owner,
-            'role'           => $ctx['role'] ?? match (true) {
-                $user->is_chain_owner => 'chain_owner',
-                $user->is_superadmin  => 'superadmin',
-                default               => null,
-            },
-        ];
-    }
-
-    /** Только для владельца сети — сколько у него точек. */
-    private function chainPayload(User $user): ?array
-    {
-        if (!$user->is_chain_owner) {
-            return null;
-        }
-
-        return [
-            'shops_count' => $user->shops()->count(),
-            'name'        => $user->chain_name,
-            'logo_url'    => $user->chain_logo_url,
+            'role'           => $ctx['role'] ?? ($user->is_superadmin ? 'superadmin' : null),
         ];
     }
 
@@ -315,10 +252,7 @@ class AuthController extends Controller
 
         $user->save();
 
-        [$ctx, $error] = $this->resolveActingContext($request, $user);
-        if ($error) {
-            return $error;
-        }
+        $ctx = ShopAccess::defaultFor($user);
 
         return response()->json([
             'user' => $this->userPayload($user, $ctx),

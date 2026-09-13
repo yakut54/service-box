@@ -30,7 +30,7 @@ class ShopController extends Controller
     public function getPublicInfo(Request $request): JsonResponse
     {
         $shopId = $request->header('X-Shop-ID');
-        $shop = Shop::with('user')->where('api_key', $shopId)->first();
+        $shop = Shop::where('api_key', $shopId)->first();
 
         if (!$shop) {
             return response()->json([
@@ -43,20 +43,10 @@ class ShopController extends Controller
         $rawDelivery    = $shop->delivery_settings ?? [];
         $enabledMethods = array_filter($rawDelivery, fn($m) => !empty($m['enabled']));
 
-        // Точки сети не имеют собственного логотипа — только у владельца сети
-        // есть один логотип на всю сеть (users.chain_logo_url), см.
-        // ChainSettingsController. Тут принудительно подменяем, а не полагаемся
-        // на то, что widget_config.logo_url точки пуст — старые точки могли
-        // сохранить свой логотип ещё до того, как это правило появилось.
-        $widgetConfig = $shop->widget_config ?? [];
-        if ($shop->user && $shop->user->is_chain_owner) {
-            $widgetConfig['logo_url'] = $shop->user->chain_logo_url;
-        }
-
         return response()->json([
             'id'                  => $shop->id,
             'name'                => $shop->name,
-            'widget_config'       => $widgetConfig,
+            'widget_config'       => $shop->widget_config,
             'timezone'            => $shop->timezone,
             'chat_customer_delete_enabled' => (bool) $shop->chat_customer_delete_enabled,
             'prepayment_enabled'  => (bool) $shop->prepayment_enabled,

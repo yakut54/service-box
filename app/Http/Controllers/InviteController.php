@@ -96,13 +96,12 @@ class InviteController extends Controller
                 // регистрация вообще возможна.
                 $existingUser = User::where('email', $staff->invite_email)->first();
 
-                // Не $existingUser->shop (hasOne — у владельца сети магазинов
-                // несколько, вернул бы произвольный). Настоящая причина
-                // запрета та же, что в StaffController::store(): owner-путь в
-                // SetShopFromAuth всегда выигрывает у staff-пути, поэтому
-                // владелец чужого магазина, приняв приглашение, всё равно
-                // продолжит попадать в свой — приглашение окажется мёртвым.
-                if ($existingUser && ($existingUser->shops()->exists() || $existingUser->is_chain_owner)) {
+                // Настоящая причина запрета та же, что в
+                // StaffController::store(): owner-путь в SetShopFromAuth
+                // всегда выигрывает у staff-пути, поэтому владелец чужого
+                // магазина, приняв приглашение, всё равно продолжит попадать
+                // в свой — приглашение окажется мёртвым.
+                if ($existingUser && $existingUser->shop !== null) {
                     DB::rollBack();
                     return response()->json([
                         'message' => 'На этот email уже зарегистрирован аккаунт владельца магазина. '
