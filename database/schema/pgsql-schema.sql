@@ -979,7 +979,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     is_superadmin boolean DEFAULT false NOT NULL,
     avatar_url character varying(1000),
     phone character varying(20),
-    is_chain_owner boolean DEFAULT false NOT NULL
+    is_chain_owner boolean DEFAULT false NOT NULL,
+    chain_name character varying(255)
 );
 
 
