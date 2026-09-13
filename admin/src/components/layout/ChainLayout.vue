@@ -27,7 +27,7 @@ async function logout() {
 
         <div class="flex items-center gap-4 min-w-0">
           <span class="text-sm font-semibold text-gray-900 dark:text-white truncate leading-tight shrink-0">
-            {{ authStore.user?.name }}
+            {{ authStore.chain?.name || authStore.user?.name }}
           </span>
           <nav class="hidden sm:flex items-center gap-1">
             <RouterLink

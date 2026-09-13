@@ -20,6 +20,7 @@ class User extends Authenticatable
         'terms_accepted_ip',
         'is_superadmin',
         'is_chain_owner',
+        'chain_name',
         'avatar_url',
         'phone',
     ];

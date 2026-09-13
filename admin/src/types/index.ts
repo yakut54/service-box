@@ -20,6 +20,7 @@ export interface User {
 
 export interface ChainInfo {
   shops_count: number
+  name: string | null
 }
 
 export interface ChainShop {

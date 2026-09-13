@@ -237,7 +237,10 @@ class AuthController extends Controller
             return null;
         }
 
-        return ['shops_count' => $user->shops()->count()];
+        return [
+            'shops_count' => $user->shops()->count(),
+            'name'        => $user->chain_name,
+        ];
     }
 
     private function shopPayload(Shop $shop): array

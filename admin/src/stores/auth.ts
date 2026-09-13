@@ -8,11 +8,12 @@ import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
 import { disconnectEcho } from '@/lib/echo'
 import router from '@/router'
-import type { User, Shop } from '@/types'
+import type { User, Shop, ChainInfo } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const shop = ref<Shop | null>(null)
+  const chain = ref<ChainInfo | null>(null)
   const token = ref<string | null>(api.getToken())
   const actingShopId = ref<string | null>(api.getActingShopId())
   const initialized = ref(false)
@@ -60,6 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
     const data = await api.me()
     user.value = data.user
     shop.value = data.shop
+    chain.value = data.chain
   }
 
   async function login(email: string, password: string, remember = true) {
@@ -71,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.token
       user.value = response.user
       shop.value = response.shop
+      chain.value = response.chain
       api.setToken(response.token, remember)
       // Свежий вход всегда ведёт в панель сети — предыдущая выбранная точка
       // (если вдруг осталась в sessionStorage от другого пользователя на
@@ -206,6 +209,7 @@ export const useAuthStore = defineStore('auth', () => {
   function clearAuth() {
     user.value = null
     shop.value = null
+    chain.value = null
     token.value = null
     actingShopId.value = null
     api.setToken(null)
@@ -217,6 +221,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     shop,
+    chain,
     token,
     actingShopId,
     initialized,
