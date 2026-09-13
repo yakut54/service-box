@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\CustomerSession;
 use App\Models\Review;
+use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -127,6 +128,11 @@ class ReviewController extends Controller
             $query->where('is_published', $request->boolean('is_published'));
         }
 
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+        if ($allowedCategoryIds !== null) {
+            $query->whereHas('product', fn ($q) => $q->whereIn('category_id', $allowedCategoryIds));
+        }
+
         $reviews = $query->get();
         $shop = $request->attributes->get('shop');
 
@@ -154,10 +160,16 @@ class ReviewController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+
         $count = Review::where('is_published', false)
             ->when(
                 $shop->reviews_last_seen_at,
                 fn ($q) => $q->where('created_at', '>', $shop->reviews_last_seen_at),
+            )
+            ->when(
+                $allowedCategoryIds !== null,
+                fn ($q) => $q->whereHas('product', fn ($q2) => $q2->whereIn('category_id', $allowedCategoryIds)),
             )
             ->count();
 
@@ -183,7 +195,9 @@ class ReviewController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $review = Review::with('customer:id,name,avatar_url')->findOrFail($id);
+        $review = Review::with(['customer:id,name,avatar_url', 'product:id,category_id'])->findOrFail($id);
+
+        $this->denyIfOutOfScope($review, $request);
 
         $data = $request->validate([
             'is_published' => 'required|boolean',
@@ -200,11 +214,32 @@ class ReviewController extends Controller
      * DELETE /admin/reviews/{id}
      * Удаление отзыва.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        Review::findOrFail($id)->delete();
+        $review = Review::with('product:id,category_id')->findOrFail($id);
+
+        $this->denyIfOutOfScope($review, $request);
+
+        $review->delete();
 
         return response()->json(['message' => 'Отзыв удалён']);
+    }
+
+    /**
+     * Админ, ограниченный категориями (см. CategoryAccess) — не должен
+     * видеть/трогать отзыв на чужой товар (у reviews.product_id всегда есть
+     * значение — прямой NOT NULL FK, самый чистый случай из всех разделов).
+     */
+    private function denyIfOutOfScope(Review $review, Request $request): void
+    {
+        $allowedCategoryIds = CategoryAccess::expandedIds($request);
+        if ($allowedCategoryIds === null) {
+            return;
+        }
+
+        if (!$review->product || !in_array($review->product->category_id, $allowedCategoryIds, true)) {
+            abort(404);
+        }
     }
 
     // =========================================================

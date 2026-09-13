@@ -11,6 +11,7 @@ use App\Models\Shop;
 use App\Services\DiscountService;
 use App\Services\OrderReweighService;
 use App\Services\TenantService;
+use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,34 @@ use Illuminate\Support\Facades\DB;
 class OrderController extends Controller
 {
     public function __construct(private readonly DiscountService $discountService) {}
+
+    /**
+     * Админ, ограниченный владельцем набором категорий (см. CategoryAccess),
+     * видит заказ целиком, если внутри есть хоть один товар из его категорий
+     * — решение: не резать заказ на части и не прятать чужие строки внутри
+     * него, иначе сумма в заказе разъехалась бы с тем, что показывает
+     * аналитика того же заказа.
+     */
+    private function applyCategoryScope(\Illuminate\Database\Eloquent\Builder $query, Request $request): void
+    {
+        $allowed = CategoryAccess::expandedIds($request);
+        if ($allowed !== null) {
+            $query->whereHas('items.product', fn ($q) => $q->whereIn('category_id', $allowed));
+        }
+    }
+
+    /** @param Order $order с загруженной связью items.product */
+    private function orderInScope(Order $order, Request $request): bool
+    {
+        $allowed = CategoryAccess::expandedIds($request);
+        if ($allowed === null) {
+            return true;
+        }
+
+        return $order->items->contains(
+            fn ($item) => $item->product && in_array($item->product->category_id, $allowed, true)
+        );
+    }
 
     /**
      * Get list of orders
@@ -55,6 +84,8 @@ class OrderController extends Controller
                   ->orWhere('customer_email', 'ILIKE', "%{$search}%");
             });
         }
+
+        $this->applyCategoryScope($query, $request);
 
         $orders = $query->latest('created_at')->get();
 
@@ -319,9 +350,13 @@ class OrderController extends Controller
     /**
      * Get single order
      */
-    public function show(string $order): JsonResponse
+    public function show(Request $request, string $order): JsonResponse
     {
         $order = Order::with(['items.product', 'customer'])->findOrFail($order);
+
+        if (!$this->orderInScope($order, $request)) {
+            abort(404);
+        }
 
         return response()->json([
             'data' => $order,
@@ -336,6 +371,11 @@ class OrderController extends Controller
     public function updateStatus(Request $request, string $order): JsonResponse
     {
         $order = Order::with('items.product')->findOrFail($order);
+
+        if (!$this->orderInScope($order, $request)) {
+            abort(404);
+        }
+
         $request->validate([
             // 'paid' сюда сознательно не входит — этот статус проставляет
             // только вебхук ЮKassa (Order::markAsPaid), после реальной
@@ -401,7 +441,12 @@ class OrderController extends Controller
             'actual_weight_grams' => 'required|integer|min:0',
         ]);
 
-        $orderModel = Order::findOrFail($order);
+        $orderModel = Order::with('items.product')->findOrFail($order);
+
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
         $itemModel = OrderItem::where('order_id', $orderModel->id)
             ->with('product.physical')
             ->findOrFail($item);
@@ -527,6 +572,8 @@ class OrderController extends Controller
 
         $baseQuery = Order::query()->whereBetween('created_at', [$dateFrom, $dateTo]);
         $prevQuery = Order::query()->whereBetween('created_at', [$prevFrom, $prevTo]);
+        $this->applyCategoryScope($baseQuery, $request);
+        $this->applyCategoryScope($prevQuery, $request);
 
         $revenue     = (clone $baseQuery)->where('status', '!=', 'cancelled')->sum('total_price');
         $prevRevenue = (clone $prevQuery)->where('status', '!=', 'cancelled')->sum('total_price');
@@ -559,13 +606,13 @@ class OrderController extends Controller
         $days = min((int) $request->input('days', 30), 90);
         $from = now()->subDays($days - 1)->startOfDay();
 
-        $rows = Order::query()
+        $chartQuery = Order::query()
             ->selectRaw("DATE(created_at) as date, COUNT(*) as orders, SUM(CASE WHEN status != 'cancelled' THEN total_price ELSE 0 END) as revenue")
             ->where('created_at', '>=', $from)
-            ->groupByRaw('DATE(created_at)')
-            ->orderBy('date')
-            ->get()
-            ->keyBy('date');
+            ->groupByRaw('DATE(created_at)');
+        $this->applyCategoryScope($chartQuery, $request);
+
+        $rows = $chartQuery->orderBy('date')->get()->keyBy('date');
 
         // Fill all days (including zero-data days)
         $result = [];
@@ -587,9 +634,13 @@ class OrderController extends Controller
      *
      * DELETE /api/admin/orders/{order}
      */
-    public function destroy(string $order): JsonResponse
+    public function destroy(Request $request, string $order): JsonResponse
     {
         $order = Order::with('items.product')->findOrFail($order);
+
+        if (!$this->orderInScope($order, $request)) {
+            abort(404);
+        }
 
         // Возвращаем физические товары на склад перед удалением
         if ($order->status !== 'cancelled') {
@@ -624,6 +675,8 @@ class OrderController extends Controller
                   ->orWhere('customer_phone', 'ILIKE', "%{$search}%");
             });
         }
+
+        $this->applyCategoryScope($query, $request);
 
         $orders = $query->latest('created_at')->get();
         $filename = 'orders_' . now()->format('Y-m-d') . '.csv';
