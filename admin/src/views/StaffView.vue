@@ -212,6 +212,10 @@ onUnmounted(() => {
                   v-if="admin.role === 'collector'"
                   class="shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
                 >Сборщик</span>
+                <span
+                  v-else
+                  class="shrink-0 px-1.5 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+                >Администратор</span>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ displayEmail(admin) }}</p>
               <a
