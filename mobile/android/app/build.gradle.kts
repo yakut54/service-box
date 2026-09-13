@@ -45,6 +45,13 @@ android {
             dimension = "shop"
             applicationId = "ru.yakut54.servicebox.barbariska"
         }
+        // Тестовый флейвор — заглушка-иконка/сплэш, api_key-плейсхолдер (см.
+        // flavors/fruit.json). Не для реальной раздачи, пока не подставлен
+        // настоящий магазин и google-services.json.
+        create("fruit") {
+            dimension = "shop"
+            applicationId = "ru.yakut54.servicebox.fruit"
+        }
     }
 
     buildTypes {

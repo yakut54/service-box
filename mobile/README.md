@@ -11,24 +11,37 @@
 1. **Identity** (Android Gradle, `android/app/build.gradle.kts`) —
    свой `applicationId`, чтобы APK разных шоперов ставились на телефон
    бок о бок. Имя приложения — в `android/app/src/<flavor>/res/values/strings.xml`.
-   Иконка — `android/app/src/<flavor>/res/mipmap-*/ic_launcher.png`.
-   Генерируется из одного PNG через `flutter_launcher_icons`: положить
-   исходник в `assets/icon/`, указать его в `flutter_launcher_icons:`
-   (pubspec.yaml) → `dart run flutter_launcher_icons` → результат
-   появляется в `android/app/src/main/res/mipmap-*/` → руками скопировать
-   в `android/app/src/<flavor>/res/mipmap-*/` и вернуть `main/` обратно
-   (`git checkout`), чтобы у следующего флейвора не было чужой иконки
-   как дефолта.
-   Splash-экран (первый экран при запуске, до отрисовки Flutter) — та же
-   иконка на сплошном фоне её собственного цвета (пипеткой с PNG, см.
-   `flutter_native_splash:` в pubspec.yaml), а не дефолтный
-   белый-экран-с-иконкой от Android 12+. Генерируется через
-   `dart run flutter_native_splash:create` → результат в
-   `android/app/src/main/res/drawable*`, `values-v31`, `values-night-v31`
-   → руками перенести в `android/app/src/<flavor>/res/...` и вернуть
-   `main/` (те же файлы, что и с иконкой) — `values/styles.xml` и
-   `values-night/styles.xml` трогать не нужно, там нет цвета, только
-   структурные флаги, общие для всех флейворов.
+
+   Иконка и splash-экран генерируются **по флейворам напрямую**, без
+   ручного копирования файлов — оба пакета (`flutter_launcher_icons`,
+   `flutter_native_splash`) сами раскладывают результат в
+   `android/app/src/<flavor>/res/...` по имени конфиг-файла:
+   - `flutter_launcher_icons-<flavor>.yaml` (в корне `mobile/`) —
+     `image_path` указывает на PNG в `assets/icon/`.
+   - `flutter_native_splash-<flavor>.yaml` — та же иконка на сплошном
+     фоне её собственного цвета, а не дефолтный белый-экран-с-иконкой
+     от Android 12+.
+
+   Новый флейвор = положить его PNG в `assets/icon/`, скопировать оба
+   файла (`flutter_launcher_icons-barbariska.yaml` →
+   `flutter_launcher_icons-<flavor>.yaml`, аналогично для splash),
+   поменять `image_path`/`color`, один раз прогнать:
+   ```bash
+   dart run flutter_launcher_icons:main -f flutter_launcher_icons-<flavor>.yaml
+   dart run flutter_native_splash:create --all-flavors
+   ```
+   **После генерации обязательно `git diff` на `android/app/src/main/AndroidManifest.xml`,
+   `ios/`, `web/`** — у `flutter_native_splash` есть побочный эффект: он
+   переформатирует общий манифест и трогает неиспользуемые в проекте
+   платформы (iOS/web). Найдено живым тестом 2026-09-13: переформатирование
+   попутно убрало `android:screenOrientation="portrait"` из `<activity>` —
+   эти правки нужно откатывать (`git checkout -- android/app/src/main/AndroidManifest.xml
+   ios/ web/`), брать из результата только `android/app/src/<flavor>/res/...`.
+
+   Анимированный интро-экран (`lib/ui/splash_intro_screen.dart`) берёт ту
+   же иконку через `FlavorConfig.iconAssetPath` (конвенция:
+   `assets/icon/<shopCode в нижнем регистре>_app_icon.png`) — отдельно
+   ничего указывать не нужно, только соблюсти имя файла.
 2. **Brand/runtime** (`mobile/flavors/<flavor>.json`) — код магазина,
    его `api_key`, имя, цвет темы по умолчанию, адрес бэкенда. Читается
    в Dart через `FlavorConfig` (`lib/core/flavor_config.dart`).
@@ -44,9 +57,13 @@
    флейвора. Файла `lib/firebase_options.dart` нет намеренно. Метаданные
    FlutterFire CLI — `mobile/firebase.json`, секция `buildConfigurations.<flavor>`.
 
-Сейчас заведён один флейвор:
+Сейчас заведено два флейвора:
 
 - **barbariska** — реальный тестовый магазин (`shop_xdirmgfxyd7u`)
+- **fruit** — тестовый флейвор (заглушка-иконка/сплэш, `SHOP_API_KEY` в
+  `flavors/fruit.json` — плейсхолдер, не настоящий магазин). Показывает
+  механизм генерации иконки/сплэша по флейворам «вживую» — до реальной
+  раздачи нужен ещё настоящий `api_key` и `google-services.json`
 
 Приложение всегда ходит на реальный бэкенд (`ApiShopRepository`,
 `ApiCatalogRepository`) — моков нет ни в одной сборке.
@@ -67,6 +84,10 @@ flutter build apk --flavor barbariska --dart-define-from-file=flavors/barbariska
 
 1. `android/app/build.gradle.kts` → новый `create("shop_code")` во `productFlavors` со своим `applicationId`
 2. `android/app/src/<shop_code>/res/values/strings.xml` → имя приложения
-3. `android/app/src/<shop_code>/res/mipmap-*/ic_launcher.png` → иконка (когда будет)
+3. Иконка PNG → `assets/icon/<shop_code>_app_icon.png` + пара конфигов
+   `flutter_launcher_icons-<shop_code>.yaml` / `flutter_native_splash-<shop_code>.yaml`
+   (скопировать существующие, поменять `image_path`/`color`) → прогнать
+   генерацию (см. «Флейворы» выше, включая обязательный `git diff`-чек
+   после) — руками файлы в `res/mipmap-*`/`res/drawable*` не копировать
 4. `mobile/flavors/<shop_code>.json` → `SHOP_CODE`, `SHOP_API_KEY` (из `shops.api_key`), `SHOP_NAME`, `SHOP_PRIMARY_COLOR`
 5. `android/app/src/<shop_code>/google-services.json` → зарегистрировать Android-приложение с этим `applicationId` в Firebase Console, скачать файл сюда (не в `android/app/`). Добавить запись в `mobile/firebase.json` → `platforms.android.buildConfigurations.<shop_code>`. **Файл обязателен для каждого флейвора:** плагин `com.google.gms.google-services` применяется всегда и роняет сборку, если своего `google-services.json` нет. Если конкретному шоперу push реально не нужен — делать применение плагина условным (отдельная задача), а не класть общий файл в `android/app/`

@@ -17,6 +17,12 @@ class FlavorConfig {
   /// реальной сборке — пустая строка означает "забыли передать dart-define".
   static const String shopCode = String.fromEnvironment('SHOP_CODE');
 
+  /// Путь к иконке флейвора в assets — та же PNG, что и источник для
+  /// flutter_launcher_icons/flutter_native_splash (см. `flutter_launcher_icons-*.yaml`).
+  /// Конвенция по имени файла: assets/icon/&lt;shopCode в нижнем регистре&gt;_app_icon.png
+  /// — использует SplashIntroScreen для анимации интро.
+  static String get iconAssetPath => 'assets/icon/${shopCode.toLowerCase()}_app_icon.png';
+
   /// shops.api_key — то же значение уходит в заголовок X-Shop-ID.
   static const String shopApiKey = String.fromEnvironment('SHOP_API_KEY');
 

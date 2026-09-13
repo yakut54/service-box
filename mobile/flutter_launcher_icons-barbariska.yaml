@@ -1,0 +1,10 @@
+# Иконка флейвора barbariska. Раньше был один общий блок flutter_launcher_icons:
+# в pubspec.yaml, и результат генерации руками переносился в
+# android/app/src/barbariska/res/mipmap-*/ — при следующем флейворе он тоже
+# заезжал в эту же папку, и переносить приходилось руками. Файл с суффиксом
+# -<flavor>.yaml пакет понимает сам и раскладывает иконку в правильную папку
+# флейвора автоматически — см. mobile/README.md.
+flutter_launcher_icons:
+  image_path: "assets/icon/barbariska_app_icon.png"
+  android: "ic_launcher"
+  min_sdk_android: 21

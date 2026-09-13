@@ -1,0 +1,6 @@
+# Тестовый флейвор (заглушка-иконка) — см. flutter_launcher_icons-barbariska.yaml
+# про сам механизм генерации по флейворам.
+flutter_launcher_icons:
+  image_path: "assets/icon/fruit_app_icon.png"
+  android: "ic_launcher"
+  min_sdk_android: 21

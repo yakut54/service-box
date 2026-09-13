@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
+import '../core/flavor_config.dart';
 import 'widgets/aurora_background.dart';
 
 /// Анимированное интро при запуске (~4с) — играет поверх переливающегося
@@ -92,7 +93,7 @@ class _CandyIcon extends StatelessWidget {
       child: Transform.scale(
         scale: 0.55 + 0.45 * reveal,
         child: Image.asset(
-          'assets/icon/barbariska_app_icon.png',
+          FlavorConfig.iconAssetPath,
           width: 160,
           height: 160,
         ),
