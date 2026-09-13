@@ -367,10 +367,10 @@ async function handleLogout() {
                 Мой профиль
               </RouterLink>
 
-              <div v-if="authStore.shop || !authStore.user?.is_superadmin" class="my-1 border-t border-gray-100 dark:border-gray-800" />
+              <div v-if="authStore.user?.role === 'owner'" class="my-1 border-t border-gray-100 dark:border-gray-800" />
 
               <a
-                v-if="authStore.shop || !authStore.user?.is_superadmin"
+                v-if="authStore.user?.role === 'owner'"
                 href="/offer" target="_blank" rel="noopener"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 @click="menuOpen = false"
@@ -381,7 +381,7 @@ async function handleLogout() {
                 Оферта
               </a>
               <a
-                v-if="authStore.shop || !authStore.user?.is_superadmin"
+                v-if="authStore.user?.role === 'owner'"
                 href="/privacy" target="_blank" rel="noopener"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 @click="menuOpen = false"
