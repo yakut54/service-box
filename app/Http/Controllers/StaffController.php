@@ -182,6 +182,7 @@ class StaffController extends Controller
                 shopName:             $shop->name,
                 email:                $email,
                 requiresRegistration: $existingUser === null,
+                role:                 $pendingStaff->role,
             ));
 
             return response()->json([
@@ -224,6 +225,7 @@ class StaffController extends Controller
             shopName:             $shop->name,
             email:                $email,
             requiresRegistration: $existingUser === null,
+            role:                 $role,
         ));
 
         return response()->json([
@@ -325,6 +327,7 @@ class StaffController extends Controller
             shopName:             $shop->name,
             email:                $staffRecord->invite_email,
             requiresRegistration: $existingUser === null,
+            role:                 $staffRecord->role,
         ));
 
         return response()->json(['message' => 'Приглашение отправлено повторно']);

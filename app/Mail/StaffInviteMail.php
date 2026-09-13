@@ -17,6 +17,7 @@ class StaffInviteMail extends Mailable
         public readonly string $shopName,
         public readonly string $email,
         public readonly bool   $requiresRegistration,
+        public readonly string $role = 'admin',
     ) {}
 
     public function envelope(): Envelope
@@ -28,8 +29,15 @@ class StaffInviteMail extends Mailable
 
     public function content(): Content
     {
+        $roleLabels = [
+            'admin'     => 'администратор',
+            'collector' => 'сборщик',
+            'master'    => 'мастер',
+        ];
+
         return new Content(
             view: 'emails.staff-invite',
+            with: ['roleLabel' => $roleLabels[$this->role] ?? 'сотрудник'],
         );
     }
 }

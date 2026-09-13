@@ -23,7 +23,7 @@
       <h1>{{ config('app.name') }}</h1>
     </div>
     <div class="body">
-      <p>Вас приглашают в команду магазина <strong>{{ $shopName }}</strong>.</p>
+      <p>Вас приглашают в команду магазина <strong>{{ $shopName }}</strong> в качестве <strong>{{ $roleLabel }}</strong>.</p>
       @if($requiresRegistration)
         <p>Нажмите кнопку ниже, чтобы создать аккаунт и принять приглашение:</p>
         <a href="{{ $inviteUrl }}" class="btn">Создать аккаунт и войти</a>
