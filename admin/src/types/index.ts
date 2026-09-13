@@ -296,6 +296,8 @@ export interface OrderItem {
   id: string
   order_id: string
   product_id: string | null
+  variant_id?: string | null
+  variant_label?: string | null
   quantity: number
   price: number
   product_name: string
@@ -303,6 +305,7 @@ export interface OrderItem {
   weight_grams?: number | null
   actual_weight_grams?: number | null
   actual_price?: number | null
+  picked_qty?: number | null
   product?: Product | null
 }
 
@@ -339,6 +342,10 @@ export interface Order {
   surcharge_status?: 'pending' | 'paid' | 'expired' | null
   surcharge_payment_url?: string | null
   surcharge_deadline_at?: string | null
+  collector_id?: string | null
+  collector_name?: string | null
+  picking_started_at?: string | null
+  pick_note?: string | null
   items?: OrderItem[]
   customer?: Customer | null
   created_at: string

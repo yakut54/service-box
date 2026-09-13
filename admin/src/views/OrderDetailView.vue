@@ -142,6 +142,9 @@ async function updateStatus(status: string) {
                   >{{ item.product_name }}</RouterLink>
                   <span v-else class="font-medium text-gray-900 dark:text-gray-100 truncate block">{{ item.product_name }}</span>
                   <div class="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{{ formatPrice(item.price) }} × {{ item.quantity }}</div>
+                  <div v-if="item.picked_qty != null && item.picked_qty < item.quantity" class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                    Собрано {{ item.picked_qty }} из {{ item.quantity }}
+                  </div>
                 </div>
                 <!-- Line total -->
                 <div class="font-semibold text-gray-900 dark:text-white shrink-0 tabular-nums">{{ formatPrice(item.price * item.quantity) }}</div>
@@ -251,6 +254,18 @@ async function updateStatus(status: string) {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               Ожидает оплаты
+            </div>
+          </div>
+
+          <!-- Сборка -->
+          <div v-if="order.collector_name || order.pick_note" class="card">
+            <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Сборка</div>
+            <div v-if="order.collector_name" class="text-sm text-gray-700 dark:text-gray-300">
+              Собирает {{ order.collector_name }}
+              <span v-if="order.picking_started_at" class="text-gray-400">· с {{ formatDate(order.picking_started_at) }}</span>
+            </div>
+            <div v-if="order.pick_note" class="mt-2 text-sm text-pink-700 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-lg px-3 py-2">
+              «{{ order.pick_note }}»
             </div>
           </div>
 

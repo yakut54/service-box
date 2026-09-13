@@ -343,15 +343,36 @@ class ApiClient {
     )
   }
 
-  async updateOrderStatus(id: string, status: string) {
+  async updateOrderStatus(id: string, status: string, note?: string) {
     return this.request<{ message: string; data: Order }>(`/admin/orders/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(note ? { status, note } : { status }),
     })
   }
 
   async exportOrders(params?: Record<string, string>) {
     return this.download('/admin/orders/export', params)
+  }
+
+  async claimOrder(orderId: string, takeover = false) {
+    return this.request<{ message: string; data: Order }>(
+      `/admin/orders/${orderId}/claim${takeover ? '?takeover=1' : ''}`,
+      { method: 'PATCH' }
+    )
+  }
+
+  async pickOrderItem(orderId: string, itemId: string, pickedQty: number | null) {
+    return this.request<{ message: string; data: Order }>(
+      `/admin/orders/${orderId}/items/${itemId}/pick`,
+      { method: 'PATCH', body: JSON.stringify({ picked_qty: pickedQty }) }
+    )
+  }
+
+  async reportOrderProblem(orderId: string, note: string) {
+    return this.request<{ message: string; data: Order }>(
+      `/admin/orders/${orderId}/problem`,
+      { method: 'PATCH', body: JSON.stringify({ note }) }
+    )
   }
 
   async submitOrderItemWeight(orderId: string, itemId: string, actualWeightGrams: number) {

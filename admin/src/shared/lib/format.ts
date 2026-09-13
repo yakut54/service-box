@@ -37,3 +37,17 @@ export function formatWeight(grams: number): string {
   if (grams >= 1000) return `${(grams / 1000).toFixed(1).replace(/\.0$/, '')} кг`
   return `${grams} г`
 }
+
+/** "2024-01-15T10:30:00" → "15 мин назад" / "2 ч назад" / "3 дн назад".
+ * Для очереди сборщика — важнее, сколько заказ уже ждёт, чем точное время. */
+export function formatRelativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  const diffMs = Date.now() - new Date(dateStr).getTime()
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 1) return 'только что'
+  if (minutes < 60) return `${minutes} мин назад`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} ч назад`
+  const days = Math.floor(hours / 24)
+  return `${days} дн назад`
+}

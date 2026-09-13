@@ -117,7 +117,8 @@
   .badge-completed,
   .badge-cancelled,
   .badge-confirmed,
-  .badge-no_show {
+  .badge-no_show,
+  .badge-needs_attention {
     @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap border;
   }
 
@@ -129,7 +130,8 @@
   .badge-completed::before,
   .badge-cancelled::before,
   .badge-confirmed::before,
-  .badge-no_show::before {
+  .badge-no_show::before,
+  .badge-needs_attention::before {
     content: '';
     display: block;
     width: 6px;
@@ -460,6 +462,7 @@
 .badge-cancelled::before  { background-color: #dc2626; }
 .badge-confirmed::before  { background-color: #4f46e5; }
 .badge-no_show::before    { background-color: #ea580c; }
+.badge-needs_attention::before { background-color: #db2777; }
 
 /* ── Badge light-mode colors — вне @layer, не удаляются Tailwind purge ── */
 .badge-pending    { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
@@ -469,3 +472,4 @@
 .badge-cancelled  { background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 .badge-confirmed  { background-color: #e0e7ff; color: #3730a3; border-color: #a5b4fc; }
 .badge-no_show    { background-color: #ffedd5; color: #9a3412; border-color: #fdba74; }
+.badge-needs_attention { background-color: #fce7f3; color: #9d174d; border-color: #f9a8d4; }
