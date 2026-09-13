@@ -168,7 +168,7 @@ onMounted(validateToken)
             Магазин <strong class="text-gray-700 dark:text-gray-300">{{ shopName }}</strong>
             приглашает вас в качестве
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
-              {{ role === 'master' ? 'мастер' : 'администратор' }}
+              {{ role === 'master' ? 'мастер' : role === 'collector' ? 'сборщик' : 'администратор' }}
             </span>
           </p>
         </div>
