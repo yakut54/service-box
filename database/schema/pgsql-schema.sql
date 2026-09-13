@@ -331,7 +331,16 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         surcharge_payment_id    TEXT,
                         surcharge_payment_url   TEXT,
                         surcharge_requested_at  TIMESTAMPTZ,
-                        surcharge_deadline_at   TIMESTAMPTZ
+                        surcharge_deadline_at   TIMESTAMPTZ,
+                        -- Кто собирает заказ (сборщик). collector_id — id строки
+                        -- public.shop_staff, без FK: shop_staff живёт в другой схеме
+                        -- (public), кросс-схемная ссылка невозможна. collector_name —
+                        -- снимок имени на момент взятия в работу: переживает удаление
+                        -- сотрудника и не требует join в public при каждом чтении.
+                        collector_id            UUID,
+                        collector_name          TEXT,
+                        picking_started_at      TIMESTAMPTZ,
+                        pick_note               TEXT
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.orders(status)', p_schema_name);
@@ -362,7 +371,13 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         -- точка холда. Факт — сюда, когда сборщик взвесит (NULL, пока
                         -- не взвешено).
                         actual_weight_grams INTEGER,
-                        actual_price         INTEGER
+                        actual_price         INTEGER,
+                        -- Сколько реально положили в пакет. NULL — ещё не разбирали,
+                        -- = quantity — собрано полностью, < quantity (включая 0) —
+                        -- недобор. Для sale_mode = weight_variable признаком «собрано»
+                        -- остаётся actual_weight_grams — второй источник правды не
+                        -- заводим, picked_qty у весовых строк не используется.
+                        picked_qty   INTEGER
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.order_items(order_id)', p_schema_name);
