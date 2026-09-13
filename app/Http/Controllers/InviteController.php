@@ -38,6 +38,11 @@ class InviteController extends Controller
             'email'                 => $staff->invite_email,
             'role'                  => $staff->role,
             'master_name'           => $masterName,
+            // Имя, которое владелец вписал при отправке приглашения — только
+            // подсказка (человека ещё не существует в системе на этот момент),
+            // не источник истины. В отличие от master_name, редактируемо —
+            // человек может ввести своё настоящее имя, если оно отличается.
+            'invite_name'           => $staff->invite_name,
             'requires_registration' => $staff->user_id === null,
         ]);
     }

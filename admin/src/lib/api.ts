@@ -699,7 +699,14 @@ class ApiClient {
   }
 
   async validateInvite(token: string) {
-    return this.request<{ shop_name: string; email: string; requires_registration: boolean }>(`/invite/${token}`)
+    return this.request<{
+      shop_name: string
+      email: string
+      role: string
+      master_name: string | null
+      invite_name: string | null
+      requires_registration: boolean
+    }>(`/invite/${token}`)
   }
 
   async acceptInvite(data: { token: string; name?: string; password?: string; password_confirmation?: string }) {

@@ -59,7 +59,14 @@ async function validateToken() {
     role.value                 = data.role ?? 'admin'
     masterName.value           = data.master_name ?? ''
     requiresRegistration.value = data.requires_registration
-    if (masterName.value) name.value = masterName.value
+    if (masterName.value) {
+      name.value = masterName.value
+    } else if (data.invite_name) {
+      // Подсказка от владельца (вписал при отправке приглашения) — просто
+      // предзаполняем, поле остаётся редактируемым: владелец мог ошибиться
+      // или не знать точное имя человека.
+      name.value = data.invite_name
+    }
     stage.value = 'form'
   } catch (err) {
     errorMsg.value = err instanceof ApiError ? err.message : 'Приглашение недействительно или уже использовано'
