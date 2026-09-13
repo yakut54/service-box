@@ -1,15 +1,24 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePresenceStore } from '@/stores/presence'
 import { useTheme } from '@/composables/useTheme'
 import ToastContainer from '@/components/ToastContainer.vue'
 
 const authStore = useAuthStore()
+const presenceStore = usePresenceStore()
 const { isDark, toggle } = useTheme()
 
 async function logout() {
   await authStore.logout()
 }
+
+onMounted(() => {
+  const shopId = authStore.shop?.id
+  if (shopId) presenceStore.join(shopId)
+})
+onUnmounted(() => presenceStore.leave())
 </script>
 
 <template>

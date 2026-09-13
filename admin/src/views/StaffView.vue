@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
+import { usePresenceStore } from '@/stores/presence'
 import { getEcho } from '@/lib/echo'
 import PageHeader from '@/components/PageHeader.vue'
 import AdminFormModal from '@/components/modals/AdminFormModal.vue'
@@ -11,6 +12,7 @@ import type { StaffMember } from '@/types'
 
 const toast = useToast()
 const authStore = useAuthStore()
+const presenceStore = usePresenceStore()
 
 const staff   = ref<StaffMember[]>([])
 const loading = ref(false)
@@ -105,11 +107,12 @@ function initials(admin: StaffMember) {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
-// "Онлайн" — не по last_login_at (тот не меняется при выходе, поэтому
-// вышедший ещё до 5 минут выглядел бы активным), а по admin.is_online —
-// считает бэкенд по реальному наличию токена (см. StaffController::index).
+function isOnline(admin: StaffMember): boolean {
+  return presenceStore.isOnline(admin.user?.id)
+}
+
 function lastLoginText(admin: StaffMember): string {
-  if (admin.is_online) return 'Сейчас онлайн'
+  if (isOnline(admin)) return 'Сейчас онлайн'
   if (!admin.last_login_at) return 'Ещё не входил'
   const diff = Date.now() - new Date(admin.last_login_at).getTime()
   const min  = Math.floor(diff / 60000)
@@ -124,7 +127,7 @@ function lastLoginText(admin: StaffMember): string {
 }
 
 function lastLoginColor(admin: StaffMember): string {
-  if (admin.is_online) return 'text-green-600 dark:text-green-400'
+  if (isOnline(admin)) return 'text-green-600 dark:text-green-400'
   if (!admin.last_login_at) return 'text-gray-400 dark:text-gray-500'
   const days = Math.floor((Date.now() - new Date(admin.last_login_at).getTime()) / 86400000)
   if (days < 7)  return 'text-gray-500 dark:text-gray-400'

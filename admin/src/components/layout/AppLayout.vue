@@ -6,6 +6,7 @@ import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
 import { useOrdersStore } from '@/stores/orders'
+import { usePresenceStore } from '@/stores/presence'
 import { getEcho } from '@/lib/echo'
 import { useTheme } from '@/composables/useTheme'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
@@ -21,6 +22,7 @@ const chatStore = useChatStore()
 const reviewsStore = useReviewsStore()
 const mailFailuresStore = useMailFailuresStore()
 const ordersStore = useOrdersStore()
+const presenceStore = usePresenceStore()
 const route = useRoute()
 const router = useRouter()
 const { isDark, toggle } = useTheme()
@@ -85,12 +87,14 @@ onMounted(() => {
   if (shopId) {
     ordersChannelName = `shop.${shopId}`
     getEcho().private(ordersChannelName).listen('.orders.updated', () => refreshNeedsAttention())
+    presenceStore.join(shopId)
   }
 })
 onUnmounted(() => {
   if (clockTimer) clearInterval(clockTimer)
   document.removeEventListener('click', onClickOutside)
   if (ordersChannelName) getEcho().leave(ordersChannelName)
+  presenceStore.leave()
 })
 
 const shopTimezone = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
