@@ -64,7 +64,11 @@ watch(() => props.modelValue, (open) => {
   if (props.admin) {
     role.value        = props.admin.role === 'collector' ? 'collector' : 'admin'
     categoryIds.value = props.admin.category_ids ? [...props.admin.category_ids] : []
-    name.value      = props.admin.invite_name ?? props.admin.user?.name ?? ''
+    // Настоящее имя человека (уже принял приглашение и сам его ввёл)
+    // важнее пометки, которую владелец вписал ДО того, как человек
+    // зарегистрировался — та же логика, что уже в StaffView.vue::displayName.
+    // Иначе тут показывалось одно имя, а в списке — другое.
+    name.value      = props.admin.user?.name ?? props.admin.invite_name ?? ''
     email.value     = props.admin.invite_email ?? props.admin.user?.email ?? ''
     phone.value     = props.admin.phone ? applyPhoneMask(props.admin.phone) : ''
     avatarUrl.value = props.admin.avatar_url ?? null
