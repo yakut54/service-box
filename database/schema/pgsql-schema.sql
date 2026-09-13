@@ -853,6 +853,7 @@ CREATE TABLE IF NOT EXISTS public.shop_staff (
     updated_at timestamp(0) without time zone,
     invite_expires_at timestamp(0) without time zone,
     master_id uuid,
+    category_ids jsonb,
     telegram_chat_id bigint,
     max_user_id bigint,
     messenger_link_token character varying(64),
