@@ -58,7 +58,7 @@ function switchTab(t: 'active' | 'done') {
 }
 
 function shortId(order: Order): string {
-  return '#' + order.id.slice(-4).toUpperCase()
+  return '#' + order.id.slice(0, 8)
 }
 
 function itemsSummary(order: Order): string {

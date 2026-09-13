@@ -220,7 +220,7 @@ onUnmounted(() => {
       <div class="card space-y-2 sticky top-0 z-10">
         <div class="flex items-center justify-between">
           <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
-            <span class="text-gray-400 font-normal">#{{ order.id.slice(-4).toUpperCase() }}</span>
+            <span class="text-gray-400 font-normal">#{{ order.id.slice(0, 8) }}</span>
             {{ order.customer_name }}
           </h1>
           <span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] }}</span>
