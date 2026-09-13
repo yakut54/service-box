@@ -948,7 +948,7 @@ CREATE TABLE IF NOT EXISTS public.telegram_messages (
 -- Name: user_flag_audit; Type: TABLE; Schema: public; Owner: -
 -- Журнал переключений флагов на пользователе из суперадминки: кто, что, когда.
 -- Отдельно от shop_feature_audit, потому что там shop_id NOT NULL — этот
--- журнал для флагов на юзере (например is_chain_owner), не на магазине.
+-- журнал для флагов/событий на юзере (например admin_created), не на магазине.
 --
 
 CREATE TABLE IF NOT EXISTS public.user_flag_audit (
@@ -978,10 +978,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     terms_accepted_ip character varying(45),
     is_superadmin boolean DEFAULT false NOT NULL,
     avatar_url character varying(1000),
-    phone character varying(20),
-    is_chain_owner boolean DEFAULT false NOT NULL,
-    chain_name character varying(255),
-    chain_logo_url character varying(1000)
+    phone character varying(20)
 );
 
 
