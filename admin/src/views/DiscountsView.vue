@@ -257,8 +257,9 @@ async function doDelete() {
           <tr
             v-for="d in filteredDiscounts"
             :key="d.id"
-            class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
             :class="{ 'opacity-50': !d.is_active || isExpired(d) }"
+            @click="openEdit(d)"
           >
             <td class="px-4 py-3">
               <div class="font-medium text-gray-900 dark:text-white">{{ d.name }}</div>
@@ -296,7 +297,7 @@ async function doDelete() {
             </td>
             <td class="px-4 py-3 text-center">
               <button
-                @click="toggleActive(d)"
+                @click.stop="toggleActive(d)"
                 :class="[
                   'relative w-10 h-5 rounded-full transition-colors',
                   d.is_active ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'
@@ -307,8 +308,8 @@ async function doDelete() {
             </td>
             <td class="px-4 py-3">
               <div class="flex items-center gap-2 justify-end">
-                <button @click="openEdit(d)" class="btn-ghost btn-sm text-xs">Изменить</button>
-                <button @click="deleteTarget = d" class="text-gray-400 hover:text-red-500 transition-colors p-1">
+                <button @click.stop="openEdit(d)" class="btn-ghost btn-sm text-xs">Изменить</button>
+                <button @click.stop="deleteTarget = d" class="text-gray-400 hover:text-red-500 transition-colors p-1">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
