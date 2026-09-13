@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
+import { getEcho } from '@/lib/echo'
 import { useToast } from '@/composables/useToast'
 import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
@@ -30,10 +31,8 @@ function formatDate(dateStr: string | null) {
   })
 }
 
-onMounted(async () => {
+async function load() {
   const id = route.params.id as string
-  const cached = ordersStore.orders.find(o => o.id === id)
-  if (cached) { order.value = cached; loading.value = false }
   try {
     const resp = await api.getOrder(id)
     order.value = resp.data
@@ -45,6 +44,29 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Сборщик мог взять заказ, отметить позиции или сообщить о проблеме, пока
+// эта страница открыта у владельца — без этого приходилось перезагружать
+// страницу руками, чтобы увидеть свежие «Собрано N из M»/заметку (см.
+// тот же приём в CollectorOrdersView/CollectorOrderDetailView).
+let channelName: string | null = null
+
+onMounted(() => {
+  const id = route.params.id as string
+  const cached = ordersStore.orders.find(o => o.id === id)
+  if (cached) { order.value = cached; loading.value = false }
+  load()
+
+  const shopId = authStore.shop?.id
+  if (shopId) {
+    channelName = `shop.${shopId}`
+    getEcho().private(channelName).listen('.orders.updated', () => load())
+  }
+})
+
+onUnmounted(() => {
+  if (channelName) getEcho().leave(channelName)
 })
 
 async function updateStatus(status: string) {

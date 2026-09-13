@@ -216,6 +216,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::get('/orders/stats', [OrderController::class, 'stats']);
     Route::get('/orders/chart', [OrderController::class, 'chart']);
     Route::get('/orders/export', [OrderController::class, 'export']);
+    Route::get('/orders/needs-attention-count', [OrderController::class, 'needsAttentionCount']);
     Route::apiResource('orders', OrderController::class)->only(['index', 'store', 'show', 'destroy']);
     Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
     Route::patch('/orders/{order}/items/{item}/weight', [OrderController::class, 'submitItemWeight']);

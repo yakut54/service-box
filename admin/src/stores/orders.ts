@@ -16,6 +16,7 @@ export const useOrdersStore = defineStore('orders', () => {
     average_order_value: 0,
   })
   const loading = ref(false)
+  const needsAttentionCount = ref(0)
 
   const pendingOrders = computed(() => orders.value.filter(o => o.status === 'pending'))
   const paidOrders = computed(() => orders.value.filter(o => o.status === 'paid'))
@@ -35,6 +36,18 @@ export const useOrdersStore = defineStore('orders', () => {
       stats.value = await api.getOrderStats(params)
     } catch {
       // ignore
+    }
+  }
+
+  /** Возвращает true, если счётчик вырос — сигнал для звука в AppLayout. */
+  async function fetchNeedsAttentionCount(): Promise<boolean> {
+    try {
+      const prev = needsAttentionCount.value
+      const { count } = await api.getOrdersNeedsAttentionCount()
+      needsAttentionCount.value = count
+      return count > prev
+    } catch {
+      return false
     }
   }
 
@@ -64,16 +77,19 @@ export const useOrdersStore = defineStore('orders', () => {
       average_order_value: 0,
     }
     loading.value = false
+    needsAttentionCount.value = 0
   }
 
   return {
     orders,
     stats,
     loading,
+    needsAttentionCount,
     pendingOrders,
     paidOrders,
     fetchOrders,
     fetchStats,
+    fetchNeedsAttentionCount,
     updateStatus,
     deleteOrder,
     $reset,

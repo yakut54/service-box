@@ -64,6 +64,15 @@ const hasShortage = computed(() =>
   order.value?.items?.some(i => !isWeightVariable(i) && i.picked_qty != null && i.picked_qty < i.quantity) ?? false
 )
 
+// Причина, по которой слайдер сейчас не двигается — без неё выглядит как
+// баг «слайдер не шевелится», а не как «сначала сделай вот это».
+const finishBlockedReason = computed(() => {
+  if (order.value?.surcharge_status === 'pending') return 'Ждём от покупателя оплату доплаты за перевес'
+  if (!allResolved.value) return 'Сначала разберите все позиции'
+  if (hasShortage.value && !shortageNote.value.trim()) return 'Укажите причину недобора выше'
+  return undefined
+})
+
 // «Моя» ли это сборка — сравниваем по имени: у сборщика нет отдельного id
 // на фронте (staff_id не отдаётся в /auth/me), а магазин маленький (1-3
 // сборщика) — совпадение имён можно не учитывать всерьёз.
@@ -388,7 +397,8 @@ onUnmounted(() => {
           />
           <UiSlideConfirm
             label="Готово — сдвиньте"
-            :disabled="!allResolved || (hasShortage && !shortageNote.trim()) || order.surcharge_status === 'pending'"
+            :disabled-reason="finishBlockedReason"
+            :disabled="!!finishBlockedReason"
             :loading="finishing"
             @confirm="finish"
           />

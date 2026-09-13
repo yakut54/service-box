@@ -797,6 +797,22 @@ class OrderController extends Controller
     }
 
     /**
+     * Счётчик для бейджа «Заказы» в сайдбаре — сборщик пометил заказ
+     * проблемным (needs_attention), владелец должен это заметить, даже не
+     * заходя в «Заказы» (см. StaffView.vue/OrderDetailView.vue — заметка
+     * там видна, но только если знать, что туда нужно зайти).
+     *
+     * GET /api/admin/orders/needs-attention-count
+     */
+    public function needsAttentionCount(Request $request): JsonResponse
+    {
+        $query = Order::query()->where('status', 'needs_attention');
+        $this->applyCategoryScope($query, $request);
+
+        return response()->json(['count' => $query->count()]);
+    }
+
+    /**
      * Get order statistics
      */
     public function stats(Request $request): JsonResponse

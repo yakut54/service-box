@@ -13,6 +13,11 @@ import { ref, computed } from 'vue'
 
 const props = withDefaults(defineProps<{
   label?: string
+  /** Почему сейчас нельзя подтвердить — показывается ВМЕСТО label, пока
+   * disabled=true, чтобы не выглядело просто «не шевелится, наверное баг»
+   * (живой баг-репорт: без причины на самом слайдере пользователь решил,
+   * что он сломан, хотя дело в неоплаченной доплате за перевес). */
+  disabledReason?: string
   disabled?: boolean
   loading?: boolean
 }>(), {
@@ -65,19 +70,22 @@ function onPointerUp() {
   <div
     ref="trackEl"
     class="relative h-12 rounded-full bg-gray-100 dark:bg-gray-800 select-none overflow-hidden"
-    :class="(disabled || loading) && 'opacity-50'"
+    :class="disabled && !loading && 'opacity-70'"
   >
     <div
       class="absolute inset-y-0 left-0 bg-green-100 dark:bg-green-900/40 rounded-full"
       :style="{ width: `calc(${THUMB}px + ${progress * 100}%)` }"
     />
-    <span class="absolute inset-0 flex items-center justify-center text-sm font-medium text-gray-500 dark:text-gray-400 pointer-events-none">
-      {{ loading ? 'Сохранение…' : label }}
+    <span class="absolute inset-0 flex items-center justify-center text-sm font-medium text-gray-500 dark:text-gray-400 pointer-events-none px-14 text-center">
+      {{ loading ? 'Сохранение…' : (disabled && disabledReason) ? disabledReason : label }}
     </span>
     <button
       type="button"
-      class="absolute top-1 left-1 w-10 h-10 rounded-full bg-primary-600 text-white flex items-center justify-center shadow-sm transition-transform"
-      :class="!dragging && 'transition-[transform] duration-200'"
+      class="absolute top-1 left-1 w-10 h-10 rounded-full text-white flex items-center justify-center shadow-sm touch-none"
+      :class="[
+        !dragging && 'transition-[transform] duration-200',
+        disabled || loading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : 'bg-primary-600',
+      ]"
       :style="{ transform: `translateX(${dragPx}px)` }"
       :disabled="disabled || loading"
       aria-label="Сдвиньте, чтобы подтвердить"

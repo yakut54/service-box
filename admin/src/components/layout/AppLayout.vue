@@ -5,6 +5,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
+import { useOrdersStore } from '@/stores/orders'
+import { getEcho } from '@/lib/echo'
 import { useTheme } from '@/composables/useTheme'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
@@ -18,6 +20,7 @@ const authStore = useAuthStore()
 const chatStore = useChatStore()
 const reviewsStore = useReviewsStore()
 const mailFailuresStore = useMailFailuresStore()
+const ordersStore = useOrdersStore()
 const route = useRoute()
 const router = useRouter()
 const { isDark, toggle } = useTheme()
@@ -37,6 +40,27 @@ useAutoRefresh(() => { if (authStore.shop) reviewsStore.fetchPendingCount() }, 6
 if (authStore.isOwner && authStore.shop) mailFailuresStore.fetchPendingCount()
 useAutoRefresh(() => { if (authStore.isOwner && authStore.shop) mailFailuresStore.fetchPendingCount() }, 60_000)
 
+// Сборщик пометил заказ проблемным (needs_attention) — владелец/админ
+// должен заметить это, даже если раздел «Заказы» сейчас не открыт. Тот же
+// звук, что у нового сообщения в чате (localStorage 'chat_sound_enabled') —
+// отдельный тумблер под это заводить незачем, это тот же смысл «прозвучал
+// сигнал, требующий внимания». Считается по категориям, если админ
+// ограничен ими (см. OrderController::needsAttentionCount).
+const orderAlertAudio = new Audio('/sounds/chat-notify.wav')
+function playOrderAlertSound() {
+  if (localStorage.getItem('chat_sound_enabled') === 'false') return
+  orderAlertAudio.currentTime = 0
+  orderAlertAudio.play().catch(() => { /* автовоспроизведение заблокировано браузером — тихо игнорируем */ })
+}
+
+async function refreshNeedsAttention() {
+  const increased = await ordersStore.fetchNeedsAttentionCount()
+  if (increased) playOrderAlertSound()
+}
+
+if (authStore.shop) refreshNeedsAttention()
+useAutoRefresh(() => { if (authStore.shop) refreshNeedsAttention() }, 60_000)
+
 const sidebarOpen = ref(false)
 const menuOpen    = ref(false)
 const menuRef     = ref<HTMLElement | null>(null)
@@ -51,13 +75,22 @@ function onClickOutside(e: MouseEvent) {
   }
 }
 
+let ordersChannelName: string | null = null
+
 onMounted(() => {
   clockTimer = setInterval(() => { now.value = new Date() }, 1000)
   document.addEventListener('click', onClickOutside)
+
+  const shopId = authStore.shop?.id
+  if (shopId) {
+    ordersChannelName = `shop.${shopId}`
+    getEcho().private(ordersChannelName).listen('.orders.updated', () => refreshNeedsAttention())
+  }
 })
 onUnmounted(() => {
   if (clockTimer) clearInterval(clockTimer)
   document.removeEventListener('click', onClickOutside)
+  if (ordersChannelName) getEcho().leave(ordersChannelName)
 })
 
 const shopTimezone = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
@@ -221,6 +254,7 @@ async function handleLogout() {
           <span class="flex-1">{{ item.name }}</span>
           <NavBadge v-if="item.href === '/chat'" :count="chatStore.totalUnread" />
           <NavBadge v-if="item.href === '/reviews'" :count="reviewsStore.pendingCount" />
+          <NavBadge v-if="item.href === '/orders'" :count="ordersStore.needsAttentionCount" />
           <NavBadge v-if="item.href === '/settings'" :count="mailFailuresStore.pendingCount" />
         </RouterLink>
       </nav>

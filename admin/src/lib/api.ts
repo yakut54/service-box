@@ -343,6 +343,10 @@ class ApiClient {
     )
   }
 
+  async getOrdersNeedsAttentionCount() {
+    return this.request<{ count: number }>('/admin/orders/needs-attention-count')
+  }
+
   async updateOrderStatus(id: string, status: string, note?: string) {
     return this.request<{ message: string; data: Order }>(`/admin/orders/${id}/status`, {
       method: 'PATCH',
