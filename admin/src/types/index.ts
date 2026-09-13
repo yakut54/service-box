@@ -628,3 +628,21 @@ export interface PaginatedResponse<T> {
   data: T[]
   count: number
 }
+
+export interface PaginationMeta {
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+  total_revenue?: number
+  avg_order_value?: number
+}
+
+/** Ответ, который умеет и полный список (count), и постраничный (meta) —
+ * см. App\Http\Controllers\Concerns\Paginates: пагинация только когда
+ * фронт явно прислал `page`. */
+export interface PageResponse<T> {
+  data: T[]
+  count?: number
+  meta?: PaginationMeta
+}

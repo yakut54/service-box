@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\Paginates;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Customer;
 use App\Models\Order;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
+    use Paginates;
+
     public function __construct(private readonly DiscountService $discountService) {}
 
     /**
@@ -148,14 +151,26 @@ class OrderController extends Controller
 
         $this->applyCategoryScope($query, $request);
 
-        // Сборщику — старые заказы первыми (FIFO, кто дольше ждёт), не
-        // последние сверху, как у владельца в истории.
-        $orders = $isCollector ? $query->oldest('created_at')->get() : $query->latest('created_at')->get();
+        if ($isCollector) {
+            // Очередь сборщика маленькая по определению (только активные
+            // заказы одного магазина) — пагинация тут не нужна.
+            $orders = $query->oldest('created_at')->get();
 
-        $data = $isCollector ? $orders->map(fn ($o) => $this->collectorPayload($o, $shop))->values() : $orders;
+            return response()->json([
+                'data' => $orders->map(fn ($o) => $this->collectorPayload($o, $shop))->values(),
+                'count' => $orders->count(),
+            ]);
+        }
+
+        if ($request->filled('page')) {
+            $perPage = min((int) $request->input('per_page', 30), 100);
+            return response()->json($this->paginatedResponse($query->latest('created_at')->paginate($perPage)));
+        }
+
+        $orders = $query->latest('created_at')->get();
 
         return response()->json([
-            'data' => $data,
+            'data' => $orders,
             'count' => $orders->count(),
         ]);
     }

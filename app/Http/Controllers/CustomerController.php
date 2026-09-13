@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\Paginates;
 use App\Models\Customer;
 use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
+    use Paginates;
+
     /**
      * Админ, ограниченный категориями (см. CategoryAccess) — клиент "свой",
      * только если у него есть хотя бы один заказ с товаром из его категорий.
@@ -50,6 +53,31 @@ class CustomerController extends Controller
         $allowedCategoryIds = CategoryAccess::expandedIds($request);
         if ($allowedCategoryIds !== null) {
             $query->whereHas('orders.items.product', fn ($q) => $q->whereIn('category_id', $allowedCategoryIds));
+        }
+
+        if ($request->filled('page')) {
+            $perPage = min((int) $request->input('per_page', 30), 100);
+
+            // Карточки "Всего клиентов"/"Общая выручка"/"Ср. чек" — по ВСЕЙ
+            // выборке (все страницы), не только по текущей, иначе цифры
+            // прыгали бы при переключении страниц.
+            $allMatching = (clone $query)->get();
+            if ($allowedCategoryIds !== null) {
+                $allMatching->each(fn ($c) => $this->scopeCustomer($c, $allowedCategoryIds));
+            }
+            $totalRevenue = (int) $allMatching->sum('total_spent');
+            $totalOrders  = (int) $allMatching->sum('total_orders');
+
+            $paginated = $query->orderByDesc('total_spent')->paginate($perPage);
+            if ($allowedCategoryIds !== null) {
+                collect($paginated->items())->each(fn ($c) => $this->scopeCustomer($c, $allowedCategoryIds));
+            }
+
+            $response = $this->paginatedResponse($paginated);
+            $response['meta']['total_revenue']    = $totalRevenue;
+            $response['meta']['avg_order_value']  = $totalOrders > 0 ? (int) round($totalRevenue / $totalOrders) : 0;
+
+            return response()->json($response);
         }
 
         $customers = $query->latest('created_at')->get();

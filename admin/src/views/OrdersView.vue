@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
+import UiPagination from '@/shared/ui/UiPagination.vue'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
@@ -18,6 +19,7 @@ const ordersStore = useOrdersStore()
 const filterStatus = ref('')
 const searchQuery = ref('')
 const datePreset = ref('all')
+const page = ref(1)
 const deleteConfirm = ref<string | null>(null)
 const deleting = ref(false)
 
@@ -69,10 +71,8 @@ function getDateRange(preset: string): { from: string; to: string } | null {
   return null
 }
 
-onMounted(() => { ordersStore.fetchOrders() })
-
 function buildParams() {
-  const params: Record<string, string> = {}
+  const params: Record<string, string> = { page: String(page.value) }
   if (filterStatus.value) params.status = filterStatus.value
   if (searchQuery.value) params.search = searchQuery.value
   const range = getDateRange(datePreset.value)
@@ -80,7 +80,15 @@ function buildParams() {
   return params
 }
 
+onMounted(() => { ordersStore.fetchOrders(buildParams()) })
+
 async function applyFilters() {
+  page.value = 1
+  await ordersStore.fetchOrders(buildParams())
+}
+
+async function goToPage(p: number) {
+  page.value = p
   await ordersStore.fetchOrders(buildParams())
 }
 
@@ -105,7 +113,7 @@ async function doExport() {
     <PageHeader
       class="mb-6"
       title="Заказы"
-      :subtitle="`${ordersStore.orders.length} ${plural(ordersStore.orders.length, 'заказ', 'заказа', 'заказов')}`"
+      :subtitle="`${ordersStore.meta?.total ?? ordersStore.orders.length} ${plural(ordersStore.meta?.total ?? ordersStore.orders.length, 'заказ', 'заказа', 'заказов')}`"
     >
       <button @click="doExport" :disabled="exporting" class="btn-secondary text-sm">
         {{ exporting ? 'Экспорт...' : 'Скачать CSV' }}
@@ -211,6 +219,15 @@ async function doExport() {
         </div>
       </div>
     </div>
+
+    <UiPagination
+      v-if="ordersStore.meta"
+      :current-page="ordersStore.meta.current_page"
+      :last-page="ordersStore.meta.last_page"
+      :total="ordersStore.meta.total"
+      :per-page="ordersStore.meta.per_page"
+      @update:current-page="goToPage"
+    />
 
     <UiConfirmDialog
       :modelValue="!!deleteConfirm"

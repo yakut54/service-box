@@ -17,6 +17,7 @@ import type {
   ChatMessage,
   TelegramStatus,
   PaginatedResponse,
+  PageResponse,
   SuperadminShop,
   SuperadminShopFeature,
   SuperadminRevenue,
@@ -325,7 +326,7 @@ class ApiClient {
 
   async getOrders(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<Order>>(`/admin/orders${query}`)
+    return this.request<PageResponse<Order>>(`/admin/orders${query}`)
   }
 
   async getOrder(id: string) {
@@ -395,7 +396,7 @@ class ApiClient {
 
   async getCustomers(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<Customer>>(`/admin/customers${query}`)
+    return this.request<PageResponse<Customer>>(`/admin/customers${query}`)
   }
 
   async getCustomer(id: string) {

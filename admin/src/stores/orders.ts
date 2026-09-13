@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/lib/api'
-import type { Order, OrderStats } from '@/types'
+import type { Order, OrderStats, PaginationMeta } from '@/types'
 
 export const useOrdersStore = defineStore('orders', () => {
   const orders = ref<Order[]>([])
@@ -17,6 +17,7 @@ export const useOrdersStore = defineStore('orders', () => {
   })
   const loading = ref(false)
   const needsAttentionCount = ref(0)
+  const meta = ref<PaginationMeta | null>(null)
 
   const pendingOrders = computed(() => orders.value.filter(o => o.status === 'pending'))
   const paidOrders = computed(() => orders.value.filter(o => o.status === 'paid'))
@@ -26,6 +27,7 @@ export const useOrdersStore = defineStore('orders', () => {
     try {
       const data = await api.getOrders(params)
       orders.value = data.data
+      meta.value = data.meta ?? null
     } finally {
       if (!options?.silent) loading.value = false
     }
@@ -78,6 +80,7 @@ export const useOrdersStore = defineStore('orders', () => {
     }
     loading.value = false
     needsAttentionCount.value = 0
+    meta.value = null
   }
 
   return {
@@ -85,6 +88,7 @@ export const useOrdersStore = defineStore('orders', () => {
     stats,
     loading,
     needsAttentionCount,
+    meta,
     pendingOrders,
     paidOrders,
     fetchOrders,

@@ -5,39 +5,48 @@ import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDate } from '@/shared/lib/format'
-import { UiSpinner, UiEmptyState, UiTooltip, UiAvatar } from '@/shared/ui'
+import { UiSpinner, UiEmptyState, UiTooltip, UiAvatar, UiPagination } from '@/shared/ui'
 import PageHeader from '@/components/PageHeader.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
-import type { Customer } from '@/types'
+import type { Customer, PaginationMeta } from '@/types'
 
 const router = useRouter()
 const customers = ref<Customer[]>([])
+const meta = ref<PaginationMeta | null>(null)
 const loading = ref(true)
 const searchQuery = ref('')
+const page = ref(1)
 
 const sortedCustomers = computed(() => {
   return [...customers.value].sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0))
 })
 
-const totalCustomers = computed(() => customers.value.length)
-const totalRevenue = computed(() => customers.value.reduce((sum, c) => sum + (c.total_spent || 0), 0))
-const avgOrderValue = computed(() => {
+const totalCustomers = computed(() => meta.value?.total ?? customers.value.length)
+const totalRevenue = computed(() => meta.value?.total_revenue ?? customers.value.reduce((sum, c) => sum + (c.total_spent || 0), 0))
+const avgOrderValue = computed(() => meta.value?.avg_order_value ?? (() => {
   const totalOrders = customers.value.reduce((sum, c) => sum + (c.total_orders || 0), 0)
   return totalOrders > 0 ? totalRevenue.value / totalOrders : 0
-})
+})())
 
 async function loadCustomers() {
   loading.value = true
   try {
-    const params: Record<string, string> = {}
+    const params: Record<string, string> = { page: String(page.value) }
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     const data = await api.getCustomers(params)
     customers.value = data.data
+    meta.value = data.meta ?? null
   } catch { /* ignore */ }
   loading.value = false
 }
 
+function goToPage(p: number) {
+  page.value = p
+  loadCustomers()
+}
+
 function onSearch() {
+  page.value = 1
   loadCustomers()
 }
 
@@ -233,6 +242,15 @@ async function doExport() {
         </div>
       </div>
     </div>
+
+    <UiPagination
+      v-if="meta"
+      :current-page="meta.current_page"
+      :last-page="meta.last_page"
+      :total="meta.total"
+      :per-page="meta.per_page"
+      @update:current-page="goToPage"
+    />
   </div>
 
   <!-- ── Delete Modal ──────────────────────────────────────────────────────── -->
