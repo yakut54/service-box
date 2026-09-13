@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { formatPrice, formatRelativeTime, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiEmptyState, UiSpinner } from '@/shared/ui'
+import CustomSelect from '@/components/CustomSelect.vue'
 import type { Order, OrderItem } from '@/types'
 
 const authStore = useAuthStore()
@@ -15,6 +16,26 @@ const tab     = ref<'active' | 'done'>('active')
 const orders  = ref<Order[]>([])
 const loading = ref(false)
 const error   = ref('')
+const search  = ref('')
+const statusFilter = ref('')
+
+const statusOptions = [
+  { value: '', label: 'Все статусы' },
+  { value: 'pending', label: 'Ожидает' },
+  { value: 'paid', label: 'Оплачен' },
+  { value: 'processing', label: 'В работе' },
+  { value: 'needs_attention', label: 'Требует внимания' },
+]
+
+const filteredOrders = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return orders.value.filter(order => {
+    if (statusFilter.value && order.status !== statusFilter.value) return false
+    if (!q) return true
+    return order.customer_name.toLowerCase().includes(q)
+      || (order.items ?? []).some(i => i.product_name.toLowerCase().includes(q))
+  })
+})
 
 async function load() {
   loading.value = true
@@ -32,6 +53,7 @@ async function load() {
 function switchTab(t: 'active' | 'done') {
   if (tab.value === t) return
   tab.value = t
+  statusFilter.value = ''
   load()
 }
 
@@ -89,6 +111,11 @@ onUnmounted(() => {
       >Собранные сегодня</button>
     </div>
 
+    <div class="flex flex-col sm:flex-row gap-2">
+      <input v-model="search" type="text" class="input flex-1" placeholder="Поиск по клиенту или товару..." />
+      <CustomSelect v-if="tab === 'active'" v-model="statusFilter" :options="statusOptions" class="w-full sm:w-44 shrink-0" />
+    </div>
+
     <div v-if="loading" class="card flex items-center justify-center py-16">
       <UiSpinner />
     </div>
@@ -103,9 +130,11 @@ onUnmounted(() => {
       :description="tab === 'active' ? 'Новые заказы появятся здесь' : ''"
     />
 
+    <UiEmptyState v-else-if="filteredOrders.length === 0" title="Ничего не найдено" description="Попробуйте изменить поиск или фильтр" />
+
     <RouterLink
       v-else
-      v-for="order in orders"
+      v-for="order in filteredOrders"
       :key="order.id"
       :to="{ name: 'collector-order-detail', params: { id: order.id } }"
       class="card flex flex-col gap-2 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"

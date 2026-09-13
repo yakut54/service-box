@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useOrdersStore } from '@/stores/orders'
@@ -86,6 +86,13 @@ async function applyFilters() {
 
 useAutoRefresh(() => ordersStore.fetchOrders(buildParams(), { silent: true }))
 
+const sortedOrders = computed(() =>
+  [...ordersStore.orders].sort((a, b) => {
+    const rank = (o: typeof a) => (o.status === 'needs_attention' ? 0 : 1)
+    return rank(a) - rank(b)
+  })
+)
+
 const exporting = ref(false)
 async function doExport() {
   exporting.value = true
@@ -134,9 +141,10 @@ async function doExport() {
             </thead>
             <tbody>
               <tr
-                v-for="order in ordersStore.orders"
+                v-for="order in sortedOrders"
                 :key="order.id"
                 class="cursor-pointer"
+                :class="order.status === 'needs_attention' && 'bg-pink-50/60 dark:bg-pink-900/10'"
                 @click="router.push(`/orders/${order.id}`)"
               >
                 <td><span class="text-primary-600 font-medium">#{{ order.id.slice(0, 8) }}</span></td>
@@ -177,22 +185,24 @@ async function doExport() {
       <!-- Mobile cards -->
       <div class="sm:hidden card overflow-hidden p-0">
         <div
-          v-for="order in ordersStore.orders"
+          v-for="order in sortedOrders"
           :key="order.id"
-          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0"
+          class="flex items-start justify-between gap-3 p-4 border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer"
+          :class="order.status === 'needs_attention' && 'bg-pink-50/60 dark:bg-pink-900/10'"
+          @click="router.push(`/orders/${order.id}`)"
         >
-          <RouterLink :to="`/orders/${order.id}`" class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 mb-0.5">
               <span class="text-primary-600 font-medium text-sm">#{{ order.id.slice(0, 8) }}</span>
               <span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
             </div>
             <div class="text-sm text-gray-900 dark:text-gray-100 truncate">{{ order.customer?.name ?? order.customer_name }}</div>
             <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ formatDateTime(order.created_at) }} · {{ order.items?.length || 0 }} поз.</div>
-          </RouterLink>
+          </div>
           <div class="flex items-center gap-2 shrink-0">
             <span class="font-semibold text-sm text-gray-900 dark:text-white">{{ formatPrice(order.total_price) }}</span>
             <UiTooltip>
-              <button @click="deleteConfirm = order.id" class="btn-ghost btn-sm text-red-500 hover:text-red-700">
+              <button @click.stop="deleteConfirm = order.id" class="btn-ghost btn-sm text-red-500 hover:text-red-700">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
               <template #content>Удалить</template>

@@ -73,3 +73,33 @@ Broadcast::channel('shop.{shopId}', function ($user, string $shopId) {
 Broadcast::channel('user.{userId}', function ($user, string $userId) {
     return (string) $user->id === $userId;
 });
+
+/**
+ * Presence-канал «кто прямо сейчас в приложении» для магазина — настоящий
+ * онлайн-статус (StaffView.vue), а не эвристика по наличию токена
+ * (токен живёт до logout()/явного выхода, а не до закрытия вкладки —
+ * баг-репорт 2026-09-13: закрыл окно браузера, всё равно «онлайн»).
+ * Presence-канал отдаёт join/leave событие в реальном времени по факту
+ * живого WS-соединения — закрыл вкладку/оборвалась сеть → сервер сам
+ * узнаёт об этом и рассылает leaving без какого-либо опроса.
+ * Имя канала намеренно отдельное от 'shop.{shopId}' (там private-канал —
+ * тот же паттерн имени с приставкой presence- завёл бы второй, конфликтный
+ * контракт колбэка: private ждёт bool, presence — массив данных участника).
+ */
+Broadcast::channel('online.{shopId}', function ($user, string $shopId) {
+    $shop = Shop::find($shopId);
+    if (!$shop) {
+        return false;
+    }
+
+    $allowed = $user->id === $shop->user_id || ShopStaff::where('shop_id', $shopId)
+        ->where('user_id', $user->id)
+        ->whereNotNull('accepted_at')
+        ->exists();
+
+    if (!$allowed) {
+        return false;
+    }
+
+    return ['id' => (string) $user->id, 'name' => $user->name];
+});

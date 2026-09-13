@@ -313,19 +313,29 @@ onUnmounted(() => {
             </div>
           </template>
 
-          <!-- Весовой товар — существующий ввод веса -->
+          <!-- Весовой товар — существующий ввод веса, с тем же индикатором
+               «собрано», что и у штучных, — раньше его тут не было вовсе,
+               и весовая позиция выглядела «пропущенной» на общем фоне. -->
           <template v-else>
-            <div class="flex items-center justify-between">
-              <span class="text-gray-900 dark:text-white">
-                {{ item.product_name }}
+            <div class="flex items-center gap-3">
+              <span
+                class="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
+                :class="item.actual_weight_grams != null ? 'bg-green-600 border-green-600' : 'border-gray-300 dark:border-gray-600'"
+              >
+                <svg v-if="item.actual_weight_grams != null" class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span class="flex-1 min-w-0" :class="item.actual_weight_grams != null && 'text-gray-400 line-through'">
+                <span class="text-gray-900 dark:text-white">{{ item.product_name }}</span>
                 <span v-if="item.weight_grams" class="text-gray-400">, заявлено ≈ {{ formatWeight(item.weight_grams) }}</span>
               </span>
-              <span class="font-medium text-gray-700 dark:text-gray-300">
+              <span class="font-medium text-gray-700 dark:text-gray-300 shrink-0">
                 {{ formatPrice(item.actual_price ?? (item.price * item.quantity)) }}
               </span>
             </div>
 
-            <div v-if="item.actual_weight_grams == null && isMine && isClaimed" class="mt-2 space-y-1">
+            <div v-if="item.actual_weight_grams == null && isMine && isClaimed" class="pl-9 mt-2 space-y-1">
               <p v-if="item.product?.physical?.weight_min_grams && item.product?.physical?.weight_max_grams" class="text-xs text-gray-400">
                 Допустимо: {{ formatWeight(item.product.physical.weight_min_grams) }} – {{ formatWeight(item.product.physical.weight_max_grams) }}
               </p>
@@ -345,7 +355,7 @@ onUnmounted(() => {
                 >Подтвердить</button>
               </div>
             </div>
-            <p v-else-if="item.actual_weight_grams != null" class="text-xs text-green-600 dark:text-green-400 mt-1">
+            <p v-else-if="item.actual_weight_grams != null" class="text-xs text-green-600 dark:text-green-400 pl-9 mt-0.5">
               Факт: {{ formatWeight(item.actual_weight_grams) }} — {{ formatPrice(item.actual_price ?? 0) }}
             </p>
           </template>

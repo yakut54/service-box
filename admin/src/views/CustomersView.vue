@@ -1,5 +1,6 @@
 ﻿<script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { plural } from '@/lib/utils'
@@ -9,6 +10,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import type { Customer } from '@/types'
 
+const router = useRouter()
 const customers = ref<Customer[]>([])
 const loading = ref(true)
 const searchQuery = ref('')
@@ -156,19 +158,19 @@ async function doExport() {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="c in sortedCustomers" :key="c.id">
+              <tr v-for="c in sortedCustomers" :key="c.id" class="cursor-pointer" @click="router.push(`/customers/${c.id}`)">
                 <td>
-                  <RouterLink :to="`/customers/${c.id}`" class="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
+                  <div class="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-200">
                     <UiAvatar :src="c.avatar_url" :name="c.name" size="sm" />
                     {{ c.name || 'Без имени' }}
-                  </RouterLink>
+                  </div>
                 </td>
                 <td>
-                  <a v-if="c.phone" :href="`tel:${c.phone}`" class="text-primary-600 dark:text-primary-400 hover:text-primary-700">{{ c.phone }}</a>
+                  <a v-if="c.phone" :href="`tel:${c.phone}`" @click.stop class="text-primary-600 dark:text-primary-400 hover:text-primary-700">{{ c.phone }}</a>
                   <span v-else class="text-gray-400 dark:text-gray-500">—</span>
                 </td>
                 <td>
-                  <a v-if="c.email" :href="`mailto:${c.email}`" class="text-gray-600 dark:text-gray-400 hover:text-primary-600 text-sm">{{ c.email }}</a>
+                  <a v-if="c.email" :href="`mailto:${c.email}`" @click.stop class="text-gray-600 dark:text-gray-400 hover:text-primary-600 text-sm">{{ c.email }}</a>
                   <span v-else class="text-gray-400 dark:text-gray-500">—</span>
                 </td>
                 <td><span class="font-medium dark:text-gray-200">{{ c.total_orders || 0 }}</span></td>
@@ -179,7 +181,7 @@ async function doExport() {
                     <UiTooltip>
                       <button
                         type="button"
-                        @click.prevent="openDelete(c)"
+                        @click.stop="openDelete(c)"
                         class="btn-ghost btn-sm text-gray-400 hover:text-red-500 dark:hover:text-red-400"
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +190,7 @@ async function doExport() {
                       </button>
                       <template #content>Удалить клиента</template>
                     </UiTooltip>
-                    <RouterLink :to="`/customers/${c.id}`" class="btn-ghost btn-sm">
+                    <RouterLink :to="`/customers/${c.id}`" @click.stop class="btn-ghost btn-sm">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                     </RouterLink>
                   </div>
