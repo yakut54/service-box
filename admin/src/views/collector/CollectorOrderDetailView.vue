@@ -33,7 +33,6 @@ const shortageOpenFor = ref<string | null>(null)
 const problemNote = ref('')
 const showProblemForm = ref(false)
 const reportingProblem = ref(false)
-const shortageNote = ref('')
 
 async function load() {
   loading.value = true
@@ -41,11 +40,6 @@ async function load() {
   try {
     const resp = await api.getOrder(route.params.id as string)
     order.value = resp.data
-    // Уже есть заметка (например, отправили через «Проблема с заказом») —
-    // не заставляем печатать то же самое второй раз для «Готово».
-    if (!shortageNote.value && order.value.pick_note) {
-      shortageNote.value = order.value.pick_note
-    }
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить заказ'
   } finally {
@@ -69,13 +63,16 @@ const hasShortage = computed(() =>
   order.value?.items?.some(i => !isWeightVariable(i) && i.picked_qty != null && i.picked_qty < i.quantity) ?? false
 )
 
-// Причина, по которой слайдер сейчас не двигается — без неё выглядит как
-// баг «слайдер не шевелится», а не как «сначала сделай вот это».
+// Причина, по которой кнопка «Готово» сейчас неактивна — без неё выглядит
+// как баг, а не как «сначала сделай вот это».
 const finishBlockedReason = computed(() => {
   if (order.value && !order.value.paid_at) return 'Заказ ещё не оплачен'
   if (order.value?.surcharge_status === 'pending') return 'Ждём от покупателя оплату доплаты за перевес'
   if (!allResolved.value) return 'Сначала разберите все позиции'
-  if (hasShortage.value && !shortageNote.value.trim()) return 'Укажите причину недобора выше'
+  // Одна и та же заметка (pick_note), что и «Проблема с заказом» — второго
+  // отдельного поля для причины недобора нет (было — убрали, путало: два
+  // места ввода одного и того же текста, живой тест 2026-09-14).
+  if (hasShortage.value && !order.value?.pick_note) return 'Укажите причину через «Проблема с заказом» выше'
   return undefined
 })
 
@@ -154,7 +151,7 @@ async function finish() {
   const totalBefore = order.value.total_price
   finishing.value = true
   try {
-    const resp = await api.updateOrderStatus(order.value.id, 'completed', hasShortage.value ? shortageNote.value : undefined)
+    const resp = await api.updateOrderStatus(order.value.id, 'completed')
     order.value = resp.data
     if (order.value.total_price < totalBefore) {
       toast.success(`Заказ собран — покупателю возвращено ${formatPrice(totalBefore - order.value.total_price)}`)
@@ -431,15 +428,6 @@ onUnmounted(() => {
       <!-- Finish -->
       <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="fixed bottom-0 left-0 right-0 z-20 p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div class="max-w-2xl mx-auto space-y-2">
-          <div v-if="hasShortage" class="space-y-1">
-            <p class="text-xs text-gray-500 dark:text-gray-400">Причина недобора — сохранится и будет видна владельцу при нажатии «Готово» ниже</p>
-            <textarea
-              v-model="shortageNote"
-              rows="2"
-              placeholder="Например: не завезли, закончилось на складе..."
-              class="input w-full"
-            />
-          </div>
           <button
             type="button"
             class="btn-primary w-full py-3"

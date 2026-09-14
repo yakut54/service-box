@@ -579,8 +579,11 @@ class OrderController extends Controller
                     && $item->picked_qty < $item->quantity
             );
 
-            if ($hasShortage && !$request->filled('note')) {
-                return response()->json(['message' => 'Укажите причину недобора перед завершением'], 422);
+            // Причина недобора — та же заметка (pick_note), что и «Проблема
+            // с заказом», не отдельное поле на этом экране (было — убрали,
+            // путало двумя местами ввода одного и того же текста).
+            if ($hasShortage && !$order->pick_note && !$request->filled('note')) {
+                return response()->json(['message' => 'Укажите причину недобора через «Проблема с заказом»'], 422);
             }
         }
 
@@ -601,7 +604,12 @@ class OrderController extends Controller
 
         $update = ['status' => $newStatus];
         if ($request->filled('note')) {
+            // Та же заметка (pick_note), что и у «Проблема с заказом» — время
+            // проставляем той же логикой, иначе сохранённая отсюда заметка
+            // показывалась бы в карточке «Сборка» вообще без даты.
             $update['pick_note'] = $request->note;
+            $update['pick_note_at'] = $order->pick_note_at ?? now();
+            $update['pick_note_edited_at'] = $order->pick_note !== null ? now() : null;
         }
         $order->update($update);
 
