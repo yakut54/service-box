@@ -18,6 +18,7 @@ const loading = ref(false)
 const error   = ref('')
 const search  = ref('')
 const statusFilter = ref('')
+const sortOrder = ref<'newest' | 'oldest'>('newest')
 
 const statusOptions = [
   { value: '', label: 'Все статусы' },
@@ -27,14 +28,24 @@ const statusOptions = [
   { value: 'needs_attention', label: 'Требует внимания' },
 ]
 
+const sortOptions = [
+  { value: 'newest', label: 'Сначала новые' },
+  { value: 'oldest', label: 'Сначала старые' },
+]
+
 const filteredOrders = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return orders.value.filter(order => {
-    if (statusFilter.value && order.status !== statusFilter.value) return false
-    if (!q) return true
-    return order.customer_name.toLowerCase().includes(q)
-      || (order.items ?? []).some(i => i.product_name.toLowerCase().includes(q))
-  })
+  return orders.value
+    .filter(order => {
+      if (statusFilter.value && order.status !== statusFilter.value) return false
+      if (!q) return true
+      return order.customer_name.toLowerCase().includes(q)
+        || (order.items ?? []).some(i => i.product_name.toLowerCase().includes(q))
+    })
+    .sort((a, b) => {
+      const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      return sortOrder.value === 'newest' ? diff : -diff
+    })
 })
 
 async function load() {
@@ -114,6 +125,7 @@ onUnmounted(() => {
     <div class="flex flex-col sm:flex-row gap-2">
       <input v-model="search" type="text" class="input flex-1" placeholder="Поиск по клиенту или товару..." />
       <CustomSelect v-if="tab === 'active'" v-model="statusFilter" :options="statusOptions" class="w-full sm:w-44 shrink-0" />
+      <CustomSelect v-model="sortOrder" :options="sortOptions" class="w-full sm:w-44 shrink-0" />
     </div>
 
     <div v-if="loading" class="card flex items-center justify-center py-16">
