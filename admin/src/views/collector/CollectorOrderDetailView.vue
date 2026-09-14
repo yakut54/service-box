@@ -398,7 +398,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Проблема с заказом -->
-      <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="card space-y-2">
+      <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled' && (!order.pick_note || showProblemForm)" class="card space-y-2">
         <button v-if="!showProblemForm && !order.pick_note" type="button" class="text-sm text-red-600 dark:text-red-400" @click="openProblemForm">
           Проблема с заказом
         </button>
