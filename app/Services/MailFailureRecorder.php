@@ -19,6 +19,10 @@ class MailFailureRecorder
     {
         try {
             MailFailure::create([...$meta, 'error_message' => substr($error, 0, 1000)]);
+
+            if (!empty($meta['shop_id'])) {
+                \App\Events\MailFailuresUpdated::dispatch($meta['shop_id']);
+            }
         } catch (\Throwable $e) {
             Log::error('Failed to record mail failure', $meta + ['recording_error' => $e->getMessage()]);
         }

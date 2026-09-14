@@ -13,13 +13,17 @@ export const useChatStore = defineStore('chat', () => {
   const totalUnread = ref(0)
   const baseTitle = document.title
 
-  async function poll() {
+  /** Возвращает true, если счётчик вырос — сигнал для звука в AppLayout. */
+  async function poll(): Promise<boolean> {
     try {
+      const prev = totalUnread.value
       const data = await api.pollChat()
       unreadByThread.value = data.unread_by_thread
       totalUnread.value = data.total_unread
+      return totalUnread.value > prev
     } catch {
       // тихо игнорируем — это фоновый опрос, не критичная операция
+      return false
     }
   }
 

@@ -147,6 +147,10 @@ class ChatController extends Controller
             ['message' => $message],
         );
 
+        // Бейдж «Чат» в сайдбаре обновляется сам, даже если у сотрудника не
+        // открыт именно этот тред (там своя подписка, см. ChatView.vue).
+        \App\Events\ChatUpdated::dispatch($request->get('_shop')->id);
+
         return response()->json(['data' => $message], 201);
     }
 

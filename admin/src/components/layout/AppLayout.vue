@@ -27,39 +27,51 @@ const route = useRoute()
 const router = useRouter()
 const { isDark, toggle } = useTheme()
 
+// Один и тот же звук для любого бейджа в сайдбаре, который вырос —
+// заказ/отзыв/сообщение/несработавшее письмо — это всегда один и тот же
+// смысл «появилось что-то новое, требующее внимания». Общий тумблер
+// localStorage 'chat_sound_enabled' — заводить отдельный под каждый бейдж
+// незачем.
+const alertAudio = new Audio('/sounds/chat-notify.wav')
+function playAlertSound() {
+  if (localStorage.getItem('chat_sound_enabled') === 'false') return
+  alertAudio.currentTime = 0
+  alertAudio.play().catch(() => { /* автовоспроизведение заблокировано браузером — тихо игнорируем */ })
+}
+
 // AppLayout хостит и обычную админку, и раздел Суперадмина — «чистый»
 // суперадмин (аккаунт управления платформой, без своего магазина) сюда тоже
-// заходит, а эти три запроса идут через auth.shop и без магазина вернут 401
+// заходит, а эти запросы идут через auth.shop и без магазина вернут 401
 // → сработает общий unauthorizedHandler → мгновенный разлогин. Поэтому все
-// три — только когда магазин есть.
-if (authStore.shop) chatStore.poll()
-useAutoRefresh(() => { if (authStore.shop) chatStore.poll() }, 15_000)
+// они — только когда магазин есть. Каждый опрос дублирует то же самое
+// живое обновление по сокету (см. onMounted) — опрос остаётся страховкой
+// на случай пропущенного события/обрыва соединения, не основным путём.
+// На странице «Чат» звук уже играет своя, более точная подписка на тред
+// (ChatView.vue — знает, кто отправитель, не звенит на свои же исходящие).
+// Здесь его не дублируем, только обновляем счётчик.
+async function refreshChat() {
+  const increased = await chatStore.poll()
+  if (increased && route.path !== '/chat') playAlertSound()
+}
+if (authStore.shop) refreshChat()
+useAutoRefresh(() => { if (authStore.shop) refreshChat() }, 15_000)
 
-if (authStore.shop) reviewsStore.fetchPendingCount()
-useAutoRefresh(() => { if (authStore.shop) reviewsStore.fetchPendingCount() }, 60_000)
+async function refreshReviews() {
+  if (await reviewsStore.fetchPendingCount()) playAlertSound()
+}
+if (authStore.shop) refreshReviews()
+useAutoRefresh(() => { if (authStore.shop) refreshReviews() }, 60_000)
 
 // Владелец-only — эндпоинт защищён middleware 'owner', сотрудникам его дёргать незачем
-if (authStore.isOwner && authStore.shop) mailFailuresStore.fetchPendingCount()
-useAutoRefresh(() => { if (authStore.isOwner && authStore.shop) mailFailuresStore.fetchPendingCount() }, 60_000)
-
-// Сборщик пометил заказ проблемным (needs_attention) — владелец/админ
-// должен заметить это, даже если раздел «Заказы» сейчас не открыт. Тот же
-// звук, что у нового сообщения в чате (localStorage 'chat_sound_enabled') —
-// отдельный тумблер под это заводить незачем, это тот же смысл «прозвучал
-// сигнал, требующий внимания». Считается по категориям, если админ
-// ограничен ими (см. OrderController::needsAttentionCount).
-const orderAlertAudio = new Audio('/sounds/chat-notify.wav')
-function playOrderAlertSound() {
-  if (localStorage.getItem('chat_sound_enabled') === 'false') return
-  orderAlertAudio.currentTime = 0
-  orderAlertAudio.play().catch(() => { /* автовоспроизведение заблокировано браузером — тихо игнорируем */ })
+async function refreshMailFailures() {
+  if (await mailFailuresStore.fetchPendingCount()) playAlertSound()
 }
+if (authStore.isOwner && authStore.shop) refreshMailFailures()
+useAutoRefresh(() => { if (authStore.isOwner && authStore.shop) refreshMailFailures() }, 60_000)
 
 async function refreshNeedsAttention() {
-  const increased = await ordersStore.fetchNeedsAttentionCount()
-  if (increased) playOrderAlertSound()
+  if (await ordersStore.fetchNeedsAttentionCount()) playAlertSound()
 }
-
 if (authStore.shop) refreshNeedsAttention()
 useAutoRefresh(() => { if (authStore.shop) refreshNeedsAttention() }, 60_000)
 
@@ -86,7 +98,11 @@ onMounted(() => {
   const shopId = authStore.shop?.id
   if (shopId) {
     ordersChannelName = `shop.${shopId}`
-    getEcho().private(ordersChannelName).listen('.orders.updated', () => refreshNeedsAttention())
+    getEcho().private(ordersChannelName)
+      .listen('.orders.updated', () => refreshNeedsAttention())
+      .listen('.reviews.updated', () => refreshReviews())
+      .listen('.chat.updated', () => refreshChat())
+      .listen('.mail_failures.updated', () => { if (authStore.isOwner) refreshMailFailures() })
     presenceStore.join(shopId)
   }
 })

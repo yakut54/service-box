@@ -17,9 +17,15 @@ import { api } from '@/lib/api'
 export const useReviewsStore = defineStore('reviews', () => {
   const pendingCount = ref(0)
 
-  async function fetchPendingCount() {
-    try { pendingCount.value = (await api.getReviewsPendingCount()).count }
-    catch { /* тихо игнорируем — не критично для бейджа/баннера */ }
+  /** Возвращает true, если счётчик вырос — сигнал для звука в AppLayout. */
+  async function fetchPendingCount(): Promise<boolean> {
+    try {
+      const prev = pendingCount.value
+      pendingCount.value = (await api.getReviewsPendingCount()).count
+      return pendingCount.value > prev
+    } catch {
+      return false
+    }
   }
 
   function $reset() {

@@ -98,6 +98,11 @@ class ReviewController extends Controller
             throw $e;
         }
 
+        $shop = $request->get('_shop');
+        if ($shop) {
+            \App\Events\ReviewsUpdated::dispatch($shop->id);
+        }
+
         return response()->json([
             'message' => 'Отзыв отправлен на модерацию',
             'data'    => $this->formatWidget($review),
