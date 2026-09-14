@@ -6,6 +6,7 @@ import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
 import { useOrdersStore } from '@/stores/orders'
+import { useNavCountsStore } from '@/stores/navCounts'
 import { usePresenceStore } from '@/stores/presence'
 import { getEcho } from '@/lib/echo'
 import { useTheme } from '@/composables/useTheme'
@@ -22,6 +23,7 @@ const chatStore = useChatStore()
 const reviewsStore = useReviewsStore()
 const mailFailuresStore = useMailFailuresStore()
 const ordersStore = useOrdersStore()
+const navCountsStore = useNavCountsStore()
 const presenceStore = usePresenceStore()
 const route = useRoute()
 const router = useRouter()
@@ -74,6 +76,11 @@ async function refreshNeedsAttention() {
 }
 if (authStore.shop) refreshNeedsAttention()
 useAutoRefresh(() => { if (authStore.shop) refreshNeedsAttention() }, 60_000)
+
+// Серые «всего» — справочная цифра, не тревога: без звука, без сокета,
+// раз в 5 минут вполне достаточно (см. NavCountsController).
+if (authStore.shop) navCountsStore.fetch()
+useAutoRefresh(() => { if (authStore.shop) navCountsStore.fetch() }, 5 * 60_000)
 
 const sidebarOpen = ref(false)
 const menuOpen    = ref(false)
@@ -272,6 +279,13 @@ async function handleLogout() {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <span class="flex-1">{{ item.name }}</span>
+          <NavBadge v-if="item.href === '/orders'" variant="muted" show-zero :count="navCountsStore.counts.orders ?? 0" />
+          <NavBadge v-if="item.href === '/customers'" variant="muted" show-zero :count="navCountsStore.counts.customers ?? 0" />
+          <NavBadge v-if="item.href === '/products'" variant="muted" show-zero :count="navCountsStore.counts.products ?? 0" />
+          <NavBadge v-if="item.href === '/categories'" variant="muted" show-zero :count="navCountsStore.counts.categories ?? 0" />
+          <NavBadge v-if="item.href === '/discounts'" variant="muted" show-zero :count="navCountsStore.counts.discounts ?? 0" />
+          <NavBadge v-if="item.href === '/reviews'" variant="muted" show-zero :count="navCountsStore.counts.reviews ?? 0" />
+          <NavBadge v-if="item.href === '/staff'" variant="muted" show-zero :count="navCountsStore.counts.staff ?? 0" />
           <NavBadge v-if="item.href === '/chat'" :count="chatStore.totalUnread" />
           <NavBadge v-if="item.href === '/reviews'" :count="reviewsStore.pendingCount" />
           <NavBadge v-if="item.href === '/orders'" :count="ordersStore.needsAttentionCount" />

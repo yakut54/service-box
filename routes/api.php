@@ -8,6 +8,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\NavCountsController;
 use App\Http\Controllers\CommissionController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\BookingController;
@@ -189,6 +190,9 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
 
     // Widget analytics funnel (Pro)
     Route::get('/widget/analytics', [WidgetAnalyticsController::class, 'funnel']);
+
+    // Серые счётчики «всего» в сайдбаре (AppLayout.vue)
+    Route::get('/nav-counts', [NavCountsController::class, 'index']);
 
     // Categories (reorder must be before {id} routes)
     Route::get('/categories', [CategoryController::class, 'index']);

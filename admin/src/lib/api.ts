@@ -348,6 +348,10 @@ class ApiClient {
     return this.request<{ count: number }>('/admin/orders/needs-attention-count')
   }
 
+  async getNavCounts() {
+    return this.request<Record<string, number>>('/admin/nav-counts')
+  }
+
   async updateOrderStatus(id: string, status: string, note?: string) {
     return this.request<{ message: string; data: Order }>(`/admin/orders/${id}/status`, {
       method: 'PATCH',
