@@ -12,10 +12,12 @@ use App\Models\Shop;
 use App\Services\DiscountService;
 use App\Services\OrderReweighService;
 use App\Services\TenantService;
+use App\Services\YooKassaService;
 use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OrderController extends Controller
 {
@@ -49,6 +51,49 @@ class OrderController extends Controller
         return $order->items->contains(
             fn ($item) => $item->product && in_array($item->product->category_id, $allowed, true)
         );
+    }
+
+    /**
+     * Сравнивает фактически собранное с уже списанной суммой и возвращает
+     * разницу покупателю, если собрали меньше. Считает по каждой позиции
+     * заново (не полагается на текущий order.total_price — тот для
+     * weight_variable-заказов уже мог быть уменьшен OrderReweighService,
+     * и эта функция должна урезать ЕЩЁ дальше, если вдобавок не хватило
+     * штучного товара, а не наоборот). Возвращает текст ошибки, если возврат
+     * не удался (тогда завершение заказа блокируется — лучше попросить
+     * попробовать снова, чем молча оставить покупателя без части денег).
+     */
+    private function refundShortageIfAny(Order $order, ?Shop $shop): ?string
+    {
+        $actualTotal = $order->items->sum(function ($item) {
+            if ($item->product?->physical?->sale_mode === 'weight_variable') {
+                return $item->actual_price ?? ($item->price * $item->quantity);
+            }
+            return $item->price * ($item->picked_qty ?? $item->quantity);
+        }) + $order->delivery_price;
+
+        $shortfall = $order->total_price - $actualTotal;
+        if ($shortfall <= 0) {
+            return null;
+        }
+
+        if (!$shop || !$shop->yookassa_shop_id || !$shop->yookassa_secret_key || !$order->payment_id) {
+            Log::warning('Order shortage refund skipped — no payment gateway configured', ['order_id' => $order->id]);
+            $order->update(['total_price' => $actualTotal]);
+            return null;
+        }
+
+        try {
+            (new YooKassaService($shop->yookassa_shop_id, $shop->yookassa_secret_key))
+                ->refund($order->payment_id, $shortfall / 100);
+        } catch (\Throwable $e) {
+            Log::error('Order shortage refund failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            return 'Не удалось оформить возврат за недостающий товар — попробуйте ещё раз через минуту';
+        }
+
+        $order->update(['total_price' => $actualTotal]);
+
+        return null;
     }
 
     /**
@@ -536,6 +581,19 @@ class OrderController extends Controller
 
             if ($hasShortage && !$request->filled('note')) {
                 return response()->json(['message' => 'Укажите причину недобора перед завершением'], 422);
+            }
+        }
+
+        // Недобор штучного товара (собрали меньше, чем заказали) должен
+        // уменьшать сумму заказа — покупатель не должен платить за то, чего
+        // не получил. Симметрично уже существующей доплате за перевес
+        // весового товара (см. OrderReweighService), только в обратную
+        // сторону: там деньги ещё на холде, тут уже списаны, поэтому не
+        // "списать меньше", а настоящий возврат через ЮKassa.
+        if ($newStatus === 'completed') {
+            $refundError = $this->refundShortageIfAny($order, $request->attributes->get('shop'));
+            if ($refundError) {
+                return response()->json(['message' => $refundError], 422);
             }
         }
 

@@ -71,10 +71,14 @@ onUnmounted(() => {
 
 async function updateStatus(status: string) {
   if (!order.value) return
+  const totalBefore = order.value.total_price
   updating.value = true
   try {
     const resp = await api.updateOrderStatus(order.value.id, status)
     order.value = resp.data
+    if (order.value.total_price < totalBefore) {
+      toast.success(`Покупателю возвращено ${formatPrice(totalBefore - order.value.total_price)} за недостающий товар`)
+    }
   } catch (e) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось изменить статус заказа')
   } finally {

@@ -88,6 +88,29 @@ class YooKassaService
     }
 
     /**
+     * Частичный возврат уже списанного платежа — например сборщик не нашёл
+     * часть штучного товара при сборке (см. OrderController::updateStatus,
+     * недобор по picked_qty). В отличие от capturePayment (снять МЕНЬШЕ с
+     * холда, который ещё не списан), здесь деньги уже реально у магазина —
+     * возврат идёт отдельной операцией через ЮKassa.
+     */
+    public function refund(string $paymentId, int|float $amountRubles): array
+    {
+        $response = $this->client->createRefund([
+            'payment_id' => $paymentId,
+            'amount' => [
+                'value'    => number_format($amountRubles, 2, '.', ''),
+                'currency' => 'RUB',
+            ],
+        ], Str::uuid()->toString());
+
+        return [
+            'refund_id' => $response->getId(),
+            'status'    => $response->getStatus(),
+        ];
+    }
+
+    /**
      * Полностью снять холд, ничего не списывая — например если сборщик отменил
      * все весовые позиции заказа (товара не оказалось).
      */

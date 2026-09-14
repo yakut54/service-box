@@ -146,11 +146,16 @@ async function confirmWeight(item: OrderItem) {
 
 async function finish() {
   if (!order.value) return
+  const totalBefore = order.value.total_price
   finishing.value = true
   try {
     const resp = await api.updateOrderStatus(order.value.id, 'completed', hasShortage.value ? shortageNote.value : undefined)
     order.value = resp.data
-    toast.success('Заказ собран')
+    if (order.value.total_price < totalBefore) {
+      toast.success(`Заказ собран — покупателю возвращено ${formatPrice(totalBefore - order.value.total_price)}`)
+    } else {
+      toast.success('Заказ собран')
+    }
   } catch (e) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось завершить заказ')
   } finally {
