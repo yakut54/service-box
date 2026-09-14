@@ -56,7 +56,7 @@ class CustomerController extends Controller
         }
 
         if ($request->filled('page')) {
-            $perPage = min((int) $request->input('per_page', 30), 100);
+            $perPage = min((int) $request->input('per_page', 25), 100);
 
             // Карточки "Всего клиентов"/"Общая выручка"/"Ср. чек" — по ВСЕЙ
             // выборке (все страницы), не только по текущей, иначе цифры

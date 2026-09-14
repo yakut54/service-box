@@ -16,7 +16,7 @@ const meta = ref<PaginationMeta | null>(null)
 const loading = ref(true)
 const searchQuery = ref('')
 const page = ref(1)
-const perPage = ref(30)
+const perPage = ref(25)
 
 const sortedCustomers = computed(() => {
   return [...customers.value].sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0))

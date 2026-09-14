@@ -24,9 +24,24 @@ const emit = defineEmits<{
 }>()
 
 const open = ref(false)
+const dropUp = ref(false)
 const searchQuery = ref('')
 const containerRef = ref<HTMLElement>()
 const searchInputRef = ref<HTMLInputElement>()
+
+// Высота выпадающего списка ограничена max-h-60 (240px) + отступы/поиск —
+// с запасом считаем нужным 260px. Если снизу столько не помещается, а
+// сверху места больше — открываем вверх (баг живого теста: селектор внизу
+// страницы обрезался/вылезал за экран).
+const DROPDOWN_HEIGHT_ESTIMATE = 260
+
+function updateDropDirection() {
+  if (!containerRef.value) return
+  const rect = containerRef.value.getBoundingClientRect()
+  const spaceBelow = window.innerHeight - rect.bottom
+  const spaceAbove = rect.top
+  dropUp.value = spaceBelow < DROPDOWN_HEIGHT_ESTIMATE && spaceAbove > spaceBelow
+}
 
 const selectedLabel = computed(() =>
   props.options.find(o => o.value === props.modelValue)?.label ?? null
@@ -54,7 +69,9 @@ function select(value: string) {
 }
 
 function toggle() {
-  if (!props.disabled) open.value = !open.value
+  if (props.disabled) return
+  if (!open.value) updateDropDirection()
+  open.value = !open.value
 }
 
 function onOutsideClick(e: MouseEvent) {
@@ -118,7 +135,10 @@ onUnmounted(() => {
     >
       <div
         v-if="open"
-        class="absolute z-50 mt-1 w-full min-w-[180px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden"
+        :class="[
+          'absolute z-50 w-full min-w-[180px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden',
+          dropUp ? 'bottom-full mb-1' : 'top-full mt-1',
+        ]"
       >
         <!-- Search -->
         <div v-if="searchable" class="px-2 pt-2 pb-1.5 border-b border-gray-100 dark:border-gray-700">

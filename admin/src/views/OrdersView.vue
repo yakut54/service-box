@@ -20,7 +20,7 @@ const filterStatus = ref('')
 const searchQuery = ref('')
 const datePreset = ref('all')
 const page = ref(1)
-const perPage = ref(30)
+const perPage = ref(25)
 const deleteConfirm = ref<string | null>(null)
 const deleting = ref(false)
 

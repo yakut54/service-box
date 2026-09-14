@@ -215,7 +215,7 @@ class OrderController extends Controller
             ->latest('created_at');
 
         if ($request->filled('page')) {
-            $perPage = min((int) $request->input('per_page', 30), 100);
+            $perPage = min((int) $request->input('per_page', 25), 100);
             return response()->json($this->paginatedResponse($orderByNeedsAttention($query)->paginate($perPage)));
         }
 
