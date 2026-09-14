@@ -340,7 +340,15 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         collector_id            UUID,
                         collector_name          TEXT,
                         picking_started_at      TIMESTAMPTZ,
-                        pick_note               TEXT
+                        pick_note               TEXT,
+                        pick_note_at            TIMESTAMPTZ,
+                        pick_note_edited_at     TIMESTAMPTZ,
+                        -- Владелец/админ открыл именно ЭТОТ проблемный заказ —
+                        -- сбрасывается в NULL каждый раз, когда заказ заново
+                        -- становится needs_attention (см. OrderController::
+                        -- reportProblem, CheckSurchargeDeadline). Бейдж в
+                        -- сайдбаре считает needs_attention с seen_at IS NULL.
+                        seen_at                 TIMESTAMPTZ
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.orders(status)', p_schema_name);
@@ -913,7 +921,6 @@ CREATE TABLE IF NOT EXISTS public.shops (
     chat_customer_delete_enabled boolean DEFAULT false NOT NULL,
     reviews_last_seen_at timestamp(0) without time zone,
     mail_failures_last_seen_at timestamp(0) without time zone,
-    orders_last_seen_at timestamp(0) without time zone,
     customer_push_enabled boolean DEFAULT true NOT NULL,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
