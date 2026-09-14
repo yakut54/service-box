@@ -445,9 +445,12 @@ class _ReviewForm extends StatelessWidget {
               // — он измеряет ту же бесконечность как «естественную» ширину
               // (перепроверено 2026-09-01 на PrimarySubmitButton — тот же
               // трюк там тоже не сработал). Правильный фикс — снять
-              // навязанный theme minimumSize точечно для этой кнопки.
+              // навязанный theme minimumSize точечно для этой кнопки. Но
+              // Size.zero даёт кнопку впритык по тексту — куце и неудобно
+              // нажимать (живой тест 2026-09-14), поэтому не zero, а
+              // разумный минимум под палец.
               FilledButton(
-                style: FilledButton.styleFrom(minimumSize: Size.zero),
+                style: FilledButton.styleFrom(minimumSize: const Size(112, 44)),
                 onPressed: (canSubmit && !submitting) ? onSubmit : null,
                 child: submitting
                     ? const SizedBox(
