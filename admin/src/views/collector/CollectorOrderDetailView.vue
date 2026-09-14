@@ -5,9 +5,9 @@ import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
-import { formatPrice, formatWeight } from '@/shared/lib/format'
+import { formatPrice, formatWeight, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner, UiNumberField, UiSlideConfirm } from '@/shared/ui'
+import { UiSpinner, UiNumberField } from '@/shared/ui'
 import type { Order, OrderItem } from '@/types'
 
 const route = useRoute()
@@ -144,8 +144,6 @@ async function confirmWeight(item: OrderItem) {
   }
 }
 
-const slideRef = ref<InstanceType<typeof UiSlideConfirm> | null>(null)
-
 async function finish() {
   if (!order.value) return
   finishing.value = true
@@ -155,12 +153,14 @@ async function finish() {
     toast.success('Заказ собран')
   } catch (e) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось завершить заказ')
-    // Сервер отклонил (например, кто-то не оплатил заказ) — бегунок иначе
-    // так и остаётся у конца дорожки, будто всё получилось.
-    slideRef.value?.reset()
   } finally {
     finishing.value = false
   }
+}
+
+function openProblemForm() {
+  problemNote.value = order.value?.pick_note ?? ''
+  showProblemForm.value = true
 }
 
 async function submitProblem() {
@@ -376,16 +376,33 @@ onUnmounted(() => {
         покупатель не подтвердит оплату.
       </div>
 
-      <div v-if="order.pick_note" class="card bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 text-sm text-pink-800 dark:text-pink-300">
-        Заметка: «{{ order.pick_note }}»
+      <div v-if="order.pick_note" class="card bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 text-sm text-pink-800 dark:text-pink-300 space-y-1">
+        <div class="flex items-start justify-between gap-2">
+          <p class="flex-1">Заметка: «{{ order.pick_note }}»</p>
+          <button
+            v-if="isMine && isClaimed && order.status !== 'completed' && order.status !== 'cancelled'"
+            type="button"
+            class="shrink-0 text-pink-500 hover:text-pink-700 dark:hover:text-pink-200"
+            aria-label="Изменить заметку"
+            @click="openProblemForm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-xs text-pink-500 dark:text-pink-400">
+          <template v-if="order.pick_note_edited_at">ред. {{ formatDateTime(order.pick_note_edited_at, authStore.shop?.timezone ?? undefined) }}</template>
+          <template v-else-if="order.pick_note_at">{{ formatDateTime(order.pick_note_at, authStore.shop?.timezone ?? undefined) }}</template>
+        </p>
       </div>
 
       <!-- Проблема с заказом -->
       <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="card space-y-2">
-        <button v-if="!showProblemForm" type="button" class="text-sm text-red-600 dark:text-red-400" @click="showProblemForm = true">
+        <button v-if="!showProblemForm && !order.pick_note" type="button" class="text-sm text-red-600 dark:text-red-400" @click="openProblemForm">
           Проблема с заказом
         </button>
-        <template v-else>
+        <template v-if="showProblemForm">
           <textarea
             v-model="problemNote"
             rows="2"
@@ -395,7 +412,7 @@ onUnmounted(() => {
           <div class="flex gap-2">
             <button class="btn-secondary btn-sm flex-1" @click="showProblemForm = false">Отмена</button>
             <button class="btn-danger btn-sm flex-1" :disabled="!problemNote.trim() || reportingProblem" @click="submitProblem">
-              Сообщить владельцу
+              {{ order.pick_note ? 'Сохранить' : 'Сообщить владельцу' }}
             </button>
           </div>
         </template>
@@ -411,14 +428,12 @@ onUnmounted(() => {
             placeholder="Причина недобора — покупатель должен понимать, чего не хватило"
             class="input w-full"
           />
-          <UiSlideConfirm
-            ref="slideRef"
-            label="Готово — сдвиньте"
-            :disabled-reason="finishBlockedReason"
-            :disabled="!!finishBlockedReason"
-            :loading="finishing"
-            @confirm="finish"
-          />
+          <button
+            type="button"
+            class="btn-primary w-full py-3"
+            :disabled="!!finishBlockedReason || finishing"
+            @click="finish"
+          >{{ finishing ? 'Сохранение…' : (finishBlockedReason ?? 'Готово') }}</button>
         </div>
       </div>
     </template>

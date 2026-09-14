@@ -346,6 +346,8 @@ export interface Order {
   collector_name?: string | null
   picking_started_at?: string | null
   pick_note?: string | null
+  pick_note_at?: string | null
+  pick_note_edited_at?: string | null
   items?: OrderItem[]
   customer?: Customer | null
   created_at: string

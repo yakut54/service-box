@@ -454,6 +454,18 @@ class OrderController extends Controller
 
         $isCollector = $request->attributes->get('staff_role') === 'collector';
 
+        // Открыл именно ЭТОТ проблемный заказ — бейдж в сайдбаре должен
+        // уменьшиться сразу на 1, а не когда просто зашёл в раздел «Заказы»
+        // (было так, не понравилось — см. живой тест 2026-09-14).
+        if (!$isCollector && $order->status === 'needs_attention' && $order->seen_at === null) {
+            $order->update(['seen_at' => now()]);
+
+            $shop = $request->attributes->get('shop');
+            if ($shop) {
+                \App\Events\OrdersUpdated::dispatch($shop->id);
+            }
+        }
+
         return response()->json([
             'data' => $isCollector
                 ? $this->collectorPayload($order, $request->attributes->get('shop'))
@@ -727,9 +739,18 @@ class OrderController extends Controller
             abort(404);
         }
 
+        // Заметку можно переотправить (исправить текст) сколько угодно раз,
+        // пока заказ активен — время первой отправки не трогаем, время
+        // редактирования проставляем только начиная со второго раза (см.
+        // CollectorOrderDetailView.vue — там это «ред. <время>»).
+        $isEdit = $orderModel->pick_note !== null;
+
         $orderModel->update([
             'status' => 'needs_attention',
             'pick_note' => $request->note,
+            'pick_note_at' => $orderModel->pick_note_at ?? now(),
+            'pick_note_edited_at' => $isEdit ? now() : null,
+            'seen_at' => null,
         ]);
 
         $shop = $request->attributes->get('shop');
@@ -819,43 +840,24 @@ class OrderController extends Controller
     }
 
     /**
-     * Счётчик для бейджа «Заказы» в сайдбаре — не «сколько всего проблемных»
-     * (та цифра не убывала бы, пока сборщик/владелец не решит проблему —
-     * а зайти и посмотреть, что случилось, можно и раньше), а «сколько
-     * новых с прошлого визита в «Заказы»» — тот же приём, что уже есть у
-     * Отзывов (см. ReviewController::pendingCount/markSeen). Отдельная
-     * сортировка «проблемные — наверх списка» на это не влияет и остаётся
-     * как есть.
+     * Счётчик для бейджа «Заказы» в сайдбаре — считает needs_attention с
+     * seen_at IS NULL, то есть заказы, которые владелец/админ ещё не открыл
+     * САМИ (не просто зашёл в раздел «Заказы» — так было и не понравилось,
+     * см. живой тест 2026-09-14). seen_at выставляется в show(), сбрасывается
+     * в NULL при каждом новом попадании в needs_attention (reportProblem,
+     * CheckSurchargeDeadline). Сортировка «проблемные — наверх списка» на
+     * это не влияет и остаётся как есть.
      *
      * GET /api/admin/orders/needs-attention-count
      */
     public function needsAttentionCount(Request $request): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
-
         $query = Order::query()
             ->where('status', 'needs_attention')
-            ->when(
-                $shop->orders_last_seen_at,
-                fn ($q) => $q->where('updated_at', '>', $shop->orders_last_seen_at),
-            );
+            ->whereNull('seen_at');
         $this->applyCategoryScope($query, $request);
 
         return response()->json(['count' => $query->count()]);
-    }
-
-    /**
-     * Отметить «Заказы» просмотренными — сбрасывает бейдж в сайдбаре не
-     * дожидаясь решения проблемных заказов (см. needsAttentionCount).
-     *
-     * POST /api/admin/orders/mark-seen
-     */
-    public function markSeen(Request $request): JsonResponse
-    {
-        $shop = $request->attributes->get('shop');
-        $shop->update(['orders_last_seen_at' => now()]);
-
-        return response()->json(['message' => 'Отмечено просмотренным']);
     }
 
     /**

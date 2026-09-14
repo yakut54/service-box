@@ -47,6 +47,9 @@ class Order extends Model
         'collector_name',
         'picking_started_at',
         'pick_note',
+        'pick_note_at',
+        'pick_note_edited_at',
+        'seen_at',
     ];
 
     protected $casts = [
@@ -66,6 +69,9 @@ class Order extends Model
         'surcharge_requested_at'   => 'datetime',
         'surcharge_deadline_at'    => 'datetime',
         'picking_started_at'       => 'datetime',
+        'seen_at'                  => 'datetime',
+        'pick_note_at'             => 'datetime',
+        'pick_note_edited_at'      => 'datetime',
     ];
 
     public function customer()

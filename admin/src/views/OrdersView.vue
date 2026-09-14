@@ -80,12 +80,7 @@ function buildParams() {
   return params
 }
 
-onMounted(() => {
-  ordersStore.fetchOrders(buildParams())
-  // Сбрасывает бейдж «Заказы» в сайдбаре сразу, не дожидаясь 60-секундного
-  // опроса в AppLayout.vue (тот же приём, что уже есть у Отзывов).
-  api.markOrdersSeen().then(() => ordersStore.fetchNeedsAttentionCount()).catch(() => {})
-})
+onMounted(() => { ordersStore.fetchOrders(buildParams()) })
 
 async function applyFilters() {
   page.value = 1

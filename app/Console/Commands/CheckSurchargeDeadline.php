@@ -45,7 +45,7 @@ class CheckSurchargeDeadline extends Command
         foreach ($orders as $order) {
             try {
                 DB::statement(
-                    "UPDATE {$s}.orders SET status = 'needs_attention', surcharge_status = 'expired' WHERE id = ?",
+                    "UPDATE {$s}.orders SET status = 'needs_attention', surcharge_status = 'expired', seen_at = NULL WHERE id = ?",
                     [$order->id]
                 );
 
@@ -55,6 +55,8 @@ class CheckSurchargeDeadline extends Command
                 if ($shop->max_bot_connected) {
                     try { MaxService::notifyOwnerSurchargeExpired($shop, $order); } catch (\Throwable) {}
                 }
+
+                \App\Events\OrdersUpdated::dispatch($shop->id);
 
                 Log::info('[SurchargeDeadline] order moved to needs_attention', [
                     'shop' => $shop->id,
