@@ -41,6 +41,11 @@ async function load() {
   try {
     const resp = await api.getOrder(route.params.id as string)
     order.value = resp.data
+    // Уже есть заметка (например, отправили через «Проблема с заказом») —
+    // не заставляем печатать то же самое второй раз для «Готово».
+    if (!shortageNote.value && order.value.pick_note) {
+      shortageNote.value = order.value.pick_note
+    }
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить заказ'
   } finally {

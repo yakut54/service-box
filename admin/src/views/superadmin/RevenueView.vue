@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
+import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import type { SuperadminRevenue } from '@/types'
 
 const data = ref<SuperadminRevenue | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
-
-const statusLabels: Record<string, string> = {
-  paid: 'Оплачен', processing: 'В работе', completed: 'Завершён', cancelled: 'Отменён',
-}
 
 function formatRub(rubles: number) {
   return rubles.toLocaleString('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 })
@@ -103,7 +100,7 @@ onMounted(load)
               </tr>
               <tr v-for="o in data.recent_orders" :key="o.order_id" class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                 <td class="py-3 px-4 text-gray-900 dark:text-white">{{ o.shop_name }}</td>
-                <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ statusLabels[o.status] || o.status }}</td>
+                <td class="py-3 px-4 text-gray-500 dark:text-gray-400">{{ ORDER_STATUS_LABELS[o.status] || o.status }}</td>
                 <td class="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{{ formatKop(o.total_kopecks) }}</td>
                 <td class="py-3 px-4 text-right font-medium text-gray-900 dark:text-white">{{ formatKop(o.commission_kopecks) }}</td>
                 <td class="py-3 px-4 text-right text-gray-400 text-xs">{{ formatDate(o.created_at) }}</td>

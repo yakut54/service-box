@@ -7,6 +7,7 @@ import { useProductsStore } from '@/stores/products'
 import { useReviewsStore } from '@/stores/reviews'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
+import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import KpiCard from '@/components/KpiCard.vue'
 import RevenueChart from '@/components/RevenueChart.vue'
 import type { OrderStats } from '@/types'
@@ -61,10 +62,6 @@ function formatPrice(kopecks: number) {
   if (rubles >= 1_000_000) return (rubles / 1_000_000).toFixed(1) + 'M ₽'
   if (rubles >= 1_000) return Math.round(rubles / 1_000) + 'K ₽'
   return Math.round(rubles) + ' ₽'
-}
-
-const orderStatusLabel: Record<string, string> = {
-  pending: 'Ожидает', paid: 'Оплачен', processing: 'В работе', completed: 'Завершён', cancelled: 'Отменён',
 }
 
 onMounted(() => Promise.all([
@@ -197,7 +194,7 @@ onMounted(() => Promise.all([
           <div class="text-right">
             <div class="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{{
               formatPriceFull(order.total_price) }}</div>
-            <span :class="`badge-${order.status}`">{{ orderStatusLabel[order.status] || order.status }}</span>
+            <span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
           </div>
         </RouterLink>
       </div>
