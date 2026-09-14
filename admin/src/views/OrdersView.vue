@@ -20,6 +20,7 @@ const filterStatus = ref('')
 const searchQuery = ref('')
 const datePreset = ref('all')
 const page = ref(1)
+const perPage = ref(30)
 const deleteConfirm = ref<string | null>(null)
 const deleting = ref(false)
 
@@ -72,7 +73,7 @@ function getDateRange(preset: string): { from: string; to: string } | null {
 }
 
 function buildParams() {
-  const params: Record<string, string> = { page: String(page.value) }
+  const params: Record<string, string> = { page: String(page.value), per_page: String(perPage.value) }
   if (filterStatus.value) params.status = filterStatus.value
   if (searchQuery.value) params.search = searchQuery.value
   const range = getDateRange(datePreset.value)
@@ -89,6 +90,12 @@ async function applyFilters() {
 
 async function goToPage(p: number) {
   page.value = p
+  await ordersStore.fetchOrders(buildParams())
+}
+
+async function changePerPage(n: number) {
+  perPage.value = n
+  page.value = 1
   await ordersStore.fetchOrders(buildParams())
 }
 
@@ -227,6 +234,7 @@ async function doExport() {
       :total="ordersStore.meta.total"
       :per-page="ordersStore.meta.per_page"
       @update:current-page="goToPage"
+      @update:per-page="changePerPage"
     />
 
     <UiConfirmDialog

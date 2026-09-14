@@ -16,6 +16,7 @@ const meta = ref<PaginationMeta | null>(null)
 const loading = ref(true)
 const searchQuery = ref('')
 const page = ref(1)
+const perPage = ref(30)
 
 const sortedCustomers = computed(() => {
   return [...customers.value].sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0))
@@ -31,7 +32,7 @@ const avgOrderValue = computed(() => meta.value?.avg_order_value ?? (() => {
 async function loadCustomers() {
   loading.value = true
   try {
-    const params: Record<string, string> = { page: String(page.value) }
+    const params: Record<string, string> = { page: String(page.value), per_page: String(perPage.value) }
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     const data = await api.getCustomers(params)
     customers.value = data.data
@@ -42,6 +43,12 @@ async function loadCustomers() {
 
 function goToPage(p: number) {
   page.value = p
+  loadCustomers()
+}
+
+function changePerPage(n: number) {
+  perPage.value = n
+  page.value = 1
   loadCustomers()
 }
 
@@ -250,6 +257,7 @@ async function doExport() {
       :total="meta.total"
       :per-page="meta.per_page"
       @update:current-page="goToPage"
+      @update:per-page="changePerPage"
     />
   </div>
 
