@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useOrdersStore } from '@/stores/orders'
+import { useAuthStore } from '@/stores/auth'
 import { api } from '@/lib/api'
+import { getEcho } from '@/lib/echo'
+import type { Channel } from 'laravel-echo'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
@@ -16,6 +19,7 @@ import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 
 const router = useRouter()
 const ordersStore = useOrdersStore()
+const authStore = useAuthStore()
 const filterStatus = ref('')
 const searchQuery = ref('')
 const datePreset = ref('all')
@@ -81,7 +85,26 @@ function buildParams() {
   return params
 }
 
-onMounted(() => { ordersStore.fetchOrders(buildParams()) })
+// Живое обновление списка по тому же общему каналу 'shop.{id}', что и
+// бейджи в AppLayout.vue — свой листенер снимаем через stopListening на
+// размонтировании, а не leave(), чтобы не оборвать канал остальным
+// подписчикам (см. AppLayout.vue/StaffView.vue — тот же приём).
+let channel: Channel | null = null
+const onOrdersUpdated = () => ordersStore.fetchOrders(buildParams(), { silent: true })
+
+onMounted(() => {
+  ordersStore.fetchOrders(buildParams())
+
+  const shopId = authStore.shop?.id
+  if (shopId) {
+    channel = getEcho().private(`shop.${shopId}`)
+    channel.listen('.orders.updated', onOrdersUpdated)
+  }
+})
+
+onUnmounted(() => {
+  channel?.stopListening('.orders.updated', onOrdersUpdated)
+})
 
 async function applyFilters() {
   page.value = 1
@@ -99,7 +122,11 @@ async function changePerPage(n: number) {
   await ordersStore.fetchOrders(buildParams())
 }
 
-useAutoRefresh(() => ordersStore.fetchOrders(buildParams(), { silent: true }))
+// Список уже обновляется мгновенно по вебсокету (см. onMounted выше) —
+// опрос остаётся страховкой на случай пропущенного события/обрыва
+// соединения, не основным путём (тот же принцип, что у поллеров в
+// AppLayout.vue), поэтому интервал увеличен с прежних 30 сек.
+useAutoRefresh(() => ordersStore.fetchOrders(buildParams(), { silent: true }), 90_000)
 
 const sortedOrders = computed(() =>
   [...ordersStore.orders].sort((a, b) => {
@@ -207,7 +234,7 @@ async function doExport() {
           @click="router.push(`/orders/${order.id}`)"
         >
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 mb-0.5">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-0.5">
               <span class="text-primary-600 font-medium text-sm">#{{ order.id.slice(0, 8) }}</span>
               <span :class="`badge-${order.status}`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
             </div>

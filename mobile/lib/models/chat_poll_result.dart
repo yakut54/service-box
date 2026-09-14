@@ -4,11 +4,13 @@ class ChatPollResult {
   final bool hasNew;
   final int unreadTotal;
   final DateTime? shopReadUpTo;
+  final String? threadId;
 
   const ChatPollResult({
     required this.hasNew,
     required this.unreadTotal,
     this.shopReadUpTo,
+    this.threadId,
   });
 
   factory ChatPollResult.fromJson(Map<String, dynamic> json) => ChatPollResult(
@@ -17,5 +19,6 @@ class ChatPollResult {
     shopReadUpTo: json['shop_read_up_to'] != null
         ? DateTime.tryParse(json['shop_read_up_to'] as String)
         : null,
+    threadId: json['thread_id'] as String?,
   );
 }

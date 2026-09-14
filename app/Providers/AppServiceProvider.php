@@ -2,8 +2,17 @@
 
 namespace App\Providers;
 
+use App\Events\NavCountsUpdated;
+use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Discount;
+use App\Models\Product;
+use App\Models\ShopStaff;
+use App\Services\TenantService;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -18,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerNavCountsBroadcasts();
+
         RateLimiter::for('telegram-webhook', function (Request $request) {
             return Limit::perMinute(60)->by($request->ip());
         });
@@ -85,5 +96,51 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('superadmin-write', function (Request $request) use ($tooManyAttempts) {
             return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip())->response($tooManyAttempts);
         });
+    }
+
+    /**
+     * Серые цифры «всего» в сайдборе (NavCountsController) — реалтайм по
+     * созданию/удалению Товара/Категории/Скидки/Сотрудника/Клиента. Один
+     * обсервер на 5 моделей вместо копирования NavCountsUpdated::dispatch()
+     * в 8 разных контроллеров (ProductController/CategoryController/
+     * DiscountController/StaffController/CustomerController) — первый и
+     * единственный обсервер в проекте, других пока нет.
+     *
+     * Product/Category/Discount/Customer — тенантные таблицы (создаются
+     * per-shop в create_shop_schema(), см. database/schema/pgsql-schema.sql),
+     * поэтому shop_id берём из TenantService::getCurrentShopId() — в момент
+     * срабатывания события контекст уже корректно выставлен запросом,
+     * который создал/удалил запись. ShopStaff — публичная таблица со своей
+     * колонкой shop_id, там TenantService не нужен.
+     *
+     * Массовые delete (whereIn(...)->delete()) Eloquent-события модели не
+     * бьют — см. явный dispatch в CategoryController::destroy() для
+     * action=delete, этот обсервер его не покрывает.
+     */
+    private function registerNavCountsBroadcasts(): void
+    {
+        foreach ([Product::class, Category::class, Discount::class, Customer::class] as $model) {
+            $model::created(fn (Model $m) => $this->broadcastNavCounts(TenantService::getCurrentShopId()));
+            $model::deleted(fn (Model $m) => $this->broadcastNavCounts(TenantService::getCurrentShopId()));
+        }
+
+        ShopStaff::created(fn (ShopStaff $m) => $this->broadcastNavCounts($m->shop_id));
+        ShopStaff::deleted(fn (ShopStaff $m) => $this->broadcastNavCounts($m->shop_id));
+    }
+
+    /**
+     * DB::afterCommit() — часть этих create/delete (например, Customer при
+     * оформлении заказа, см. Customer::findOrCreateByPhone из
+     * OrderController::store) происходит ВНУТРИ DB::transaction(). Событие
+     * модели 'created' срабатывает сразу, до коммита — рассылать
+     * NavCountsUpdated в этот момент значит слать его раньше, чем строка
+     * реально появится в БД. afterCommit() сам разруливает оба случая:
+     * если транзакции нет — выполнит сразу, если есть — отложит до коммита.
+     */
+    private function broadcastNavCounts(?string $shopId): void
+    {
+        if ($shopId) {
+            DB::afterCommit(fn () => NavCountsUpdated::dispatch($shopId));
+        }
     }
 }

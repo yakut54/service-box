@@ -18,6 +18,13 @@ import 'chat_repository.dart';
 /// activity-таймауту, поэтому держим keepalive (`pusher:ping`) и отвечаем на
 /// серверный `pusher:ping` — без этого сокет тихо умирал через ~2 минуты и
 /// сообщения переставали приходить в открытый чат до перезахода.
+///
+/// Соединением на один и тот же тред владеет `ChatState` (держит его весь
+/// сеанс, не только пока открыт экран диалога — см. ChatState.start) — тред
+/// у покупателя ровно один, поэтому второй сокет на тот же канал не нужен и
+/// не должен открываться. `ChatScreen`, пока он на экране, просто добавляет
+/// СВОЙ колбэк через [addListener]/[removeListener] к уже открытому
+/// соединению — отсюда список слушателей, а не один.
 class ChatRealtimeClient {
   ChatRealtimeClient(this._repository);
 
@@ -26,7 +33,15 @@ class ChatRealtimeClient {
   StreamSubscription? _subscription;
   String? _channelName;
   String? _sessionToken;
-  void Function(String event, Map<String, dynamic> data)? _onEvent;
+  final Set<void Function(String event, Map<String, dynamic> data)> _listeners = {};
+
+  void addListener(void Function(String event, Map<String, dynamic> data) listener) {
+    _listeners.add(listener);
+  }
+
+  void removeListener(void Function(String event, Map<String, dynamic> data) listener) {
+    _listeners.remove(listener);
+  }
 
   // Переподключение
   bool _disposed = false;
@@ -52,13 +67,11 @@ class ChatRealtimeClient {
   void connect({
     required String threadId,
     required String sessionToken,
-    required void Function(String event, Map<String, dynamic> data) onEvent,
   }) {
     _disposed = false;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     _sessionToken = sessionToken;
-    _onEvent = onEvent;
     _channelName = 'private-chat.thread.${FlavorConfig.shopApiKey}.$threadId';
     _retry = 0;
     _openSocket();
@@ -174,7 +187,9 @@ class ChatRealtimeClient {
 
     if (event.startsWith('pusher')) return; // прочие служебные события
 
-    _onEvent?.call(event, data);
+    for (final listener in _listeners.toList()) {
+      listener(event, data);
+    }
   }
 
   Future<void> _subscribe(String socketId) async {

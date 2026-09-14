@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
+import type { Channel } from 'laravel-echo'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, formatRelativeTime, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
@@ -88,20 +89,25 @@ function progress(order: Order): { done: number; total: number } | null {
   return { done, total: order.items.length }
 }
 
-let channelName: string | null = null
+// Канал 'shop.{id}' общий на все экраны, что его слушают — здесь только
+// добавляем/снимаем СВОЙ листенер (stopListening), не рвём канал целиком
+// через leave(): leave() убивает общий объект канала laravel-echo для
+// ВСЕХ подписчиков разом — баг найден живым тестом 2026-09-14.
+let channel: Channel | null = null
+const onOrdersUpdated = () => load()
 
 onMounted(() => {
   load()
 
   const shopId = authStore.shop?.id
   if (shopId) {
-    channelName = `shop.${shopId}`
-    getEcho().private(channelName).listen('.orders.updated', () => load())
+    channel = getEcho().private(`shop.${shopId}`)
+    channel.listen('.orders.updated', onOrdersUpdated)
   }
 })
 
 onUnmounted(() => {
-  if (channelName) getEcho().leave(channelName)
+  channel?.stopListening('.orders.updated', onOrdersUpdated)
 })
 </script>
 
@@ -152,11 +158,11 @@ onUnmounted(() => {
       class="card flex flex-col gap-2 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
     >
       <div class="flex items-center justify-between gap-2">
-        <span class="font-semibold text-gray-900 dark:text-white">
+        <span class="font-semibold text-gray-900 dark:text-white min-w-0 truncate">
           <span class="text-gray-400 font-normal">{{ shortId(order) }}</span>
           {{ order.customer_name }}
         </span>
-        <span :class="`badge-${order.status}`">
+        <span :class="`badge-${order.status}`" class="shrink-0">
           {{ ORDER_STATUS_LABELS[order.status] }}
         </span>
       </div>

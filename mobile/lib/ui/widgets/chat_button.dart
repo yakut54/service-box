@@ -47,9 +47,9 @@ class _ChatButtonState extends State<ChatButton> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (auth.isLoggedIn) {
-          chat.startPolling(auth.session!.sessionToken);
+          chat.start(auth.session!.sessionToken);
         } else {
-          chat.stopPolling();
+          chat.stop();
         }
       });
     }

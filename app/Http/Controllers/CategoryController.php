@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\NavCountsUpdated;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\StorageService;
+use App\Services\TenantService;
 use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -176,6 +178,13 @@ class CategoryController extends Controller
             $imageUrls = Category::whereIn('id', $categoryIds)->pluck('image_url')->filter()->values();
             Category::whereIn('id', $categoryIds)->delete();
             $imageUrls->each(fn($url) => StorageService::deleteByUrl($url));
+
+            // Массовый whereIn(...)->delete() не бьёт Eloquent-событие
+            // 'deleted' — обсервер в AppServiceProvider этот случай не
+            // поймает, дублируем dispatch явно здесь.
+            if ($shopId = TenantService::getCurrentShopId()) {
+                NavCountsUpdated::dispatch($shopId);
+            }
 
             return response()->json(['message' => 'Категория удалена']);
         }

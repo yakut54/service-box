@@ -296,7 +296,7 @@ class ChatController extends Controller
         $this->touchSeen($thread);
 
         if (!$thread) {
-            return response()->json(['has_new' => false, 'unread_total' => 0, 'shop_read_up_to' => null]);
+            return response()->json(['has_new' => false, 'unread_total' => 0, 'shop_read_up_to' => null, 'thread_id' => null]);
         }
 
         $hasNew = false;
@@ -321,6 +321,7 @@ class ChatController extends Controller
             'has_new'         => $hasNew,
             'unread_total'    => $thread->unread_by_customer,
             'shop_read_up_to' => $thread->shop_last_read_at?->toIso8601String(),
+            'thread_id'       => $thread->id,
         ]);
     }
 

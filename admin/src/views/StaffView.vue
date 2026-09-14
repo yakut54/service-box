@@ -5,6 +5,7 @@ import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { usePresenceStore } from '@/stores/presence'
 import { getEcho } from '@/lib/echo'
+import type { Channel } from 'laravel-echo'
 import PageHeader from '@/components/PageHeader.vue'
 import AdminFormModal from '@/components/modals/AdminFormModal.vue'
 import { UiConfirmDialog, UiEmptyState, UiSpinner, UiTooltip } from '@/shared/ui'
@@ -137,20 +138,27 @@ function lastLoginColor(admin: StaffMember): string {
 // Сотрудник может принять приглашение с другого устройства, пока страница
 // уже открыта — статус «Ожидает» → «Активен» обновляется само, без
 // перезагрузки (см. App\Events\StaffUpdated, тот же приём, что у чата).
-let channelName: string | null = null
+// Канал 'shop.{id}' общий на всю сессию (владеет им AppLayout.vue) — здесь
+// только добавляем/снимаем СВОЙ листенер (stopListening), а не рвём канал
+// целиком через leave(): leave() убивает общий объект канала laravel-echo
+// для ВСЕХ подписчиков разом, включая бейджи в сайдборе AppLayout — баг
+// найден живым тестом 2026-09-14 (бейдж «Отзывы» зависал после захода на
+// эту страницу и выхода с неё).
+let channel: Channel | null = null
+const onStaffUpdated = () => load()
 
 onMounted(() => {
   load()
 
   const shopId = authStore.shop?.id
   if (shopId) {
-    channelName = `shop.${shopId}`
-    getEcho().private(channelName).listen('.staff.updated', () => load())
+    channel = getEcho().private(`shop.${shopId}`)
+    channel.listen('.staff.updated', onStaffUpdated)
   }
 })
 
 onUnmounted(() => {
-  if (channelName) getEcho().leave(channelName)
+  channel?.stopListening('.staff.updated', onStaffUpdated)
 })
 </script>
 

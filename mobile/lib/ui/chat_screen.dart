@@ -14,7 +14,6 @@ import '../core/app_exception.dart';
 import '../core/format.dart';
 import '../core/image_compress.dart';
 import '../core/uuid.dart';
-import '../data/chat_realtime_client.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_message.dart';
 import '../services/chat_notifications.dart';
@@ -57,7 +56,10 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final _repository = ChatRepository.create();
-  late final _realtime = ChatRealtimeClient(_repository);
+  // Соединением владеет ChatState (живёт весь сеанс, не только этот экран)
+  // — здесь только добавляем/снимаем свой листенер на уже открытый сокет,
+  // см. ChatState.realtime.
+  late final ChatState _chatState;
   final _scrollController = ScrollController();
   late final _draftController = TextEditingController(text: widget.initialDraft);
   final _player = AudioPlayer();
@@ -101,6 +103,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     chatScreenOpen = true;
+    _chatState = context.read<ChatState>();
+    _chatState.realtime.addListener(_onRealtimeEvent);
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onScroll);
     _draftController.addListener(_onDraftChanged);
@@ -124,10 +128,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void dispose() {
     chatScreenOpen = false;
     WidgetsBinding.instance.removeObserver(this);
+    _chatState.realtime.removeListener(_onRealtimeEvent);
     _pollTimer?.cancel();
     _shopTypingClearTimer?.cancel();
     _sendTypingClearTimer?.cancel();
-    _realtime.disconnect();
     _scrollController.dispose();
     _draftController.removeListener(_onDraftChanged);
     _draftController.dispose();
@@ -152,44 +156,48 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Само соединение (ChatRealtimeClient) поднимает/гасит ChatState —
+    // здесь только свой локальный 5с-опрос-подстраховка для открытого
+    // экрана. Когда ChatState переподключит общий сокет на resume, наш
+    // листенер уже зарегистрирован и снова начнёт получать события — делать
+    // это самим не нужно.
     if (state == AppLifecycleState.resumed) {
       _startPolling();
-      if (_threadId != null) _connectRealtime(_threadId!);
     } else {
       _pollTimer?.cancel();
-      _realtime.disconnect();
     }
   }
 
   void _startPolling() {
     _pollTimer?.cancel();
-    // Основной путь доставки — WebSocket (ChatRealtimeClient сам держит
-    // keepalive и переподключается). Poll — подстраховка на моменты, когда
-    // сокет переустанавливается: 5с, чтобы «пришло из админки, а в чате
-    // тишина» не длилось дольше пары секунд, если WS моргнул.
+    // Основной путь доставки — WebSocket (ChatState держит соединение,
+    // ChatRealtimeClient сам переподключается). Poll — подстраховка на
+    // моменты, когда сокет переустанавливается: 5с, чтобы «пришло из
+    // админки, а в чате тишина» не длилось дольше пары секунд, если WS
+    // моргнул.
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) => _poll());
   }
 
-  void _connectRealtime(String threadId) {
-    _realtime.connect(
-      threadId: threadId,
-      sessionToken: _sessionToken,
-      onEvent: (event, data) {
-        if (event == 'presence') {
-          _handlePresenceEvent(data);
-          return; // эфемерный пинг — не повод перезапрашивать сообщения
-        }
-        if (event == 'message.new') {
-          final raw = data['message'] as Map<String, dynamic>?;
-          if (raw != null && raw['sender_type'] == 'shop') {
-            _playNotifySound();
-          }
-        }
-        _poll();
-      },
-    );
-    // "Байер тут" для магазина — тот же пинг, что и печать, is_typing:false.
+  // Тред только что стал известен (первая загрузка ленты или только что
+  // отправленное первое сообщение) — сообщаем ChatState (он откроет общий
+  // сокет, если ещё не открыт) и пингуем presence «байер тут».
+  void _onThreadKnown(String threadId) {
+    _chatState.onThreadCreated(threadId);
     _repository.sendPresence(_sessionToken, isTyping: false).catchError((_) {});
+  }
+
+  void _onRealtimeEvent(String event, Map<String, dynamic> data) {
+    if (event == 'presence') {
+      _handlePresenceEvent(data);
+      return; // эфемерный пинг — не повод перезапрашивать сообщения
+    }
+    if (event == 'message.new') {
+      final raw = data['message'] as Map<String, dynamic>?;
+      if (raw != null && raw['sender_type'] == 'shop') {
+        _playNotifySound();
+      }
+    }
+    _poll();
   }
 
   void _handlePresenceEvent(Map<String, dynamic> data) {
@@ -241,7 +249,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       _startPolling();
       if (_threadId != null) {
-        _connectRealtime(_threadId!);
+        _onThreadKnown(_threadId!);
         // Байер открыл чат — плашки этого треда в шторке больше не нужны.
         ChatNotifications.dismissThread(_threadId!);
       }
@@ -535,8 +543,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         });
       }
       if (mounted && images.isNotEmpty) setState(() => _pendingImages = []);
-      if (_threadId != null && !_realtime.isConnected) {
-        _connectRealtime(_threadId!);
+      // Тред мог только что появиться (первое сообщение байера) — ChatState
+      // ещё не знал о нём. onThreadCreated идемпотентен, безопасно звать
+      // всегда, если id известен.
+      if (_threadId != null) {
+        _onThreadKnown(_threadId!);
       }
       _scrollToBottom(animated: true);
     } catch (e) {

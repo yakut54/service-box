@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\StaffUpdated;
 use App\Mail\StaffInviteMail;
 use App\Models\Category;
 use App\Models\ShopStaff;
@@ -218,6 +219,11 @@ class StaffController extends Controller
             'invite_expires_at' => now()->addHours(48),
         ]);
 
+        // Список «Команда» у других открытых сеансов (другой админ/вкладка)
+        // должен увидеть нового приглашённого сразу, не только на accept/
+        // login/logout, как было раньше — тот же приём, что и там.
+        StaffUpdated::dispatch($shop->id);
+
         $inviteUrl = rtrim(config('app.frontend_url'), '/') . '/invite/' . $token;
 
         Mail::to($email)->send(new StaffInviteMail(
@@ -352,6 +358,8 @@ class StaffController extends Controller
         $avatarUrl = $staffRecord->avatar_url;
         $staffRecord->delete();
         StorageService::deleteByUrl($avatarUrl);
+
+        StaffUpdated::dispatch($shop->id);
 
         return response()->json(['message' => 'Доступ отозван']);
     }

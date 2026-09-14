@@ -77,8 +77,10 @@ async function refreshNeedsAttention() {
 if (authStore.shop) refreshNeedsAttention()
 useAutoRefresh(() => { if (authStore.shop) refreshNeedsAttention() }, 60_000)
 
-// Серые «всего» — справочная цифра, не тревога: без звука, без сокета,
-// раз в 5 минут вполне достаточно (см. NavCountsController).
+// Серые «всего» — справочная цифра, не тревога: без звука, но теперь
+// живая — обновляется по вебсокету (.nav_counts.updated/.staff.updated,
+// см. onMounted ниже). Опрос раз в 5 минут остаётся страховкой на случай
+// пропущенного события/обрыва соединения, не основным путём.
 if (authStore.shop) navCountsStore.fetch()
 useAutoRefresh(() => { if (authStore.shop) navCountsStore.fetch() }, 5 * 60_000)
 
@@ -110,6 +112,8 @@ onMounted(() => {
       .listen('.reviews.updated', () => refreshReviews())
       .listen('.chat.updated', () => refreshChat())
       .listen('.mail_failures.updated', () => { if (authStore.isOwner) refreshMailFailures() })
+      .listen('.nav_counts.updated', () => navCountsStore.fetch())
+      .listen('.staff.updated', () => navCountsStore.fetch())
     presenceStore.join(shopId)
   }
 })

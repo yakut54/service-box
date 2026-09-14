@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
+import type { Channel } from 'laravel-echo'
 import { useToast } from '@/composables/useToast'
 import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
@@ -50,7 +51,13 @@ async function load() {
 // эта страница открыта у владельца — без этого приходилось перезагружать
 // страницу руками, чтобы увидеть свежие «Собрано N из M»/заметку (см.
 // тот же приём в CollectorOrdersView/CollectorOrderDetailView).
-let channelName: string | null = null
+// Канал 'shop.{id}' общий на всю сессию (владеет им AppLayout.vue) — здесь
+// только добавляем/снимаем СВОЙ листенер (stopListening), а не рвём канал
+// целиком через leave(): leave() убивает общий объект канала laravel-echo
+// для ВСЕХ подписчиков разом, включая бейджи в сайдборе AppLayout — баг
+// найден живым тестом 2026-09-14.
+let channel: Channel | null = null
+const onOrdersUpdated = () => load()
 
 onMounted(() => {
   const id = route.params.id as string
@@ -60,13 +67,13 @@ onMounted(() => {
 
   const shopId = authStore.shop?.id
   if (shopId) {
-    channelName = `shop.${shopId}`
-    getEcho().private(channelName).listen('.orders.updated', () => load())
+    channel = getEcho().private(`shop.${shopId}`)
+    channel.listen('.orders.updated', onOrdersUpdated)
   }
 })
 
 onUnmounted(() => {
-  if (channelName) getEcho().leave(channelName)
+  channel?.stopListening('.orders.updated', onOrdersUpdated)
 })
 
 async function updateStatus(status: string) {

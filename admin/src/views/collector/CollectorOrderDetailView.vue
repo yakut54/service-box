@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
+import type { Channel } from 'laravel-echo'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { formatPrice, formatWeight, formatDateTime } from '@/shared/lib/format'
@@ -186,22 +187,27 @@ async function submitProblem() {
   }
 }
 
-let channelName: string | null = null
+// Канал 'shop.{id}' общий на все экраны, что его слушают — здесь только
+// добавляем/снимаем СВОЙ листенер (stopListening), не рвём канал целиком
+// через leave(): leave() убивает общий объект канала laravel-echo для
+// ВСЕХ подписчиков разом — баг найден живым тестом 2026-09-14.
+let channel: Channel | null = null
+const onOrdersUpdated = () => load()
 
 onMounted(() => {
   load()
 
   const shopId = authStore.shop?.id
   if (shopId) {
-    channelName = `shop.${shopId}`
+    channel = getEcho().private(`shop.${shopId}`)
     // Заказ могли отменить/переоткрыть, пока сборщик держит экран открытым
     // — тот же приём, что в очереди (см. CollectorOrdersView).
-    getEcho().private(channelName).listen('.orders.updated', () => load())
+    channel.listen('.orders.updated', onOrdersUpdated)
   }
 })
 
 onUnmounted(() => {
-  if (channelName) getEcho().leave(channelName)
+  channel?.stopListening('.orders.updated', onOrdersUpdated)
 })
 </script>
 

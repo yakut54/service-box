@@ -99,7 +99,13 @@ async function load() {
       setTimeout(() => { newIds.value = new Set() }, 4000)
     }
 
-    api.markReviewsSeen().catch(() => {})
+    // Важно: ждём, пока markReviewsSeen() запишется на бэкенде, и только
+    // ПОТОМ спрашиваем pendingCount — иначе это два параллельных запроса
+    // без гарантии порядка, и fetchPendingCount мог долететь и отработать
+    // раньше markReviewsSeen (гонка), тогда бейдж в сайдбаре оставался
+    // старым до следующего опроса в AppLayout.vue (до 60 сек) — баг найден
+    // живым тестом 2026-09-14.
+    await api.markReviewsSeen().catch(() => {})
     reviewsStore.fetchPendingCount()
   } catch (e: any) {
     error.value = e.message || 'Не удалось загрузить'
