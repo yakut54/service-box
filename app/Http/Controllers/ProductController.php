@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\Paginates;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Discount;
@@ -15,6 +16,8 @@ use Illuminate\Support\Arr;
 
 class ProductController extends Controller
 {
+    use Paginates;
+
     public function __construct(private readonly DiscountService $discountService) {}
 
     /**
@@ -37,6 +40,19 @@ class ProductController extends Controller
             $product->discount_price    = $badge ? $product->price - $badge['amount'] : null;
             $product->discount_ends_at  = $badge['ends_at'] ?? null;
         }
+    }
+
+    /**
+     * Общий пост-обработчик товара для обеих веток index() (постраничной и
+     * полной) — без него пришлось бы дублировать loadDetails()/приведение
+     * rating в двух местах.
+     */
+    private function transformProduct(Product $product): Product
+    {
+        $product->loadDetails();
+        // withAvg returns numeric as string from PostgreSQL — cast to float
+        $product->rating = $product->rating !== null ? (float) $product->rating : null;
+        return $product;
     }
 
     /**
@@ -89,16 +105,38 @@ class ProductController extends Controller
             $query->where('name', 'ILIKE', '%'.$request->search.'%');
         }
 
-        $query->orderBy('sort_order')->orderBy('name');
         $query->withAvg(['reviews as rating' => fn($q) => $q->where('is_published', true)], 'rating')
               ->withCount(['reviews as review_count' => fn($q) => $q->where('is_published', true)]);
 
-        $products = $query->get()->map(function ($product) {
-            $product->loadDetails();
-            // withAvg returns numeric as string from PostgreSQL — cast to float
-            $product->rating = $product->rating !== null ? (float) $product->rating : null;
-            return $product;
-        });
+        // Сортировка — на бэкенде, не на клиенте: список теперь постраничный
+        // (см. пагинацию ниже), клиентская пересортировка упорядочила бы
+        // только одну загруженную страницу, а не весь список (см. те же
+        // варианты в ProductsView.vue sortOptions).
+        match ($request->input('sort', '')) {
+            'name'         => $query->orderBy('name'),
+            'rating_desc'  => $query->orderByDesc('rating')->orderBy('name'),
+            'price_desc'   => $query->orderByDesc('price'),
+            'price_asc'    => $query->orderBy('price'),
+            default        => $query->orderBy('sort_order')->orderBy('name'),
+        };
+
+        // Пагинация — только по явному запросу (?page=), опционально, тем же
+        // паттерном, что у Заказов/Клиентов (см. Paginates): /widget/* и
+        // прочие вызовы без ?page= получают старый полный список без
+        // изменений, admin-фронтенд включает её сам через UiPagination.
+        if ($request->filled('page')) {
+            $perPage = min((int) $request->input('per_page', 25), 100);
+            $paginator = $query->paginate($perPage);
+            $paginator->getCollection()->transform(fn ($p) => $this->transformProduct($p));
+
+            if ($request->get('_shop')) {
+                $this->attachBadges($paginator->getCollection());
+            }
+
+            return response()->json($this->paginatedResponse($paginator));
+        }
+
+        $products = $query->get()->map(fn ($p) => $this->transformProduct($p));
 
         if ($request->get('_shop')) {
             $this->attachBadges($products);

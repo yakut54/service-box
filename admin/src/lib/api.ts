@@ -248,7 +248,7 @@ class ApiClient {
 
   async getProducts(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PaginatedResponse<Product>>(`/admin/products${query}`)
+    return this.request<PageResponse<Product>>(`/admin/products${query}`)
   }
 
   async getProduct(id: string) {

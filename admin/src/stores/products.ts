@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { api } from '@/lib/api'
-import type { Product } from '@/types'
+import type { Product, PaginationMeta } from '@/types'
 
 export const useProductsStore = defineStore('products', () => {
   const products = ref<Product[]>([])
   const loading = ref(false)
+  const meta = ref<PaginationMeta | null>(null)
 
   const activeProducts = computed(() => products.value.filter(p => p.is_active))
 
@@ -14,6 +15,7 @@ export const useProductsStore = defineStore('products', () => {
     try {
       const data = await api.getProducts(params)
       products.value = data.data
+      meta.value = data.meta ?? null
     } finally {
       loading.value = false
     }
@@ -27,11 +29,13 @@ export const useProductsStore = defineStore('products', () => {
   function $reset() {
     products.value = []
     loading.value = false
+    meta.value = null
   }
 
   return {
     products,
     loading,
+    meta,
     activeProducts,
     fetchProducts,
     deleteProduct,

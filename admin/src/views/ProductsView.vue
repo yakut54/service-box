@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProductsStore } from '@/stores/products'
 import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import ProductCard from '@/components/products/ProductCard.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
+import UiPagination from '@/shared/ui/UiPagination.vue'
+import UiTooltip from '@/shared/ui/UiTooltip.vue'
 import { plural } from '@/lib/utils'
-import { formatPrice, formatWeight } from '@/shared/lib/format'
+import { formatPrice } from '@/shared/lib/format'
 
 const route = useRoute()
 const productsStore = useProductsStore()
@@ -17,6 +20,26 @@ const deleteConfirm = ref<string | null>(null)
 const filterSearch = ref('')
 const filterCategory = ref('')
 const sortBy = ref('')
+const page = ref(1)
+const perPage = ref(25)
+
+// Вид — плитка (фото-карточки, удобно листать глазами) или список (плотные
+// строки, удобно сравнивать много позиций разом) — общепринятый паттерн
+// (Google Drive/Notion/Figma). Запоминаем на этом устройстве, не на
+// сервере — это чисто предпочтение конкретного сотрудника за конкретным
+// экраном, не часть данных магазина.
+const VIEW_MODE_KEY = 'products_view_mode'
+const viewMode = ref<'grid' | 'list'>('grid')
+try {
+  const saved = localStorage.getItem(VIEW_MODE_KEY)
+  if (saved === 'grid' || saved === 'list') viewMode.value = saved
+} catch {
+  // localStorage недоступен (приватный режим и т.п.) — остаёмся на плитке
+}
+function setViewMode(mode: 'grid' | 'list') {
+  viewMode.value = mode
+  try { localStorage.setItem(VIEW_MODE_KEY, mode) } catch { /* см. выше */ }
+}
 
 const sortOptions = [
   { value: '', label: 'По умолчанию' },
@@ -26,15 +49,6 @@ const sortOptions = [
   { value: 'price_asc', label: 'По цене: дешёвые' },
 ]
 
-const sortedProducts = computed(() => {
-  const list = [...productsStore.products]
-  if (sortBy.value === 'name') return list.sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-  if (sortBy.value === 'rating_desc') return list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
-  if (sortBy.value === 'price_desc') return list.sort((a, b) => b.price - a.price)
-  if (sortBy.value === 'price_asc') return list.sort((a, b) => a.price - b.price)
-  return list
-})
-
 const categoryOptions = computed(() => [
   { value: '', label: 'Все категории' },
   ...categoriesStore.allCategories.map(c => ({
@@ -43,53 +57,41 @@ const categoryOptions = computed(() => [
   })),
 ])
 
-const typeLabels: Record<string, string> = { physical: 'Физический', digital: 'Цифровой', service: 'Услуга' }
+function buildParams(): Record<string, string> {
+  const params: Record<string, string> = { page: String(page.value), per_page: String(perPage.value) }
+  if (filterSearch.value) params.search = filterSearch.value
+  if (filterCategory.value) params.category_id = filterCategory.value
+  if (sortBy.value) params.sort = sortBy.value
+  return params
+}
 
 onMounted(async () => {
   if (route.query.category_id) filterCategory.value = route.query.category_id as string
-  const params: Record<string, string> = {}
-  if (filterCategory.value) params.category_id = filterCategory.value
   await Promise.all([
-    productsStore.fetchProducts(params),
+    productsStore.fetchProducts(buildParams()),
     categoriesStore.categories.length ? Promise.resolve() : categoriesStore.fetchCategories(),
   ])
 })
 
 async function applyFilters() {
-  const params: Record<string, string> = {}
-  if (filterSearch.value) params.search = filterSearch.value
-  if (filterCategory.value) params.category_id = filterCategory.value
-  await productsStore.fetchProducts(params)
+  page.value = 1
+  await productsStore.fetchProducts(buildParams())
+}
+
+async function goToPage(p: number) {
+  page.value = p
+  await productsStore.fetchProducts(buildParams())
+}
+
+async function changePerPage(n: number) {
+  perPage.value = n
+  page.value = 1
+  await productsStore.fetchProducts(buildParams())
 }
 
 async function handleDelete(id: string) {
   await productsStore.deleteProduct(id)
   deleteConfirm.value = null
-}
-
-function getStockBadge(product: any) {
-  if (product.type !== 'physical' || !product.physical) return null
-  const saleMode = product.physical.sale_mode || 'piece'
-
-  if (saleMode === 'piece') {
-    const stock = product.physical.stock_quantity ?? 0
-    if (stock === 0) return { cls: 'bg-red-100 text-red-800', text: 'Нет в наличии' }
-    if (stock < 5) return { cls: 'bg-yellow-100 text-yellow-800', text: `Мало: ${stock}` }
-    return { cls: 'bg-green-100 text-green-800', text: `В наличии: ${stock}` }
-  }
-
-  // weight_fixed и weight_variable делят одно и то же поле stock_weight_grams
-  // (для weight_variable списывается при взвешивании, не при заказе — см.
-  // OrderReweighService, — но остаток тот же самый склад, бейдж не отличается).
-  if (saleMode === 'weight_fixed' || saleMode === 'weight_variable') {
-    const grams = product.physical.stock_weight_grams ?? 0
-    const minOrder = product.physical.weight_min_grams ?? 100
-    if (grams === 0) return { cls: 'bg-red-100 text-red-800', text: 'Нет в наличии' }
-    if (grams < minOrder * 3) return { cls: 'bg-yellow-100 text-yellow-800', text: `Мало: ${formatWeight(grams)}` }
-    return { cls: 'bg-green-100 text-green-800', text: `В наличии: ${formatWeight(grams)}` }
-  }
-
-  return null
 }
 </script>
 
@@ -98,7 +100,7 @@ function getStockBadge(product: any) {
     <PageHeader
       class="mb-6"
       title="Товары"
-      :subtitle="`${productsStore.products.length} ${plural(productsStore.products.length, 'позиция', 'позиции', 'позиций')}`"
+      :subtitle="`${productsStore.meta?.total ?? productsStore.products.length} ${plural(productsStore.meta?.total ?? productsStore.products.length, 'позиция', 'позиции', 'позиций')}`"
     >
       <RouterLink to="/products/new" class="btn-primary shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +120,34 @@ function getStockBadge(product: any) {
           v-model="filterCategory" @change="applyFilters"
           :options="categoryOptions" class="w-full sm:w-64" searchable
         />
-        <CustomSelect v-model="sortBy" :options="sortOptions" class="w-full sm:w-48" />
+        <CustomSelect v-model="sortBy" @change="applyFilters" :options="sortOptions" class="w-full sm:w-48" />
+
+        <!-- Плитка/список — скрыт на мобильном: список там всё равно
+             отображается как плитка (см. ниже), переключать нечего. -->
+        <div class="hidden sm:flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 p-1 shrink-0">
+          <UiTooltip>
+            <button
+              @click="setViewMode('grid')"
+              :class="['p-1.5 rounded-md transition-colors', viewMode === 'grid' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300']"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <template #content>Плитка</template>
+          </UiTooltip>
+          <UiTooltip>
+            <button
+              @click="setViewMode('list')"
+              :class="['p-1.5 rounded-md transition-colors', viewMode === 'list' ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300']"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <template #content>Список</template>
+          </UiTooltip>
+        </div>
       </div>
     </div>
 
@@ -133,61 +162,82 @@ function getStockBadge(product: any) {
       <RouterLink to="/products/new" class="btn-primary">Добавить товар</RouterLink>
     </div>
 
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
-      <div v-for="product in sortedProducts" :key="product.id" class="card group hover:shadow-md transition-shadow flex flex-col">
-        <div class="aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg mb-4 overflow-hidden">
-          <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover" />
-          <div v-else class="w-full h-full flex items-center justify-center">
-            <svg class="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-        </div>
-
-        <div class="flex items-start justify-between mb-2">
-          <div>
-            <h3 class="font-medium text-gray-900 dark:text-white line-clamp-1">{{ product.name }}</h3>
-            <p v-if="product.type !== 'physical'" class="text-sm text-gray-500 dark:text-gray-400">{{ typeLabels[product.type] || product.type }}</p>
-            <p v-if="product.category" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ product.category.name }}</p>
-          </div>
-          <span :class="['badge', product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800']">
-            {{ product.is_active ? 'Активен' : 'Скрыт' }}
-          </span>
-        </div>
-
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ formatPrice(product.price) }}</span>
-          <span v-if="getStockBadge(product)" :class="['badge', getStockBadge(product)!.cls]">{{ getStockBadge(product)!.text }}</span>
-          <span v-else-if="product.type === 'service' && product.service" class="text-sm text-gray-500 dark:text-gray-400">{{ product.service.duration_minutes }} мин</span>
-        </div>
-
-        <!-- Attribute chips by type -->
-        <div v-if="product.type === 'physical' && product.physical && (product.physical.brand || product.physical.color || product.physical.material)" class="flex flex-wrap gap-1.5 mb-3">
-          <span v-if="product.physical.brand"    class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.brand }}</span>
-          <span v-if="product.physical.color"    class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.color }}</span>
-          <span v-if="product.physical.material" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.physical.material }}</span>
-        </div>
-        <div v-else-if="product.type === 'digital' && product.digital && (product.digital.file_format || product.digital.access_days)" class="flex flex-wrap gap-1.5 mb-3">
-          <span v-if="product.digital.file_format"  class="badge bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">{{ product.digital.file_format }}</span>
-          <span v-if="product.digital.access_days"  class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.digital.access_days }} дн.</span>
-          <span v-if="product.digital.file_size_mb" class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.digital.file_size_mb }} МБ</span>
-        </div>
-        <div v-else-if="product.type === 'service' && product.service && ((product.service.break_minutes ?? 0) > 0 || product.service.requires_prepayment || (product.service.max_concurrent ?? 0) > 1)" class="flex flex-wrap gap-1.5 mb-3">
-          <span v-if="(product.service.break_minutes ?? 0) > 0"   class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Перерыв {{ product.service.break_minutes }} мин</span>
-          <span v-if="(product.service.max_concurrent ?? 0) > 1"  class="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ product.service.max_concurrent }} мест</span>
-          <span v-if="product.service.requires_prepayment" class="badge bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">Предоплата</span>
-        </div>
-
-        <div class="flex gap-2 mt-auto">
-          <RouterLink :to="`/products/${product.id}/edit`" class="btn-secondary btn-sm flex-1">Редактировать</RouterLink>
-          <button @click="deleteConfirm = product.id" class="btn-ghost btn-sm text-red-600 hover:bg-red-50">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        </div>
+    <template v-else>
+      <!-- Плитка — всегда на мобильном (<640px), и на любом экране, если
+           выбран этот вид. -->
+      <div
+        v-if="viewMode === 'grid'"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4"
+      >
+        <ProductCard
+          v-for="product in productsStore.products" :key="product.id"
+          :product="product" @delete="deleteConfirm = $event"
+        />
       </div>
-    </div>
+
+      <template v-else>
+        <div class="sm:hidden grid grid-cols-1 gap-4">
+          <ProductCard
+            v-for="product in productsStore.products" :key="product.id"
+            :product="product" @delete="deleteConfirm = $event"
+          />
+        </div>
+
+        <div class="hidden sm:block card overflow-hidden p-0">
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr><th></th><th>Товар</th><th>Категория</th><th>Цена</th><th>Статус</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="product in productsStore.products" :key="product.id">
+                  <td class="w-14">
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 overflow-hidden shrink-0">
+                      <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover" />
+                    </div>
+                  </td>
+                  <td>
+                    <RouterLink :to="`/products/${product.id}/edit`" class="font-medium text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-400">
+                      {{ product.name }}
+                    </RouterLink>
+                  </td>
+                  <td class="text-sm text-gray-500 dark:text-gray-400">{{ product.category?.name ?? '—' }}</td>
+                  <td class="font-semibold dark:text-gray-100">{{ formatPrice(product.price) }}</td>
+                  <td>
+                    <span :class="['badge', product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800']">
+                      {{ product.is_active ? 'Активен' : 'Скрыт' }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="flex items-center gap-1 justify-end">
+                      <RouterLink :to="`/products/${product.id}/edit`" class="btn-ghost btn-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </RouterLink>
+                      <UiTooltip>
+                        <button @click="deleteConfirm = product.id" class="btn-ghost btn-sm text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                        <template #content>Удалить</template>
+                      </UiTooltip>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+    </template>
+
+    <UiPagination
+      v-if="productsStore.meta"
+      :current-page="productsStore.meta.current_page"
+      :last-page="productsStore.meta.last_page"
+      :total="productsStore.meta.total"
+      :per-page="productsStore.meta.per_page"
+      @update:current-page="goToPage"
+      @update:per-page="changePerPage"
+    />
 
     <UiConfirmDialog
       :modelValue="!!deleteConfirm"
