@@ -426,13 +426,15 @@ onUnmounted(() => {
       <!-- Finish -->
       <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="fixed bottom-0 left-0 right-0 z-20 p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div class="max-w-2xl mx-auto space-y-2">
-          <textarea
-            v-if="hasShortage"
-            v-model="shortageNote"
-            rows="2"
-            placeholder="Причина недобора — покупатель должен понимать, чего не хватило"
-            class="input w-full"
-          />
+          <div v-if="hasShortage" class="space-y-1">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Причина недобора — сохранится и будет видна владельцу при нажатии «Готово» ниже</p>
+            <textarea
+              v-model="shortageNote"
+              rows="2"
+              placeholder="Например: не завезли, закончилось на складе..."
+              class="input w-full"
+            />
+          </div>
           <button
             type="button"
             class="btn-primary w-full py-3"
