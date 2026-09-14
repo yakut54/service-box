@@ -19,7 +19,7 @@
     <tr>
       <td>
         {{ $item['product_name'] }}
-        @if(isset($typeLabels[$item['product_type']]))
+        @if(isset($typeLabels[$item['product_type']]) && $item['product_type'] !== 'physical')
         <span class="badge {{ $typeClasses[$item['product_type']] }}">{{ $typeLabels[$item['product_type']] }}</span>
         @endif
       </td>

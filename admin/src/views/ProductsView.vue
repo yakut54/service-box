@@ -147,7 +147,7 @@ function getStockBadge(product: any) {
         <div class="flex items-start justify-between mb-2">
           <div>
             <h3 class="font-medium text-gray-900 dark:text-white line-clamp-1">{{ product.name }}</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ typeLabels[product.type] || product.type }}</p>
+            <p v-if="product.type !== 'physical'" class="text-sm text-gray-500 dark:text-gray-400">{{ typeLabels[product.type] || product.type }}</p>
             <p v-if="product.category" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ product.category.name }}</p>
           </div>
           <span :class="['badge', product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800']">
