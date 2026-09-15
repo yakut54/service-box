@@ -575,8 +575,9 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         status             TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'read')),
                         reply_to_message_id UUID REFERENCES %I.chat_messages(id) ON DELETE SET NULL,
                         edited_at          TIMESTAMPTZ,
+                        deleted_at         TIMESTAMPTZ,
                         created_at         TIMESTAMPTZ DEFAULT NOW(),
-                        CONSTRAINT chat_messages_not_empty CHECK (body IS NOT NULL OR image_url IS NOT NULL)
+                        CONSTRAINT chat_messages_not_empty CHECK (body IS NOT NULL OR image_url IS NOT NULL OR deleted_at IS NOT NULL)
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.chat_messages(thread_id, created_at)', p_schema_name);

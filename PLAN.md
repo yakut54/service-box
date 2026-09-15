@@ -211,7 +211,7 @@ Walmart Spark, X5, Wildberries FBS и др., см. план в истории з
 - **МФ7** — GitHub Actions: матрица по флейворам → `flutter build apk` → заливка через RuStore Publisher API. Сейчас `.github/workflows/` содержит только `deploy.yml` (бэкенд), ничего про APK
 
 ### Push-уведомления
-- Серверные Firebase-креденшелы: service-account в проекте `ServiceBox54`, положить JSON, пробросить `FIREBASE_CREDENTIALS_PATH` в `docker-compose.prod.yml`. Мобильная часть уже подключена. Пока `FirebaseService` молча выключен (как email до настройки SMTP)
+- ~~Серверные Firebase-креденшелы~~ — ✅ уже настроено на сервере (найдено и проверено живым тестом 2026-09-15, этот пункт был устаревшим): `firebase-credentials.json` лежит на сервере, `FIREBASE_CREDENTIALS_PATH` прописан в `.env`, `FirebaseService::configured()` → true, тестовая отправка на реальный `customer_push_tokens` вернула `PushSendResult::Ok`. Мобильная и серверная часть обе рабочие
 
 ### Боты — killer features
 - **Серия П** (П1–П2) — кнопка «Перенести» в 24h-напоминании + handler: отменить запись, дать ссылку на виджет с prefill, уведомить шопера/мастера «перенёс» (не «отменил»). Детальное ТЗ — в архиве
