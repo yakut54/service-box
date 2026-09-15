@@ -54,6 +54,39 @@ class OrderController extends Controller
     }
 
     /**
+     * Способ доставки реально включён магазином (shops.delivery_settings)?
+     * Покупатель мог выбрать способ, который магазин никогда не предлагал —
+     * StoreOrderRequest проверяет только что значение входит в enum
+     * pickup/courier/postal, не что магазин его включил.
+     */
+    private function deliveryMethodEnabled(?Shop $shop, string $method): bool
+    {
+        if (!$shop) return false;
+        $config = ($shop->delivery_settings ?? [])[$method] ?? null;
+        return $config !== null && !empty($config['enabled']);
+    }
+
+    /**
+     * Реальная цена доставки — только из тарифов самого магазина, никогда
+     * из того, что прислал клиент (см. store(): раньше $request->delivery_price
+     * шёл в заказ как есть, покупатель мог отправить 0 и получить бесплатную
+     * доставку — найдено аудитом безопасности 2026-09-15).
+     * $goodsTotal — сумма ПОСЛЕ скидки (порог free_from считается от неё,
+     * не от полной цены товаров до скидки).
+     */
+    private function calculateDeliveryPrice(?Shop $shop, string $method, int $goodsTotal): int
+    {
+        if (!$shop) return 0;
+        $config = ($shop->delivery_settings ?? [])[$method] ?? null;
+        if (!$config || empty($config['enabled'])) return 0;
+
+        $freeFrom = $config['free_from'] ?? null;
+        if ($freeFrom !== null && $goodsTotal >= (int) $freeFrom) return 0;
+
+        return max(0, (int) ($config['price'] ?? 0));
+    }
+
+    /**
      * Сравнивает фактически собранное с уже списанной суммой и возвращает
      * разницу покупателю, если собрали меньше. Считает по каждой позиции
      * заново (не полагается на текущий order.total_price — тот для
@@ -235,6 +268,10 @@ class OrderController extends Controller
         $shop = $request->attributes->get('shop')
             ?? Shop::find(TenantService::getCurrentShopId());
 
+        if ($request->filled('delivery_method') && !$this->deliveryMethodEnabled($shop, $request->delivery_method)) {
+            return response()->json(['message' => 'Этот способ доставки недоступен в этом магазине'], 422);
+        }
+
         $customer = Customer::findOrCreateByPhone(
             $request->input('customer.phone'),
             [
@@ -252,7 +289,13 @@ class OrderController extends Controller
                 'customer_phone'          => Customer::normalizePhone($request->input('customer.phone')),
                 'shipping_address'        => $request->shipping_address,
                 'delivery_method'         => $request->delivery_method,
-                'delivery_price'          => (int) ($request->delivery_price ?? 0),
+                // Не то, что прислал клиент — реальная цена считается ниже,
+                // из тарифов самого магазина (см. calculateDeliveryPrice()).
+                // Раньше здесь слепо доверяли $request->delivery_price —
+                // покупатель мог отправить 0 и получить бесплатную доставку
+                // там, где она должна быть платной (аудит безопасности
+                // 2026-09-15).
+                'delivery_price'          => 0,
                 'notes'                   => $request->notes,
                 'consent_offer_accepted'  => (bool) $request->input('consent_offer_accepted', false),
                 'consent_privacy_accepted'=> (bool) $request->input('consent_privacy_accepted', false),
@@ -413,9 +456,14 @@ class OrderController extends Controller
             $this->discountService->recordUse($discount, $order);
         }
 
-        // Add delivery cost after discount (discount applies to goods only)
-        if ($order->delivery_price > 0) {
-            $order->update(['total_price' => $order->total_price + $order->delivery_price]);
+        // Add delivery cost after discount (discount applies to goods only).
+        // Цена — только из тарифов магазина (shops.delivery_settings), не из
+        // того, что прислал клиент (см. проверку выше и калькулятор ниже).
+        $deliveryPrice = $order->delivery_method
+            ? $this->calculateDeliveryPrice($shop, $order->delivery_method, $order->total_price)
+            : 0;
+        if ($deliveryPrice > 0) {
+            $order->update(['delivery_price' => $deliveryPrice, 'total_price' => $order->total_price + $deliveryPrice]);
             $order->refresh();
         }
 

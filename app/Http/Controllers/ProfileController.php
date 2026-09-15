@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\CustomerPushToken;
+use App\Services\ImageCompressionService;
 use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,28 +48,33 @@ class ProfileController extends Controller
 
     /**
      * POST /api/widget/profile/avatar
-     * Сжатие до 100-150 КБ — на мобилке перед отправкой; здесь только
-     * подстраховка от прямых вызовов API мимо приложения.
+     *
+     * Без svg (`image` — ярлык на mimes:jpg,jpeg,png,bmp,gif,svg,webp
+     * целиком, пропускал svg с <script> — та же дыра, что была найдена и
+     * закрыта в чате, здесь оставалась открытой до аудита 2026-09-15).
+     * Всегда декодируется и перекодируется через GD — то, что не
+     * распознаётся как настоящий JPEG/PNG/WebP, до диска не долетает.
+     * Сжатие на мобилке перед отправкой уже есть; здесь — гарантия на
+     * случай прямого вызова API мимо приложения (см. ImageCompressionService).
      */
     public function uploadAvatar(Request $request): JsonResponse
     {
         $customer = $this->customer($request);
 
         $request->validate([
-            'avatar' => 'required|image|max:500',
+            'avatar' => 'required|file|mimes:jpeg,png,webp|max:15360',
         ], [
-            'avatar.image' => 'Файл должен быть изображением',
-            'avatar.max' => 'Максимальный размер файла — 500 КБ',
+            'avatar.mimes' => 'Файл должен быть изображением (JPEG, PNG или WebP)',
+            'avatar.max' => 'Максимальный размер файла — 15 МБ',
         ]);
 
         $oldUrl = $customer->avatar_url;
 
-        $file = $request->file('avatar');
-        $ext = $file->guessExtension() ?? 'jpg';
-        $filename = Str::uuid().'.'.$ext;
-        $path = $file->storeAs('avatars', $filename, 'public');
+        $compressed = ImageCompressionService::compressToWebp($request->file('avatar'));
+        $filename = Str::uuid().'.webp';
+        Storage::disk('public')->put('avatars/'.$filename, $compressed);
 
-        $customer->update(['avatar_url' => Storage::disk('public')->url($path)]);
+        $customer->update(['avatar_url' => Storage::disk('public')->url('avatars/'.$filename)]);
 
         // Старый файл удаляем только после того, как новый успешно сохранён —
         // чтобы при сбое загрузки не остаться без обеих картинок.
