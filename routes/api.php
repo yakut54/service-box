@@ -66,7 +66,7 @@ Route::get('/shops', [ShopController::class, 'index']);
 Route::prefix('auth')->group(function () {
     // Public
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 

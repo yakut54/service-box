@@ -18,7 +18,15 @@ class Shop extends Model
         'user_id',
         'name',
         'domain',
-        'schema_name',
+        // schema_name НЕ здесь намеренно: строится сама в boot()::creating
+        // через прямое присвоение свойства (не через fill()), никогда — из
+        // request-данных. Значение идёт прямой строковой конкатенацией в
+        // сырой SQL (TenantService::setContext: SET search_path TO "...")
+        // — попади оно в $fillable, любой будущий Model::update($request->all())
+        // без явного whitelist превратился бы в SQL-инъекцию уровня всего
+        // сервера. Сейчас ни один реальный путь до этого не дотягивается
+        // (проверено аудитом безопасности 2026-09-15), но держать поле вне
+        // $fillable — бесплатная страховка на будущее.
         'telegram_chat_id',
         'telegram_bot_connected',
         'max_chat_id',

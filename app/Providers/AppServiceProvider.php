@@ -96,6 +96,19 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('superadmin-write', function (Request $request) use ($tooManyAttempts) {
             return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip())->response($tooManyAttempts);
         });
+
+        // Вход по паролю — раньше голый throttle:10,1 считал только по IP:
+        // атакующий с ротацией IP мог перебирать пароль одного конкретного
+        // аккаунта без ограничений. Тот же приём, что уже применён к
+        // SMS-коду (WidgetPhoneVerificationController) — лимит и на IP, и
+        // отдельно на сам аккаунт (аудит безопасности 2026-09-15).
+        RateLimiter::for('login', function (Request $request) use ($tooManyAttempts) {
+            $email = mb_strtolower(trim((string) $request->input('email')));
+            return [
+                Limit::perMinute(10)->by('login-ip:'.$request->ip())->response($tooManyAttempts),
+                Limit::perMinute(5)->by('login-email:'.$email)->response($tooManyAttempts),
+            ];
+        });
     }
 
     /**

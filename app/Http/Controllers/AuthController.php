@@ -327,7 +327,13 @@ class AuthController extends Controller
             . '?token=' . $token
             . '&email=' . urlencode($user->email);
 
-        Mail::to($user->email)->send(new ResetPasswordMail($resetUrl, $user->email));
+        // queue(), не send() — иначе ветка "email существует" всегда ждёт
+        // реального похода в SMTP, а ветка "email не существует" выше
+        // отвечает мгновенно. Разница во времени ответа — таймингова утечка,
+        // по которой можно было перебором узнавать, какие email вообще
+        // зарегистрированы (аудит безопасности 2026-09-15). С queue() обе
+        // ветки отвечают одинаково быстро, письмо уходит фоновым воркером.
+        Mail::to($user->email)->queue(new ResetPasswordMail($resetUrl, $user->email));
 
         return response()->json(['message' => 'Письмо со ссылкой для сброса пароля отправлено']);
     }
