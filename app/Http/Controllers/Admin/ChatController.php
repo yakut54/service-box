@@ -210,8 +210,26 @@ class ChatController extends Controller
         $thread = ChatThread::findOrFail($id);
         $chatMessage = ChatMessage::where('thread_id', $thread->id)->findOrFail($message);
 
+        // Удалили ещё непрочитанное покупателем сообщение магазина — бейдж
+        // чата у него не должен продолжать его считать. Раньше unread_by_customer
+        // только увеличивался (см. sendMessage) и никогда не уменьшался при
+        // удалении — счётчик застревал навсегда (баг найден живым тестом
+        // 2026-09-15: сообщения удалены, а бейдж в приложении покупателя
+        // всё равно висел).
+        $wasUnreadByCustomer = $chatMessage->sender_type === 'shop'
+            && (!$thread->customer_last_read_at || $chatMessage->created_at->gt($thread->customer_last_read_at));
+
+        // Не удаляем строку целиком — оставляем «надгробие»: покупатель и
+        // магазин должны видеть «Сообщение удалено» на месте сообщения, а не
+        // просто дыру в ленте (запрошено 2026-09-15). Заодно решает старый
+        // риск: reply_to_message_id других сообщений на это перестал бы
+        // резолвиться при жёстком delete().
         StorageService::deleteByUrl($chatMessage->image_url);
-        $chatMessage->delete();
+        $chatMessage->update(['body' => null, 'image_url' => null, 'deleted_at' => now()]);
+
+        if ($wasUnreadByCustomer && $thread->unread_by_customer > 0) {
+            $thread->decrement('unread_by_customer');
+        }
 
         // Пересчитываем превью последнего сообщения в списке диалогов —
         // могли удалить как раз то, что там сейчас показано.
@@ -222,7 +240,7 @@ class ChatController extends Controller
         $thread->update([
             'last_message_at'      => $latest?->created_at,
             'last_message_preview' => $latest
-                ? mb_substr($latest->body ?? '📷 Фото', 0, 80)
+                ? ($latest->deleted_at ? 'Сообщение удалено' : mb_substr($latest->body ?? '📷 Фото', 0, 80))
                 : null,
         ]);
 

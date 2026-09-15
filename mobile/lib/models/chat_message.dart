@@ -11,6 +11,7 @@ class ChatMessage {
   final String? replyToMessageId;
   final ChatMessage? replyTo;
   final DateTime? editedAt;
+  final DateTime? deletedAt;
 
   const ChatMessage({
     required this.id,
@@ -24,9 +25,11 @@ class ChatMessage {
     this.replyToMessageId,
     this.replyTo,
     this.editedAt,
+    this.deletedAt,
   });
 
   bool get isMine => senderType == 'customer';
+  bool get isDeleted => deletedAt != null;
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
     id: json['id'] as String,
@@ -43,6 +46,9 @@ class ChatMessage {
         : null,
     editedAt: json['edited_at'] != null
         ? DateTime.tryParse(json['edited_at'] as String)
+        : null,
+    deletedAt: json['deleted_at'] != null
+        ? DateTime.tryParse(json['deleted_at'] as String)
         : null,
   );
 }

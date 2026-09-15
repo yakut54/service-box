@@ -23,12 +23,19 @@ class ChatMessage extends Model
         'status',
         'reply_to_message_id',
         'edited_at',
+        'deleted_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'edited_at'  => 'datetime',
+        'deleted_at' => 'datetime',
     ];
+
+    public function isDeleted(): bool
+    {
+        return $this->deleted_at !== null;
+    }
 
     public function thread()
     {

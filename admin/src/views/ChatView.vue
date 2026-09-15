@@ -314,6 +314,7 @@ function cancelReply() {
 }
 
 function replyPreviewText(m: ChatMessage): string {
+  if (m.deleted_at) return 'Сообщение удалено'
   return m.body || (m.image_url ? '📷 Фото' : '')
 }
 
@@ -675,7 +676,7 @@ loadThreads()
                   :class="['group flex mb-2', m.sender_type === 'shop' ? 'justify-end' : 'justify-start']"
                 >
                   <div class="relative max-w-[75%] min-w-0 flex items-end gap-1.5" :class="m.sender_type === 'shop' ? 'flex-row' : 'flex-row-reverse'">
-                    <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 mb-1">
+                    <div v-if="!m.deleted_at" class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 mb-1">
                       <button
                         type="button"
                         @click="startReply(m)"
@@ -733,13 +734,19 @@ loadThreads()
                       <div v-else-if="m.reply_to_message_id" class="text-xs mb-1.5 pl-2 border-l-2 border-gray-300 text-gray-400 italic">
                         Сообщение удалено
                       </div>
-                      <img
-                        v-if="m.image_url"
-                        :src="m.image_url"
-                        class="rounded-lg max-w-full max-h-64 mb-1 cursor-pointer"
-                        @click="openImage(m.image_url)"
-                      />
-                      <p v-if="m.body" class="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{{ m.body }}</p>
+
+                      <p v-if="m.deleted_at" :class="['text-sm italic', m.sender_type === 'shop' ? 'text-white/70' : 'text-gray-400']">
+                        Сообщение удалено
+                      </p>
+                      <template v-else>
+                        <img
+                          v-if="m.image_url"
+                          :src="m.image_url"
+                          class="rounded-lg max-w-full max-h-64 mb-1 cursor-pointer"
+                          @click="openImage(m.image_url)"
+                        />
+                        <p v-if="m.body" class="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{{ m.body }}</p>
+                      </template>
                       <div class="flex items-center gap-1 justify-end mt-0.5">
                         <span v-if="m.edited_at" :class="['text-[10px] italic', m.sender_type === 'shop' ? 'text-white/60' : 'text-gray-400']">изменено</span>
                         <span :class="['text-[10px]', m.sender_type === 'shop' ? 'text-white/70' : 'text-gray-400']">{{ formatTime(m.created_at) }}</span>

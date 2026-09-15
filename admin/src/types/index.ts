@@ -430,6 +430,7 @@ export interface ChatMessage {
   reply_to_message_id?: string | null
   reply_to?: ChatMessage | null
   edited_at?: string | null
+  deleted_at?: string | null
 }
 
 // ==========================================

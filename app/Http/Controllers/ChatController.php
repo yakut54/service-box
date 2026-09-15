@@ -256,8 +256,20 @@ class ChatController extends Controller
             ->where('sender_type', 'customer')
             ->findOrFail($message);
 
+        // Симметрично Admin\ChatController::deleteMessage — покупатель мог
+        // удалить своё же ещё непрочитанное магазином сообщение, тогда
+        // unread_by_shop не должен продолжать его считать.
+        $wasUnreadByShop = $chatMessage->sender_type === 'customer'
+            && (!$thread->shop_last_read_at || $chatMessage->created_at->gt($thread->shop_last_read_at));
+
+        // Не удаляем строку целиком — оставляем «надгробие», см. тот же приём
+        // в Admin\ChatController::deleteMessage.
         StorageService::deleteByUrl($chatMessage->image_url);
-        $chatMessage->delete();
+        $chatMessage->update(['body' => null, 'image_url' => null, 'deleted_at' => now()]);
+
+        if ($wasUnreadByShop && $thread->unread_by_shop > 0) {
+            $thread->decrement('unread_by_shop');
+        }
 
         $latest = ChatMessage::where('thread_id', $thread->id)
             ->orderByDesc('created_at')
@@ -266,7 +278,7 @@ class ChatController extends Controller
         $thread->update([
             'last_message_at'      => $latest?->created_at,
             'last_message_preview' => $latest
-                ? mb_substr($latest->body ?? '📷 Фото', 0, 80)
+                ? ($latest->deleted_at ? 'Сообщение удалено' : mb_substr($latest->body ?? '📷 Фото', 0, 80))
                 : null,
         ]);
 

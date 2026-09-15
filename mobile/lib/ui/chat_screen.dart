@@ -771,12 +771,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       key: key,
                       message: message,
                       isHighlighted: _highlightedMessageId == message.id,
-                      onLongPress: () => _openMessageMenu(message),
-                      onSwipeReply: () => _startReply(message),
+                      // Уже удалённому сообщению (плашка «Сообщение удалено»)
+                      // нечего предложить в меню — ответить/скопировать/удалить
+                      // не на что.
+                      onLongPress: message.isDeleted
+                          ? () {}
+                          : () => _openMessageMenu(message),
+                      onSwipeReply: message.isDeleted ? () {} : () => _startReply(message),
                       // «Удалить» — только если магазин это разрешил
                       // (shops.chat_customer_delete_enabled); сервер тоже
                       // проверяет, но не показываем мёртвую кнопку.
-                      onDelete: (message.isMine &&
+                      onDelete: (!message.isDeleted &&
+                              message.isMine &&
                               (context.read<ShopState>().shop
                                       ?.chatCustomerDeleteEnabled ??
                                   false))
@@ -1116,8 +1122,10 @@ class _MessageBubbleState extends State<_MessageBubble>
                             ],
                             Flexible(
                               child: Text(
-                                message.replyTo!.body ??
-                                    (message.replyTo!.imageUrl != null ? '📷 Фото' : ''),
+                                message.replyTo!.isDeleted
+                                    ? 'Сообщение удалено'
+                                    : (message.replyTo!.body ??
+                                        (message.replyTo!.imageUrl != null ? '📷 Фото' : '')),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
@@ -1144,32 +1152,45 @@ class _MessageBubbleState extends State<_MessageBubble>
                           ),
                         ),
                       ),
-                    if (message.imageUrl != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: GestureDetector(
-                          onTap: () => _openFullImage(context, message),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 220),
-                            child: Image.network(message.imageUrl!, fit: BoxFit.cover),
+                    if (message.isDeleted)
+                      Text(
+                        'Сообщение удалено',
+                        textAlign: isMine ? TextAlign.right : TextAlign.left,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: isMine
+                              ? theme.colorScheme.onPrimary.withValues(alpha: 0.7)
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      )
+                    else ...[
+                      if (message.imageUrl != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: GestureDetector(
+                            onTap: () => _openFullImage(context, message),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 220),
+                              child: Image.network(message.imageUrl!, fit: BoxFit.cover),
+                            ),
                           ),
                         ),
-                      ),
-                    if (message.body != null && message.body!.isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(
-                          top: message.imageUrl != null ? 6 : 0,
-                        ),
-                        child: Text(
-                          message.body!,
-                          textAlign: isMine ? TextAlign.right : TextAlign.left,
-                          style: TextStyle(
-                            color: isMine
-                                ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurface,
+                      if (message.body != null && message.body!.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: message.imageUrl != null ? 6 : 0,
+                          ),
+                          child: Text(
+                            message.body!,
+                            textAlign: isMine ? TextAlign.right : TextAlign.left,
+                            style: TextStyle(
+                              color: isMine
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurface,
+                            ),
                           ),
                         ),
-                      ),
+                    ],
                     const SizedBox(height: 2),
                     Row(
                       mainAxisSize: MainAxisSize.min,

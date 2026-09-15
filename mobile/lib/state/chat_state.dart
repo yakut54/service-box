@@ -119,11 +119,22 @@ class ChatState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _onRealtimeEvent(String event, Map<String, dynamic> data) {
-    if (event != 'message.new') return;
-    final raw = data['message'] as Map<String, dynamic>?;
-    if (raw?['sender_type'] != 'shop') return;
-    _unreadTotal++;
-    notifyListeners();
+    if (event == 'message.new') {
+      final raw = data['message'] as Map<String, dynamic>?;
+      if (raw?['sender_type'] != 'shop') return;
+      _unreadTotal++;
+      notifyListeners();
+      return;
+    }
+
+    // Магазин мог удалить как раз ещё непрочитанное сообщение — узнать
+    // отсюда, было ли оно непрочитанным, нельзя (событие несёт только id),
+    // поэтому просто перезапрашиваем точное значение с сервера вместо
+    // попытки угадать локально (баг найден живым тестом 2026-09-15: бейдж
+    // висел с устаревшим числом после удаления сообщений в админке).
+    if (event == 'message.deleted') {
+      _bootstrap();
+    }
   }
 
   /// Вызывается экраном чата сразу после markRead(), чтобы бейдж не мигал
