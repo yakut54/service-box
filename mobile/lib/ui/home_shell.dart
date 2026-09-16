@@ -33,6 +33,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  final _ordersKey = GlobalKey<OrdersScreenState>();
 
   @override
   Widget build(BuildContext context) {
@@ -44,13 +45,19 @@ class _HomeShellState extends State<HomeShell> {
         children: [
           CatalogScreen(shop: widget.shop),
           const CartScreen(),
-          const _RequiresLogin(child: OrdersScreen()),
+          _RequiresLogin(child: OrdersScreen(key: _ordersKey)),
           const _RequiresLogin(child: AccountScreen()),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) {
+          setState(() => _index = i);
+          // Экран заказов живёт в IndexedStack — не пересоздаётся при
+          // переключении вкладок, поэтому сам не подхватит новый заказ или
+          // смену статуса без явного пинка (см. OrdersScreenState.reload()).
+          if (i == 2) _ordersKey.currentState?.reload();
+        },
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.storefront_outlined),

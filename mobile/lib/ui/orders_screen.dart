@@ -15,10 +15,16 @@ class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
   @override
-  State<OrdersScreen> createState() => _OrdersScreenState();
+  State<OrdersScreen> createState() => OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> {
+/// Публичный (не `_`-приватный) State — HomeShell держит на него GlobalKey и
+/// дёргает reload() при переключении на вкладку «Заказы» (см. HomeShell,
+/// docblock у reload()). Экран живёт внутри IndexedStack и никогда не
+/// пересоздаётся при переключении вкладок — без этого список заказов не
+/// обновлялся бы сам после оформления нового заказа, пока не потянуть
+/// список руками (баг найден живым тестом 2026-09-16).
+class OrdersScreenState extends State<OrdersScreen> {
   List<Order> _orders = [];
   bool _loading = true;
   AppException? _error;
@@ -28,6 +34,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
     super.initState();
     _load();
   }
+
+  /// Вызывается HomeShell при каждом переключении на вкладку «Заказы» —
+  /// не только сразу после оформления нового заказа, но и на случай, если
+  /// статус уже существующего заказа сменился, пока байер был на другой
+  /// вкладке (например, магазин перевёл заказ «В работу»).
+  Future<void> reload() => _load();
 
   Future<void> _load() async {
     final token = context.read<AuthState>().session?.sessionToken;
