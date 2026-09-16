@@ -46,18 +46,12 @@ class _HomeShellState extends State<HomeShell> {
           CatalogScreen(shop: widget.shop),
           const CartScreen(),
           _RequiresLogin(child: OrdersScreen(key: _ordersKey)),
-          const _RequiresLogin(child: AccountScreen()),
+          _RequiresLogin(child: AccountScreen(onOpenOrders: () => _selectTab(2))),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) {
-          setState(() => _index = i);
-          // Экран заказов живёт в IndexedStack — не пересоздаётся при
-          // переключении вкладок, поэтому сам не подхватит новый заказ или
-          // смену статуса без явного пинка (см. OrdersScreenState.reload()).
-          if (i == 2) _ordersKey.currentState?.reload();
-        },
+        onDestinationSelected: _selectTab,
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.storefront_outlined),
@@ -82,6 +76,16 @@ class _HomeShellState extends State<HomeShell> {
         ],
       ),
     );
+  }
+
+  /// Единая точка переключения вкладки — и для тапа по нижней навигации, и
+  /// для «Мои заказы» в Профиле (тот же список, не отдельный экран, см.
+  /// AccountScreen.onOpenOrders). Экран заказов живёт в IndexedStack и не
+  /// пересоздаётся при переключении, поэтому сам не подхватит новый заказ
+  /// или смену статуса без явного пинка (см. OrdersScreenState.reload()).
+  void _selectTab(int i) {
+    setState(() => _index = i);
+    if (i == 2) _ordersKey.currentState?.reload();
   }
 
   Widget _badged(Widget icon, int count) {

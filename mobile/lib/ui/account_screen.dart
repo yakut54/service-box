@@ -11,7 +11,6 @@ import '../state/chat_state.dart';
 import 'addresses_screen.dart';
 import 'chat_screen.dart';
 import 'notification_settings_screen.dart';
-import 'orders_screen.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/editable_avatar.dart';
 import 'widgets/error_view.dart';
@@ -21,7 +20,16 @@ import 'widgets/primary_submit_button.dart';
 import 'widgets/success_flash.dart';
 
 class AccountScreen extends StatefulWidget {
-  const AccountScreen({super.key});
+  /// «Мои заказы» здесь — это тот же самый список, что и вкладка «Заказы»
+  /// внизу, не отдельный экран. HomeShell просто переключает на неё (с
+  /// перезагрузкой, см. HomeShell._selectTab), а не пушит новую копию
+  /// OrdersScreen поверх себя — раньше так и было, из-за чего у одного и
+  /// того же экрана было два несинхронных состояния: пуш из Профиля терял
+  /// нижнюю панель навигации и не получал автообновление, добавленное
+  /// вкладке (баг найден живым тестом 2026-09-16).
+  final VoidCallback onOpenOrders;
+
+  const AccountScreen({super.key, required this.onOpenOrders});
 
   @override
   State<AccountScreen> createState() => _AccountScreenState();
@@ -179,9 +187,7 @@ class _AccountScreenState extends State<AccountScreen> with WidgetsBindingObserv
           leading: const Icon(Icons.receipt_long_outlined),
           title: const Text('Мои заказы'),
           trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const OrdersScreen()),
-          ),
+          onTap: widget.onOpenOrders,
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
