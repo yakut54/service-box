@@ -21,6 +21,7 @@ import 'ui/chat_screen.dart';
 import 'ui/home_shell.dart';
 import 'ui/splash_intro_screen.dart';
 import 'ui/widgets/error_view.dart';
+import 'ui/widgets/product_grid_skeleton.dart';
 
 /// Системное «Поделиться» (Android, см. MainActivity.kt) шлёт сюда путь к
 /// скопированному файлу — обрабатывается вне дерева виджетов, поэтому нужен
@@ -154,7 +155,10 @@ class _BootScreenState extends State<_BootScreen> {
     }
 
     if (state.shop == null && state.loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // «App shell» — та же сетка-заглушка, что у первой загрузки каталога
+      // (ProductGridSkeleton), а не спиннер: byer сразу видит форму
+      // приложения, которая затем донаполняется данными на месте.
+      return const Scaffold(body: SafeArea(child: ProductGridSkeleton()));
     }
 
     if (state.shop == null && state.error != null) {

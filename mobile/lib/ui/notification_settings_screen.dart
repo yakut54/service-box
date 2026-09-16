@@ -7,6 +7,7 @@ import '../models/profile.dart';
 import '../services/notification_permission.dart';
 import '../state/auth_state.dart';
 import 'widgets/error_view.dart';
+import 'widgets/skeleton.dart';
 
 /// Центр настроек push-уведомлений байера. Три строки:
 ///   • «О заказах и сообщениях» — транзакционные, всегда включены, недоступны;
@@ -102,7 +103,7 @@ class _NotificationSettingsScreenState
 
   Widget _buildBody(BuildContext context) {
     if (_loading && _prefs == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const _NotificationSettingsSkeleton();
     }
 
     if (_error != null && _prefs == null) {
@@ -180,6 +181,46 @@ class _NotificationSettingsScreenState
           subtitle: const Text('Скидки, распродажи, новинки. Не чаще нескольких раз в неделю.'),
         ),
       ],
+    );
+  }
+}
+
+/// Skeleton первой загрузки — форма строк-переключателей ниже.
+class _NotificationSettingsSkeleton extends StatelessWidget {
+  const _NotificationSettingsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          for (var i = 0; i < 3; i++) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  const SkeletonBox(width: 24, height: 24, borderRadius: BorderRadius.all(Radius.circular(6))),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonBox(width: 160 - i * 10, height: 15),
+                        const SizedBox(height: 6),
+                        SkeletonBox(width: 220 - i * 20, height: 12),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const SkeletonBox(width: 36, height: 20, borderRadius: BorderRadius.all(Radius.circular(10))),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

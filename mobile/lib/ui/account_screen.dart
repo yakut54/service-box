@@ -17,6 +17,7 @@ import 'widgets/error_view.dart';
 import 'widgets/form/name_field.dart';
 import 'widgets/notification_badge.dart';
 import 'widgets/primary_submit_button.dart';
+import 'widgets/skeleton.dart';
 import 'widgets/success_flash.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -115,7 +116,7 @@ class _AccountScreenState extends State<AccountScreen> with WidgetsBindingObserv
 
   Widget _buildBody(BuildContext context, AuthState auth) {
     if (_loading && _profile == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const _AccountSkeleton();
     }
 
     if (_error != null && _profile == null) {
@@ -272,6 +273,53 @@ class _AccountScreenState extends State<AccountScreen> with WidgetsBindingObserv
           child: const Text('Выйти'),
         ),
       ],
+    );
+  }
+}
+
+/// Skeleton первой загрузки — аватар + имя/телефон + строка статистики.
+class _AccountSkeleton extends StatelessWidget {
+  const _AccountSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          Row(
+            children: [
+              const SkeletonCircle(size: 64),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SkeletonBox(width: 140, height: 17),
+                    const SizedBox(height: 6),
+                    SkeletonBox(width: 110, height: 13),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              for (var i = 0; i < 3; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                const Expanded(child: SkeletonBox(height: 56)),
+              ],
+            ],
+          ),
+          const SizedBox(height: 24),
+          for (var i = 0; i < 4; i++) ...[
+            const SkeletonBox(height: 20),
+            const SizedBox(height: 16),
+          ],
+        ],
+      ),
     );
   }
 }

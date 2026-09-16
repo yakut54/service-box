@@ -7,6 +7,7 @@ import '../models/order.dart';
 import 'order_surcharge_screen.dart';
 import 'widgets/error_view.dart';
 import 'widgets/order_status_badge.dart';
+import 'widgets/skeleton.dart';
 
 /// Детали заказа — состав, статус, факт. вес по позициям «по весу —
 /// перевзвешивание» (см. PLAN.md). Открывается тапом по карточке из
@@ -64,7 +65,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final order = _order;
 
     if (_loading && order == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const _OrderDetailSkeleton();
     }
     if (_error != null && order == null) {
       return Center(
@@ -116,6 +117,55 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         formatRubles(order.totalRubles),
                         style: theme.textTheme.titleSmall,
                       ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Skeleton первой загрузки — повторяет форму заголовка + карточки состава.
+class _OrderDetailSkeleton extends StatelessWidget {
+  const _OrderDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SkeletonBox(width: 90, height: 15),
+              SkeletonBox(width: 80, height: 24, borderRadius: const BorderRadius.all(Radius.circular(12))),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SkeletonBox(width: 110, height: 16),
+                  const SizedBox(height: 12),
+                  for (var i = 0; i < 3; i++) ...[
+                    const SkeletonBox(height: 40),
+                    const SizedBox(height: 10),
+                  ],
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SkeletonBox(width: 50, height: 16),
+                      SkeletonBox(width: 70, height: 16),
                     ],
                   ),
                 ],

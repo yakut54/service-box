@@ -9,6 +9,7 @@ import '../state/auth_state.dart';
 import 'order_detail_screen.dart';
 import 'widgets/error_view.dart';
 import 'widgets/order_status_badge.dart';
+import 'widgets/skeleton.dart';
 
 /// История заказов авторизованного байера.
 class OrdersScreen extends StatefulWidget {
@@ -70,7 +71,7 @@ class OrdersScreenState extends State<OrdersScreen> {
 
   Widget _buildBody(BuildContext context) {
     if (_loading && _orders.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const _OrdersListSkeleton();
     }
 
     if (_error != null && _orders.isEmpty) {
@@ -112,6 +113,45 @@ class OrdersScreenState extends State<OrdersScreen> {
         itemCount: _orders.length,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) => _OrderTile(order: _orders[index]),
+      ),
+    );
+  }
+}
+
+/// Skeleton первой загрузки — повторяет форму _OrderTile ниже.
+class _OrdersListSkeleton extends StatelessWidget {
+  const _OrdersListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView.separated(
+        padding: const EdgeInsets.all(12),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        itemBuilder: (context, index) => Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SkeletonBox(width: 140, height: 15),
+                      const SizedBox(height: 6),
+                      SkeletonBox(width: 100, height: 13),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const SkeletonBox(width: 70, height: 24, borderRadius: BorderRadius.all(Radius.circular(12))),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -15,6 +15,7 @@ import 'widgets/product_price_row.dart';
 import 'widgets/product_rating_ask_row.dart';
 import 'widgets/related_products.dart';
 import 'widgets/size_chart_sheet.dart';
+import 'widgets/skeleton.dart';
 import 'widgets/spec_list.dart';
 import 'widgets/variant_selector.dart';
 
@@ -69,7 +70,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const _ProductDetailSkeleton();
           }
 
           if (snapshot.hasError) {
@@ -86,6 +87,55 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           return _ProductDetailBody(product: snapshot.data!);
         },
+      ),
+    );
+  }
+}
+
+/// Skeleton первой загрузки — повторяет форму _ProductDetailBody: квадрат
+/// галереи, название, цена, короткие строки спеков, кнопка внизу.
+class _ProductDetailSkeleton extends StatelessWidget {
+  const _ProductDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                const AspectRatio(
+                  aspectRatio: 1,
+                  child: SkeletonBox(
+                    height: double.infinity,
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const SkeletonBox(width: 220, height: 24),
+                const SizedBox(height: 8),
+                SkeletonBox(width: 100, height: 26),
+                const SizedBox(height: 16),
+                SkeletonBox(width: 140, height: 16),
+                const SizedBox(height: 24),
+                for (var i = 0; i < 3; i++) ...[
+                  SkeletonBox(width: i.isEven ? 260 : 200, height: 14),
+                  const SizedBox(height: 10),
+                ],
+              ],
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: SkeletonBox(height: 48, borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
       ),
     );
   }

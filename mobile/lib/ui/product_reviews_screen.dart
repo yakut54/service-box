@@ -12,6 +12,7 @@ import '../models/review.dart';
 import '../state/auth_state.dart';
 import 'phone_login_screen.dart';
 import 'widgets/error_view.dart';
+import 'widgets/skeleton.dart';
 import 'widgets/star_rating.dart';
 
 /// Отзывы на товар — отдельный экран (был инлайн-блоком на странице товара,
@@ -234,7 +235,7 @@ class _ProductReviewsScreenState extends State<ProductReviewsScreen> {
     final data = _data;
 
     if (_loading && data == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const _ReviewsListSkeleton();
     }
     if (_listError != null && data == null) {
       return Center(
@@ -462,6 +463,64 @@ class _ReviewForm extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Skeleton первой загрузки — строка сводки рейтинга + карточки отзывов.
+class _ReviewsListSkeleton extends StatelessWidget {
+  const _ReviewsListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          Row(
+            children: [
+              const SkeletonBox(width: 28, height: 24),
+              const SizedBox(width: 10),
+              SkeletonBox(width: 90, height: 16),
+              const SizedBox(width: 10),
+              SkeletonBox(width: 70, height: 14),
+            ],
+          ),
+          const SizedBox(height: 20),
+          for (var i = 0; i < 4; i++) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SkeletonCircle(size: 32),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const SkeletonBox(width: 100, height: 14),
+                            SkeletonBox(width: 60, height: 12),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const SkeletonBox(width: 80, height: 12),
+                        const SizedBox(height: 6),
+                        SkeletonBox(width: i.isEven ? 220 : 160, height: 13),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (i < 3) const Divider(height: 1),
+          ],
         ],
       ),
     );

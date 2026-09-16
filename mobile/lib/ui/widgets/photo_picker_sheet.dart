@@ -6,6 +6,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 
 import 'primary_submit_button.dart';
+import 'skeleton.dart';
 
 /// Максимум фото за один выбор в чате — ровно лимит сервера на загрузку
 /// картинок (throttle `chat-image` = 10 в минуту, см.
@@ -188,7 +189,7 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
     }
 
     if (_loading) {
-      return Center(child: CircularProgressIndicator(color: accent));
+      return const _PhotoGridSkeleton();
     }
 
     return NotificationListener<ScrollNotification>(
@@ -237,6 +238,30 @@ class _PhotoPickerSheetState extends State<_PhotoPickerSheet> {
           loading: _confirming,
           onPressed: _selected.isEmpty ? null : _confirmSelection,
         ),
+      ),
+    );
+  }
+}
+
+/// Skeleton первой загрузки сетки фото — та же геометрия (4 колонки,
+/// квадратные ячейки), что у реальной сетки.
+class _PhotoGridSkeleton extends StatelessWidget {
+  const _PhotoGridSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: GridView.builder(
+        padding: const EdgeInsets.all(2),
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          crossAxisSpacing: 2,
+          mainAxisSpacing: 2,
+        ),
+        itemCount: 16,
+        itemBuilder: (context, index) =>
+            const SkeletonBox(height: double.infinity, borderRadius: BorderRadius.zero),
       ),
     );
   }

@@ -25,6 +25,7 @@ import 'widgets/photo_picker_sheet.dart';
 import 'widgets/app_dialog.dart';
 import 'widgets/chat_background.dart';
 import 'widgets/error_view.dart';
+import 'widgets/skeleton.dart';
 
 /// Диалог байера с магазином — один тред, лента снизу вверх, отправка
 /// текста и фото. Доставка — WebSocket (Reverb) как основной путь, обычный
@@ -715,7 +716,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const _ChatSkeleton();
     }
     if (_error != null && _messages.isEmpty) {
       return Center(
@@ -983,6 +984,47 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ],
         ),
       ),
+      ),
+    );
+  }
+}
+
+/// Skeleton первой загрузки чата — чередующиеся пузыри слева/справа, те же
+/// радиусы (14, скошенный угол 4), что у настоящего _MessageBubble.
+class _ChatSkeleton extends StatelessWidget {
+  const _ChatSkeleton();
+
+  static const _widths = [0.6, 0.7, 0.55, 0.65, 0.72, 0.6];
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
+    return Shimmer(
+      child: ListView.builder(
+        reverse: true,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _widths.length,
+        itemBuilder: (context, index) {
+          final isMine = index.isOdd;
+          return Align(
+            alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: SkeletonBox(
+                width: screenWidth * _widths[index],
+                height: 40,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(14),
+                  topRight: const Radius.circular(14),
+                  bottomLeft: Radius.circular(isMine ? 14 : 4),
+                  bottomRight: Radius.circular(isMine ? 4 : 14),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

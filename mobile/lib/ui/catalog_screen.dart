@@ -12,6 +12,7 @@ import 'widgets/chat_button.dart';
 import 'widgets/error_view.dart';
 import 'widgets/mini_cart_bar.dart';
 import 'widgets/product_card.dart';
+import 'widgets/product_grid_skeleton.dart';
 import 'widgets/shop_avatar.dart';
 
 /// Каталог магазина этой сборки: категории + сетка товаров.
@@ -140,7 +141,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
 
     if (state.loading && state.products.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const ProductGridSkeleton();
     }
 
     if (state.products.isEmpty) {
@@ -166,13 +167,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
     // кнопкой остаётся пустое место (см. скрин с эмулятора). Поэтому
     // считаем высоту ячейки явно: ширина колонки (= высота картинки) +
     // фиксированная высота футера (имя + цена + кнопка, см. ProductCard).
-    const gridPadding = 8.0;
-    const crossAxisSpacing = 4.0;
-    const mainAxisSpacing = 4.0;
-    // Имя (2 строки) + рейтинг + цена + «₽/шт» + кнопка — см. ProductCard.
-    // Подвал собран из слотов фиксированной высоты, поэтому число совпадает
-    // с реальным контентом и под кнопкой не остаётся пустоты.
-    const cardFooterHeight = 158.0;
+    // Константы геометрии — на ProductGridSkeleton (не дублируем здесь),
+    // чтобы skeleton-сетка первой загрузки не могла разъехаться с этой.
+    const gridPadding = ProductGridSkeleton.gridPadding;
+    const crossAxisSpacing = ProductGridSkeleton.crossAxisSpacing;
+    const mainAxisSpacing = ProductGridSkeleton.mainAxisSpacing;
+    const cardFooterHeight = ProductGridSkeleton.cardFooterHeight;
     final columnWidth =
         (MediaQuery.sizeOf(context).width - gridPadding * 2 - crossAxisSpacing) / 2;
 

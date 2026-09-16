@@ -5,6 +5,7 @@ import '../../models/product.dart';
 import '../product_detail_screen.dart';
 import 'discount_badge.dart';
 import 'product_price_row.dart';
+import 'skeleton.dart';
 
 /// Горизонтальная карусель «Похожие товары» — по категории, с исключением
 /// уже показанных/добавленных товаров. Общий виджет для карточки товара
@@ -51,6 +52,14 @@ class _RelatedProductsState extends State<RelatedProducts> {
     return FutureBuilder<List<Product>>(
       future: _future,
       builder: (context, snapshot) {
+        // Раньше на время загрузки здесь было SizedBox.shrink() — карусель
+        // просто выпрыгивала и сдвигала страницу товара, когда данные
+        // приходили. Skeleton фиксированной высоты (как у реальной
+        // карусели) убирает и пустоту, и дёрганье layout.
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _RelatedProductsSkeleton();
+        }
+
         final items = snapshot.data;
         if (items == null || items.isEmpty) return const SizedBox.shrink();
 
@@ -80,6 +89,59 @@ class _RelatedProductsState extends State<RelatedProducts> {
           ],
         );
       },
+    );
+  }
+}
+
+/// Skeleton на время загрузки — та же высота (190) и ширина карточек (130),
+/// что у реального ряда, чтобы карусель не сдвигала layout при появлении.
+class _RelatedProductsSkeleton extends StatelessWidget {
+  const _RelatedProductsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SkeletonBox(width: 120, height: 16),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 190,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 4,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (context, index) => const SizedBox(
+                width: 130,
+                child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  margin: EdgeInsets.zero,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AspectRatio(aspectRatio: 1, child: SkeletonBox(height: double.infinity)),
+                      Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonBox(height: 13),
+                            SizedBox(height: 6),
+                            SkeletonBox(width: 50, height: 13),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -7,6 +7,7 @@ import '../models/address.dart';
 import '../state/auth_state.dart';
 import 'add_address_screen.dart';
 import 'widgets/error_view.dart';
+import 'widgets/skeleton.dart';
 
 /// Список сохранённых адресов: свайп удаляет, тап по не-дефолтному адресу
 /// делает его адресом по умолчанию.
@@ -86,7 +87,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
 
   Widget _buildBody(BuildContext context) {
     if (_loading && _addresses.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const _AddressesListSkeleton();
     }
 
     if (_error != null && _addresses.isEmpty) {
@@ -129,6 +130,44 @@ class _AddressesScreenState extends State<AddressesScreen> {
         address: _addresses[index],
         onTap: () => _setDefault(_addresses[index]),
         onDelete: () => _delete(_addresses[index]),
+      ),
+    );
+  }
+}
+
+/// Skeleton первой загрузки — повторяет форму _AddressTile ниже.
+class _AddressesListSkeleton extends StatelessWidget {
+  const _AddressesListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 3,
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
+        itemBuilder: (context, index) => Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                const SkeletonCircle(size: 24),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SkeletonBox(height: 15),
+                      const SizedBox(height: 6),
+                      SkeletonBox(width: 160, height: 13),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
