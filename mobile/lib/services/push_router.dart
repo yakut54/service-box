@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
+import '../ui/cart_screen.dart';
 import '../ui/chat_screen.dart';
 import '../ui/order_detail_screen.dart';
 import 'chat_notifications.dart';
@@ -101,6 +102,10 @@ class PushRouter {
 
     if (type == 'chat') {
       return MaterialPageRoute(builder: (_) => const ChatScreen());
+    }
+
+    if (type == 'cart_reminder') {
+      return MaterialPageRoute(builder: (_) => const CartScreen());
     }
 
     if (type == 'order_status' || type == 'order_surcharge') {

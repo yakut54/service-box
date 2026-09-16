@@ -475,6 +475,12 @@ class OrderController extends Controller
             \App\Services\Notifier::markOrdered($shop->id, $customer->id);
         }
 
+        // Заказ оформлен — корзина больше не брошена. Мобилка и сама пришлёт
+        // items_count=0 после CartState.clear() при следующей синхронизации,
+        // это подстраховка на случай гонки/сетевого сбоя между отправкой
+        // заказа и очисткой корзины на клиенте.
+        \App\Models\CartActivity::where('customer_id', $customer->id)->delete();
+
         if ($shop) {
             try {
                 \App\Services\MailService::notifyNewOrder($shop, $order);

@@ -66,6 +66,12 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->header('X-Phone-Session') ?? $request->ip())->response($tooManyAttempts);
         });
 
+        // Активность корзины (брошенная корзина) — тот же приём, что у чата
+        // покупателя выше: ключ по X-Phone-Session, не по IP.
+        RateLimiter::for('cart-activity', function (Request $request) use ($tooManyAttempts) {
+            return Limit::perMinute(30)->by($request->header('X-Phone-Session') ?? $request->ip())->response($tooManyAttempts);
+        });
+
         // Чат в админке — именованные лимитеры вместо голого throttle:N,1.
         // БАГ (найден 2026-08-23 живьём): голый throttle:N,1 для
         // авторизованного пользователя строит ключ ИСКЛЮЧИТЕЛЬНО из

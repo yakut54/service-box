@@ -161,6 +161,12 @@ Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
         Route::get('/profile/notification-prefs', [ProfileController::class, 'getNotificationPrefs']);
         Route::put('/profile/notification-prefs', [ProfileController::class, 'updateNotificationPrefs']);
 
+        // Активность корзины (только счётчик + время, состав корзины на
+        // сервер не уходит) — для напоминания о брошенной корзине, см.
+        // App\Console\Commands\SendCartReminders.
+        Route::put('/cart/activity', [\App\Http\Controllers\CartActivityController::class, 'update'])
+            ->middleware('throttle:cart-activity');
+
         // «Сообщить о поступлении»
         Route::post('/products/{product}/notify-me', [\App\Http\Controllers\StockSubscriptionController::class, 'store'])
             ->middleware('throttle:20,1');

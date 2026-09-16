@@ -13,3 +13,4 @@ Schedule::command('bookings:morning-digest')->everyFifteenMinutes();
 Schedule::command('storage:cleanup')->dailyAt('03:00');
 Schedule::command('orders:check-surcharge-deadline')->everyFiveMinutes();
 Schedule::command('push:prune-stale-tokens')->dailyAt('04:00');
+Schedule::command('cart:send-reminders')->everyFifteenMinutes()->withoutOverlapping();

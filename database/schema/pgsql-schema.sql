@@ -597,6 +597,21 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE UNIQUE INDEX ON %I.customer_push_tokens(token)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.customer_push_tokens(customer_id)', p_schema_name);
 
+                -- cart_activity: «брошенная корзина» — одна строка на покупателя,
+                -- только счётчик товаров и время последнего изменения (updated_at —
+                -- это и есть часы заброшенности), не состав корзины. Удаляется при
+                -- опустошении корзины и при оформлении заказа.
+                EXECUTE format($sql$
+                    CREATE TABLE %I.cart_activity (
+                        customer_id        UUID PRIMARY KEY REFERENCES %I.customers(id) ON DELETE CASCADE,
+                        items_count        INTEGER NOT NULL,
+                        first_reminded_at  TIMESTAMPTZ,
+                        second_reminded_at TIMESTAMPTZ,
+                        created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+
             END;
             $_$;
 

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'core/app_theme.dart';
 import 'core/flavor_config.dart';
 import 'services/age_gate.dart';
+import 'services/cart_activity_sync.dart';
 import 'services/push_router.dart';
 import 'data/auth_token_store.dart';
 import 'data/catalog_repository.dart';
@@ -102,6 +103,7 @@ class _AppState extends State<_App> {
     // первой отрисовки, иначе initial message теряется.
     final auth = context.read<AuthState>();
     PushRouter.attach(navigatorKey, auth.waitUntilReady);
+    CartActivitySync.attach(context.read<CartState>(), auth);
   }
 
   @override
