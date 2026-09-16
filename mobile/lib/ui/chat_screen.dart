@@ -715,7 +715,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildBody() {
-    if (_loading) {
+    // && _messages.isEmpty — как и на остальных экранах (см. orders_screen.dart
+    // и т.д.): _load() зовётся не только при первом открытии, но и retry-кнопкой
+    // ErrorView. Без этой проверки повторный _load() поверх уже показанной
+    // переписки на секунду затёр бы её skeleton-заглушкой (баг, которого пока
+    // не было — _load() до сих пор не вызывался на непустом чате, но это
+    // случайность, не гарантия).
+    if (_loading && _messages.isEmpty) {
       return const _ChatSkeleton();
     }
     if (_error != null && _messages.isEmpty) {
