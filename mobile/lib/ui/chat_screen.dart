@@ -587,6 +587,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// `shops.chat_customer_delete_enabled` — вынесено в getter, используется
+  /// и для «удалить своё сообщение», и для «стереть уже показанную плашку
+  /// „Сообщение удалено“» (тот же тумблер, тот же эндпоинт на бэкенде).
+  bool get _canDeleteOwnMessages =>
+      context.read<ShopState>().shop?.chatCustomerDeleteEnabled ?? false;
+
+  /// Две ступени на бэкенде (спека 2026-09-16): если сообщение ещё живое,
+  /// сервер оставляет «надгробие» и возвращает его — заменяем сообщение в
+  /// списке, не убираем. Если это было уже надгробие — сервер стирает его
+  /// насовсем и возвращает null — вот тогда убираем из списка.
   Future<void> _deleteMessage(ChatMessage m) async {
     final confirmed = await showConfirmDialog(
       context,
@@ -597,8 +607,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (!confirmed || !mounted) return;
 
     try {
-      await _repository.deleteMessage(_sessionToken, m.id);
-      setState(() => _messages = _messages.where((x) => x.id != m.id).toList());
+      final updated = await _repository.deleteMessage(_sessionToken, m.id);
+      setState(() {
+        _messages = updated != null
+            ? _messages.map((x) => x.id == m.id ? updated : x).toList()
+            : _messages.where((x) => x.id != m.id).toList();
+      });
     } catch (e) {
       if (mounted) _showError(e, 'Не удалось удалить сообщение');
     }
@@ -615,14 +629,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.reply_rounded),
-              title: const Text('Ответить'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _startReply(m);
-              },
-            ),
+            // Удалённому сообщению (плашке «Сообщение удалено») нечего
+            // предложить, кроме «Удалить» ниже — отвечать/копировать не на что.
+            if (!m.isDeleted)
+              ListTile(
+                leading: const Icon(Icons.reply_rounded),
+                title: const Text('Ответить'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _startReply(m);
+                },
+              ),
             if (m.body != null && m.body!.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.copy_rounded),
@@ -632,7 +649,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   _copyMessage(m);
                 },
               ),
-            if (m.isMine)
+            if (m.isMine && _canDeleteOwnMessages)
               ListTile(
                 leading: Icon(
                   Icons.delete_outline_rounded,
@@ -771,21 +788,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       key: key,
                       message: message,
                       isHighlighted: _highlightedMessageId == message.id,
-                      // Уже удалённому сообщению (плашка «Сообщение удалено»)
-                      // нечего предложить в меню — ответить/скопировать/удалить
-                      // не на что.
-                      onLongPress: message.isDeleted
+                      // Уже удалённому (плашка «Сообщение удалено») своему
+                      // сообщению можно предложить только «Удалить» — стереть
+                      // саму плашку насовсем (спека 2026-09-16); ответить или
+                      // скопировать уже нечего — см. _openMessageMenu. Чужому
+                      // (магазина) удалённому сообщению — вообще нечего
+                      // предложить, у него так и остаётся пусто.
+                      onLongPress: (message.isDeleted && !message.isMine)
                           ? () {}
                           : () => _openMessageMenu(message),
                       onSwipeReply: message.isDeleted ? () {} : () => _startReply(message),
                       // «Удалить» — только если магазин это разрешил
                       // (shops.chat_customer_delete_enabled); сервер тоже
-                      // проверяет, но не показываем мёртвую кнопку.
-                      onDelete: (!message.isDeleted &&
-                              message.isMine &&
-                              (context.read<ShopState>().shop
-                                      ?.chatCustomerDeleteEnabled ??
-                                  false))
+                      // проверяет, но не показываем мёртвую кнопку. Только для
+                      // фото на весь экран (см. _openFullImage) — у удалённого
+                      // сообщения фото уже нет, поэтому isDeleted тут не при
+                      // чём.
+                      onDelete: (message.isMine && _canDeleteOwnMessages)
                           ? () => _deleteMessage(message)
                           : null,
                       onQuoteTap: message.replyToMessageId != null

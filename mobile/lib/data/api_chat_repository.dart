@@ -42,11 +42,13 @@ class ApiChatRepository implements ChatRepository {
   }
 
   @override
-  Future<void> deleteMessage(String sessionToken, String messageId) async {
-    await _client.delete(
+  Future<ChatMessage?> deleteMessage(String sessionToken, String messageId) async {
+    final json = await _client.delete(
       '/widget/chat/messages/$messageId',
       headers: _authHeaders(sessionToken),
     );
+    final data = json['data'] as Map<String, dynamic>?;
+    return data != null ? ChatMessage.fromJson(data) : null;
   }
 
   @override

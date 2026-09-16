@@ -199,11 +199,14 @@ class ChatController extends Controller
     /**
      * DELETE /api/admin/chat/threads/{id}/messages/{message}
      *
-     * Модерация — жёсткое удаление, не пометка «сообщение удалено» (это не
-     * «я передумал» у отправителя, а «магазин убрал неприемлемый контент»,
-     * см. PLAN-CHAT.md §5.2). Обязательно чистит файл на диске, если было
-     * фото — тот же класс бага, что уже дважды ловили на StorageCleanup:
-     * БД забыла про файл, а он остался висеть мёртвым грузом навсегда.
+     * Модерация — ВСЕГДА жёсткое удаление, без следа ни для магазина, ни для
+     * покупателя, независимо от того, чьё это сообщение (своё или байера) —
+     * см. спека 2026-09-16: плашка «Сообщение удалено» появляется только
+     * когда удаляет БАЙЕР (ChatController::destroy), не когда админ/владелец.
+     * Тем же способом стирается насовсем и уже показанная байеру плашка,
+     * если удалить её отсюда. Обязательно чистит файл на диске, если было
+     * фото — тот же класс бага, что уже дважды ловили на StorageCleanup: БД
+     * забыла про файл, а он остался висеть мёртвым грузом навсегда.
      */
     public function deleteMessage(Request $request, string $id, string $message): JsonResponse
     {
@@ -219,13 +222,8 @@ class ChatController extends Controller
         $wasUnreadByCustomer = $chatMessage->sender_type === 'shop'
             && (!$thread->customer_last_read_at || $chatMessage->created_at->gt($thread->customer_last_read_at));
 
-        // Не удаляем строку целиком — оставляем «надгробие»: покупатель и
-        // магазин должны видеть «Сообщение удалено» на месте сообщения, а не
-        // просто дыру в ленте (запрошено 2026-09-15). Заодно решает старый
-        // риск: reply_to_message_id других сообщений на это перестал бы
-        // резолвиться при жёстком delete().
         StorageService::deleteByUrl($chatMessage->image_url);
-        $chatMessage->update(['body' => null, 'image_url' => null, 'deleted_at' => now()]);
+        $chatMessage->delete();
 
         if ($wasUnreadByCustomer && $thread->unread_by_customer > 0) {
             $thread->decrement('unread_by_customer');
@@ -233,16 +231,7 @@ class ChatController extends Controller
 
         // Пересчитываем превью последнего сообщения в списке диалогов —
         // могли удалить как раз то, что там сейчас показано.
-        $latest = ChatMessage::where('thread_id', $thread->id)
-            ->orderByDesc('created_at')
-            ->first();
-
-        $thread->update([
-            'last_message_at'      => $latest?->created_at,
-            'last_message_preview' => $latest
-                ? ($latest->deleted_at ? 'Сообщение удалено' : mb_substr($latest->body ?? '📷 Фото', 0, 80))
-                : null,
-        ]);
+        $thread->refreshLastMessagePreview();
 
         ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'message.deleted', ['id' => $chatMessage->id]);
 

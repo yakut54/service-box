@@ -676,28 +676,34 @@ loadThreads()
                   :class="['group flex mb-2', m.sender_type === 'shop' ? 'justify-end' : 'justify-start']"
                 >
                   <div class="relative max-w-[75%] min-w-0 flex items-end gap-1.5" :class="m.sender_type === 'shop' ? 'flex-row' : 'flex-row-reverse'">
-                    <div v-if="!m.deleted_at" class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 mb-1">
-                      <button
-                        type="button"
-                        @click="startReply(m)"
-                        class="text-gray-300 hover:text-primary-500"
-                        title="Ответить"
-                      >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l-5-5 5-5m-5 5h12a4 4 0 004-4V6" />
-                        </svg>
-                      </button>
-                      <button
-                        v-if="m.sender_type === 'shop' && !m.image_url"
-                        type="button"
-                        @click="startEdit(m)"
-                        class="text-gray-300 hover:text-primary-500"
-                        title="Редактировать"
-                      >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
+                    <div class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 mb-1">
+                      <template v-if="!m.deleted_at">
+                        <button
+                          type="button"
+                          @click="startReply(m)"
+                          class="text-gray-300 hover:text-primary-500"
+                          title="Ответить"
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17l-5-5 5-5m-5 5h12a4 4 0 004-4V6" />
+                          </svg>
+                        </button>
+                        <button
+                          v-if="m.sender_type === 'shop' && !m.image_url"
+                          type="button"
+                          @click="startEdit(m)"
+                          class="text-gray-300 hover:text-primary-500"
+                          title="Редактировать"
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </template>
+                      <!-- Удалить доступно и на уже показанной плашке
+                           «Сообщение удалено» — стирает её насовсем у обеих
+                           сторон (спека 2026-09-16), не только на живом
+                           сообщении. -->
                       <button
                         type="button"
                         @click="deleteTarget = m"

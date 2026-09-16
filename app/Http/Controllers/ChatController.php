@@ -233,10 +233,16 @@ class ChatController extends Controller
      *
      * Покупатель может удалить только СВОЁ сообщение, и только если владелец
      * магазина явно включил это в настройках (`shops.chat_customer_delete_enabled`,
-     * выключено по умолчанию — см. PLAN-CHAT.md §11.10, решение принято
-     * 2026-08-24). Сообщения магазина покупателю недоступны для удаления ни
-     * при каких настройках — это модерация только со стороны магазина
-     * (Admin\ChatController::deleteMessage).
+     * выключено по умолчанию — см. PLAN-CHAT.md §7.5). Сообщения магазина
+     * покупателю недоступны для удаления ни при каких настройках — это
+     * модерация только со стороны магазина (Admin\ChatController::deleteMessage,
+     * которая всегда тихая, без следа).
+     *
+     * Две ступени (спека 2026-09-16): первое удаление оставляет «надгробие» —
+     * и байер, и магазин видят плашку «Сообщение удалено» на месте текста.
+     * Повторное удаление — уже самой плашки — стирает её насовсем, у обеих
+     * сторон сразу. Отличие от Admin\ChatController::deleteMessage: там
+     * плашки не бывает никогда, сразу тихое жёсткое удаление.
      */
     public function destroy(Request $request, string $message): JsonResponse
     {
@@ -256,14 +262,19 @@ class ChatController extends Controller
             ->where('sender_type', 'customer')
             ->findOrFail($message);
 
-        // Симметрично Admin\ChatController::deleteMessage — покупатель мог
-        // удалить своё же ещё непрочитанное магазином сообщение, тогда
-        // unread_by_shop не должен продолжать его считать.
-        $wasUnreadByShop = $chatMessage->sender_type === 'customer'
-            && (!$thread->shop_last_read_at || $chatMessage->created_at->gt($thread->shop_last_read_at));
+        if ($chatMessage->deleted_at) {
+            $chatMessage->delete();
+            $thread->refreshLastMessagePreview();
 
-        // Не удаляем строку целиком — оставляем «надгробие», см. тот же приём
-        // в Admin\ChatController::deleteMessage.
+            ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.deleted', ['id' => $chatMessage->id]);
+
+            return response()->json(['message' => 'Сообщение удалено']);
+        }
+
+        // Покупатель мог удалить своё же ещё непрочитанное магазином
+        // сообщение — тогда unread_by_shop не должен продолжать его считать.
+        $wasUnreadByShop = !$thread->shop_last_read_at || $chatMessage->created_at->gt($thread->shop_last_read_at);
+
         StorageService::deleteByUrl($chatMessage->image_url);
         $chatMessage->update(['body' => null, 'image_url' => null, 'deleted_at' => now()]);
 
@@ -271,25 +282,16 @@ class ChatController extends Controller
             $thread->decrement('unread_by_shop');
         }
 
-        $latest = ChatMessage::where('thread_id', $thread->id)
-            ->orderByDesc('created_at')
-            ->first();
+        $thread->refreshLastMessagePreview();
 
-        $thread->update([
-            'last_message_at'      => $latest?->created_at,
-            'last_message_preview' => $latest
-                ? ($latest->deleted_at ? 'Сообщение удалено' : mb_substr($latest->body ?? '📷 Фото', 0, 80))
-                : null,
-        ]);
+        // 'message.updated', не 'message.deleted' — строка никуда не делась,
+        // только её содержимое, ровно как при редактировании (см.
+        // Admin\ChatController::editMessage). Собеседник (магазин) уже
+        // умеет мёрджить такое обновление в открытом чате, ничего нового
+        // на приёмной стороне писать не нужно.
+        ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.updated', ['message' => $chatMessage]);
 
-        ChatMessageBroadcast::dispatch(
-            $request->get('_shop')->api_key,
-            $thread->id,
-            'message.deleted',
-            ['id' => $chatMessage->id],
-        );
-
-        return response()->json(['message' => 'Сообщение удалено']);
+        return response()->json(['data' => $chatMessage]);
     }
 
     /**

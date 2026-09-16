@@ -19,7 +19,13 @@ abstract class ChatRepository {
   /// Только своё сообщение, и только если магазин разрешил это в настройках
   /// (`shops.chat_customer_delete_enabled`) — сервер сам это проверяет и
   /// вернёт 403, если нет; экран просто показывает ошибку из ответа.
-  Future<void> deleteMessage(String sessionToken, String messageId);
+  ///
+  /// Две ступени (спека 2026-09-16): первый вызов оставляет «надгробие» и
+  /// возвращает обновлённое сообщение (deletedAt проставлен, body/imageUrl
+  /// обнулены) — экран должен ЗАМЕНИТЬ сообщение в списке, не убирать его.
+  /// Повторный вызов на уже удалённом сообщении стирает его насовсем и
+  /// возвращает null — вот тогда сообщение убирается из списка.
+  Future<ChatMessage?> deleteMessage(String sessionToken, String messageId);
 
   Future<void> markRead(String sessionToken);
 

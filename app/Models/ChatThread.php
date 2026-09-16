@@ -44,4 +44,24 @@ class ChatThread extends Model
     {
         return $this->hasMany(ChatMessage::class, 'thread_id');
     }
+
+    /**
+     * Пересчитывает last_message_at/last_message_preview из фактического
+     * последнего сообщения — нужно после любого удаления (и тихого админского,
+     * и «надгробия» байера), которое могло убрать как раз то сообщение, что
+     * сейчас показано в списке диалогов. Общий код для
+     * Admin\ChatController::deleteMessage и ChatController::destroy — раньше
+     * был скопирован в оба места по отдельности.
+     */
+    public function refreshLastMessagePreview(): void
+    {
+        $latest = $this->messages()->orderByDesc('created_at')->first();
+
+        $this->update([
+            'last_message_at'      => $latest?->created_at,
+            'last_message_preview' => $latest
+                ? ($latest->deleted_at ? 'Сообщение удалено' : mb_substr($latest->body ?? '📷 Фото', 0, 80))
+                : null,
+        ]);
+    }
 }
