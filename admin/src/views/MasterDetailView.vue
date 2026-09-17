@@ -4,6 +4,7 @@ import { useRoute, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import type { Master, Booking, Product } from '@/types'
 
 const route = useRoute()
@@ -99,8 +100,17 @@ onMounted(async () => {
 <template>
   <div class="max-w-4xl">
     <!-- Loading -->
-    <div v-if="loading" class="card py-12 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+    <div v-if="loading">
+      <div class="flex items-start gap-4 mb-6">
+        <UiSkeleton circle height="4rem" />
+        <div class="space-y-2 pt-1">
+          <UiSkeleton width="10rem" height="1.25rem" />
+          <UiSkeleton width="7rem" height="0.875rem" />
+        </div>
+      </div>
+      <div class="card space-y-3">
+        <UiSkeleton v-for="i in 3" :key="i" height="1.25rem" />
+      </div>
     </div>
 
     <!-- Not found -->

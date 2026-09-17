@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import type { Commission } from '@/types'
 
 const data = ref<Commission | null>(null)
@@ -42,8 +43,25 @@ onMounted(load)
       <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Как платформа зарабатывает на ваших продажах</p>
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <div class="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+    <div v-if="loading" class="space-y-6">
+      <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="space-y-2">
+            <UiSkeleton width="8rem" height="0.875rem" />
+            <UiSkeleton width="5rem" height="2.5rem" />
+          </div>
+          <div class="space-y-2 text-right">
+            <UiSkeleton width="10rem" height="0.875rem" />
+            <UiSkeleton width="6rem" height="1.5rem" />
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div v-for="i in 3" :key="i" class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-2">
+          <UiSkeleton width="6rem" height="0.75rem" />
+          <UiSkeleton width="5rem" height="1.5rem" />
+        </div>
+      </div>
     </div>
 
     <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-red-700 dark:text-red-400 text-sm">

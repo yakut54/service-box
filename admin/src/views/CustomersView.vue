@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDate } from '@/shared/lib/format'
-import { UiSpinner, UiEmptyState, UiTooltip, UiAvatar, UiPagination } from '@/shared/ui'
+import { UiEmptyState, UiTooltip, UiAvatar, UiPagination, UiSkeleton } from '@/shared/ui'
 import PageHeader from '@/components/PageHeader.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import type { Customer, PaginationMeta } from '@/types'
@@ -143,8 +143,28 @@ async function doExport() {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="card py-12 flex justify-center">
-      <UiSpinner />
+    <div v-if="loading" class="card overflow-hidden p-0">
+      <div class="hidden sm:block divide-y divide-gray-100 dark:divide-gray-800">
+        <div v-for="i in 6" :key="i" class="flex items-center gap-4 px-4 py-3">
+          <UiSkeleton circle height="2rem" />
+          <UiSkeleton width="8rem" height="0.875rem" />
+          <UiSkeleton width="6rem" height="0.875rem" />
+          <UiSkeleton width="9rem" height="0.875rem" />
+          <UiSkeleton width="2.5rem" height="0.875rem" />
+          <UiSkeleton width="5rem" height="0.875rem" />
+          <UiSkeleton width="5rem" height="0.75rem" />
+        </div>
+      </div>
+      <div class="sm:hidden divide-y divide-gray-100 dark:divide-gray-800">
+        <div v-for="i in 6" :key="i" class="flex items-center gap-3 p-4">
+          <UiSkeleton circle height="2.5rem" />
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <UiSkeleton width="7rem" height="0.875rem" />
+            <UiSkeleton width="10rem" height="0.75rem" />
+          </div>
+          <UiSkeleton width="4rem" height="1rem" />
+        </div>
+      </div>
     </div>
 
     <!-- Empty -->

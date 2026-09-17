@@ -8,7 +8,7 @@ import { getEcho } from '@/lib/echo'
 import type { Channel } from 'laravel-echo'
 import PageHeader from '@/components/PageHeader.vue'
 import AdminFormModal from '@/components/modals/AdminFormModal.vue'
-import { UiConfirmDialog, UiEmptyState, UiSpinner, UiTooltip } from '@/shared/ui'
+import { UiConfirmDialog, UiEmptyState, UiSkeleton, UiTooltip } from '@/shared/ui'
 import type { StaffMember } from '@/types'
 
 const toast = useToast()
@@ -174,8 +174,16 @@ onUnmounted(() => {
       </button>
     </PageHeader>
 
-      <div v-if="loading" class="card flex items-center justify-center py-16">
-        <UiSpinner />
+      <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-for="i in 6" :key="i" class="card flex flex-col gap-4">
+          <div class="flex items-start gap-3">
+            <UiSkeleton circle height="3rem" />
+            <div class="flex-1 space-y-1.5 pt-1">
+              <UiSkeleton width="8rem" height="0.875rem" />
+              <UiSkeleton width="5rem" height="0.75rem" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-else-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">

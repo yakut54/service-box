@@ -16,6 +16,7 @@ import ToastContainer from '@/components/ToastContainer.vue'
 import SessionSupersededModal from '@/components/SessionSupersededModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 import UiAvatar from '@/shared/ui/UiAvatar.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import NavBadge from '@/components/layout/NavBadge.vue'
 
 const authStore = useAuthStore()
@@ -211,9 +212,10 @@ async function handleLogout() {
       <!-- Shop name -->
       <div v-if="authStore.shop || !authStore.user?.is_superadmin" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Интернет-Магазин</p>
-        <p class="font-medium text-gray-900 dark:text-white truncate">
-          {{ authStore.shop?.name || 'Загрузка...' }}
+        <p v-if="authStore.shop?.name" class="font-medium text-gray-900 dark:text-white truncate">
+          {{ authStore.shop.name }}
         </p>
+        <UiSkeleton v-else width="8rem" height="1.125rem" />
       </div>
       <div v-else class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <p class="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wider">Аккаунт</p>

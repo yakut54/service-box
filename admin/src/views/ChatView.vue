@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useToast } from '@/composables/useToast'
 import { getEcho } from '@/lib/echo'
-import { UiSpinner, UiEmptyState, UiAvatar } from '@/shared/ui'
+import { UiSpinner, UiEmptyState, UiAvatar, UiSkeleton } from '@/shared/ui'
 import UiModal from '@/shared/ui/UiModal.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import type { ChatThread, ChatMessage } from '@/types'
@@ -526,8 +526,14 @@ loadThreads()
           />
         </div>
 
-        <div v-if="loadingThreads" class="flex-1 flex items-center justify-center py-12">
-          <UiSpinner />
+        <div v-if="loadingThreads" class="flex-1 overflow-y-auto">
+          <div v-for="i in 6" :key="i" class="flex items-center gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-800/50">
+            <UiSkeleton circle height="2.5rem" />
+            <div class="min-w-0 flex-1 space-y-1.5">
+              <UiSkeleton width="7rem" height="0.875rem" />
+              <UiSkeleton width="10rem" height="0.75rem" />
+            </div>
+          </div>
         </div>
 
         <UiEmptyState v-else-if="threads.length === 0" title="Нет диалогов" description="Сообщения от покупателей появятся здесь">
@@ -663,7 +669,11 @@ loadThreads()
 
           <!-- Лента сообщений -->
           <div ref="messagesEl" @scroll="onScroll" class="flex-1 overflow-y-auto px-4 py-3 space-y-1">
-            <div v-if="loadingMessages" class="flex justify-center py-8"><UiSpinner /></div>
+            <div v-if="loadingMessages" class="space-y-2">
+              <div v-for="i in 6" :key="i" :class="['flex', i % 2 === 0 ? 'justify-end' : 'justify-start']">
+                <UiSkeleton :width="i % 2 === 0 ? '40%' : '55%'" height="2.25rem" rounded="lg" />
+              </div>
+            </div>
             <template v-else>
               <div v-if="loadingOlder" class="flex justify-center py-2"><UiSpinner size="sm" /></div>
               <div v-for="group in messageGroups" :key="group.key">

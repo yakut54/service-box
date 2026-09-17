@@ -4,7 +4,7 @@ import { api } from '@/lib/api'
 import { useMailFailuresStore } from '@/stores/mailFailures'
 import { parseApiError } from '@/lib/parseApiError'
 import { formatDateTime } from '@/shared/lib/format'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import type { MailFailure } from '@/types'
 
 const mailFailuresStore = useMailFailuresStore()
@@ -72,8 +72,12 @@ watch(() => mailFailuresStore.pendingCount, load)
       Письма о заказах и записях, которые не удалось доставить.
     </p>
 
-    <div v-if="loading" class="flex items-center justify-center py-10">
-      <UiSpinner />
+    <div v-if="loading" class="flex items-center gap-3 p-4">
+      <UiSkeleton width="1.5rem" height="1.5rem" rounded="full" />
+      <div class="flex-1 space-y-1.5">
+        <UiSkeleton width="10rem" height="1rem" />
+        <UiSkeleton width="16rem" height="0.875rem" />
+      </div>
     </div>
 
     <div v-else-if="error" class="text-red-600 dark:text-red-400 text-sm">{{ error }}</div>

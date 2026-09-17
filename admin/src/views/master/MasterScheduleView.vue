@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner, UiEmptyState, UiDayNav } from '@/shared/ui'
+import { UiSpinner, UiEmptyState, UiDayNav, UiSkeleton } from '@/shared/ui'
 import DatePicker from '@/components/DatePicker.vue'
 import type { Booking, BookingStatus } from '@/types'
 
@@ -155,9 +155,14 @@ onMounted(load)
     </div>
 
     <!-- Loading -->
-    <div v-if="loading && bookings.length === 0" class="flex flex-col items-center justify-center py-20 gap-3">
-      <UiSpinner />
-      <p class="text-sm text-gray-500 dark:text-gray-400">Загрузка...</p>
+    <div v-if="loading && bookings.length === 0" class="flex flex-col gap-3 px-4 pt-3">
+      <div v-for="i in 4" :key="i" class="rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <UiSkeleton width="5rem" height="0.875rem" />
+          <UiSkeleton width="4.5rem" height="1.25rem" rounded="full" />
+        </div>
+        <UiSkeleton width="60%" height="0.875rem" />
+      </div>
     </div>
 
     <!-- Empty -->

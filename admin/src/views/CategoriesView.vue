@@ -8,7 +8,7 @@ import CustomSelect from '@/components/CustomSelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
 import type { Category } from '@/types'
 import PageHeader from '@/components/PageHeader.vue'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
@@ -248,7 +248,7 @@ async function doDelete() {
     </PageHeader>
 
     <!-- Search + sort -->
-    <div v-if="!categoriesStore.loading && categoriesStore.categories.length > 0" class="card">
+    <div v-if="categoriesStore.loading || categoriesStore.categories.length > 0" class="card">
       <div class="flex flex-col sm:flex-row gap-3">
         <input v-model="searchQuery" type="text" class="input flex-1" placeholder="Поиск по названию..." />
         <CustomSelect v-model="sortBy" :options="sortOptions" class="w-full sm:w-48 shrink-0" />
@@ -261,8 +261,13 @@ async function doDelete() {
     </div>
 
     <!-- Loading -->
-    <div v-if="categoriesStore.loading" class="card flex items-center justify-center py-16">
-      <UiSpinner />
+    <div v-if="categoriesStore.loading" class="space-y-2">
+      <div v-for="i in 5" :key="i" class="card p-0">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <UiSkeleton width="2.5rem" height="2.5rem" rounded="lg" />
+          <UiSkeleton width="10rem" height="0.875rem" />
+        </div>
+      </div>
     </div>
 
     <!-- Empty -->

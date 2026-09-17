@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import type { SuperadminRevenue } from '@/types'
 
 const data = ref<SuperadminRevenue | null>(null)
@@ -45,8 +46,21 @@ onMounted(load)
       <button @click="load" class="btn-ghost text-sm">Обновить</button>
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <div class="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+    <div v-if="loading" class="space-y-6">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-for="i in 4" :key="i" class="card p-5 space-y-1.5">
+          <UiSkeleton width="6rem" height="0.75rem" />
+          <UiSkeleton width="5rem" height="1.5rem" />
+        </div>
+      </div>
+      <div class="card overflow-hidden">
+        <div class="p-5 border-b border-gray-100 dark:border-gray-800">
+          <UiSkeleton width="12rem" height="1rem" />
+        </div>
+        <div class="p-5 space-y-3">
+          <UiSkeleton v-for="i in 5" :key="i" height="1rem" />
+        </div>
+      </div>
     </div>
 
     <div v-else-if="error" class="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">

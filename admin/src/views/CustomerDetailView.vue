@@ -6,7 +6,7 @@ import { parseApiError } from '@/lib/parseApiError'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, formatDateTime, formatDate } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner, UiAvatar } from '@/shared/ui'
+import { UiAvatar, UiSkeleton } from '@/shared/ui'
 import UiModal from '@/shared/ui/UiModal.vue'
 import type { Customer } from '@/types'
 
@@ -60,8 +60,20 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-4xl">
-    <div v-if="loading" class="card py-12 flex justify-center">
-      <UiSpinner />
+    <div v-if="loading">
+      <div class="flex items-center gap-3 mb-6">
+        <UiSkeleton circle height="3.5rem" />
+        <div class="space-y-2">
+          <UiSkeleton width="10rem" height="1.5rem" />
+          <UiSkeleton width="8rem" height="0.875rem" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div v-for="i in 3" :key="i" class="card space-y-2">
+          <UiSkeleton width="5rem" height="0.875rem" />
+          <UiSkeleton width="4rem" height="1.5rem" />
+        </div>
+      </div>
     </div>
 
     <div v-else-if="!customer" class="card py-12 text-center">

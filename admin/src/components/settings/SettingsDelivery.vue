@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import UiHint from '@/shared/ui/UiHint.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 
 interface MethodForm {
   enabled:   boolean
@@ -89,8 +90,8 @@ async function save() {
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Доставка</h2>
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Способы получения физических товаров.</p>
 
-    <div v-if="loading" class="flex justify-center py-6">
-      <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+    <div v-if="loading">
+      <UiSkeleton height="3.5rem" rounded="lg" />
     </div>
 
     <template v-else>

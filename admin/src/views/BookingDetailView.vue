@@ -5,6 +5,7 @@ import { api, ApiError } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import type { Booking } from '@/types'
 
 const route = useRoute()
@@ -94,8 +95,17 @@ onMounted(async () => {
   <div class="max-w-5xl">
 
     <!-- Loading -->
-    <div v-if="loading" class="card py-16 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+    <div v-if="loading">
+      <div class="flex items-start justify-between mb-6 gap-3">
+        <div class="space-y-2">
+          <UiSkeleton width="10rem" height="1.5rem" />
+          <UiSkeleton width="6rem" height="0.875rem" />
+        </div>
+        <UiSkeleton width="6rem" height="1.75rem" rounded="full" />
+      </div>
+      <div class="card space-y-3">
+        <UiSkeleton v-for="i in 3" :key="i" height="1.25rem" />
+      </div>
     </div>
 
     <!-- Not found -->

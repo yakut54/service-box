@@ -5,7 +5,7 @@ import { useToast } from '@/composables/useToast'
 import { formatDate } from '@/shared/lib/format'
 import CustomSelect from '@/components/CustomSelect.vue'
 import { timezoneOptions } from '@/shared/lib/timezones'
-import { UiModal } from '@/shared/ui'
+import { UiModal, UiSkeleton } from '@/shared/ui'
 import type { SuperadminOwner } from '@/types'
 
 const toast = useToast()
@@ -112,8 +112,24 @@ onMounted(load)
       {{ error }}
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-16">
-      <div class="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+    <div v-if="loading">
+      <div class="card overflow-hidden hidden md:block divide-y divide-gray-100 dark:divide-gray-800">
+        <div v-for="i in 6" :key="i" class="flex items-center gap-4 px-4 py-3">
+          <div class="flex-1 space-y-1.5">
+            <UiSkeleton width="9rem" height="0.875rem" />
+            <UiSkeleton width="10rem" height="0.75rem" />
+          </div>
+          <UiSkeleton width="6rem" height="0.875rem" />
+          <UiSkeleton width="5rem" height="0.75rem" />
+        </div>
+      </div>
+      <div class="flex flex-col gap-3 md:hidden">
+        <div v-for="i in 4" :key="i" class="card p-4 space-y-2">
+          <UiSkeleton width="8rem" height="1rem" />
+          <UiSkeleton width="10rem" height="0.875rem" />
+          <UiSkeleton width="9rem" height="0.75rem" />
+        </div>
+      </div>
     </div>
 
     <template v-else>

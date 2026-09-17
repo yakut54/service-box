@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { UiSkeleton } from '@/shared/ui'
+
 defineProps<{
   title: string
   value: string
@@ -16,8 +18,8 @@ defineProps<{
     <p class="text-sm text-gray-500 dark:text-gray-400">{{ title }}</p>
 
     <div v-if="loading" class="mt-2 space-y-1.5">
-      <div class="h-7 w-28 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
-      <div class="h-4 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+      <UiSkeleton width="7rem" height="1.75rem" />
+      <UiSkeleton width="5rem" height="1rem" />
     </div>
 
     <template v-else>

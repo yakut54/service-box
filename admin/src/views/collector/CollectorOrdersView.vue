@@ -7,7 +7,7 @@ import type { Channel } from 'laravel-echo'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, formatRelativeTime, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiEmptyState, UiSpinner } from '@/shared/ui'
+import { UiEmptyState, UiSkeleton } from '@/shared/ui'
 import CustomSelect from '@/components/CustomSelect.vue'
 import type { Order, OrderItem } from '@/types'
 
@@ -134,8 +134,18 @@ onUnmounted(() => {
       <CustomSelect v-model="sortOrder" :options="sortOptions" class="w-full sm:w-44 shrink-0" />
     </div>
 
-    <div v-if="loading" class="card flex items-center justify-center py-16">
-      <UiSpinner />
+    <div v-if="loading" class="space-y-3">
+      <div v-for="i in 4" :key="i" class="card flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+          <UiSkeleton width="9rem" height="1rem" />
+          <UiSkeleton width="4.5rem" height="1.25rem" rounded="full" />
+        </div>
+        <UiSkeleton width="70%" height="0.875rem" />
+        <div class="flex items-center justify-between">
+          <UiSkeleton width="4rem" height="0.75rem" />
+          <UiSkeleton width="3.5rem" height="0.875rem" />
+        </div>
+      </div>
     </div>
 
     <div v-else-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">

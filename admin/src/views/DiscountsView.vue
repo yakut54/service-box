@@ -7,7 +7,7 @@ import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import DiscountFormModal from '@/components/modals/DiscountFormModal.vue'
 import DiscountGuideModal from '@/components/modals/DiscountGuideModal.vue'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { formatPrice } from '@/shared/lib/format'
@@ -214,8 +214,13 @@ async function doDelete() {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="card flex items-center justify-center py-16">
-      <UiSpinner />
+    <div v-if="loading" class="card p-0 divide-y divide-gray-100 dark:divide-gray-800">
+      <div v-for="i in 5" :key="i" class="flex items-center gap-4 px-4 py-3">
+        <UiSkeleton width="9rem" height="0.875rem" />
+        <UiSkeleton width="4rem" height="0.875rem" />
+        <UiSkeleton width="5rem" height="1.25rem" rounded="full" />
+        <UiSkeleton width="4rem" height="0.75rem" />
+      </div>
     </div>
 
     <!-- Empty -->

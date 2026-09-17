@@ -8,7 +8,7 @@ import { useToast } from '@/composables/useToast'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import MasterFormModal from '@/components/modals/MasterFormModal.vue'
-import { UiConfirmDialog, UiEmptyState, UiSpinner, UiTooltip } from '@/shared/ui'
+import { UiConfirmDialog, UiEmptyState, UiSkeleton, UiTooltip } from '@/shared/ui'
 import type { Master } from '@/types'
 
 // ── Invite master ────────────────────────────────────────────────
@@ -192,9 +192,16 @@ function initials(name: string) {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="card flex flex-col items-center gap-4 py-16">
-      <UiSpinner />
-      <p class="text-gray-500 dark:text-gray-400">Загрузка...</p>
+    <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="i in 6" :key="i" class="card flex flex-col gap-4">
+        <div class="flex items-start gap-3">
+          <UiSkeleton circle height="3rem" />
+          <div class="flex-1 space-y-1.5 pt-1">
+            <UiSkeleton width="8rem" height="0.875rem" />
+            <UiSkeleton width="5rem" height="0.75rem" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Empty (no masters at all) -->

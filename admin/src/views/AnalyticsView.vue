@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
+import { UiSkeleton } from '@/shared/ui'
 import KpiCard from '@/components/KpiCard.vue'
 import RevenueChart from '@/components/RevenueChart.vue'
 import StatusBreakdown from '@/components/StatusBreakdown.vue'
@@ -156,7 +157,7 @@ const orderBreakdown = computed(() => {
       <div class="card">
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Топ товаров / услуг</h2>
         <div v-if="loadingTops" class="space-y-3">
-          <div v-for="i in 5" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+          <UiSkeleton v-for="i in 5" :key="i" height="1.25rem" />
         </div>
         <div v-else-if="topProducts.length === 0" class="py-8 text-sm text-gray-400 text-center">Нет данных</div>
         <div v-else class="space-y-3">
@@ -181,7 +182,7 @@ const orderBreakdown = computed(() => {
       <div class="card">
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Топ клиентов</h2>
         <div v-if="loadingTops" class="space-y-3">
-          <div v-for="i in 5" :key="i" class="h-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+          <UiSkeleton v-for="i in 5" :key="i" height="2.5rem" />
         </div>
         <div v-else-if="topCustomers.length === 0" class="py-8 text-sm text-gray-400 text-center">Нет данных</div>
         <div v-else class="space-y-1">

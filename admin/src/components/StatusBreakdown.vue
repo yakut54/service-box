@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { UiSkeleton } from '@/shared/ui'
+
 defineProps<{
   items: Array<{ label: string; color: string; count: number; pct: number }>
   total: number
@@ -10,7 +12,7 @@ defineProps<{
 <template>
   <div>
     <div v-if="loading" class="space-y-3">
-      <div v-for="i in 4" :key="i" class="h-5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"/>
+      <UiSkeleton v-for="i in 4" :key="i" height="1.25rem" />
     </div>
     <div v-else-if="!total" class="py-6 text-sm text-gray-400 text-center">
       {{ emptyText ?? 'Нет данных' }}

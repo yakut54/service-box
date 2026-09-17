@@ -11,7 +11,7 @@ import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import DatePicker from '@/components/DatePicker.vue'
 import BookingCreateModal from '@/components/modals/BookingCreateModal.vue'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import UiEmptyState from '@/shared/ui/UiEmptyState.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
@@ -374,8 +374,20 @@ onMounted(async () => {
     </div>
 
     <!-- Loading -->
-    <div v-if="bookingsStore.loading" class="card py-12 flex justify-center">
-      <UiSpinner />
+    <div v-if="bookingsStore.loading">
+      <div v-if="viewMode === 'list'" class="card overflow-hidden p-0 divide-y divide-gray-100 dark:divide-gray-800">
+        <div v-for="i in 6" :key="i" class="flex items-center gap-4 px-4 py-3">
+          <UiSkeleton width="7rem" height="0.875rem" />
+          <UiSkeleton width="8rem" height="0.875rem" />
+          <UiSkeleton width="6rem" height="0.875rem" />
+          <UiSkeleton width="7rem" height="0.875rem" />
+          <UiSkeleton width="4.5rem" height="1.25rem" rounded="full" />
+        </div>
+      </div>
+      <!-- Упрощённый skeleton для календарного режима — не копия сетки пиксель-в-пиксель -->
+      <div v-else class="card grid grid-cols-7 gap-2">
+        <UiSkeleton v-for="i in 21" :key="i" height="4rem" rounded="lg" />
+      </div>
     </div>
 
     <!-- Empty (list mode only — calendar shows an empty grid) -->

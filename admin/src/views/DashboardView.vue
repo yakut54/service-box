@@ -8,6 +8,7 @@ import { useReviewsStore } from '@/stores/reviews'
 import { api } from '@/lib/api'
 import { plural } from '@/lib/utils'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
+import { UiSkeleton } from '@/shared/ui'
 import KpiCard from '@/components/KpiCard.vue'
 import RevenueChart from '@/components/RevenueChart.vue'
 import type { OrderStats } from '@/types'
@@ -131,7 +132,7 @@ onMounted(() => Promise.all([
           <RouterLink to="/analytics" class="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700">Аналитика →</RouterLink>
         </div>
         <div v-if="loadingStats" class="space-y-4">
-          <div v-for="i in 2" :key="i" class="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <UiSkeleton v-for="i in 2" :key="i" height="4rem" rounded="lg" />
         </div>
         <template v-else>
           <!-- Revenue -->
@@ -180,7 +181,7 @@ onMounted(() => Promise.all([
         </RouterLink>
       </div>
       <div v-if="ordersStore.loading" class="space-y-2">
-        <div v-for="i in 4" :key="i" class="h-11 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        <UiSkeleton v-for="i in 4" :key="i" height="2.75rem" rounded="lg" />
       </div>
       <div v-else-if="recentOrders.length === 0" class="py-10 text-center text-gray-400 text-sm">Нет заказов</div>
       <div v-else class="space-y-0.5">

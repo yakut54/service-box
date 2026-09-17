@@ -8,7 +8,7 @@ import ImageUpload from '@/components/ImageUpload.vue'
 import ProductImageGallery from '@/components/ProductImageGallery.vue'
 import SizeChartPicker from '@/components/SizeChartPicker.vue'
 import ProductVariantsEditor from '@/components/ProductVariantsEditor.vue'
-import { UiHint, KeyValueEditor, UiNumberField } from '@/shared/ui'
+import { UiHint, KeyValueEditor, UiNumberField, UiSkeleton } from '@/shared/ui'
 import type { KeyValueRow } from '@/shared/ui'
 import type { ProductImage, ProductOption, ProductVariant } from '@/types'
 
@@ -356,8 +356,14 @@ async function handleSubmit() {
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ isEditing ? 'Редактировать товар' : 'Новый товар' }}</h1>
     </div>
 
-    <div v-if="loading" class="card py-12 text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+    <div v-if="loading" class="space-y-6">
+      <div v-for="i in 2" :key="i" class="card space-y-4">
+        <UiSkeleton width="10rem" height="1.125rem" />
+        <div v-for="j in 3" :key="j" class="space-y-1.5">
+          <UiSkeleton width="6rem" height="0.75rem" />
+          <UiSkeleton height="2.5rem" rounded="lg" />
+        </div>
+      </div>
     </div>
 
     <form v-else @submit.prevent="handleSubmit" class="space-y-6">

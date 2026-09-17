@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import PasswordInput from '@/components/PasswordInput.vue'
 import UiHint from '@/shared/ui/UiHint.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 
 const enabled           = ref(false)
 const apiToken          = ref('')
@@ -75,8 +76,10 @@ async function save() {
       </p>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-6">
-      <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+    <div v-if="loading" class="space-y-3">
+      <UiSkeleton height="1.25rem" />
+      <UiSkeleton height="2.5rem" rounded="lg" />
+      <UiSkeleton height="2.5rem" rounded="lg" />
     </div>
 
     <div v-else class="space-y-4">

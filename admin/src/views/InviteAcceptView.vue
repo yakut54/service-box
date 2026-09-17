@@ -5,7 +5,7 @@ import { api, ApiError } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import AppInput from '@/components/AppInput.vue'
 import PasswordInput from '@/components/PasswordInput.vue'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 
 const route     = useRoute()
 const router    = useRouter()
@@ -126,8 +126,12 @@ onMounted(validateToken)
       </div>
 
       <!-- Loading -->
-      <div v-if="stage === 'loading'" class="card flex items-center justify-center py-12">
-        <UiSpinner />
+      <div v-if="stage === 'loading'" class="card space-y-4">
+        <UiSkeleton width="2.5rem" height="2.5rem" rounded="lg" />
+        <UiSkeleton width="12rem" height="1.125rem" />
+        <UiSkeleton width="70%" height="0.875rem" />
+        <UiSkeleton height="2.5rem" rounded="lg" />
+        <UiSkeleton height="2.5rem" rounded="lg" />
       </div>
 
       <!-- Error -->

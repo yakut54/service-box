@@ -9,7 +9,7 @@ import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner, UiAvatar } from '@/shared/ui'
+import { UiSpinner, UiAvatar, UiSkeleton } from '@/shared/ui'
 import type { Order } from '@/types'
 
 const route      = useRoute()
@@ -98,8 +98,22 @@ async function updateStatus(status: string) {
   <div class="max-w-5xl">
 
     <!-- Loading -->
-    <div v-if="loading" class="card py-16 flex justify-center">
-      <UiSpinner />
+    <div v-if="loading">
+      <div class="flex items-start justify-between mb-6 gap-3">
+        <div class="space-y-2">
+          <UiSkeleton width="10rem" height="1.5rem" />
+          <UiSkeleton width="6rem" height="0.875rem" />
+        </div>
+        <UiSkeleton width="6rem" height="1.75rem" rounded="full" />
+      </div>
+      <div class="card space-y-3">
+        <UiSkeleton width="8rem" height="0.875rem" />
+        <UiSkeleton v-for="i in 3" :key="i" height="2.5rem" />
+        <div class="flex items-center justify-between pt-2">
+          <UiSkeleton width="4rem" height="1rem" />
+          <UiSkeleton width="5rem" height="1rem" />
+        </div>
+      </div>
     </div>
 
     <!-- Error -->

@@ -6,7 +6,7 @@ import { useCategoriesStore } from '@/stores/categories'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import ProductCard from '@/components/products/ProductCard.vue'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import UiPagination from '@/shared/ui/UiPagination.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
@@ -151,9 +151,35 @@ async function handleDelete(id: string) {
       </div>
     </div>
 
-    <div v-if="productsStore.loading" class="card py-12 flex flex-col items-center gap-4">
-      <UiSpinner />
-      <p class="text-gray-500 dark:text-gray-400">Загрузка...</p>
+    <div v-if="productsStore.loading">
+      <!-- Плитка -->
+      <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 3xl:grid-cols-4 gap-4">
+        <div v-for="i in 8" :key="i" class="card flex flex-col">
+          <UiSkeleton height="auto" class="aspect-video mb-4" rounded="lg" />
+          <UiSkeleton height="0.875rem" />
+          <UiSkeleton width="60%" height="0.875rem" class="mt-2" />
+          <UiSkeleton width="40%" height="1.25rem" class="mt-3" />
+        </div>
+      </div>
+      <!-- Список -->
+      <template v-else>
+        <div class="sm:hidden grid grid-cols-1 gap-4">
+          <div v-for="i in 4" :key="i" class="card flex flex-col">
+            <UiSkeleton height="auto" class="aspect-video mb-4" rounded="lg" />
+            <UiSkeleton height="0.875rem" />
+            <UiSkeleton width="40%" height="1.25rem" class="mt-3" />
+          </div>
+        </div>
+        <div class="hidden sm:block card overflow-hidden p-0 divide-y divide-gray-100 dark:divide-gray-800">
+          <div v-for="i in 6" :key="i" class="flex items-center gap-4 px-4 py-3">
+            <UiSkeleton width="2.5rem" height="2.5rem" rounded="lg" />
+            <UiSkeleton width="10rem" height="0.875rem" />
+            <UiSkeleton width="6rem" height="0.875rem" />
+            <UiSkeleton width="4rem" height="0.875rem" />
+            <UiSkeleton width="4.5rem" height="1.25rem" rounded="full" />
+          </div>
+        </div>
+      </template>
     </div>
 
     <div v-else-if="productsStore.products.length === 0" class="card py-12 text-center">

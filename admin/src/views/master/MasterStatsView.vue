@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import { UiSpinner } from '@/shared/ui'
+import { UiSkeleton } from '@/shared/ui'
 
 const authStore = useAuthStore()
 const shopTz = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
@@ -119,8 +119,11 @@ const periodLabels: Record<Period, string> = {
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-12 flex justify-center">
-      <UiSpinner class="w-8 h-8 text-primary-600" />
+    <div v-if="loading" class="grid grid-cols-2 gap-3">
+      <div v-for="i in 4" :key="i" class="card py-4 space-y-1.5">
+        <UiSkeleton width="6rem" height="0.75rem" />
+        <UiSkeleton width="3rem" height="1.5rem" />
+      </div>
     </div>
 
     <template v-else-if="stats">

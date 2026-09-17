@@ -10,7 +10,7 @@ import type { Channel } from 'laravel-echo'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
-import UiSpinner from '@/shared/ui/UiSpinner.vue'
+import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 import UiPagination from '@/shared/ui/UiPagination.vue'
 import { plural } from '@/lib/utils'
@@ -164,8 +164,32 @@ async function doExport() {
       </div>
     </div>
 
-    <div v-if="ordersStore.loading" class="card py-12 flex justify-center">
-      <UiSpinner />
+    <div v-if="ordersStore.loading" class="card overflow-hidden p-0">
+      <!-- Desktop skeleton -->
+      <div class="hidden sm:block divide-y divide-gray-100 dark:divide-gray-800">
+        <div v-for="i in 6" :key="i" class="flex items-center gap-4 px-4 py-3">
+          <UiSkeleton width="4rem" height="1rem" />
+          <div class="flex-1 space-y-1.5">
+            <UiSkeleton width="9rem" height="0.875rem" />
+            <UiSkeleton width="6rem" height="0.75rem" />
+          </div>
+          <UiSkeleton width="5rem" height="0.875rem" />
+          <UiSkeleton width="4rem" height="0.875rem" />
+          <UiSkeleton width="4.5rem" height="1.25rem" rounded="full" />
+          <UiSkeleton width="5rem" height="0.75rem" />
+        </div>
+      </div>
+      <!-- Mobile skeleton -->
+      <div class="sm:hidden divide-y divide-gray-100 dark:divide-gray-800">
+        <div v-for="i in 6" :key="i" class="flex items-start justify-between gap-3 p-4">
+          <div class="min-w-0 flex-1 space-y-1.5">
+            <UiSkeleton width="6rem" height="0.875rem" />
+            <UiSkeleton width="8rem" height="0.875rem" />
+            <UiSkeleton width="10rem" height="0.75rem" />
+          </div>
+          <UiSkeleton width="4rem" height="1rem" />
+        </div>
+      </div>
     </div>
 
     <div v-else-if="ordersStore.orders.length === 0" class="card py-12 text-center">

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { formatPrice, formatWeight, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner, UiNumberField } from '@/shared/ui'
+import { UiNumberField, UiSkeleton } from '@/shared/ui'
 import type { Order, OrderItem } from '@/types'
 
 const route = useRoute()
@@ -220,8 +220,17 @@ onUnmounted(() => {
       Все заказы
     </RouterLink>
 
-    <div v-if="loading" class="card flex items-center justify-center py-16">
-      <UiSpinner />
+    <div v-if="loading" class="space-y-4">
+      <div class="card space-y-2">
+        <div class="flex items-center justify-between">
+          <UiSkeleton width="10rem" height="1.125rem" />
+          <UiSkeleton width="4.5rem" height="1.25rem" rounded="full" />
+        </div>
+        <UiSkeleton height="0.5rem" rounded="full" />
+      </div>
+      <div class="card space-y-3">
+        <UiSkeleton v-for="i in 3" :key="i" height="3rem" />
+      </div>
     </div>
 
     <div v-else-if="error" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
