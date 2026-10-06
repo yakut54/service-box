@@ -896,7 +896,8 @@ CREATE TABLE IF NOT EXISTS public.shop_staff (
     telegram_chat_id bigint,
     max_user_id bigint,
     messenger_link_token character varying(64),
-    messenger_link_token_expires_at timestamp(0) without time zone
+    messenger_link_token_expires_at timestamp(0) without time zone,
+    admin_id uuid
 );
 
 
@@ -1308,6 +1309,13 @@ CREATE INDEX shop_feature_audit_shop_id_created_at_index ON public.shop_feature_
 
 
 --
+-- Name: shop_staff_admin_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shop_staff_admin_id_idx ON public.shop_staff USING btree (admin_id);
+
+
+--
 -- Name: shop_staff_invite_token_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1406,6 +1414,14 @@ ALTER TABLE ONLY public.shop_features
 
 ALTER TABLE ONLY public.shop_feature_audit
     ADD CONSTRAINT shop_feature_audit_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
+
+
+--
+-- Name: shop_staff shop_staff_admin_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shop_staff
+    ADD CONSTRAINT shop_staff_admin_id_foreign FOREIGN KEY (admin_id) REFERENCES public.shop_staff(id) ON DELETE RESTRICT;
 
 
 --

@@ -16,6 +16,7 @@ class ShopStaff extends Model
         'user_id',
         'role',
         'master_id',
+        'admin_id',
         'category_ids',
         'telegram_chat_id',
         'max_user_id',
@@ -47,6 +48,18 @@ class ShopStaff extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Администратор, к которому привязан этот сборщик (null — подчиняется владельцу). */
+    public function admin()
+    {
+        return $this->belongsTo(ShopStaff::class, 'admin_id');
+    }
+
+    /** Сборщики, привязанные к этому администратору. */
+    public function collectors()
+    {
+        return $this->hasMany(ShopStaff::class, 'admin_id');
     }
 
     public function isAccepted(): bool

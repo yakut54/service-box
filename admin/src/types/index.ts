@@ -594,6 +594,8 @@ export interface StaffMember {
   id: string
   role: 'admin' | 'master' | 'collector'
   master_id: string | null
+  admin_id: string | null
+  admin_name: string | null
   category_ids: string[] | null
   invite_email: string | null
   invite_name: string | null

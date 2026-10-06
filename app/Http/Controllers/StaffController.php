@@ -16,15 +16,28 @@ use Illuminate\Support\Facades\Mail;
 class StaffController extends Controller
 {
     /**
+     * Админ видит и управляет только СВОИМИ сборщиками (role=collector,
+     * admin_id = его собственный staff_id) — не всеми сборщиками магазина.
+     * Владелец не ограничен. Один приватный скоуп вместо трёх копий одного
+     * and-условия (index/resend/destroy).
+     */
+    private function scopeForActor(\Illuminate\Database\Eloquent\Builder $query, Request $request): \Illuminate\Database\Eloquent\Builder
+    {
+        if ($request->attributes->get('staff_role') === 'admin') {
+            return $query->where('role', 'collector')->where('admin_id', $request->attributes->get('staff_id'));
+        }
+        return $query;
+    }
+
+    /**
      * GET /api/admin/staff
      */
     public function index(Request $request): JsonResponse
     {
         $shop = $request->attributes->get('shop');
 
-        $staffRows = ShopStaff::where('shop_id', $shop->id)
-            ->when($request->attributes->get('staff_role') === 'admin', fn ($q) => $q->where('role', 'collector'))
-            ->with('user:id,name,email')
+        $staffRows = $this->scopeForActor(ShopStaff::where('shop_id', $shop->id), $request)
+            ->with(['user:id,name,email', 'admin:id,invite_name,user_id', 'admin.user:id,name,email'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -46,6 +59,8 @@ class StaffController extends Controller
             'id'                => $s->id,
             'role'              => $s->role,
             'master_id'         => $s->master_id,
+            'admin_id'          => $s->admin_id,
+            'admin_name'        => $s->admin ? ($s->admin->user->name ?? $s->admin->invite_name) : null,
             'category_ids'      => $s->category_ids,
             'invite_email'      => $s->invite_email,
             'invite_name'       => $s->invite_name,
@@ -82,6 +97,7 @@ class StaffController extends Controller
             'phone'          => 'nullable|string|max:20',
             'category_ids'   => 'sometimes|nullable|array',
             'category_ids.*' => 'uuid',
+            'admin_id'       => 'sometimes|nullable|uuid',
         ]);
 
         $isActingAdmin = $request->attributes->get('staff_role') === 'admin';
@@ -127,6 +143,27 @@ class StaffController extends Controller
             }
         }
 
+        // Привязка сборщика к администратору — имеет смысл только для role=collector.
+        // Администратор, создающий сборщика, привязывает его к себе принудительно
+        // (не может выбрать другого админа — он и так ограничен ролью). Владелец
+        // выбирает администратора сам (или оставляет null — «подчиняется владельцу»).
+        $adminId = null;
+        if ($role === 'collector') {
+            if ($isActingAdmin) {
+                $adminId = $request->attributes->get('staff_id');
+            } elseif (!empty($data['admin_id'])) {
+                $adminExists = ShopStaff::where('id', $data['admin_id'])
+                    ->where('shop_id', $shop->id)
+                    ->where('role', 'admin')
+                    ->whereNotNull('accepted_at')
+                    ->exists();
+                if (!$adminExists) {
+                    return response()->json(['message' => 'Администратор не найден'], 404);
+                }
+                $adminId = $data['admin_id'];
+            }
+        }
+
         $existingUser = User::where('email', $email)->first();
 
         // Настоящая причина запрета — не «уже есть магазин» сама по себе, а
@@ -154,6 +191,10 @@ class StaffController extends Controller
             ], 422);
         }
 
+        // Не сужаем скоупом актора: эта проверка должна видеть ЛЮБУЮ
+        // существующую/pending запись с этим email в магазине — иначе админ
+        // мог бы создать дублирующую запись сборщика на email, который уже
+        // занят другим сотрудником (другая роль/чужой администратор).
         $staffQuery = ShopStaff::where('shop_id', $shop->id)
             ->where(function ($q) use ($email, $existingUser) {
                 $q->where('invite_email', $email);
@@ -167,8 +208,18 @@ class StaffController extends Controller
             return response()->json(['message' => 'Этот пользователь уже является сотрудником'], 409);
         }
 
-        // Есть pending-приглашение — переотправляем вместо ошибки
+        // Есть pending-приглашение — переотправляем вместо ошибки. Админу
+        // виден и переотправляется только pending чужого(!) приглашения,
+        // если оно вообще на этот email — иначе он мог бы и переслать (и
+        // тем самым подсмотреть toast с данными) приглашение не своего
+        // сборщика/другую роль. Для него это тот же конфликт, что «уже
+        // является сотрудником».
         $pendingStaff = (clone $staffQuery)->whereNull('accepted_at')->first();
+        if ($pendingStaff && $isActingAdmin
+            && !($pendingStaff->role === 'collector' && $pendingStaff->admin_id === $request->attributes->get('staff_id'))
+        ) {
+            return response()->json(['message' => 'Этот пользователь уже является сотрудником'], 409);
+        }
         if ($pendingStaff) {
             $token = bin2hex(random_bytes(32));
             $pendingStaff->update([
@@ -194,6 +245,7 @@ class StaffController extends Controller
                     'invite_name'       => $pendingStaff->invite_name,
                     'role'              => $pendingStaff->role,
                     'master_id'         => $pendingStaff->master_id,
+                    'admin_id'          => $pendingStaff->admin_id,
                     'category_ids'      => $pendingStaff->category_ids,
                     'is_pending'        => true,
                     'is_expired'        => false,
@@ -211,6 +263,7 @@ class StaffController extends Controller
             'user_id'           => $existingUser?->id,
             'role'              => $role,
             'master_id'         => $masterId,
+            'admin_id'          => $adminId,
             'category_ids'      => $categoryIds,
             'invite_email'      => $email,
             'invite_name'       => $name,
@@ -242,6 +295,7 @@ class StaffController extends Controller
                 'invite_name'  => $name,
                 'role'         => $role,
                 'master_id'    => $masterId,
+                'admin_id'     => $adminId,
                 'category_ids' => $categoryIds,
                 'is_pending'   => true,
                 'is_expired'   => false,
@@ -259,12 +313,12 @@ class StaffController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        $allowedRoles = $request->attributes->get('staff_role') === 'admin' ? ['collector'] : ['admin', 'collector'];
-
-        $staffRecord = ShopStaff::where('id', $id)
-            ->where('shop_id', $shop->id)
-            ->whereIn('role', $allowedRoles)
-            ->firstOrFail();
+        // Админ правит только СВОИХ сборщиков (scopeForActor), владелец —
+        // любого admin/collector в магазине.
+        $query = ShopStaff::where('id', $id)->where('shop_id', $shop->id);
+        $staffRecord = $request->attributes->get('staff_role') === 'admin'
+            ? $this->scopeForActor($query, $request)->firstOrFail()
+            : $query->whereIn('role', ['admin', 'collector'])->firstOrFail();
 
         $data = $request->validate([
             'name'           => 'required|string|max:255',
@@ -272,6 +326,7 @@ class StaffController extends Controller
             'avatar_url'     => 'nullable|url|max:1000',
             'category_ids'   => 'sometimes|nullable|array',
             'category_ids.*' => 'uuid',
+            'admin_id'       => 'sometimes|nullable|uuid',
         ]);
 
         $oldAvatarUrl = $staffRecord->avatar_url;
@@ -295,6 +350,23 @@ class StaffController extends Controller
             $update['category_ids'] = $categoryIds;
         }
 
+        // Администратора у сборщика меняет только владелец — тот же приём,
+        // что для category_ids выше. null = «подчиняется владельцу».
+        if ($request->attributes->get('staff_role') === 'owner' && $staffRecord->role === 'collector' && $request->has('admin_id')) {
+            $adminId = $data['admin_id'] ?? null;
+            if ($adminId !== null) {
+                $adminExists = ShopStaff::where('id', $adminId)
+                    ->where('shop_id', $shop->id)
+                    ->where('role', 'admin')
+                    ->whereNotNull('accepted_at')
+                    ->exists();
+                if (!$adminExists) {
+                    return response()->json(['message' => 'Администратор не найден'], 404);
+                }
+            }
+            $update['admin_id'] = $adminId;
+        }
+
         $staffRecord->update($update);
 
         if (array_key_exists('avatar_url', $data) && $data['avatar_url'] !== $oldAvatarUrl) {
@@ -311,9 +383,7 @@ class StaffController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        $staffRecord = ShopStaff::where('id', $id)
-            ->where('shop_id', $shop->id)
-            ->when($request->attributes->get('staff_role') === 'admin', fn ($q) => $q->where('role', 'collector'))
+        $staffRecord = $this->scopeForActor(ShopStaff::where('id', $id)->where('shop_id', $shop->id), $request)
             ->whereNull('accepted_at')
             ->firstOrFail();
 
@@ -346,10 +416,19 @@ class StaffController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        $staffRecord = ShopStaff::where('id', $id)
-            ->where('shop_id', $shop->id)
-            ->when($request->attributes->get('staff_role') === 'admin', fn ($q) => $q->where('role', 'collector'))
+        $staffRecord = $this->scopeForActor(ShopStaff::where('id', $id)->where('shop_id', $shop->id), $request)
             ->firstOrFail();
+
+        // Администратора со своими сборщиками нельзя удалить, пока у него
+        // есть привязанные сборщики — иначе они молча остаются без
+        // ограничения по категориям (см. SetShopFromAuth). FK (ON DELETE
+        // RESTRICT) не даст это сделать и на уровне БД — тут просто понятное
+        // сообщение вместо 500.
+        if ($staffRecord->role === 'admin' && $staffRecord->collectors()->exists()) {
+            return response()->json([
+                'message' => 'Сначала переведите сборщиков этого администратора к другому администратору или удалите их',
+            ], 422);
+        }
 
         if ($staffRecord->user_id && $staffRecord->accepted_at) {
             User::find($staffRecord->user_id)?->tokens()->delete();

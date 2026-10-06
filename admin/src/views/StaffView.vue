@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { api, ApiError } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +18,12 @@ const presenceStore = usePresenceStore()
 const staff   = ref<StaffMember[]>([])
 const loading = ref(false)
 const error   = ref('')
+
+// Для селектора «Администратор» в AdminFormModal — только принятые админы
+// (ещё не принявшему приглашение сборщика привязывать некуда: он может и не
+// стать сотрудником). Владелец видит всех админов магазина в staff уже
+// сейчас (index без скоупа для owner).
+const acceptedAdmins = computed(() => staff.value.filter(s => s.role === 'admin' && s.accepted_at))
 
 const showModal    = ref(false)
 const editingAdmin = ref<StaffMember | null>(null)
@@ -237,6 +243,9 @@ onUnmounted(() => {
                 >Администратор</span>
               </div>
               <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ displayEmail(admin) }}</p>
+              <p v-if="admin.role === 'collector'" class="text-xs text-gray-400 dark:text-gray-500 truncate">
+                {{ admin.admin_name ? `Администратор: ${admin.admin_name}` : 'Подчиняется владельцу' }}
+              </p>
               <a
                 v-if="admin.phone"
                 :href="`tel:${admin.phone}`"
@@ -307,6 +316,7 @@ onUnmounted(() => {
     <AdminFormModal
       v-model="showModal"
       :admin="editingAdmin"
+      :admins="acceptedAdmins"
       @saved="handleSaved"
     />
 

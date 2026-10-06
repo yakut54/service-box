@@ -65,7 +65,7 @@ class NavCountsController extends Controller
             ->where('shop_id', $shop->id)
             ->when(
                 $request->attributes->get('staff_role') === 'admin',
-                fn ($q) => $q->where('role', 'collector'),
+                fn ($q) => $q->where('role', 'collector')->where('admin_id', $request->attributes->get('staff_id')),
                 fn ($q) => $q->whereIn('role', ['admin', 'collector']),
             )
             ->count();

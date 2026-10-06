@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCategoriesStore } from '@/stores/categories'
 import { UiModal, UiHint } from '@/shared/ui'
 import ImageUpload from '@/components/ImageUpload.vue'
+import CustomSelect from '@/components/CustomSelect.vue'
 import type { StaffMember } from '@/types'
 
 const authStore = useAuthStore()
@@ -18,6 +19,8 @@ onMounted(() => {
 const props = defineProps<{
   modelValue: boolean
   admin: StaffMember | null
+  /** Принятые администраторы магазина — для выбора «К какому администратору привязать сборщика». */
+  admins: StaffMember[]
 }>()
 
 const emit = defineEmits<{
@@ -29,6 +32,9 @@ const mode = computed(() => props.admin ? 'edit' : 'create')
 
 const role       = ref<'admin' | 'collector'>('admin')
 const categoryIds = ref<string[]>([])
+// '' — сентинел «Подчиняется владельцу» (null на бэкенде), CustomSelect не
+// умеет null в modelValue.
+const adminId    = ref('')
 const name       = ref('')
 const email      = ref('')
 const phone      = ref('')
@@ -56,6 +62,14 @@ const isValid = computed(() =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)
 )
 
+const adminOptions = computed(() => [
+  { value: '', label: 'Подчиняется владельцу' },
+  ...props.admins.map(a => ({
+    value: a.id,
+    label: a.user?.name || a.invite_name || a.invite_email || '?',
+  })),
+])
+
 watch(() => props.modelValue, (open) => {
   if (!open) return
   error.value        = ''
@@ -64,6 +78,7 @@ watch(() => props.modelValue, (open) => {
   if (props.admin) {
     role.value        = props.admin.role === 'collector' ? 'collector' : 'admin'
     categoryIds.value = props.admin.category_ids ? [...props.admin.category_ids] : []
+    adminId.value      = props.admin.admin_id ?? ''
     // Настоящее имя человека (уже принял приглашение и сам его ввёл)
     // важнее пометки, которую владелец вписал ДО того, как человек
     // зарегистрировался — та же логика, что уже в StaffView.vue::displayName.
@@ -79,6 +94,7 @@ watch(() => props.modelValue, (open) => {
     // воспользоваться.
     role.value        = authStore.isOwner ? 'admin' : 'collector'
     categoryIds.value = []
+    adminId.value      = ''
     name.value      = ''
     email.value     = ''
     phone.value     = ''
@@ -101,8 +117,11 @@ async function save() {
   error.value  = ''
   try {
     if (mode.value === 'create') {
+      // Привязку к администратору выбирает только владелец — управляющий
+      // точки и так может звать лишь собственных сборщиков (сервер
+      // привязывает их автоматически к себе).
       const res = role.value === 'collector'
-        ? await api.createCollector(name.value.trim(), email.value.trim())
+        ? await api.createCollector(name.value.trim(), email.value.trim(), authStore.isOwner ? (adminId.value || null) : undefined)
         : await api.createAdmin(name.value.trim(), email.value.trim(), categoryIds.value.length ? categoryIds.value : null)
       // Если при создании уже загрузили аватар/телефон — сразу обновляем
       if (avatarUrl.value || phone.value) {
@@ -120,6 +139,7 @@ async function save() {
         avatar_url: avatarUrl.value,
       }
       if (role.value === 'admin') update.category_ids = categoryIds.value.length ? categoryIds.value : null
+      if (role.value === 'collector' && authStore.isOwner) update.admin_id = adminId.value || null
       await api.updateAdmin(props.admin!.id, update)
       emit('saved', {
         ...props.admin!,
@@ -127,6 +147,10 @@ async function save() {
         phone:       phone.value || null,
         avatar_url:  avatarUrl.value,
         category_ids: update.category_ids ?? props.admin!.category_ids,
+        admin_id: update.admin_id !== undefined ? update.admin_id : props.admin!.admin_id,
+        admin_name: update.admin_id !== undefined
+          ? (update.admin_id ? (adminOptions.value.find(o => o.value === update.admin_id)?.label ?? null) : null)
+          : props.admin!.admin_name,
       }, 'edit')
     }
     emit('update:modelValue', false)
@@ -190,6 +214,17 @@ async function save() {
             Сборщик
           </button>
         </div>
+      </div>
+
+      <!-- Администратор сборщика — выбирает только владелец. Управляющий
+           точки видит сборщика сразу после сохранения привязанным к себе
+           (сервер делает это сам), поэтому ему селектор не нужен. -->
+      <div v-if="role === 'collector' && authStore.isOwner">
+        <p class="label flex items-center gap-1">
+          Администратор
+          <UiHint>Сборщик увидит только заказы с товарами из категорий этого администратора. «Подчиняется владельцу» — видит все заказы.</UiHint>
+        </p>
+        <CustomSelect v-model="adminId" :options="adminOptions" placeholder="Подчиняется владельцу" />
       </div>
 
       <!-- Категории — только для роли admin. Ничего не отмечено = без
