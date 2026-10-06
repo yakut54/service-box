@@ -22,6 +22,19 @@ const order   = ref<Order | null>(null)
 const loading = ref(true)
 const updating = ref(false)
 const errorMsg = ref<string | null>(null)
+const downloadingInvoice = ref(false)
+
+async function downloadInvoice() {
+  if (!order.value) return
+  downloadingInvoice.value = true
+  try {
+    await api.downloadOrderInvoice(order.value.id)
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось скачать накладную')
+  } finally {
+    downloadingInvoice.value = false
+  }
+}
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '—'
@@ -133,7 +146,12 @@ async function updateStatus(status: string) {
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Заказ <span class="font-mono">#{{ order.id.slice(0, 8) }}</span></h1>
           <p class="text-gray-500 dark:text-gray-400 mt-0.5 text-sm">{{ formatDate(order.created_at) }}</p>
         </div>
-        <span :class="`badge-${order.status} text-sm px-3 py-1.5`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button @click="downloadInvoice" :disabled="downloadingInvoice" class="btn-secondary text-sm">
+            {{ downloadingInvoice ? 'Формируется...' : 'Скачать накладную' }}
+          </button>
+          <span :class="`badge-${order.status} text-sm px-3 py-1.5`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
+        </div>
       </div>
 
       <!-- Status actions -->

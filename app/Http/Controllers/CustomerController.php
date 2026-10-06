@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\Paginates;
 use App\Models\Customer;
+use App\Services\TableExport;
 use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -183,27 +184,19 @@ class CustomerController extends Controller
             $customers->each(fn ($c) => $this->scopeCustomer($c, $allowedCategoryIds));
         }
 
-        $filename = 'customers_' . now()->format('Y-m-d') . '.csv';
+        $headers = ['Имя', 'Телефон', 'Email', 'Заказов', 'Потрачено (₽)', 'Дата регистрации'];
 
-        return response()->streamDownload(function () use ($customers) {
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Имя', 'Телефон', 'Email', 'Заказов', 'Потрачено (₽)', 'Дата регистрации'], ';');
+        $rows = $customers->map(fn ($c) => [
+            $c->name,
+            $c->phone,
+            $c->email ?? '',
+            $c->total_orders,
+            // total_spent — в копейках (см. Customer::$casts), как и
+            // total_price у заказа — делим на 100 (см. OrderController::export).
+            number_format($c->total_spent / 100, 2, '.', ''),
+            $c->created_at->format('d.m.Y'),
+        ]);
 
-            foreach ($customers as $c) {
-                fputcsv($out, [
-                    $c->name,
-                    $c->phone,
-                    $c->email ?? '',
-                    $c->total_orders,
-                    // total_spent — в копейках (см. Customer::$casts), как и
-                    // total_price у заказа — делим на 100 (см. OrderController::export).
-                    number_format($c->total_spent / 100, 2, '.', ''),
-                    $c->created_at->format('d.m.Y'),
-                ], ';');
-            }
-
-            fclose($out);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return TableExport::stream($request->input('format', 'csv'), 'customers', $headers, $rows);
     }
 }

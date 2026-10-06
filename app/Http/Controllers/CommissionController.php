@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\TableExport;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Комиссия платформы — плоские 20% с каждой оплаты (см. PLAN.md → «Тарифы
@@ -38,5 +40,43 @@ class CommissionController extends Controller
             'commission_month_rubles'     => round($thisMonthKopecks / 100, 2),
             'recent_orders'               => $recentOrders,
         ]);
+    }
+
+    /**
+     * Excel-отчёт по комиссии для бухгалтерии/отчётности — те же условия
+     * выборки, что в index(), но без limit(20): там лимит для превью в
+     * кабинете, в отчёте нужны все строки.
+     *
+     * GET /api/admin/commission/export
+     */
+    public function export(): StreamedResponse
+    {
+        $statusLabels = [
+            'pending'         => 'Ожидает',
+            'paid'            => 'Оплачен',
+            'processing'      => 'В работе',
+            'completed'       => 'Завершён',
+            'cancelled'       => 'Отменён',
+            'needs_attention' => 'Требует внимания',
+        ];
+
+        $orders = Order::query()
+            ->where('status', '!=', 'cancelled')
+            ->where('status', '!=', 'pending')
+            ->where('commission_amount', '>', 0)
+            ->orderByDesc('created_at')
+            ->get(['id', 'total_price', 'commission_amount', 'status', 'created_at']);
+
+        $headers = ['Дата', 'Номер', 'Сумма заказа (₽)', 'Комиссия (₽)', 'Статус'];
+
+        $rows = $orders->map(fn ($o) => [
+            $o->created_at->format('d.m.Y H:i'),
+            strtoupper(substr($o->id, 0, 8)),
+            number_format($o->total_price / 100, 2, '.', ''),
+            number_format($o->commission_amount / 100, 2, '.', ''),
+            $statusLabels[$o->status] ?? $o->status,
+        ]);
+
+        return TableExport::stream('xlsx', 'commission', $headers, $rows);
     }
 }

@@ -7,11 +7,13 @@ FROM php:8.2-fpm
 # pcntl — без него `php artisan reverb:start` падает с "Undefined constant
 # SIGINT" (сигналы завершения процесса не работают без этого расширения,
 # по умолчанию его нет в образе php:8.2-fpm).
+# zip — PhpSpreadsheet пишет .xlsx как zip-архив (libzip-dev уже был в списке
+# ниже, сам modulе zip не был включён).
 RUN apt-get update && apt-get install -y \
     git unzip libpq-dev libzip-dev libonig-dev postgresql-client \
     libpng-dev libjpeg-dev libwebp-dev \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
-    && docker-php-ext-install pdo pdo_pgsql pgsql bcmath mbstring gd pcntl \
+    && docker-php-ext-install pdo pdo_pgsql pgsql bcmath mbstring gd pcntl zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Composer

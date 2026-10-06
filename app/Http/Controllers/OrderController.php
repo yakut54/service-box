@@ -11,11 +11,15 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Services\DiscountService;
 use App\Services\OrderReweighService;
+use App\Services\TableExport;
 use App\Services\TenantService;
 use App\Services\YooKassaService;
 use App\Support\CategoryAccess;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -1115,7 +1119,6 @@ class OrderController extends Controller
         $this->applyCategoryScope($query, $request);
 
         $orders = $query->latest('created_at')->get();
-        $filename = 'orders_' . now()->format('Y-m-d') . '.csv';
 
         $statusLabels = [
             'pending'         => 'Ожидает',
@@ -1125,45 +1128,74 @@ class OrderController extends Controller
             'cancelled'       => 'Отменён',
             'needs_attention' => 'Требует внимания',
         ];
+        $deliveryLabels = [
+            'pickup'  => 'Самовывоз',
+            'courier' => 'Курьер',
+            'postal'  => 'Почта / СДЭК',
+        ];
 
-        return response()->streamDownload(function () use ($orders, $statusLabels) {
-            $out = fopen('php://output', 'w');
-            // UTF-8 BOM — чтобы Excel открывал без кракозябр
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Дата', 'Номер', 'Клиент', 'Телефон', 'Email', 'Состав', 'Сумма (₽)', 'Доставка', 'Стоимость доставки (₽)', 'Статус', 'Примечание'], ';');
+        $headers = ['Дата', 'Номер', 'Клиент', 'Телефон', 'Email', 'Состав', 'Сумма (₽)', 'Доставка', 'Стоимость доставки (₽)', 'Статус', 'Примечание'];
 
-            $deliveryLabels = [
-                'pickup'  => 'Самовывоз',
-                'courier' => 'Курьер',
-                'postal'  => 'Почта / СДЭК',
+        $rows = $orders->map(function ($order) use ($statusLabels, $deliveryLabels) {
+            $items = $order->items->map(fn($i) => "{$i->product_name} ×{$i->quantity}")->implode(', ');
+            $deliveryMethod = $order->delivery_method
+                ? ($deliveryLabels[$order->delivery_method] ?? $order->delivery_method)
+                : '';
+
+            return [
+                $order->created_at->format('d.m.Y H:i'),
+                strtoupper(substr($order->id, 0, 8)),
+                $order->customer?->name ?? $order->customer_name,
+                $order->customer_phone,
+                $order->customer_email,
+                $items,
+                // В базе суммы в копейках (см. Order::$casts) — делим на 100,
+                // иначе в выгрузке уходят копейки под видом рублей (заказ на
+                // 95₽ попадал в файл как «9500»). Формат — простое число с
+                // точкой, без разделителя тысяч, чтобы Excel/Таблицы читали
+                // колонку как число, а не текст.
+                number_format($order->total_price / 100, 2, '.', ''),
+                $deliveryMethod,
+                number_format(($order->delivery_price ?? 0) / 100, 2, '.', ''),
+                $statusLabels[$order->status] ?? $order->status,
+                $order->notes ?? '',
             ];
+        });
 
-            foreach ($orders as $order) {
-                $items = $order->items->map(fn($i) => "{$i->product_name} ×{$i->quantity}")->implode(', ');
-                $deliveryMethod = $order->delivery_method
-                    ? ($deliveryLabels[$order->delivery_method] ?? $order->delivery_method)
-                    : '';
-                fputcsv($out, [
-                    $order->created_at->format('d.m.Y H:i'),
-                    strtoupper(substr($order->id, 0, 8)),
-                    $order->customer?->name ?? $order->customer_name,
-                    $order->customer_phone,
-                    $order->customer_email,
-                    $items,
-                    // В базе суммы в копейках (см. Order::$casts) — делим на 100,
-                    // иначе в CSV уходят копейки под видом рублей (заказ на 95₽
-                    // попадал в файл как «9500»). Формат — простое число с точкой,
-                    // без разделителя тысяч, чтобы Excel/Таблицы читали колонку
-                    // как число, а не текст.
-                    number_format($order->total_price / 100, 2, '.', ''),
-                    $deliveryMethod,
-                    number_format(($order->delivery_price ?? 0) / 100, 2, '.', ''),
-                    $statusLabels[$order->status] ?? $order->status,
-                    $order->notes ?? '',
-                ], ';');
-            }
+        return TableExport::stream($request->input('format', 'csv'), 'orders', $headers, $rows);
+    }
 
-            fclose($out);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    /**
+     * Печатная накладная по одному заказу — не фискальный документ (в
+     * shops нет ИНН/юр. адреса), практическая упаковочная форма для
+     * распечатки/приложить к заказу. DejaVu Sans (идёт в комплекте с
+     * dompdf) поддерживает кириллицу без доп. настройки шрифтов.
+     *
+     * GET /api/admin/orders/{order}/invoice
+     */
+    public function invoice(Request $request, string $order): Response
+    {
+        $orderModel = Order::with(['items.product', 'customer'])->findOrFail($order);
+
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', false);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml(view('invoices.order', [
+            'order' => $orderModel,
+            'shop'  => $request->attributes->get('shop'),
+        ])->render());
+        $dompdf->setPaper('A4');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="order-' . strtoupper(substr($orderModel->id, 0, 8)) . '.pdf"',
+        ]);
     }
 }

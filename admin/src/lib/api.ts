@@ -369,6 +369,10 @@ class ApiClient {
     return this.download('/admin/orders/export', params)
   }
 
+  async downloadOrderInvoice(id: string) {
+    return this.download(`/admin/orders/${id}/invoice`)
+  }
+
   async claimOrder(orderId: string, takeover = false) {
     return this.request<{ message: string; data: Order }>(
       `/admin/orders/${orderId}/claim${takeover ? '?takeover=1' : ''}`,
@@ -551,6 +555,10 @@ class ApiClient {
 
   async getCommission() {
     return this.request<Commission>('/admin/commission')
+  }
+
+  async exportCommission() {
+    return this.download('/admin/commission/export')
   }
 
   // ==========================================

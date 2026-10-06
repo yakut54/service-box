@@ -136,9 +136,9 @@ const sortedOrders = computed(() =>
 )
 
 const exporting = ref(false)
-async function doExport() {
+async function doExport(format: 'csv' | 'xlsx') {
   exporting.value = true
-  try { await api.exportOrders(buildParams()) } finally { exporting.value = false }
+  try { await api.exportOrders({ ...buildParams(), format }) } finally { exporting.value = false }
 }
 </script>
 
@@ -149,9 +149,10 @@ async function doExport() {
       title="Заказы"
       :subtitle="`${ordersStore.meta?.total ?? ordersStore.orders.length} ${plural(ordersStore.meta?.total ?? ordersStore.orders.length, 'заказ', 'заказа', 'заказов')}`"
     >
-      <button @click="doExport" :disabled="exporting" class="btn-secondary text-sm">
-        {{ exporting ? 'Экспорт...' : 'Скачать CSV' }}
-      </button>
+      <div class="flex gap-1.5">
+        <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
+        <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
+      </div>
     </PageHeader>
 
     <div class="card mb-6">

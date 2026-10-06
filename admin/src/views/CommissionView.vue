@@ -34,13 +34,24 @@ async function load() {
 }
 
 onMounted(load)
+
+const exporting = ref(false)
+async function doExport() {
+  exporting.value = true
+  try { await api.exportCommission() } finally { exporting.value = false }
+}
 </script>
 
 <template>
   <div class="p-6 space-y-6 max-w-4xl mx-auto">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Комиссия</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Как платформа зарабатывает на ваших продажах</p>
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Комиссия</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Как платформа зарабатывает на ваших продажах</p>
+      </div>
+      <button @click="doExport" :disabled="exporting" class="btn-secondary text-sm shrink-0">
+        {{ exporting ? 'Экспорт...' : 'Скачать отчёт (Excel)' }}
+      </button>
     </div>
 
     <div v-if="loading" class="space-y-6">

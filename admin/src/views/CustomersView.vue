@@ -92,9 +92,15 @@ async function doDelete() {
 onMounted(() => { loadCustomers() })
 
 const exporting = ref(false)
-async function doExport() {
+async function doExport(format: 'csv' | 'xlsx') {
   exporting.value = true
-  try { await api.exportCustomers(searchQuery.value ? { search: searchQuery.value } : undefined) } finally { exporting.value = false }
+  try {
+    const params: Record<string, string> = { format }
+    if (searchQuery.value) params.search = searchQuery.value
+    await api.exportCustomers(params)
+  } finally {
+    exporting.value = false
+  }
 }
 </script>
 
@@ -106,9 +112,10 @@ async function doExport() {
       title="Клиенты"
       :subtitle="`${totalCustomers} ${plural(totalCustomers, 'клиент', 'клиента', 'клиентов')}`"
     >
-      <button @click="doExport" :disabled="exporting" class="btn-secondary text-sm">
-        {{ exporting ? 'Экспорт...' : 'Скачать CSV' }}
-      </button>
+      <div class="flex gap-1.5">
+        <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
+        <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
+      </div>
     </PageHeader>
 
     <!-- Stats -->
