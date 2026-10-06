@@ -346,6 +346,13 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
   /// кратно 100) сервер отклонял на чекауте. Снапаем к ближайшему кратному
   /// шагу здесь — единая точка, все три источника проходят через неё.
   void _applyGrams(int grams) {
+    // Товар уже убран из корзины (кнопка «Убрать из корзины» в этой же
+    // шторке) — слайдер/поле/кнопки −/+ могут дорисоваться ещё одним кадром
+    // поверх старого значения и попытаться добавить его обратно. Раз в
+    // корзине товара нет, ничего не применяем; первое добавление идёт через
+    // отдельную кнопку «В корзину» (_WeightSummaryButton), не через это поле.
+    if (context.read<CartState>().weightGramsOf(widget.product.id) == null) return;
+
     final physical = widget.product.physical!;
     final min = physical.weightMinGrams;
     final max = _effectiveMaxGrams(widget.product);
@@ -467,7 +474,14 @@ class _InlineWeightSliderState extends State<_InlineWeightSlider> {
           Align(
             alignment: Alignment.center,
             child: TextButton.icon(
-              onPressed: () => context.read<CartState>().remove(product.id),
+              onPressed: () {
+                context.read<CartState>().remove(product.id);
+                // Шторка остаётся открытой после удаления иначе показывала
+                // снова 100 г (fallback на weightMinGrams в _currentValue), а
+                // любое касание слайдера/поля/кнопок −/+ возвращало товар в
+                // корзину — баг найден 2026-10-06 живым тестом.
+                widget.onDone?.call();
+              },
               icon: const Icon(Icons.delete_outline_rounded, size: 18),
               label: const Text('Убрать из корзины'),
             ),
