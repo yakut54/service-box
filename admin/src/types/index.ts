@@ -651,3 +651,23 @@ export interface PageResponse<T> {
   count?: number
   meta?: PaginationMeta
 }
+
+// ==========================================
+// STOCK JOURNAL
+// ==========================================
+
+export interface StockAdjustment {
+  id: string
+  product_id: string | null
+  variant_id: string | null
+  product_name: string
+  variant_label: string | null
+  unit: 'pcs' | 'g'
+  old_value: number
+  new_value: number
+  actor_user_id: string | null
+  actor_name: string
+  actor_role: 'owner' | 'admin'
+  reason: string | null
+  created_at: string
+}

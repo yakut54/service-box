@@ -26,6 +26,11 @@ class UpdateProductRequest extends FormRequest
             'size_chart_id' => 'nullable|uuid',
             'sort_order' => 'sometimes|integer|min:0',
 
+            // Причина правки остатка — необязательная, одна на всё сохранение
+            // формы (см. StockJournal). Не поле товара — не сохраняется на
+            // products/products_physical, только в журнал.
+            'stock_reason' => 'sometimes|nullable|string|max:255',
+
             // Произвольные характеристики «label: value» (см. ProductController::syncAttributes)
             'attributes' => 'sometimes|nullable|array|max:30',
             'attributes.*.label' => 'nullable|string|max:255|required_with:attributes.*.value',

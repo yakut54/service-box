@@ -13,6 +13,7 @@ import type {
   ReviewsListResponse,
   MailFailuresListResponse,
   StaffMember,
+  StockAdjustment,
   ChatThread,
   ChatMessage,
   TelegramStatus,
@@ -273,6 +274,11 @@ class ApiClient {
     return this.request<{ message: string }>(`/admin/products/${id}`, {
       method: 'DELETE',
     })
+  }
+
+  async getStockJournal(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<PageResponse<StockAdjustment>>(`/admin/stock-journal${query}`)
   }
 
   // ── Size charts ──────────────────────────────────────────────

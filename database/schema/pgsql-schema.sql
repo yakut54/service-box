@@ -612,6 +612,33 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     )
                 $sql$, p_schema_name, p_schema_name);
 
+                -- stock_adjustments: журнал РУЧНЫХ правок остатка (владелец/
+                -- администратор правят склад в карточке товара) — не
+                -- автоматических списаний/возвратов при заказах
+                -- (PhysicalStockService) и не взвешивания (OrderReweewService).
+                -- product_name/variant_label — снапшот на момент правки, чтобы
+                -- строка оставалась читаемой и после удаления товара/варианта
+                -- (ON DELETE SET NULL, не CASCADE — журнал переживает удаление).
+                EXECUTE format($sql$
+                    CREATE TABLE %I.stock_adjustments (
+                        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        product_id    UUID REFERENCES %I.products(id) ON DELETE SET NULL,
+                        variant_id    UUID REFERENCES %I.product_variants(id) ON DELETE SET NULL,
+                        product_name  TEXT NOT NULL,
+                        variant_label TEXT,
+                        unit          TEXT NOT NULL CHECK (unit IN ('pcs', 'g')),
+                        old_value     INTEGER NOT NULL,
+                        new_value     INTEGER NOT NULL,
+                        actor_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+                        actor_name    TEXT NOT NULL,
+                        actor_role    TEXT NOT NULL CHECK (actor_role IN ('owner', 'admin')),
+                        reason        TEXT,
+                        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.stock_adjustments(product_id, created_at DESC)', p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.stock_adjustments(created_at DESC)', p_schema_name);
+
             END;
             $_$;
 

@@ -218,6 +218,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::post('/products/{product}/images', [ProductImageController::class, 'store']);
     Route::patch('/products/{product}/images/reorder', [ProductImageController::class, 'reorder']);
     Route::delete('/products/{product}/images/{image}', [ProductImageController::class, 'destroy']);
+    Route::get('/stock-journal', [\App\Http\Controllers\StockJournalController::class, 'index']);
 
     // Commission
     Route::get('/commission', [CommissionController::class, 'index']);

@@ -66,6 +66,11 @@ const router = createRouter({
           component: () => import('@/views/ProductEditView.vue'),
         },
         {
+          path: 'stock-journal',
+          name: 'stock-journal',
+          component: () => import('@/views/StockJournalView.vue'),
+        },
+        {
           path: 'categories',
           name: 'categories',
           component: () => import('@/views/CategoriesView.vue'),

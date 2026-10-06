@@ -151,6 +151,7 @@ const navigation = [
   { name: 'Чат',       href: '/chat',         icon: 'chat' },
   // Каталог
   { name: 'Товары',    href: '/products',     icon: 'package' },
+  { name: 'Журнал остатков', href: '/stock-journal', icon: 'stock-journal' },
   { name: 'Категории', href: '/categories',   icon: 'categories' },
   // Маркетинг
   { name: 'Скидки',    href: '/discounts',    icon: 'discount' },
@@ -258,6 +259,9 @@ async function handleLogout() {
           </svg>
           <svg v-else-if="item.icon === 'users'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg v-else-if="item.icon === 'stock-journal'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <svg v-else-if="item.icon === 'categories'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />

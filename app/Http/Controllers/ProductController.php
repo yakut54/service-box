@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\Discount;
 use App\Models\Product;
 use App\Services\DiscountService;
+use App\Services\StockJournal;
 use App\Services\StorageService;
 use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
@@ -175,6 +176,7 @@ class ProductController extends Controller
         ]));
 
         $this->storeProductDetails($product, $request);
+        StockJournal::recordProductCreate($product, $request);
 
         $product->load('category:id,name,slug,age_restricted,no_return');
         $product->loadDetails();
@@ -245,10 +247,14 @@ class ProductController extends Controller
 
         $oldImageUrl = $product->image_url;
 
-        // Остатки ДО обновления — для «сообщить о поступлении» (0 → >0).
+        // Остатки ДО обновления — для «сообщить о поступлении» (0 → >0,
+        // только simple/variants) и для журнала правок (StockJournal, ниже
+        // по методу — заодно sale_mode и вес, чтобы не делать второй запрос).
         $oldStock = [
-            'simple'   => $product->physical()->value('stock_quantity') ?? 0,
-            'variants' => $product->variants()->pluck('stock_quantity', 'id')->all(),
+            'sale_mode' => $product->physical()->value('sale_mode') ?? 'piece',
+            'simple'    => $product->physical()->value('stock_quantity') ?? 0,
+            'weight'    => $product->physical()->value('stock_weight_grams') ?? 0,
+            'variants'  => $product->variants()->pluck('stock_quantity', 'id')->all(),
         ];
 
         $product->update($request->only([
@@ -272,6 +278,7 @@ class ProductController extends Controller
         $this->updateProductDetails($product, $request);
 
         $this->notifyBackInStock($product, $oldStock);
+        StockJournal::recordProductUpdate($product, $oldStock, $request);
 
         $product->refresh()->load('category:id,name,slug,age_restricted,no_return')->loadDetails();
 
