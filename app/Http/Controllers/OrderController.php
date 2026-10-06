@@ -1150,9 +1150,14 @@ class OrderController extends Controller
                     $order->customer_phone,
                     $order->customer_email,
                     $items,
-                    $order->total_price,
+                    // В базе суммы в копейках (см. Order::$casts) — делим на 100,
+                    // иначе в CSV уходят копейки под видом рублей (заказ на 95₽
+                    // попадал в файл как «9500»). Формат — простое число с точкой,
+                    // без разделителя тысяч, чтобы Excel/Таблицы читали колонку
+                    // как число, а не текст.
+                    number_format($order->total_price / 100, 2, '.', ''),
                     $deliveryMethod,
-                    $order->delivery_price ?? 0,
+                    number_format(($order->delivery_price ?? 0) / 100, 2, '.', ''),
                     $statusLabels[$order->status] ?? $order->status,
                     $order->notes ?? '',
                 ], ';');

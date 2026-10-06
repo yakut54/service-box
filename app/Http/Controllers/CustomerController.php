@@ -196,7 +196,9 @@ class CustomerController extends Controller
                     $c->phone,
                     $c->email ?? '',
                     $c->total_orders,
-                    $c->total_spent,
+                    // total_spent — в копейках (см. Customer::$casts), как и
+                    // total_price у заказа — делим на 100 (см. OrderController::export).
+                    number_format($c->total_spent / 100, 2, '.', ''),
                     $c->created_at->format('d.m.Y'),
                 ], ';');
             }
