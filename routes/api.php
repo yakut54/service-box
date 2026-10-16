@@ -222,6 +222,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::get('/product-changes/export', [\App\Http\Controllers\ProductChangeController::class, 'export']);
     Route::get('/product-changes/pending-count', [\App\Http\Controllers\ProductChangeController::class, 'pendingCount']);
     Route::post('/product-changes/mark-seen', [\App\Http\Controllers\ProductChangeController::class, 'markSeen']);
+    Route::delete('/product-changes', [\App\Http\Controllers\ProductChangeController::class, 'destroy'])->middleware('owner');
 
     // Commission
     Route::get('/commission', [CommissionController::class, 'index']);

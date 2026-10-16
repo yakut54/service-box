@@ -174,4 +174,30 @@ class ProductChangeController extends Controller
 
         return TableExport::stream($request->input('format', 'csv'), 'product_changes', $headers, $exportRows);
     }
+
+    /**
+     * DELETE /api/admin/product-changes
+     * Выборочная очистка журнала — только владелец (роут защищён middleware
+     * 'owner'). Удаление через scopedQuery(), не голый whereIn по ID — та же
+     * защита, что у CustomerController::destroy/ReviewController::destroy.
+     */
+    public function destroy(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'required|uuid',
+        ]);
+
+        $deleted = $this->scopedQuery($request)->whereIn('id', $data['ids'])->delete();
+
+        // Массовый whereIn(...)->delete() не бьёт Eloquent-событие 'deleted'
+        // — обсервер в AppServiceProvider (он и так подписан только на
+        // created, см. его докблок) этот случай не поймает, дублируем
+        // NavCountsUpdated явно здесь. Тот же приём, что CategoryController::destroy().
+        $shop = $request->attributes->get('shop');
+        \App\Events\ShopChannelEvent::dispatch($shop->id, 'product_changes.updated');
+        \App\Events\NavCountsUpdated::dispatch($shop->id);
+
+        return response()->json(['message' => "Удалено записей: {$deleted}", 'deleted' => $deleted]);
+    }
 }
