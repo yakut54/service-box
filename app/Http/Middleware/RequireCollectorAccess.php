@@ -37,6 +37,8 @@ class RequireCollectorAccess
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/status$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/items/' . self::UUID . '/weight$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/claim$#i', $path) === 1)
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/release$#i', $path) === 1)
+            || ($request->isMethod('GET') && preg_match('#^api/admin/orders/' . self::UUID . '/activity$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/items/' . self::UUID . '/pick$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/problem$#i', $path) === 1);
 

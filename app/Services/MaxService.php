@@ -276,6 +276,18 @@ class MaxService
         self::sendMessage($shop, $text);
     }
 
+    /** См. TelegramService::notifyOwnerOrderProblem — тот же текст, тот же повод. */
+    public static function notifyOwnerOrderProblem(Shop $shop, $order, string $note): void
+    {
+        $name = $order->customer_name ?? $order->customer_phone;
+
+        $text = "⚠️ <b>Проблема с заказом №" . substr($order->id, 0, 8) . "</b>\n\n"
+              . "Клиент: " . self::esc($name) . "\n"
+              . "Сообщение сборщика: " . self::esc($note);
+
+        self::sendMessage($shop, $text);
+    }
+
     public static function removeButtonsByEntity(string $type, string $entityId): void
     {
         $cached = Cache::get("max_mid:{$type}:{$entityId}");

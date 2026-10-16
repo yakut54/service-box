@@ -396,6 +396,7 @@
   .dark .badge-processing { background-color: rgb(30 58 138 / 0.3);   color: rgb(147 197 253);  border-color: rgb(37 99 235 / 0.4); }
   .dark .badge-completed  { background-color: rgb(76 29 149 / 0.3);   color: rgb(196 181 253);  border-color: rgb(124 58 237 / 0.4); }
   .dark .badge-cancelled  { background-color: rgb(127 29 29 / 0.3);   color: rgb(252 165 165);  border-color: rgb(220 38 38 / 0.4); }
+  .dark .badge-needs_attention { background-color: rgb(131 24 67 / 0.3); color: rgb(249 168 212); border-color: rgb(219 39 119 / 0.4); }
   .dark .badge-confirmed  { background-color: rgb(49 46 129 / 0.3);   color: rgb(165 180 252);  border-color: rgb(79 70 229 / 0.4); }
   .dark .badge-no_show    { background-color: rgb(124 45 18 / 0.3);   color: rgb(253 186 116);  border-color: rgb(234 88 12 / 0.4); }
 

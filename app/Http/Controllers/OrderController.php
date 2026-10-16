@@ -10,8 +10,11 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Shop;
 use App\Services\DiscountService;
+use App\Services\MaxService;
+use App\Services\OrderActivityLog;
 use App\Services\OrderReweighService;
 use App\Services\TableExport;
+use App\Services\TelegramService;
 use App\Services\TenantService;
 use App\Services\YooKassaService;
 use App\Support\CategoryAccess;
@@ -687,6 +690,10 @@ class OrderController extends Controller
             }
         }
 
+        if ($newStatus !== $oldStatus) {
+            OrderActivityLog::record($order, $request, 'status_changed', $oldStatus, $newStatus, $request->input('note'));
+        }
+
         $shop = $request->attributes->get('shop');
         if ($newStatus !== $oldStatus && $shop) {
             \App\Events\OrdersUpdated::dispatch($shop->id);
@@ -767,9 +774,14 @@ class OrderController extends Controller
             return response()->json(['message' => 'Этот заказ уже закрыт'], 422);
         }
 
-        $staffId = $request->attributes->get('staff_id');
+        // ID ПОЛЬЗОВАТЕЛЯ, не staff_id — у владельца своей записи в shop_staff
+        // нет (staff_id = null), а claim() теперь зовёт и он тоже. staff_id
+        // здесь никогда и ни с чем не джойнится (shop_staff — другая схема),
+        // только сравнивается сам с собой, так что user_id работает так же,
+        // но не ломается для владельца.
+        $actorId = $request->user()->id;
 
-        if ($orderModel->collector_id && $orderModel->collector_id !== $staffId && !$request->boolean('takeover')) {
+        if ($orderModel->collector_id && $orderModel->collector_id !== $actorId && !$request->boolean('takeover')) {
             return response()->json([
                 'message' => "Заказ уже собирает {$orderModel->collector_name}",
                 'collector_name' => $orderModel->collector_name,
@@ -777,13 +789,14 @@ class OrderController extends Controller
         }
 
         $orderModel->update([
-            'collector_id' => $staffId,
+            'collector_id' => $actorId,
             'collector_name' => $request->user()->name,
             'picking_started_at' => $orderModel->picking_started_at ?? now(),
             'status' => in_array($orderModel->status, ['pending', 'paid'], true) ? 'processing' : $orderModel->status,
         ]);
 
         $shop = $request->attributes->get('shop');
+        OrderActivityLog::record($orderModel, $request, 'claimed');
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
         $orderModel->refresh()->load(['items.product.physical', 'customer']);
@@ -792,6 +805,63 @@ class OrderController extends Controller
             'message' => 'Заказ взят в работу',
             'data' => $this->collectorPayload($orderModel, $shop),
         ]);
+    }
+
+    /**
+     * Отказаться от заказа — освободить claim без смены статуса (прогресс
+     * сборки, picking_started_at, остаётся — следующий исполнитель видит,
+     * что уже сделано). Владелец/админ могут освободить любой заказ;
+     * сборщик — только свой.
+     *
+     * PATCH /api/admin/orders/{order}/release
+     */
+    public function release(Request $request, string $order): JsonResponse
+    {
+        $orderModel = Order::findOrFail($order);
+
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        if (!$orderModel->collector_id) {
+            return response()->json(['message' => 'Заказ никем не занят'], 422);
+        }
+
+        if ($request->attributes->get('staff_role') === 'collector' && $orderModel->collector_id !== $request->user()->id) {
+            return response()->json(['message' => 'Это не ваш заказ'], 403);
+        }
+
+        $orderModel->update([
+            'collector_id' => null,
+            'collector_name' => null,
+        ]);
+
+        OrderActivityLog::record($orderModel, $request, 'released');
+
+        $shop = $request->attributes->get('shop');
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        return response()->json(['message' => 'Вы отказались от заказа']);
+    }
+
+    /**
+     * История действий с заказом (claim/release/смена статуса/проблема) —
+     * см. OrderActivityLog. Доступна всем ролям, у кого есть доступ к
+     * самому заказу (та же видимость, что show()).
+     *
+     * GET /api/admin/orders/{order}/activity
+     */
+    public function activity(Request $request, string $order): JsonResponse
+    {
+        $orderModel = Order::findOrFail($order);
+
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $rows = $orderModel->activities()->orderByDesc('created_at')->get();
+
+        return response()->json(['data' => $rows]);
     }
 
     /**
@@ -868,6 +938,7 @@ class OrderController extends Controller
         // редактирования проставляем только начиная со второго раза (см.
         // CollectorOrderDetailView.vue — там это «ред. <время>»).
         $isEdit = $orderModel->pick_note !== null;
+        $oldStatus = $orderModel->status;
 
         $orderModel->update([
             'status' => 'needs_attention',
@@ -877,7 +948,21 @@ class OrderController extends Controller
             'seen_at' => null,
         ]);
 
+        OrderActivityLog::record($orderModel, $request, 'problem_reported', $oldStatus, 'needs_attention', $request->note);
+
         $shop = $request->attributes->get('shop');
+
+        // Раньше владелец узнавал о проблеме только по беззвучному realtime-
+        // эвенту (если вкладка админки открыта) — теперь дополнительно шлём
+        // в Telegram/MAX, тот же канал/приём, что у
+        // notifyOwnerSurchargeExpired (см. CheckSurchargeDeadline).
+        if ($shop->telegram_bot_connected) {
+            try { TelegramService::notifyOwnerOrderProblem($shop, $orderModel, $request->note); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderProblem (telegram) failed', ['error' => $e->getMessage()]); }
+        }
+        if ($shop->max_bot_connected) {
+            try { MaxService::notifyOwnerOrderProblem($shop, $orderModel, $request->note); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderProblem (max) failed', ['error' => $e->getMessage()]); }
+        }
+
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
         $orderModel->refresh()->load(['items.product.physical', 'customer']);

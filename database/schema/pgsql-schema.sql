@@ -639,6 +639,25 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE INDEX ON %I.stock_adjustments(product_id, created_at DESC)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.stock_adjustments(created_at DESC)', p_schema_name);
 
+                -- order_activity: журнал действий с заказом (взял/отпустил/сменил
+                -- статус/отметил проблему) — кто и когда, от любой роли с доступом
+                -- к заказу (владелец/админ/сборщик).
+                EXECUTE format($sql$
+                    CREATE TABLE %I.order_activity (
+                        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        order_id      UUID NOT NULL REFERENCES %I.orders(id) ON DELETE CASCADE,
+                        action        TEXT NOT NULL CHECK (action IN ('claimed', 'released', 'status_changed', 'problem_reported')),
+                        from_status   TEXT,
+                        to_status     TEXT,
+                        note          TEXT,
+                        actor_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+                        actor_name    TEXT NOT NULL,
+                        actor_role    TEXT NOT NULL,
+                        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.order_activity(order_id, created_at DESC)', p_schema_name);
+
             END;
             $_$;
 

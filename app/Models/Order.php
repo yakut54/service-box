@@ -89,6 +89,11 @@ class Order extends Model
         return $this->belongsTo(\App\Models\Discount::class);
     }
 
+    public function activities()
+    {
+        return $this->hasMany(OrderActivity::class);
+    }
+
     public function scopeWithStatus($query, string $status)
     {
         return $query->where('status', $status);

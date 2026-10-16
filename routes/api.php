@@ -234,6 +234,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus']);
     Route::patch('/orders/{order}/items/{item}/weight', [OrderController::class, 'submitItemWeight']);
     Route::patch('/orders/{order}/claim', [OrderController::class, 'claim']);
+    Route::patch('/orders/{order}/release', [OrderController::class, 'release']);
+    Route::get('/orders/{order}/activity', [OrderController::class, 'activity']);
     Route::patch('/orders/{order}/items/{item}/pick', [OrderController::class, 'pickItem']);
     Route::patch('/orders/{order}/problem', [OrderController::class, 'reportProblem']);
 

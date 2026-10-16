@@ -671,3 +671,20 @@ export interface StockAdjustment {
   reason: string | null
   created_at: string
 }
+
+// ==========================================
+// ORDER ACTIVITY (журнал действий с заказом)
+// ==========================================
+
+export interface OrderActivity {
+  id: string
+  order_id: string
+  action: 'claimed' | 'released' | 'status_changed' | 'problem_reported'
+  from_status: string | null
+  to_status: string | null
+  note: string | null
+  actor_user_id: string | null
+  actor_name: string
+  actor_role: string
+  created_at: string
+}

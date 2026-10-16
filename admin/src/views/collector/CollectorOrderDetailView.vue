@@ -9,6 +9,7 @@ import { useToast } from '@/composables/useToast'
 import { formatPrice, formatWeight, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiNumberField, UiSkeleton } from '@/shared/ui'
+import OrderActivityPanel from '@/components/OrderActivityPanel.vue'
 import type { Order, OrderItem } from '@/types'
 
 const route = useRoute()
@@ -19,8 +20,10 @@ const order      = ref<Order | null>(null)
 const loading    = ref(true)
 const error      = ref('')
 const claiming   = ref(false)
+const releasing  = ref(false)
 const finishing  = ref(false)
 const savingItem = ref<string | null>(null)
+const activityPanel = ref<InstanceType<typeof OrderActivityPanel> | null>(null)
 
 // Черновой ввод веса по каждой weight_variable-позиции — в кг, храним по
 // item.id, шлём на бэкенд в граммах (см. старую реализацию — логика та же).
@@ -38,9 +41,15 @@ const reportingProblem = ref(false)
 async function load() {
   loading.value = true
   error.value = ''
+  const prevCollector = order.value?.collector_name
   try {
     const resp = await api.getOrder(route.params.id as string)
     order.value = resp.data
+    // Realtime: заказ забрали/отпустили, пока страница открыта.
+    if (prevCollector !== undefined && prevCollector !== order.value.collector_name) {
+      if (order.value.collector_name) toast.info(`Заказ забрал ${order.value.collector_name}`)
+      else toast.info('Заказ больше никто не собирает')
+    }
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить заказ'
   } finally {
@@ -90,10 +99,26 @@ async function claim(takeover = false) {
     const resp = await api.claimOrder(order.value.id, takeover)
     order.value = resp.data
     toast.success('Заказ взят в работу')
+    activityPanel.value?.reload()
   } catch (e) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось взять заказ')
   } finally {
     claiming.value = false
+  }
+}
+
+async function release() {
+  if (!order.value) return
+  releasing.value = true
+  try {
+    await api.releaseOrder(order.value.id)
+    order.value = { ...order.value, collector_id: null, collector_name: null }
+    toast.success('Вы отказались от заказа')
+    activityPanel.value?.reload()
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось отказаться от заказа')
+  } finally {
+    releasing.value = false
   }
 }
 
@@ -419,6 +444,13 @@ onUnmounted(() => {
         </p>
       </div>
 
+      <!-- Отказаться от заказа -->
+      <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="card">
+        <button type="button" class="text-sm text-gray-500 dark:text-gray-400" :disabled="releasing" @click="release">
+          {{ releasing ? 'Отказываюсь…' : 'Отказаться от заказа' }}
+        </button>
+      </div>
+
       <!-- Проблема с заказом -->
       <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled' && (!order.pick_note || showProblemForm)" class="card space-y-2">
         <button v-if="!showProblemForm && !order.pick_note" type="button" class="text-sm text-red-600 dark:text-red-400" @click="openProblemForm">
@@ -439,6 +471,8 @@ onUnmounted(() => {
           </div>
         </template>
       </div>
+
+      <OrderActivityPanel ref="activityPanel" :order-id="order.id" />
 
       <!-- Finish -->
       <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="fixed bottom-0 left-0 right-0 z-20 p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">

@@ -237,6 +237,29 @@ class TelegramService
     }
 
     /**
+     * Сборщик отметил заказ «Требует внимания» (OrderController::reportProblem) —
+     * раньше владелец узнавал об этом только по беззвучному realtime-эвенту
+     * (если вкладка админки открыта) или счётчику в сайдбаре. Тот же канал,
+     * что и у notifyOwnerSurchargeExpired выше.
+     */
+    public static function notifyOwnerOrderProblem(Shop $shop, $order, string $note): void
+    {
+        $name = $order->customer_name ?? $order->customer_phone;
+
+        $text = "⚠️ <b>Проблема с заказом №" . substr($order->id, 0, 8) . "</b>\n\n"
+              . "Клиент: " . self::esc($name) . "\n"
+              . "Сообщение сборщика: " . self::esc($note);
+
+        self::sendMessage(
+            shop: $shop,
+            text: $text,
+            type: 'system_notification',
+            entityType: 'Order',
+            entityId: $order->id
+        );
+    }
+
+    /**
      * Generate a deep-link token so a customer can link their Telegram.
      * Returns the full t.me URL to put in the widget.
      */

@@ -14,6 +14,7 @@ import type {
   MailFailuresListResponse,
   StaffMember,
   StockAdjustment,
+  OrderActivity,
   ChatThread,
   ChatMessage,
   TelegramStatus,
@@ -378,6 +379,14 @@ class ApiClient {
       `/admin/orders/${orderId}/claim${takeover ? '?takeover=1' : ''}`,
       { method: 'PATCH' }
     )
+  }
+
+  async releaseOrder(orderId: string) {
+    return this.request<{ message: string }>(`/admin/orders/${orderId}/release`, { method: 'PATCH' })
+  }
+
+  async getOrderActivity(orderId: string) {
+    return this.request<{ data: OrderActivity[] }>(`/admin/orders/${orderId}/activity`)
   }
 
   async pickOrderItem(orderId: string, itemId: string, pickedQty: number | null) {

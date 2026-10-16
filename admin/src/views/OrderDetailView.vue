@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner, UiAvatar, UiSkeleton } from '@/shared/ui'
+import OrderActivityPanel from '@/components/OrderActivityPanel.vue'
 import type { Order } from '@/types'
 
 const route      = useRoute()
@@ -23,6 +24,39 @@ const loading = ref(true)
 const updating = ref(false)
 const errorMsg = ref<string | null>(null)
 const downloadingInvoice = ref(false)
+const claiming = ref(false)
+const releasing = ref(false)
+const activityPanel = ref<InstanceType<typeof OrderActivityPanel> | null>(null)
+
+async function claim(takeover = false) {
+  if (!order.value) return
+  claiming.value = true
+  try {
+    const resp = await api.claimOrder(order.value.id, takeover)
+    order.value = resp.data
+    toast.success('Заказ взят в работу')
+    activityPanel.value?.reload()
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось взять заказ')
+  } finally {
+    claiming.value = false
+  }
+}
+
+async function release() {
+  if (!order.value) return
+  releasing.value = true
+  try {
+    await api.releaseOrder(order.value.id)
+    order.value = { ...order.value, collector_id: null, collector_name: null }
+    toast.success('Вы отказались от заказа')
+    activityPanel.value?.reload()
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось отказаться от заказа')
+  } finally {
+    releasing.value = false
+  }
+}
 
 async function downloadInvoice() {
   if (!order.value) return
@@ -47,10 +81,18 @@ function formatDate(dateStr: string | null) {
 
 async function load() {
   const id = route.params.id as string
+  const prevCollector = order.value?.collector_name
   try {
     const resp = await api.getOrder(id)
     order.value = resp.data
     errorMsg.value = null
+    // Realtime: кто-то другой забрал/отпустил заказ, пока страница открыта
+    // (вопрос из голосового — «увидит ли прежний исполнитель?») — да, если
+    // страница открыта; если нет, увидит «Собирает X» при следующем входе.
+    if (prevCollector !== undefined && prevCollector !== order.value.collector_name) {
+      if (order.value.collector_name) toast.info(`Заказ забрал ${order.value.collector_name}`)
+      else toast.info('Заказ больше никто не собирает')
+    }
   } catch (err) {
     if (!order.value) {
       errorMsg.value = err instanceof ApiError ? `Ошибка ${err.status}: ${err.message}` : 'Не удалось загрузить заказ'
@@ -161,8 +203,8 @@ async function updateStatus(status: string) {
           <UiSpinner v-if="updating" size="sm" />
         </div>
         <div class="flex flex-wrap gap-2">
-          <button v-if="order.status === 'pending'" @click="updateStatus('processing')" :disabled="updating" class="btn-primary btn-sm">
-            В работу
+          <button v-if="['pending','needs_attention'].includes(order.status)" @click="updateStatus('processing')" :disabled="updating" class="btn-primary btn-sm">
+            {{ order.status === 'needs_attention' ? 'Вернуть в работу' : 'В работу' }}
           </button>
           <button v-if="['pending','paid','processing'].includes(order.status)" @click="updateStatus('completed')" :disabled="updating" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700">
             Завершить
@@ -323,12 +365,15 @@ async function updateStatus(status: string) {
           </div>
 
           <!-- Сборка -->
-          <div v-if="order.collector_name || order.pick_note" class="card">
+          <div v-if="order.collector_name || order.pick_note || !['completed','cancelled'].includes(order.status)" class="card">
             <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Сборка</div>
             <div v-if="order.collector_name" class="text-sm text-gray-700 dark:text-gray-300">
               Собирает {{ order.collector_name }}
               <span v-if="order.picking_started_at" class="text-gray-400">· с {{ formatDate(order.picking_started_at) }}</span>
             </div>
+            <p v-else-if="!['completed','cancelled'].includes(order.status)" class="text-sm text-gray-400 dark:text-gray-500">
+              Заказ ещё не взят в работу
+            </p>
             <div v-if="order.pick_note" class="mt-2 text-sm text-pink-700 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-lg px-3 py-2">
               «{{ order.pick_note }}»
               <div class="text-xs text-pink-500 dark:text-pink-500 mt-1">
@@ -336,7 +381,22 @@ async function updateStatus(status: string) {
                 <template v-else-if="order.pick_note_at">{{ formatDate(order.pick_note_at) }}</template>
               </div>
             </div>
+            <div v-if="!['completed','cancelled'].includes(order.status)" class="flex gap-2 mt-3">
+              <button v-if="!order.collector_name" @click="claim()" :disabled="claiming" class="btn-primary btn-sm flex-1">
+                {{ claiming ? 'Беру…' : 'Взять в работу' }}
+              </button>
+              <template v-else>
+                <button v-if="order.collector_name !== authStore.user?.name" @click="claim(true)" :disabled="claiming" class="btn-secondary btn-sm flex-1">
+                  Забрать себе
+                </button>
+                <button @click="release" :disabled="releasing" class="btn-secondary btn-sm flex-1">
+                  {{ releasing ? 'Отказываюсь…' : 'Отказаться' }}
+                </button>
+              </template>
+            </div>
           </div>
+
+          <OrderActivityPanel ref="activityPanel" :order-id="order.id" />
 
         </div>
       </div>
