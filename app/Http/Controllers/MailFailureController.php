@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\TracksSeenCursor;
 use App\Models\MailFailure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,8 @@ use Illuminate\Http\Request;
  */
 class MailFailureController extends Controller
 {
+    use TracksSeenCursor;
+
     /**
      * GET /admin/mail-failures — последние несработавшие письма магазина +
      * живой статус "настроена ли вообще почта".
@@ -48,12 +51,7 @@ class MailFailureController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        $count = MailFailure::forShop($shop->id)
-            ->when(
-                $shop->mail_failures_last_seen_at,
-                fn ($q) => $q->where('created_at', '>', $shop->mail_failures_last_seen_at),
-            )
-            ->count();
+        $count = $this->pendingCountSince($shop, 'mail_failures_last_seen_at', MailFailure::forShop($shop->id));
 
         if (!self::mailConfigured()) {
             $count++;
@@ -68,8 +66,7 @@ class MailFailureController extends Controller
      */
     public function markSeen(Request $request): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
-        $shop->update(['mail_failures_last_seen_at' => now()]);
+        $this->markSeenNow($request->attributes->get('shop'), 'mail_failures_last_seen_at');
 
         return response()->json(['message' => 'ok']);
     }

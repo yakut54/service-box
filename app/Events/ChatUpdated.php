@@ -12,7 +12,7 @@ use Illuminate\Foundation\Events\Dispatchable;
  * Новое сообщение в любом треде чата — обновляет бейдж «Чат» в сайдбаре,
  * пока у сотрудника не открыт конкретно этот тред (там своя, per-thread
  * подписка, см. ChatView.vue). Тот же общий канал магазина, что и
- * OrdersUpdated/ReviewsUpdated/StaffUpdated — доступен всем ролям, не
+ * OrdersUpdated/ShopChannelEvent/StaffUpdated — доступен всем ролям, не
  * только owner/admin (в отличие от chat.thread.{apiKey}.{threadId}).
  */
 class ChatUpdated implements ShouldBroadcastNow

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\TracksSeenCursor;
 use App\Models\Customer;
 use App\Models\CustomerSession;
 use App\Models\Review;
@@ -11,6 +12,8 @@ use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
+    use TracksSeenCursor;
+
     // =========================================================
     // WIDGET
     // =========================================================
@@ -100,7 +103,7 @@ class ReviewController extends Controller
 
         $shop = $request->get('_shop');
         if ($shop) {
-            \App\Events\ReviewsUpdated::dispatch($shop->id);
+            \App\Events\ShopChannelEvent::dispatch($shop->id, 'reviews.updated');
         }
 
         return response()->json([
@@ -164,21 +167,15 @@ class ReviewController extends Controller
     public function pendingCount(Request $request): JsonResponse
     {
         $shop = $request->attributes->get('shop');
-
         $allowedCategoryIds = CategoryAccess::expandedIds($request);
 
-        $count = Review::where('is_published', false)
-            ->when(
-                $shop->reviews_last_seen_at,
-                fn ($q) => $q->where('created_at', '>', $shop->reviews_last_seen_at),
-            )
+        $query = Review::where('is_published', false)
             ->when(
                 $allowedCategoryIds !== null,
                 fn ($q) => $q->whereHas('product', fn ($q2) => $q2->whereIn('category_id', $allowedCategoryIds)),
-            )
-            ->count();
+            );
 
-        return response()->json(['count' => $count]);
+        return response()->json(['count' => $this->pendingCountSince($shop, 'reviews_last_seen_at', $query)]);
     }
 
     /**
@@ -188,8 +185,7 @@ class ReviewController extends Controller
      */
     public function markSeen(Request $request): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
-        $shop->update(['reviews_last_seen_at' => now()]);
+        $this->markSeenNow($request->attributes->get('shop'), 'reviews_last_seen_at');
 
         return response()->json(['message' => 'ok']);
     }

@@ -11,7 +11,8 @@ use Illuminate\Foundation\Events\Dispatchable;
 /**
  * Товар/категория/скидка/клиент созданы или удалены — серые цифры «всего»
  * в сайдбаре (см. NavCountsController) должны обновиться сами, без
- * перезагрузки страницы (см. App\Events\ReviewsUpdated — тот же приём).
+ * перезагрузки страницы (см. App\Events\ShopChannelEvent — тот же приём,
+ * общий класс для таких событий).
  */
 class NavCountsUpdated implements ShouldBroadcastNow
 {
