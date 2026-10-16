@@ -62,7 +62,6 @@ class ProductChangeController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
         $query = $this->filteredQuery($request)->orderByDesc('created_at');
 
         $perPage = min((int) $request->input('per_page', 25), 100);
@@ -73,8 +72,9 @@ class ProductChangeController extends Controller
             // с ним, чтобы подсветить те, что появились с прошлого визита.
             // См. markSeen() — фронт сам обновляет таймстемп отдельным
             // вызовом уже ПОСЛЕ того, как прочитал это значение (тот же
-            // приём, что ReviewController::index).
-            'product_changes_last_seen_at' => $shop->product_changes_last_seen_at?->toIso8601String(),
+            // приём, что ReviewController::index). Персонально для текущего
+            // пользователя, не общее на магазин — см. TracksSeenCursor.
+            'product_changes_last_seen_at' => $this->seenAt($request, 'product_changes')?->toIso8601String(),
         ]);
     }
 
@@ -86,8 +86,7 @@ class ProductChangeController extends Controller
      */
     public function pendingCount(Request $request): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
-        $count = $this->pendingCountSince($shop, 'product_changes_last_seen_at', $this->scopedQuery($request));
+        $count = $this->pendingCountSince($request, 'product_changes', $this->scopedQuery($request));
 
         return response()->json(['count' => $count]);
     }
@@ -99,7 +98,7 @@ class ProductChangeController extends Controller
      */
     public function markSeen(Request $request): JsonResponse
     {
-        $this->markSeenNow($request->attributes->get('shop'), 'product_changes_last_seen_at');
+        $this->markSeenNow($request, 'product_changes');
 
         return response()->json(['message' => 'ok']);
     }

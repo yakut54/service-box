@@ -142,7 +142,6 @@ class ReviewController extends Controller
         }
 
         $reviews = $query->get();
-        $shop = $request->attributes->get('shop');
 
         return response()->json([
             'data'  => $reviews->map(fn ($r) => $this->format($r)),
@@ -152,7 +151,9 @@ class ReviewController extends Controller
             // с прошлого визита. См. markSeen(): фронт сам обновляет
             // таймстемп отдельным вызовом уже ПОСЛЕ того, как прочитал это
             // значение — иначе новые отзывы никогда бы не подсвечивались.
-            'reviews_last_seen_at' => $shop->reviews_last_seen_at?->toIso8601String(),
+            // Персонально для текущего пользователя, не общее на магазин —
+            // см. TracksSeenCursor.
+            'reviews_last_seen_at' => $this->seenAt($request, 'reviews')?->toIso8601String(),
         ]);
     }
 
@@ -166,7 +167,6 @@ class ReviewController extends Controller
      */
     public function pendingCount(Request $request): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
         $allowedCategoryIds = CategoryAccess::expandedIds($request);
 
         $query = Review::where('is_published', false)
@@ -175,7 +175,7 @@ class ReviewController extends Controller
                 fn ($q) => $q->whereHas('product', fn ($q2) => $q2->whereIn('category_id', $allowedCategoryIds)),
             );
 
-        return response()->json(['count' => $this->pendingCountSince($shop, 'reviews_last_seen_at', $query)]);
+        return response()->json(['count' => $this->pendingCountSince($request, 'reviews', $query)]);
     }
 
     /**
@@ -185,7 +185,7 @@ class ReviewController extends Controller
      */
     public function markSeen(Request $request): JsonResponse
     {
-        $this->markSeenNow($request->attributes->get('shop'), 'reviews_last_seen_at');
+        $this->markSeenNow($request, 'reviews');
 
         return response()->json(['message' => 'ok']);
     }

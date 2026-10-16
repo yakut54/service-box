@@ -990,10 +990,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
     prepayment_amount integer DEFAULT 0 NOT NULL,
     hide_customer_phone boolean DEFAULT false NOT NULL,
     chat_customer_delete_enabled boolean DEFAULT false NOT NULL,
-    reviews_last_seen_at timestamp(0) without time zone,
-    mail_failures_last_seen_at timestamp(0) without time zone,
     customer_push_enabled boolean DEFAULT true NOT NULL,
-    product_changes_last_seen_at timestamp(0) without time zone,
     CONSTRAINT shops_payment_provider_check CHECK (((payment_provider)::text = ANY ((ARRAY['yookassa'::character varying, 'robokassa'::character varying, 'cloudpayments'::character varying])::text[])))
 );
 
@@ -1054,6 +1051,24 @@ CREATE TABLE IF NOT EXISTS public.user_flag_audit (
     flag_key character varying(255) NOT NULL,
     enabled boolean NOT NULL,
     created_at timestamp(0) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: user_seen_cursors; Type: TABLE; Schema: public; Owner: -
+--
+
+-- "Я (конкретный пользователь) последний раз смотрел список X в момент T" —
+-- персонально на человека, не общий курсор на весь магазин (см.
+-- TracksSeenCursor). cursor_key: 'reviews' / 'mail_failures' /
+-- 'product_changes' — составной PK вместо отдельной колонки на фичу в
+-- shops, т.к. фич с этим паттерном уже три.
+CREATE TABLE IF NOT EXISTS public.user_seen_cursors (
+    user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    shop_id uuid NOT NULL REFERENCES public.shops(id) ON DELETE CASCADE,
+    cursor_key character varying(50) NOT NULL,
+    seen_at timestamp(0) without time zone NOT NULL,
+    PRIMARY KEY (user_id, shop_id, cursor_key)
 );
 
 

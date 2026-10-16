@@ -10,7 +10,8 @@ use Illuminate\Http\Request;
 /**
  * Несработавшие письма — видно только владельцу магазина (роут защищён middleware
  * 'owner'), Настройки → Уведомления. pendingCount()/markSeen() — тот же паттерн, что
- * ReviewController::pendingCount/markSeen, только курсор — shops.mail_failures_last_seen_at.
+ * ReviewController::pendingCount/markSeen, курсор — персонально для пользователя
+ * (cursor_key='mail_failures', см. TracksSeenCursor).
  *
  * "Почта вообще не настроена" (config('mail.default') === 'log') — НЕ пишется в
  * mail_failures и не завязана на курсор "просмотрено". Раньше это ловила отдельная
@@ -51,7 +52,7 @@ class MailFailureController extends Controller
     {
         $shop = $request->attributes->get('shop');
 
-        $count = $this->pendingCountSince($shop, 'mail_failures_last_seen_at', MailFailure::forShop($shop->id));
+        $count = $this->pendingCountSince($request, 'mail_failures', MailFailure::forShop($shop->id));
 
         if (!self::mailConfigured()) {
             $count++;
@@ -66,7 +67,7 @@ class MailFailureController extends Controller
      */
     public function markSeen(Request $request): JsonResponse
     {
-        $this->markSeenNow($request->attributes->get('shop'), 'mail_failures_last_seen_at');
+        $this->markSeenNow($request, 'mail_failures');
 
         return response()->json(['message' => 'ok']);
     }
