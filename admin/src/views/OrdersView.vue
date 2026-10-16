@@ -12,6 +12,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
+import UiHint from '@/shared/ui/UiHint.vue'
 import UiPagination from '@/shared/ui/UiPagination.vue'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDateTime } from '@/shared/lib/format'
@@ -149,7 +150,8 @@ async function doExport(format: 'csv' | 'xlsx') {
       title="Заказы"
       :subtitle="`${ordersStore.meta?.total ?? ordersStore.orders.length} ${plural(ordersStore.meta?.total ?? ordersStore.orders.length, 'заказ', 'заказа', 'заказов')}`"
     >
-      <div class="flex gap-1.5">
+      <div class="flex items-center gap-1.5">
+        <UiHint align="end">Экспортируется с учётом применённых ниже фильтров (статус, период, поиск). Чтобы выгрузить все заказы — сбросьте фильтры.</UiHint>
         <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
         <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
       </div>

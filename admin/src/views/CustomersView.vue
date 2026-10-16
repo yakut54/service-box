@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { plural } from '@/lib/utils'
 import { formatPrice, formatDate } from '@/shared/lib/format'
-import { UiEmptyState, UiTooltip, UiAvatar, UiPagination, UiSkeleton } from '@/shared/ui'
+import { UiEmptyState, UiTooltip, UiAvatar, UiPagination, UiSkeleton, UiHint } from '@/shared/ui'
 import PageHeader from '@/components/PageHeader.vue'
 import UiModal from '@/shared/ui/UiModal.vue'
 import type { Customer, PaginationMeta } from '@/types'
@@ -112,7 +112,8 @@ async function doExport(format: 'csv' | 'xlsx') {
       title="Клиенты"
       :subtitle="`${totalCustomers} ${plural(totalCustomers, 'клиент', 'клиента', 'клиентов')}`"
     >
-      <div class="flex gap-1.5">
+      <div class="flex items-center gap-1.5">
+        <UiHint align="end">Экспортируется с учётом применённого ниже поиска. Чтобы выгрузить всех клиентов — очистите поле поиска.</UiHint>
         <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
         <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
       </div>
