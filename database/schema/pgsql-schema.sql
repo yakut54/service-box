@@ -583,6 +583,22 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE INDEX ON %I.chat_messages(thread_id, created_at)', p_schema_name);
                 EXECUTE format('CREATE UNIQUE INDEX ON %I.chat_messages(thread_id, client_message_id) WHERE client_message_id IS NOT NULL', p_schema_name);
 
+                -- chat_thread_reads: персональный курсор "я (сотрудник) прочитал
+                -- этот тред по момент T" — для бейджа в сайдбаре и в списке
+                -- диалогов (см. Admin\ChatController). НЕ путать с
+                -- chat_threads.shop_last_read_at/chat_messages.status — те
+                -- общие на магазин и симметрично видны покупателю ("✓✓
+                -- прочитано"), как в Телеграме, трогать нельзя (см. PLAN-CHAT.md
+                -- §1.1). Это отдельный, чисто внутренний счётчик для админки.
+                EXECUTE format($sql$
+                    CREATE TABLE %I.chat_thread_reads (
+                        thread_id    UUID NOT NULL REFERENCES %I.chat_threads(id) ON DELETE CASCADE,
+                        user_id      UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+                        last_read_at TIMESTAMPTZ NOT NULL,
+                        PRIMARY KEY (thread_id, user_id)
+                    )
+                $sql$, p_schema_name, p_schema_name);
+
                 -- customer_push_tokens (заменяет одно поле customers.fcm_token — у покупателя может быть несколько устройств)
                 EXECUTE format($sql$
                     CREATE TABLE %I.customer_push_tokens (

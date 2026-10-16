@@ -21,6 +21,13 @@ use Illuminate\Support\Str;
  * почтовый ящик — см. PLAN-CHAT.md §3.2/§7). Мастера сюда не попадают
  * (RequireNotMaster на всей группе /admin). Не путать с покупательским
  * \App\Http\Controllers\ChatController.
+ *
+ * Бейдж «непрочитано» (index()/poll()) — ЛИЧНЫЙ у каждого сотрудника
+ * (chat_thread_reads), баг найден живьём 2026-10-16: Юлия открыла диалог,
+ * у Ховара бейдж тоже погас, хотя он лично не смотрел. Статус прочтения
+ * сообщения для САМОГО ПОКУПАТЕЛЯ (chat_messages.status, галочки ✓✓) —
+ * остаётся общим на магазин, как и было (PLAN-CHAT.md §1.1: покупателю
+ * без разницы, кто именно из сотрудников прочитал — это разные вещи).
  */
 class ChatController extends Controller
 {
@@ -46,6 +53,12 @@ class ChatController extends Controller
         }
 
         $threads = $query->get();
+
+        // unread_by_shop в ответе — ЛИЧНЫЙ счётчик текущего сотрудника (см.
+        // personalUnreadByThread), не общая колонка БД. Поле переиспользуем,
+        // чтобы не трогать фронт — бейдж в списке диалогов читает именно его.
+        $personalUnread = $this->personalUnreadByThread($request->user()->id);
+        $threads->each(fn ($t) => $t->unread_by_shop = $personalUnread->get($t->id, 0));
 
         return response()->json(['data' => $threads]);
     }
@@ -262,6 +275,16 @@ class ChatController extends Controller
             'shop_last_read_at' => now(),
         ]);
 
+        // Личный курсор текущего сотрудника — он, а не shop_last_read_at
+        // выше, теперь определяет ЕГО бейдж (см. personalUnreadByThread).
+        // shop_last_read_at остаётся как было — общая информационная метка,
+        // не источник статуса сообщения (см. PLAN-CHAT.md §1.1).
+        DB::table('chat_thread_reads')->upsert(
+            [['thread_id' => $thread->id, 'user_id' => $request->user()->id, 'last_read_at' => now()]],
+            ['thread_id', 'user_id'],
+            ['last_read_at']
+        );
+
         ChatMessageBroadcast::dispatch($this->shopApiKey($request), $thread->id, 'thread.read', ['reader' => 'shop']);
 
         return response()->json(['message' => 'Прочитано']);
@@ -316,15 +339,37 @@ class ChatController extends Controller
      * непрочитанных по диалогам + сумма для бейджа в меню/на вкладке
      * браузера (§7, П5).
      */
-    public function poll(): JsonResponse
+    public function poll(Request $request): JsonResponse
     {
-        $unread = ChatThread::where('unread_by_shop', '>', 0)
-            ->pluck('unread_by_shop', 'id');
+        $unread = $this->personalUnreadByThread($request->user()->id);
 
         return response()->json([
             'unread_by_thread' => $unread,
             'total_unread'     => $unread->sum(),
         ]);
+    }
+
+    /**
+     * Сколько сообщений от покупателя в каждом треде появилось после ЛИЧНОГО
+     * курсора текущего сотрудника (chat_thread_reads) — не после общего
+     * shop_last_read_at. Если курсора для треда ещё нет (сотрудник туда
+     * вообще не заходил) — считаются ВСЕ сообщения покупателя, тот же приём,
+     * что у TracksSeenCursor::pendingCountSince в Отзывах/Журнале.
+     */
+    private function personalUnreadByThread(string $userId): \Illuminate\Support\Collection
+    {
+        return DB::table('chat_messages as m')
+            ->leftJoin('chat_thread_reads as r', function ($join) use ($userId) {
+                $join->on('r.thread_id', '=', 'm.thread_id')->where('r.user_id', $userId);
+            })
+            ->where('m.sender_type', 'customer')
+            ->whereNull('m.deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('r.last_read_at')->orWhereColumn('m.created_at', '>', 'r.last_read_at');
+            })
+            ->groupBy('m.thread_id')
+            ->selectRaw('m.thread_id, COUNT(*) as cnt')
+            ->pluck('cnt', 'thread_id');
     }
 
     /**
