@@ -82,11 +82,15 @@ class ProductChangeController extends Controller
      * GET /api/admin/product-changes/pending-count
      * Лёгкий счётчик для бейджа в меню — сколько строк появилось с прошлого
      * визита на страницу «Журнал изменений» (не "всего записей" — это
-     * отдельная серая цифра из NavCountsController).
+     * отдельная серая цифра из NavCountsController). Собственные правки
+     * пользователя в счётчик не попадают — кто сам поменял товар, тот и
+     * так знает об этом, красный бейдж ему не нужен (баг найден живьём
+     * 2026-10-16: Ховар поменял цену и сам себе зажёг бейдж).
      */
     public function pendingCount(Request $request): JsonResponse
     {
-        $count = $this->pendingCountSince($request, 'product_changes', $this->scopedQuery($request));
+        $query = $this->scopedQuery($request)->where('actor_user_id', '!=', $request->user()->id);
+        $count = $this->pendingCountSince($request, 'product_changes', $query);
 
         return response()->json(['count' => $count]);
     }
