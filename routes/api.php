@@ -219,6 +219,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::patch('/products/{product}/images/reorder', [ProductImageController::class, 'reorder']);
     Route::delete('/products/{product}/images/{image}', [ProductImageController::class, 'destroy']);
     Route::get('/product-changes', [\App\Http\Controllers\ProductChangeController::class, 'index']);
+    Route::get('/product-changes/export', [\App\Http\Controllers\ProductChangeController::class, 'export']);
     Route::get('/product-changes/pending-count', [\App\Http\Controllers\ProductChangeController::class, 'pendingCount']);
     Route::post('/product-changes/mark-seen', [\App\Http\Controllers\ProductChangeController::class, 'markSeen']);
 
