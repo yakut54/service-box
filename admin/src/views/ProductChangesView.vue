@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
@@ -8,6 +8,7 @@ import { useHighlightNew } from '@/composables/useHighlightNew'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { UiSkeleton, UiEmptyState, UiPagination, UiHint } from '@/shared/ui'
+import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { formatDateTime, formatProductChangeValue } from '@/shared/lib/format'
 import { PRODUCT_CHANGE_FIELD_LABELS, PRODUCT_CHANGE_ACTION_LABELS } from '@/shared/lib/labels'
 import type { ProductChange } from '@/types'
@@ -77,17 +78,20 @@ async function load() {
 
 async function applyFilters() {
   page.value = 1
+  selectedIds.value = new Set()
   await load()
 }
 
 async function goToPage(p: number) {
   page.value = p
+  selectedIds.value = new Set()
   await load()
 }
 
 async function changePerPage(n: number) {
   perPage.value = n
   page.value = 1
+  selectedIds.value = new Set()
   await load()
 }
 
@@ -95,6 +99,46 @@ const exporting = ref(false)
 async function doExport(format: 'csv' | 'xlsx') {
   exporting.value = true
   try { await api.exportProductChanges({ ...buildParams(), format }) } finally { exporting.value = false }
+}
+
+// ── Выборочное удаление (владелец) ──────────────────────────────
+// Один механизм и на одну запись, и на несколько — чекбоксы + общая
+// кнопка «Удалить», без отдельной урны на каждой строке.
+const selectMode  = ref(false)
+const selectedIds = ref<Set<string>>(new Set())
+const confirmOpen = ref(false)
+const deleting    = ref(false)
+
+function toggleSelectMode() {
+  selectMode.value = !selectMode.value
+  selectedIds.value = new Set()
+}
+
+function toggleRow(id: string) {
+  const next = new Set(selectedIds.value)
+  next.has(id) ? next.delete(id) : next.add(id)
+  selectedIds.value = next
+}
+
+const allOnPageSelected = computed(() => rows.value.length > 0 && rows.value.every(r => selectedIds.value.has(r.id)))
+
+function toggleSelectAllOnPage() {
+  selectedIds.value = allOnPageSelected.value ? new Set() : new Set(rows.value.map(r => r.id))
+}
+
+async function doDelete() {
+  deleting.value = true
+  try {
+    await api.deleteProductChanges([...selectedIds.value])
+    confirmOpen.value = false
+    selectMode.value = false
+    selectedIds.value = new Set()
+    await load()
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Не удалось удалить'
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(async () => {
@@ -117,7 +161,25 @@ onMounted(async () => {
       <UiHint align="end">Экспортируется с учётом применённых выше фильтров. Чтобы выгрузить весь журнал — сначала нажмите «Сбросить».</UiHint>
       <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
       <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
+      <button v-if="authStore.isOwner" @click="toggleSelectMode" class="btn-secondary text-sm">
+        {{ selectMode ? 'Отмена' : 'Выбрать' }}
+      </button>
     </PageHeader>
+
+    <div v-if="selectMode" class="card flex flex-wrap items-center gap-3 py-3">
+      <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+        <input type="checkbox" :checked="allOnPageSelected" @change="toggleSelectAllOnPage" class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500" />
+        Выбрать все на странице
+      </label>
+      <span class="text-sm text-gray-500 dark:text-gray-400">Выбрано: {{ selectedIds.size }}</span>
+      <button
+        @click="confirmOpen = true"
+        :disabled="selectedIds.size === 0"
+        class="btn-danger text-sm ml-auto"
+      >
+        Удалить ({{ selectedIds.size }})
+      </button>
+    </div>
 
     <div class="flex flex-col sm:flex-row gap-3">
       <CustomSelect v-model="filterProduct" :options="productOptions" placeholder="Все товары" class="flex-1 sm:max-w-xs" searchable @change="applyFilters" />
@@ -161,6 +223,13 @@ onMounted(async () => {
         :key="row.id"
         :class="['card flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 transition-colors duration-[3000ms]', highlightClass(row.id)]"
       >
+        <input
+          v-if="selectMode"
+          type="checkbox"
+          :checked="selectedIds.has(row.id)"
+          @change="toggleRow(row.id)"
+          class="w-4 h-4 shrink-0 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+        />
         <div class="min-w-0 flex-1">
           <RouterLink
             v-if="row.product_id"
@@ -192,5 +261,14 @@ onMounted(async () => {
         @update:per-page="changePerPage"
       />
     </div>
+
+    <UiConfirmDialog
+      v-model="confirmOpen"
+      :title="`Удалить ${selectedIds.size} ${selectedIds.size === 1 ? 'запись' : 'записей'}?`"
+      :loading="deleting"
+      @confirm="doDelete"
+    >
+      Действие необратимо — удалённые записи журнала нельзя будет восстановить.
+    </UiConfirmDialog>
   </div>
 </template>

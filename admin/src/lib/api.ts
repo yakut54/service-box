@@ -296,6 +296,13 @@ class ApiClient {
     return this.download('/admin/product-changes/export', params)
   }
 
+  async deleteProductChanges(ids: string[]) {
+    return this.request<{ message: string; deleted: number }>('/admin/product-changes', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
+    })
+  }
+
   // ── Size charts ──────────────────────────────────────────────
   async getSizeCharts() {
     return this.request<{ data: SizeChart[] }>('/admin/size-charts')
