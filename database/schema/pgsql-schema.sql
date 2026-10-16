@@ -612,23 +612,31 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     )
                 $sql$, p_schema_name, p_schema_name);
 
-                -- stock_adjustments: журнал РУЧНЫХ правок остатка (владелец/
-                -- администратор правят склад в карточке товара) — не
+                -- product_changes: журнал РУЧНЫХ правок товара (владелец/
+                -- администратор правят что-то в карточке товара) — не
                 -- автоматических списаний/возвратов при заказах
-                -- (PhysicalStockService) и не взвешивания (OrderReweewService).
+                -- (PhysicalStockService) и не взвешивания (OrderReweighService).
                 -- product_name/variant_label — снапшот на момент правки, чтобы
                 -- строка оставалась читаемой и после удаления товара/варианта
                 -- (ON DELETE SET NULL, не CASCADE — журнал переживает удаление).
+                -- action='created'/'deleted' — событие целиком, field=NULL;
+                -- action='updated' — одна строка на каждое изменённое поле
+                -- (field: 'stock'/'price'/'compare_price'/'name'/'category'/
+                -- 'active'). old_value/new_value — TEXT: поля разнотипные
+                -- (число строкой, текст, '1'/'0'), конкретный формат
+                -- (деньги/вес/булево) решает фронт по значению field.
                 EXECUTE format($sql$
-                    CREATE TABLE %I.stock_adjustments (
+                    CREATE TABLE %I.product_changes (
                         id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                         product_id    UUID REFERENCES %I.products(id) ON DELETE SET NULL,
                         variant_id    UUID REFERENCES %I.product_variants(id) ON DELETE SET NULL,
                         product_name  TEXT NOT NULL,
                         variant_label TEXT,
-                        unit          TEXT NOT NULL CHECK (unit IN ('pcs', 'g')),
-                        old_value     INTEGER NOT NULL,
-                        new_value     INTEGER NOT NULL,
+                        action        TEXT NOT NULL CHECK (action IN ('created', 'updated', 'deleted')),
+                        field         TEXT,
+                        unit          TEXT CHECK (unit IN ('pcs', 'g')),
+                        old_value     TEXT,
+                        new_value     TEXT,
                         actor_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
                         actor_name    TEXT NOT NULL,
                         actor_role    TEXT NOT NULL CHECK (actor_role IN ('owner', 'admin')),
@@ -636,8 +644,8 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
-                EXECUTE format('CREATE INDEX ON %I.stock_adjustments(product_id, created_at DESC)', p_schema_name);
-                EXECUTE format('CREATE INDEX ON %I.stock_adjustments(created_at DESC)', p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.product_changes(product_id, created_at DESC)', p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.product_changes(created_at DESC)', p_schema_name);
 
                 -- order_activity: журнал действий с заказом (взял/отпустил/сменил
                 -- статус/отметил проблему) — кто и когда, от любой роли с доступом
