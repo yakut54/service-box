@@ -7,7 +7,7 @@ import { useProductChangesStore } from '@/stores/productChanges'
 import { useHighlightNew } from '@/composables/useHighlightNew'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import { UiSkeleton, UiEmptyState, UiPagination } from '@/shared/ui'
+import { UiSkeleton, UiEmptyState, UiPagination, UiHint } from '@/shared/ui'
 import { formatDateTime, formatProductChangeValue } from '@/shared/lib/format'
 import { PRODUCT_CHANGE_FIELD_LABELS, PRODUCT_CHANGE_ACTION_LABELS } from '@/shared/lib/labels'
 import type { ProductChange } from '@/types'
@@ -91,6 +91,12 @@ async function changePerPage(n: number) {
   await load()
 }
 
+const exporting = ref(false)
+async function doExport(format: 'csv' | 'xlsx') {
+  exporting.value = true
+  try { await api.exportProductChanges({ ...buildParams(), format }) } finally { exporting.value = false }
+}
+
 onMounted(async () => {
   load()
   try {
@@ -107,7 +113,11 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <PageHeader title="Журнал изменений" subtitle="Кто, когда и что поменял в товарах — остаток, цена, название, категория, видимость" />
+    <PageHeader title="Журнал изменений" subtitle="Кто, когда и что поменял в товарах — остаток, цена, название, категория, видимость">
+      <UiHint align="end">Экспортируется с учётом применённых выше фильтров. Чтобы выгрузить весь журнал — сначала нажмите «Сбросить».</UiHint>
+      <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
+      <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
+    </PageHeader>
 
     <div class="flex flex-col sm:flex-row gap-3">
       <CustomSelect v-model="filterProduct" :options="productOptions" placeholder="Все товары" class="flex-1 sm:max-w-xs" searchable @change="applyFilters" />

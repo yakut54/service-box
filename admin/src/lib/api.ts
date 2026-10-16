@@ -292,6 +292,10 @@ class ApiClient {
     return this.request<{ message: string }>('/admin/product-changes/mark-seen', { method: 'POST' })
   }
 
+  async exportProductChanges(params?: Record<string, string>) {
+    return this.download('/admin/product-changes/export', params)
+  }
+
   // ── Size charts ──────────────────────────────────────────────
   async getSizeCharts() {
     return this.request<{ data: SizeChart[] }>('/admin/size-charts')
