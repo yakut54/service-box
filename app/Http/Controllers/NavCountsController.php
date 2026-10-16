@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductChange;
 use App\Models\Review;
 use App\Models\ShopStaff;
 use App\Support\CategoryAccess;
@@ -70,14 +71,22 @@ class NavCountsController extends Controller
             )
             ->count();
 
+        $productChanges = ProductChange::query()
+            ->when($allowedCategoryIds !== null, fn ($q) => $q->whereHas(
+                'product',
+                fn ($q2) => $q2->whereIn('category_id', $allowedCategoryIds)
+            ))
+            ->count();
+
         return response()->json([
-            'orders'     => $orders,
-            'customers'  => $customers,
-            'products'   => $products,
-            'categories' => $categories,
-            'discounts'  => $discounts,
-            'reviews'    => $reviews,
-            'staff'      => $staff,
+            'orders'          => $orders,
+            'customers'       => $customers,
+            'products'        => $products,
+            'categories'      => $categories,
+            'discounts'       => $discounts,
+            'reviews'         => $reviews,
+            'staff'           => $staff,
+            'product_changes' => $productChanges,
         ]);
     }
 }

@@ -51,6 +51,7 @@ class Shop extends Model
         'chat_customer_delete_enabled',
         'reviews_last_seen_at',
         'mail_failures_last_seen_at',
+        'product_changes_last_seen_at',
         'customer_push_enabled',
     ];
 
@@ -60,6 +61,7 @@ class Shop extends Model
         'chat_customer_delete_enabled' => 'boolean',
         'reviews_last_seen_at' => 'datetime',
         'mail_failures_last_seen_at' => 'datetime',
+        'product_changes_last_seen_at' => 'datetime',
         'max_chat_id'            => 'integer',
         'widget_config'     => 'array',
         'legal_config'      => 'array',

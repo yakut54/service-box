@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Product;
+use App\Models\ProductChange;
 use App\Models\ShopStaff;
 use App\Services\TenantService;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -119,11 +120,12 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Серые цифры «всего» в сайдборе (NavCountsController) — реалтайм по
-     * созданию/удалению Товара/Категории/Скидки/Сотрудника/Клиента. Один
-     * обсервер на 5 моделей вместо копирования NavCountsUpdated::dispatch()
-     * в 8 разных контроллеров (ProductController/CategoryController/
-     * DiscountController/StaffController/CustomerController) — первый и
-     * единственный обсервер в проекте, других пока нет.
+     * созданию/удалению Товара/Категории/Скидки/Сотрудника/Клиента, плюс
+     * созданию строки Журнала изменений. Один обсервер на модели вместо
+     * копирования NavCountsUpdated::dispatch() по контроллерам
+     * (ProductController/CategoryController/DiscountController/
+     * StaffController/CustomerController) — первый и единственный
+     * обсервер в проекте, других пока нет.
      *
      * Product/Category/Discount/Customer — тенантные таблицы (создаются
      * per-shop в create_shop_schema(), см. database/schema/pgsql-schema.sql),
@@ -145,6 +147,11 @@ class AppServiceProvider extends ServiceProvider
 
         ShopStaff::created(fn (ShopStaff $m) => $this->broadcastNavCounts($m->shop_id));
         ShopStaff::deleted(fn (ShopStaff $m) => $this->broadcastNavCounts($m->shop_id));
+
+        // ProductChange — журнал append-only, строки не удаляются, поэтому
+        // только created (ProductChangeLog::persist() теперь create() в
+        // цикле, а не bulk insert() — иначе это событие не сработает).
+        ProductChange::created(fn (ProductChange $m) => $this->broadcastNavCounts(TenantService::getCurrentShopId()));
     }
 
     /**

@@ -72,8 +72,20 @@ class ProductChangeLog
             $row['actor_role']    = $staffRole;
             $row['reason']        = $reason;
         }
+        unset($row);
 
-        ProductChange::insert($rows);
+        // create() в цикле, не insert($rows) — иначе Eloquent-события
+        // created не летят, а на них держится серый бейдж "всего" в
+        // AppServiceProvider::registerNavCountsBroadcasts(). Строк за раз
+        // мало (1-5), так что цена цикла не важна.
+        foreach ($rows as $row) {
+            ProductChange::create($row);
+        }
+
+        $shop = $request->attributes->get('shop');
+        if ($shop) {
+            \App\Events\ShopChannelEvent::dispatch($shop->id, 'product_changes.updated');
+        }
     }
 
     /** @return array<string,mixed> строка «товар создан»/«товар удалён» — событие целиком, без конкретного поля. */
