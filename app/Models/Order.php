@@ -94,6 +94,43 @@ class Order extends Model
         return $this->hasMany(OrderActivity::class);
     }
 
+    /**
+     * Допустимые переходы статуса через updateStatus() (OrderController и
+     * Api\WriteController) — до этой проверки её не было вообще, только
+     * целевой статус валидировался против общего списка. Значило, что API-
+     * запросом можно было переоткрыть уже completed/cancelled заказ: остаток
+     * уже списан/возвращён, комиссия уже посчитана — повторный проход через
+     * эту логику не предусмотрен нигде. completed/cancelled — терминальные,
+     * из них переходов нет. Набор целей на каждый статус подобран строго под
+     * то, что уже умеет делать фронт (кнопки «В работу»/«Вернуть в работу»/
+     * «Завершить»/«Отменить» в OrderDetailView.vue и «Готово» у сборщика) —
+     * бэкенд теперь просто не доверяет фронту то же самое молча.
+     * `paid`/`needs_attention` сюда не входят ни как цель (их проставляют
+     * вебхук ЮKassa и reportProblem() соответственно, не updateStatus).
+     */
+    public const TRANSITIONS = [
+        'pending'         => ['processing', 'completed', 'cancelled'],
+        'paid'            => ['processing', 'completed', 'cancelled'],
+        'processing'      => ['completed', 'cancelled'],
+        'needs_attention' => ['processing', 'cancelled'],
+        'completed'       => [],
+        'cancelled'       => [],
+    ];
+
+    public const STATUS_LABELS = [
+        'pending'         => 'Ожидает',
+        'paid'            => 'Оплачен',
+        'processing'      => 'В работе',
+        'needs_attention' => 'Требует внимания',
+        'completed'       => 'Завершён',
+        'cancelled'       => 'Отменён',
+    ];
+
+    public function canTransitionTo(string $status): bool
+    {
+        return in_array($status, self::TRANSITIONS[$this->status] ?? [], true);
+    }
+
     public function scopeWithStatus($query, string $status)
     {
         return $query->where('status', $status);

@@ -607,6 +607,16 @@ class OrderController extends Controller
 
         $newStatus = $request->status;
 
+        // Переоткрыть завершённый/отменённый заказ (или перескочить мимо
+        // предусмотренных шагов) запросом было нечем не остановить — см.
+        // Order::TRANSITIONS.
+        if ($newStatus !== $order->status && !$order->canTransitionTo($newStatus)) {
+            return response()->json([
+                'message' => "Нельзя сменить статус «" . (Order::STATUS_LABELS[$order->status] ?? $order->status)
+                    . "» на «" . (Order::STATUS_LABELS[$newStatus] ?? $newStatus) . "»",
+            ], 422);
+        }
+
         if ($newStatus === 'completed' && !$order->paid_at) {
             return response()->json([
                 'message' => 'Нельзя завершить неоплаченный заказ — оплата проходит только через ЮKassa',
@@ -931,6 +941,15 @@ class OrderController extends Controller
 
         if (!$this->orderInScope($orderModel, $request)) {
             abort(404);
+        }
+
+        // Тот же класс дыры, что чинили в updateStatus (Order::TRANSITIONS) —
+        // этот метод тоже меняет статус (на needs_attention) и тоже не
+        // проверял, с какого. Закрытый заказ трогать нельзя; needs_attention
+        // → needs_attention разрешаем отдельно — это не переход, а
+        // редактирование уже существующей заметки ($isEdit ниже).
+        if (in_array($orderModel->status, ['completed', 'cancelled'], true)) {
+            return response()->json(['message' => 'Этот заказ уже закрыт'], 422);
         }
 
         // Заметку можно переотправить (исправить текст) сколько угодно раз,

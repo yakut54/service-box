@@ -304,6 +304,16 @@ class WriteController extends Controller
         $oldStatus = $order->status;
         $newStatus = $request->status;
 
+        // Та же проверка, что в OrderController::updateStatus (см. Order::
+        // TRANSITIONS) — без неё внешний API мог тем же способом переоткрыть
+        // уже закрытый заказ.
+        if ($newStatus !== $oldStatus && !$order->canTransitionTo($newStatus)) {
+            return response()->json([
+                'message' => "Нельзя сменить статус «" . (Order::STATUS_LABELS[$oldStatus] ?? $oldStatus)
+                    . "» на «" . (Order::STATUS_LABELS[$newStatus] ?? $newStatus) . "»",
+            ], 422);
+        }
+
         if ($newStatus === 'completed' && !$order->paid_at) {
             return response()->json([
                 'message' => 'Нельзя завершить неоплаченный заказ — оплата проходит только через ЮKassa',
