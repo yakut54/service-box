@@ -3,27 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\Paginates;
-use App\Models\StockAdjustment;
+use App\Models\ProductChange;
 use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Журнал ручных правок остатка (см. App\Services\StockJournal) — только
+ * Журнал ручных правок товара (см. App\Services\ProductChangeLog) — только
  * чтение, строки пишутся из ProductController через сервис, не отсюда.
  */
-class StockJournalController extends Controller
+class ProductChangeController extends Controller
 {
     use Paginates;
 
     /**
-     * GET /api/admin/stock-journal
+     * GET /api/admin/product-changes
      *
      * Query params: product_id, actor_user_id, page, per_page
      */
     public function index(Request $request): JsonResponse
     {
-        $query = StockAdjustment::query()->orderByDesc('created_at');
+        $query = ProductChange::query()->orderByDesc('created_at');
 
         if ($request->filled('product_id')) {
             $query->where('product_id', $request->input('product_id'));

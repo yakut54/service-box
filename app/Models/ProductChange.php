@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
-class StockAdjustment extends Model
+class ProductChange extends Model
 {
     use HasUuids;
 
-    protected $table = 'stock_adjustments';
+    protected $table = 'product_changes';
 
     const UPDATED_AT = null;
 
@@ -18,6 +18,8 @@ class StockAdjustment extends Model
         'variant_id',
         'product_name',
         'variant_label',
+        'action',
+        'field',
         'unit',
         'old_value',
         'new_value',
@@ -28,8 +30,6 @@ class StockAdjustment extends Model
     ];
 
     protected $casts = [
-        'old_value'  => 'integer',
-        'new_value'  => 'integer',
         'created_at' => 'datetime',
     ];
 
