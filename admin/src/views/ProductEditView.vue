@@ -663,7 +663,7 @@ async function handleSubmit() {
 
       <!-- ══════════ ИСТОРИЯ ОСТАТКА ══════════ -->
       <div v-if="isEditing && form.type === 'physical'" class="card">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">История остатка</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">История изменений</h2>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Ручные правки остатка этого товара — кто, когда и что изменил</p>
 
         <div v-if="stockHistoryLoading" class="space-y-2">

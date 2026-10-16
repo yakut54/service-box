@@ -87,7 +87,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <PageHeader title="Журнал остатков" subtitle="Ручные правки остатка товаров — кто, когда и что изменил" />
+    <PageHeader title="Журнал изменений" subtitle="Ручные правки остатка товаров — кто, когда и что изменил" />
 
     <div class="flex flex-col sm:flex-row gap-3">
       <CustomSelect v-model="filterProduct" :options="productOptions" placeholder="Все товары" class="flex-1 sm:max-w-xs" searchable @change="applyFilters" />
