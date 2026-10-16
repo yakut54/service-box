@@ -8,12 +8,13 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Models\Discount;
 use App\Models\Product;
 use App\Services\DiscountService;
-use App\Services\StockJournal;
+use App\Services\ProductChangeLog;
 use App\Services\StorageService;
 use App\Support\CategoryAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -176,7 +177,7 @@ class ProductController extends Controller
         ]));
 
         $this->storeProductDetails($product, $request);
-        StockJournal::recordProductCreate($product, $request);
+        ProductChangeLog::recordProductCreate($product, $request);
 
         $product->load('category:id,name,slug,age_restricted,no_return');
         $product->loadDetails();
@@ -248,7 +249,7 @@ class ProductController extends Controller
         $oldImageUrl = $product->image_url;
 
         // Остатки ДО обновления — для «сообщить о поступлении» (0 → >0,
-        // только simple/variants) и для журнала правок (StockJournal, ниже
+        // только simple/variants) и для журнала правок (ProductChangeLog, ниже
         // по методу — заодно sale_mode и вес, чтобы не делать второй запрос).
         $oldStock = [
             'sale_mode' => $product->physical()->value('sale_mode') ?? 'piece',
@@ -256,6 +257,10 @@ class ProductController extends Controller
             'weight'    => $product->physical()->value('stock_weight_grams') ?? 0,
             'variants'  => $product->variants()->pluck('stock_quantity', 'id')->all(),
         ];
+
+        // Остальные поля ДО обновления — для того же журнала (цена/название/
+        // категория/видимость), см. ProductChangeLog::TRACKED_FIELDS.
+        $oldAttrs = $product->only(ProductChangeLog::TRACKED_FIELDS);
 
         $product->update($request->only([
             'type',
@@ -278,7 +283,7 @@ class ProductController extends Controller
         $this->updateProductDetails($product, $request);
 
         $this->notifyBackInStock($product, $oldStock);
-        StockJournal::recordProductUpdate($product, $oldStock, $request);
+        ProductChangeLog::recordProductUpdate($product, $oldStock, $oldAttrs, $request);
 
         $product->refresh()->load('category:id,name,slug,age_restricted,no_return')->loadDetails();
 
@@ -333,7 +338,16 @@ class ProductController extends Controller
         $galleryUrls = $product->images->pluck('url');
 
         try {
-            $product->delete();
+            // Строка журнала пишется ДО удаления (пока product_id ещё
+            // существует — на него смотрит FK), а не после: ON DELETE SET
+            // NULL у product_changes.product_id сам обнулит ссылку, когда
+            // товар реально исчезнет. Транзакция — если delete() упадёт
+            // (см. catch ниже), запись «товар удалён» для живого товара
+            // не должна остаться в журнале.
+            DB::transaction(function () use ($product, $request) {
+                ProductChangeLog::recordProductDelete($product, $request);
+                $product->delete();
+            });
         } catch (\Illuminate\Database\QueryException $e) {
             // На order_items.product_id стоит ON DELETE SET NULL, так что заказы
             // удалению не мешают. Но если когда-нибудь появится другая ссылка с
