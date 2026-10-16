@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
 import { useReviewsStore } from '@/stores/reviews'
+import { useHighlightNew } from '@/composables/useHighlightNew'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
@@ -23,9 +24,8 @@ const error    = ref('')
 
 // ── "Новые с прошлого визита" — подсветка на несколько секунд ──
 // (баг/пожелание с живого теста 2026-08-25: бейдж считал "не
-// опубликовано", а не "не виденное", см. useReviewsStore). Id из этого
-// набора убираются через 4 сек, CSS-transition сам плавно уводит цвет.
-const newIds = ref<Set<string>>(new Set())
+// опубликовано", а не "не виденное", см. useReviewsStore).
+const { markNew, highlightClass } = useHighlightNew<Review>()
 
 // ── Filters ───────────────────────────────────────────────────
 const filterStatus  = ref('all')
@@ -85,19 +85,7 @@ async function load() {
     // Считаем "новое" по значению ДО этого захода — дальше сразу отмечаем
     // текущий момент просмотренным, иначе новые отзывы никогда бы не
     // подсвечивались (тот же принцип, что markRead в чате).
-    const lastSeenAt = revRes.reviews_last_seen_at ? new Date(revRes.reviews_last_seen_at) : null
-    if (lastSeenAt) {
-      newIds.value = new Set(
-        revRes.data.filter(r => r.created_at && new Date(r.created_at) > lastSeenAt).map(r => r.id),
-      )
-    } else {
-      // Ни разу не заходили раньше — не подсвечиваем ВЕСЬ список разом,
-      // это будет не "новое", а просто шум.
-      newIds.value = new Set()
-    }
-    if (newIds.value.size > 0) {
-      setTimeout(() => { newIds.value = new Set() }, 4000)
-    }
+    markNew(revRes.data, revRes.reviews_last_seen_at)
 
     // Важно: ждём, пока markReviewsSeen() запишется на бэкенде, и только
     // ПОТОМ спрашиваем pendingCount — иначе это два параллельных запроса
@@ -256,7 +244,7 @@ async function doDelete() {
         :class="[
           'card p-4 transition-colors duration-[3000ms]',
           !r.is_published ? 'border-l-4 border-l-amber-400 dark:border-l-amber-500' : '',
-          newIds.has(r.id) ? 'ring-2 ring-blue-400 bg-blue-50/60 dark:bg-blue-900/20' : ''
+          highlightClass(r.id)
         ]"
       >
         <div class="flex items-start gap-4">

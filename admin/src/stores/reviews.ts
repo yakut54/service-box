@@ -1,6 +1,5 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import { api } from '@/lib/api'
+import { createPendingCountStore } from './createPendingCountStore'
 
 /**
  * Счётчик НОВЫХ (появившихся с прошлого визита на страницу «Отзывы») и всё
@@ -14,23 +13,4 @@ import { api } from '@/lib/api'
  * (баг найден 2026-08-25 живым тестом). См. ReviewController::pendingCount
  * на бэкенде — считает по shops.reviews_last_seen_at.
  */
-export const useReviewsStore = defineStore('reviews', () => {
-  const pendingCount = ref(0)
-
-  /** Возвращает true, если счётчик вырос — сигнал для звука в AppLayout. */
-  async function fetchPendingCount(): Promise<boolean> {
-    try {
-      const prev = pendingCount.value
-      pendingCount.value = (await api.getReviewsPendingCount()).count
-      return pendingCount.value > prev
-    } catch {
-      return false
-    }
-  }
-
-  function $reset() {
-    pendingCount.value = 0
-  }
-
-  return { pendingCount, fetchPendingCount, $reset }
-})
+export const useReviewsStore = createPendingCountStore('reviews', () => api.getReviewsPendingCount())
