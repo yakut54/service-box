@@ -13,7 +13,7 @@ import type {
   ReviewsListResponse,
   MailFailuresListResponse,
   StaffMember,
-  StockAdjustment,
+  ProductChange,
   OrderActivity,
   ChatThread,
   ChatMessage,
@@ -277,9 +277,9 @@ class ApiClient {
     })
   }
 
-  async getStockJournal(params?: Record<string, string>) {
+  async getProductChanges(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PageResponse<StockAdjustment>>(`/admin/stock-journal${query}`)
+    return this.request<PageResponse<ProductChange>>(`/admin/product-changes${query}`)
   }
 
   // ── Size charts ──────────────────────────────────────────────

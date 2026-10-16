@@ -653,18 +653,20 @@ export interface PageResponse<T> {
 }
 
 // ==========================================
-// STOCK JOURNAL
+// PRODUCT CHANGES (журнал изменений товара)
 // ==========================================
 
-export interface StockAdjustment {
+export interface ProductChange {
   id: string
   product_id: string | null
   variant_id: string | null
   product_name: string
   variant_label: string | null
-  unit: 'pcs' | 'g'
-  old_value: number
-  new_value: number
+  action: 'created' | 'updated' | 'deleted'
+  field: 'stock' | 'price' | 'compare_price' | 'name' | 'category' | 'active' | null
+  unit: 'pcs' | 'g' | null
+  old_value: string | null
+  new_value: string | null
   actor_user_id: string | null
   actor_name: string
   actor_role: 'owner' | 'admin'

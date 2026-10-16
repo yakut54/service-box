@@ -151,7 +151,7 @@ const navigation = [
   { name: 'Чат',       href: '/chat',         icon: 'chat' },
   // Каталог
   { name: 'Товары',    href: '/products',     icon: 'package' },
-  { name: 'Журнал изменений', href: '/stock-journal', icon: 'stock-journal' },
+  { name: 'Журнал изменений', href: '/product-changes', icon: 'stock-journal' },
   { name: 'Категории', href: '/categories',   icon: 'categories' },
   // Маркетинг
   { name: 'Скидки',    href: '/discounts',    icon: 'discount' },

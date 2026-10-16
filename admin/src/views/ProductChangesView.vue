@@ -6,12 +6,13 @@ import { useAuthStore } from '@/stores/auth'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { UiSkeleton, UiEmptyState, UiPagination } from '@/shared/ui'
-import { formatDateTime, formatWeight } from '@/shared/lib/format'
-import type { StockAdjustment } from '@/types'
+import { formatDateTime, formatProductChangeValue } from '@/shared/lib/format'
+import { PRODUCT_CHANGE_FIELD_LABELS, PRODUCT_CHANGE_ACTION_LABELS } from '@/shared/lib/labels'
+import type { ProductChange } from '@/types'
 
 const authStore = useAuthStore()
 
-const rows    = ref<StockAdjustment[]>([])
+const rows    = ref<ProductChange[]>([])
 const loading = ref(false)
 const error   = ref('')
 
@@ -39,7 +40,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const res = await api.getStockJournal(buildParams())
+    const res = await api.getProductChanges(buildParams())
     rows.value = res.data
     if (res.meta) meta.value = res.meta
 
@@ -87,7 +88,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <PageHeader title="Журнал изменений" subtitle="Ручные правки остатка товаров — кто, когда и что изменил" />
+    <PageHeader title="Журнал изменений" subtitle="Кто, когда и что поменял в товарах — остаток, цена, название, категория, видимость" />
 
     <div class="flex flex-col sm:flex-row gap-3">
       <CustomSelect v-model="filterProduct" :options="productOptions" placeholder="Все товары" class="flex-1 sm:max-w-xs" searchable @change="applyFilters" />
@@ -115,8 +116,8 @@ onMounted(async () => {
 
     <UiEmptyState
       v-else-if="rows.length === 0"
-      title="Правок остатка ещё не было"
-      description="Здесь появятся записи, когда кто-то вручную поправит остаток товара на складе"
+      title="Изменений ещё не было"
+      description="Здесь появятся записи, когда кто-то поправит товар — остаток, цену, название, категорию или видимость"
     >
       <template #icon>
         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,10 +137,14 @@ onMounted(async () => {
           <p v-else class="font-medium text-gray-400 dark:text-gray-500 truncate">{{ row.product_name }} <span class="text-xs">(товар удалён)</span></p>
           <p v-if="row.variant_label" class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ row.variant_label }}</p>
         </div>
-        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-          {{ row.unit === 'g' ? formatWeight(row.old_value) : row.old_value }}
+        <p v-if="row.action === 'updated'" class="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+          <span class="text-gray-400 dark:text-gray-500">{{ PRODUCT_CHANGE_FIELD_LABELS[row.field ?? ''] ?? row.field }}:</span>
+          {{ formatProductChangeValue(row.field, row.unit, row.old_value) }}
           →
-          {{ row.unit === 'g' ? formatWeight(row.new_value) : row.new_value }}
+          {{ formatProductChangeValue(row.field, row.unit, row.new_value) }}
+        </p>
+        <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+          {{ PRODUCT_CHANGE_ACTION_LABELS[row.action] ?? row.action }}
         </p>
         <p class="text-sm text-gray-500 dark:text-gray-400 min-w-0 flex-1 truncate">{{ row.actor_name }}{{ row.reason ? ` · ${row.reason}` : '' }}</p>
         <p class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap shrink-0">{{ formatDateTime(row.created_at, authStore.shop?.timezone ?? undefined) }}</p>

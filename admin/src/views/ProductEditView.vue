@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import { useAuthStore } from '@/stores/auth'
-import { formatDateTime, formatWeight } from '@/shared/lib/format'
+import { formatDateTime, formatProductChangeValue } from '@/shared/lib/format'
+import { PRODUCT_CHANGE_FIELD_LABELS, PRODUCT_CHANGE_ACTION_LABELS } from '@/shared/lib/labels'
 import CategorySelect from '@/components/CategorySelect.vue'
 import ImageUpload from '@/components/ImageUpload.vue'
 import ProductImageGallery from '@/components/ProductImageGallery.vue'
@@ -12,7 +13,7 @@ import SizeChartPicker from '@/components/SizeChartPicker.vue'
 import ProductVariantsEditor from '@/components/ProductVariantsEditor.vue'
 import { UiHint, KeyValueEditor, UiNumberField, UiSkeleton } from '@/shared/ui'
 import type { KeyValueRow } from '@/shared/ui'
-import type { ProductImage, ProductOption, ProductVariant, StockAdjustment } from '@/types'
+import type { ProductImage, ProductOption, ProductVariant, ProductChange } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -59,12 +60,12 @@ const isWeightMode = computed(() =>
   physicalDetails.value.sale_mode === 'weight_fixed' || physicalDetails.value.sale_mode === 'weight_variable'
 )
 
-// Причина правки остатка (необязательно) — одна на всё сохранение формы,
-// см. StockJournal на бэкенде. История — отдельным запросом, не блокирует
+// Причина правки (необязательно) — одна на всё сохранение формы, см.
+// ProductChangeLog на бэкенде. История — отдельным запросом, не блокирует
 // загрузку самого товара.
-const stockReason = ref('')
-const stockHistory = ref<StockAdjustment[]>([])
-const stockHistoryLoading = ref(false)
+const changeReason = ref('')
+const changeHistory = ref<ProductChange[]>([])
+const changeHistoryLoading = ref(false)
 
 // Остаток склада хранится в граммах (та же точность, что и вес заказа), но
 // вводится в кг — у весовых товаров остаток обычно измеряется десятками-
@@ -307,19 +308,19 @@ onMounted(async () => {
     }
     loading.value = false
 
-    loadStockHistory()
+    loadChangeHistory()
   }
 })
 
-async function loadStockHistory() {
-  stockHistoryLoading.value = true
+async function loadChangeHistory() {
+  changeHistoryLoading.value = true
   try {
-    const res = await api.getStockJournal({ product_id: route.params.id as string, per_page: '20' })
-    stockHistory.value = res.data
+    const res = await api.getProductChanges({ product_id: route.params.id as string, per_page: '20' })
+    changeHistory.value = res.data
   } catch {
     // Не критично для редактирования товара — просто не показываем историю.
   }
-  stockHistoryLoading.value = false
+  changeHistoryLoading.value = false
 }
 
 async function handleSubmit() {
@@ -344,7 +345,7 @@ async function handleSubmit() {
   if (form.value.type === 'physical') data.physical = physicalDetails.value
   if (form.value.type === 'digital') data.digital = digitalDetails.value
   if (form.value.type === 'service') data.service = serviceDetails.value
-  if (isEditing.value) data.stock_reason = stockReason.value.trim() || null
+  if (isEditing.value) data.change_reason = changeReason.value.trim() || null
 
   // Отбрасываем пустые строки — бэкенд сделает то же, но не гоняем мусор по сети.
   data.attributes = attributes.value.filter(a => a.label.trim() && a.value.trim())
@@ -510,6 +511,18 @@ async function handleSubmit() {
             </div>
             <span class="text-gray-700 dark:text-gray-300">Показывать в каталоге</span>
           </label>
+
+          <!-- Причина правки — необязательная, одна на всё сохранение формы
+               (цена, название, категория, остаток — что угодно поменяли в
+               этот раз). Только при редактировании — при создании товара это
+               не «правка», а создание (журнал пишет это сам, без причины). -->
+          <div v-if="isEditing">
+            <p class="label flex items-center gap-1">
+              Причина изменения
+              <UiHint>Необязательно. Попадёт в журнал изменений вместе со старым и новым значением.</UiHint>
+            </p>
+            <input v-model="changeReason" type="text" class="input" maxlength="255" placeholder="Привезли товар, пересчёт, акция закончилась…" />
+          </div>
         </div>
       </div>
 
@@ -549,18 +562,6 @@ async function handleSubmit() {
               </p>
               <UiNumberField v-model="stockWeightKg" :min="0" :step="0.1" placeholder="0" />
             </div>
-          </div>
-
-          <!-- Причина правки остатка — необязательная, одна на всё сохранение
-               (и на простой остаток, и на остатки вариантов). Только при
-               редактировании — при создании товара это не «правка», это
-               начальный остаток (журнал пишет его сам, без причины). -->
-          <div v-if="isEditing">
-            <p class="label flex items-center gap-1">
-              Причина изменения остатка
-              <UiHint>Необязательно. Попадёт в журнал остатков вместе со старым и новым значением.</UiHint>
-            </p>
-            <input v-model="stockReason" type="text" class="input" maxlength="255" placeholder="Привезли товар, пересчёт, испорчено…" />
           </div>
 
           <label v-if="!isWeightMode || physicalDetails.sale_mode === 'weight_fixed'" class="flex items-center gap-3 cursor-pointer select-none">
@@ -661,23 +662,27 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <!-- ══════════ ИСТОРИЯ ОСТАТКА ══════════ -->
-      <div v-if="isEditing && form.type === 'physical'" class="card">
+      <!-- ══════════ ИСТОРИЯ ИЗМЕНЕНИЙ ══════════ -->
+      <div v-if="isEditing" class="card">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">История изменений</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Ручные правки остатка этого товара — кто, когда и что изменил</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Ручные правки этого товара — кто, когда и что изменил</p>
 
-        <div v-if="stockHistoryLoading" class="space-y-2">
+        <div v-if="changeHistoryLoading" class="space-y-2">
           <UiSkeleton v-for="i in 3" :key="i" height="2.5rem" />
         </div>
-        <p v-else-if="stockHistory.length === 0" class="text-sm text-gray-400 dark:text-gray-500">Правок остатка ещё не было</p>
+        <p v-else-if="changeHistory.length === 0" class="text-sm text-gray-400 dark:text-gray-500">Правок ещё не было</p>
         <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
-          <div v-for="row in stockHistory" :key="row.id" class="py-2.5 flex items-start justify-between gap-3 text-sm">
+          <div v-for="row in changeHistory" :key="row.id" class="py-2.5 flex items-start justify-between gap-3 text-sm">
             <div class="min-w-0">
-              <p class="text-gray-900 dark:text-white">
+              <p v-if="row.action === 'updated'" class="text-gray-900 dark:text-white">
+                <span class="text-gray-500 dark:text-gray-400">{{ PRODUCT_CHANGE_FIELD_LABELS[row.field ?? ''] ?? row.field }}:</span>
                 <span v-if="row.variant_label" class="text-gray-500 dark:text-gray-400">{{ row.variant_label }}: </span>
-                {{ row.unit === 'g' ? formatWeight(row.old_value) : row.old_value }}
+                {{ formatProductChangeValue(row.field, row.unit, row.old_value) }}
                 →
-                {{ row.unit === 'g' ? formatWeight(row.new_value) : row.new_value }}
+                {{ formatProductChangeValue(row.field, row.unit, row.new_value) }}
+              </p>
+              <p v-else class="text-gray-900 dark:text-white font-medium">
+                {{ PRODUCT_CHANGE_ACTION_LABELS[row.action] ?? row.action }}
               </p>
               <p class="text-xs text-gray-400 dark:text-gray-500 truncate">
                 {{ row.actor_name }}{{ row.reason ? ` · ${row.reason}` : '' }}

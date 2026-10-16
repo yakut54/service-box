@@ -38,6 +38,19 @@ export function formatWeight(grams: number): string {
   return `${grams} г`
 }
 
+/** Значение строки «Журнала изменений» (product_changes.old_value/new_value,
+ * всегда TEXT) — формат зависит от поля: остаток/цена/видимость читаются не
+ * как голая строка, название/категория — как есть. Общая для
+ * ProductChangesView.vue и карточки товара (ProductEditView.vue), чтобы не
+ * дублировать правило форматирования в двух местах. */
+export function formatProductChangeValue(field: string | null, unit: string | null, raw: string | null): string {
+  if (raw === null) return '—'
+  if (field === 'stock') return unit === 'g' ? formatWeight(Number(raw)) : raw
+  if (field === 'price' || field === 'compare_price') return formatPrice(Number(raw))
+  if (field === 'active') return raw === '1' ? 'Показан' : 'Скрыт'
+  return raw
+}
+
 /** "2024-01-15T10:30:00" → "15 мин назад" / "2 ч назад" / "3 дн назад".
  * Для очереди сборщика — важнее, сколько заказ уже ждёт, чем точное время. */
 export function formatRelativeTime(dateStr: string | null | undefined): string {
