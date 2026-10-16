@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
+import { useProductChangesStore } from '@/stores/productChanges'
+import { useHighlightNew } from '@/composables/useHighlightNew'
 import CustomSelect from '@/components/CustomSelect.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { UiSkeleton, UiEmptyState, UiPagination } from '@/shared/ui'
@@ -11,6 +13,14 @@ import { PRODUCT_CHANGE_FIELD_LABELS, PRODUCT_CHANGE_ACTION_LABELS } from '@/sha
 import type { ProductChange } from '@/types'
 
 const authStore = useAuthStore()
+const productChangesStore = useProductChangesStore()
+const { markNew, highlightClass } = useHighlightNew<ProductChange>()
+
+// Отметка "просмотрено" и подсветка новых — только на САМОМ ПЕРВОМ заходе
+// на страницу, не на каждой перелистке/смене фильтра (в отличие от
+// Отзывов, где load() вызывается один раз). Иначе смена страницы
+// пагинации сдвигала бы курсор "просмотрено" на бэкенде.
+const seenHandled = ref(false)
 
 const rows    = ref<ProductChange[]>([])
 const loading = ref(false)
@@ -49,6 +59,15 @@ async function load() {
         actorOptions.value.push({ value: r.actor_user_id, label: r.actor_name })
       }
     })
+
+    if (!seenHandled.value) {
+      seenHandled.value = true
+      markNew(res.data, res.product_changes_last_seen_at)
+      // Важно: сначала markSeen, потом pendingCount — тот же приём, что в
+      // ReviewsView.vue (гонка иначе отдаёт устаревший бейдж).
+      await api.markProductChangesSeen().catch(() => {})
+      productChangesStore.fetchPendingCount()
+    }
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Ошибка загрузки'
   } finally {
@@ -127,7 +146,11 @@ onMounted(async () => {
     </UiEmptyState>
 
     <div v-else class="space-y-2">
-      <div v-for="row in rows" :key="row.id" class="card flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+      <div
+        v-for="row in rows"
+        :key="row.id"
+        :class="['card flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 transition-colors duration-[3000ms]', highlightClass(row.id)]"
+      >
         <div class="min-w-0 flex-1">
           <RouterLink
             v-if="row.product_id"

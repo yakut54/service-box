@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
+import { useProductChangesStore } from '@/stores/productChanges'
 import { useOrdersStore } from '@/stores/orders'
 import { useNavCountsStore } from '@/stores/navCounts'
 import { usePresenceStore } from '@/stores/presence'
@@ -23,6 +24,7 @@ const authStore = useAuthStore()
 const chatStore = useChatStore()
 const reviewsStore = useReviewsStore()
 const mailFailuresStore = useMailFailuresStore()
+const productChangesStore = useProductChangesStore()
 const ordersStore = useOrdersStore()
 const navCountsStore = useNavCountsStore()
 const presenceStore = usePresenceStore()
@@ -72,6 +74,12 @@ async function refreshMailFailures() {
 if (authStore.isOwner && authStore.shop) refreshMailFailures()
 useAutoRefresh(() => { if (authStore.isOwner && authStore.shop) refreshMailFailures() }, 60_000)
 
+async function refreshProductChanges() {
+  if (await productChangesStore.fetchPendingCount()) playAlertSound()
+}
+if (authStore.shop) refreshProductChanges()
+useAutoRefresh(() => { if (authStore.shop) refreshProductChanges() }, 60_000)
+
 async function refreshNeedsAttention() {
   if (await ordersStore.fetchNeedsAttentionCount()) playAlertSound()
 }
@@ -113,6 +121,7 @@ onMounted(() => {
       .listen('.reviews.updated', () => refreshReviews())
       .listen('.chat.updated', () => refreshChat())
       .listen('.mail_failures.updated', () => { if (authStore.isOwner) refreshMailFailures() })
+      .listen('.product_changes.updated', () => refreshProductChanges())
       .listen('.nav_counts.updated', () => navCountsStore.fetch())
       .listen('.staff.updated', () => navCountsStore.fetch())
     presenceStore.join(shopId)
@@ -296,10 +305,12 @@ async function handleLogout() {
           <NavBadge v-if="item.href === '/discounts'" variant="muted" show-zero :count="navCountsStore.counts.discounts ?? 0" />
           <NavBadge v-if="item.href === '/reviews'" variant="muted" show-zero :count="navCountsStore.counts.reviews ?? 0" />
           <NavBadge v-if="item.href === '/staff'" variant="muted" show-zero :count="navCountsStore.counts.staff ?? 0" />
+          <NavBadge v-if="item.href === '/product-changes'" variant="muted" show-zero :count="navCountsStore.counts.product_changes ?? 0" />
           <NavBadge v-if="item.href === '/chat'" :count="chatStore.totalUnread" />
           <NavBadge v-if="item.href === '/reviews'" :count="reviewsStore.pendingCount" />
           <NavBadge v-if="item.href === '/orders'" :count="ordersStore.needsAttentionCount" />
           <NavBadge v-if="item.href === '/settings'" :count="mailFailuresStore.pendingCount" />
+          <NavBadge v-if="item.href === '/product-changes'" :count="productChangesStore.pendingCount" />
         </RouterLink>
       </nav>
 

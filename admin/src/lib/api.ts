@@ -279,7 +279,17 @@ class ApiClient {
 
   async getProductChanges(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : ''
-    return this.request<PageResponse<ProductChange>>(`/admin/product-changes${query}`)
+    return this.request<
+      PageResponse<ProductChange> & { product_changes_last_seen_at: string | null }
+    >(`/admin/product-changes${query}`)
+  }
+
+  async getProductChangesPendingCount() {
+    return this.request<{ count: number }>('/admin/product-changes/pending-count')
+  }
+
+  async markProductChangesSeen() {
+    return this.request<{ message: string }>('/admin/product-changes/mark-seen', { method: 'POST' })
   }
 
   // ── Size charts ──────────────────────────────────────────────
