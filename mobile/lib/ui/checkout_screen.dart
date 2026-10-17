@@ -8,7 +8,6 @@ import '../core/phone_input_formatter.dart';
 import '../data/checkout_draft_store.dart';
 import '../data/order_repository.dart';
 import '../data/profile_repository.dart';
-import '../models/product.dart';
 import '../state/auth_state.dart';
 import '../state/cart_state.dart';
 import '../state/shop_state.dart';
@@ -129,9 +128,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       final cart = context.read<CartState>();
-      final hasWeightVariable = cart.items.any(
-        (item) => item.product.physical?.saleMode == ProductSaleMode.weightVariable,
-      );
       final order = await OrderRepository.create().createOrder(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -142,10 +138,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       cart.clear();
       await _draftStore.clear();
 
-      // Заказ с товаром «по весу — перевзвешивание» — точная сумма известна
-      // только после сборки, поэтому вместо обычной оплаты сразу создаём холд
-      // и открываем его на оплату (см. PLAN.md, «По весу — перевзвешивание»).
-      if (hasWeightVariable) {
+      // Раньше оплата запускалась только для товаров «по весу —
+      // перевзвешивание» (там сразу холд, см. PLAN.md). Обычные заказы не
+      // получали онлайн-оплату вообще — не было ни шага оплаты, ни кнопки,
+      // заказ навсегда оставался «Ожидает оплаты» (найдено живым разбором
+      // 2026-10-17). Теперь это решает не состав корзины, а сам магазин:
+      // если у него подключена ЮKassa — оплата запускается для ЛЮБОГО
+      // заказа; холд это или обычное списание решает бэкенд сам
+      // (PaymentController::createOrderPayment, capture: !$hasWeightVariable).
+      if (!mounted) return;
+      final onlinePaymentEnabled =
+          context.read<ShopState>().shop?.onlinePaymentEnabled ?? false;
+      if (onlinePaymentEnabled) {
         try {
           final paymentUrl = await OrderRepository.create().createPayment(order.id);
           final uri = Uri.parse(paymentUrl);

@@ -69,6 +69,13 @@ class SavedShop {
   /// (shops.chat_customer_delete_enabled). false — «Удалить» не показываем.
   final bool chatCustomerDeleteEnabled;
 
+  /// У магазина подключена ЮKassa (shops.yookassa_shop_id/secret_key —
+  /// сами ключи сервер наружу не отдаёт, только этот факт). Раньше оплата
+  /// в приложении запускалась только для товаров «по весу —
+  /// перевзвешивание»; теперь — для любого заказа, если это true (см.
+  /// checkout_screen.dart).
+  final bool onlinePaymentEnabled;
+
   const SavedShop({
     required this.appCode,
     required this.shopId,
@@ -78,6 +85,7 @@ class SavedShop {
     this.pickupAddress,
     this.minOrderAmountKopecks = 0,
     this.chatCustomerDeleteEnabled = false,
+    this.onlinePaymentEnabled = false,
   });
 
   /// Разбор настоящего ответа GET /widget/shop. Здесь нет api_key в теле
@@ -106,6 +114,8 @@ class SavedShop {
           (json['min_order_amount_kopecks'] as num?)?.toInt() ?? 0,
       chatCustomerDeleteEnabled:
           json['chat_customer_delete_enabled'] as bool? ?? false,
+      onlinePaymentEnabled:
+          json['online_payment_enabled'] as bool? ?? false,
     );
   }
 
@@ -120,6 +130,8 @@ class SavedShop {
         (json['min_order_amount_kopecks'] as num?)?.toInt() ?? 0,
     chatCustomerDeleteEnabled:
         json['chat_customer_delete_enabled'] as bool? ?? false,
+    onlinePaymentEnabled:
+        json['online_payment_enabled'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -131,5 +143,6 @@ class SavedShop {
     'pickup_address': pickupAddress,
     'min_order_amount_kopecks': minOrderAmountKopecks,
     'chat_customer_delete_enabled': chatCustomerDeleteEnabled,
+    'online_payment_enabled': onlinePaymentEnabled,
   };
 }
