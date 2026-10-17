@@ -56,6 +56,7 @@ export interface WidgetShop {
   timezone: string | null
   prepayment_enabled: boolean
   prepayment_amount: number
+  online_payment_enabled: boolean
   legal: WidgetLegal | null
   delivery_settings: DeliverySettings | null
 }

@@ -97,6 +97,12 @@ export class WidgetApi {
     return this.request<{ data: WidgetOrder }>(`/widget/orders/${id}`)
   }
 
+  async createOrderPayment(orderId: string) {
+    return this.request<{ payment_url: string }>(`/widget/orders/${orderId}/payment`, {
+      method: 'POST',
+    })
+  }
+
   // Bookings
   async getAvailableSlots(params: Record<string, string>) {
     const query = new URLSearchParams(params).toString()
