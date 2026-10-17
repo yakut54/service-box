@@ -342,6 +342,7 @@ export interface Order {
   surcharge_status?: 'pending' | 'paid' | 'expired' | null
   surcharge_payment_url?: string | null
   surcharge_deadline_at?: string | null
+  surcharge_auto_charged_at?: string | null
   collector_id?: string | null
   collector_name?: string | null
   picking_started_at?: string | null

@@ -57,6 +57,12 @@ class Order {
   final DateTime? surchargeDeadlineAt;
   final String? paymentUrl;
 
+  /// Доплату пытается списать сервер сам, с карты, которой оплачен исходный
+  /// заказ (см. OrderReweighService::finalizeOrder) — покупателю не нужно
+  /// (и нельзя, во избежание двойного списания) платить по ссылке самому,
+  /// пока это true. Подтверждение придёт позже отдельным пушем/обновлением.
+  final bool surchargeAutoCharging;
+
   const Order({
     required this.id,
     required this.status,
@@ -69,6 +75,7 @@ class Order {
     this.surchargePaymentUrl,
     this.surchargeDeadlineAt,
     this.paymentUrl,
+    this.surchargeAutoCharging = false,
   });
 
   double get totalRubles => totalPriceKopecks / 100;
@@ -102,5 +109,6 @@ class Order {
         ? DateTime.tryParse(json['surcharge_deadline_at'] as String)
         : null,
     paymentUrl: json['payment_url'] as String?,
+    surchargeAutoCharging: json['surcharge_auto_charged_at'] != null,
   );
 }

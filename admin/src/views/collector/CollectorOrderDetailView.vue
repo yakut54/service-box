@@ -77,7 +77,11 @@ const hasShortage = computed(() =>
 // как баг, а не как «сначала сделай вот это».
 const finishBlockedReason = computed(() => {
   if (order.value && !order.value.paid_at) return 'Заказ ещё не оплачен'
-  if (order.value?.surcharge_status === 'pending') return 'Ждём от покупателя оплату доплаты за перевес'
+  if (order.value?.surcharge_status === 'pending') {
+    return order.value?.surcharge_auto_charged_at
+      ? 'Доплата списывается автоматически, ждём подтверждения от ЮKassa'
+      : 'Ждём от покупателя оплату доплаты за перевес'
+  }
   if (!allResolved.value) return 'Сначала разберите все позиции'
   // Одна и та же заметка (pick_note), что и «Проблема с заказом» — второго
   // отдельного поля для причины недобора нет (было — убрали, путало: два
@@ -418,9 +422,16 @@ onUnmounted(() => {
         v-if="order.surcharge_status === 'pending'"
         class="card bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300"
       >
-        Факт оказался тяжелее заявленного — покупателю выставлена доплата
-        {{ formatPrice(order.surcharge_amount ?? 0) }}. Заказ нельзя завершить, пока
-        покупатель не подтвердит оплату.
+        <template v-if="order.surcharge_auto_charged_at">
+          Факт оказался тяжелее заявленного — доплата
+          {{ formatPrice(order.surcharge_amount ?? 0) }} списывается автоматически с
+          карты покупателя. Заказ нельзя завершить, пока ЮKassa не подтвердит списание.
+        </template>
+        <template v-else>
+          Факт оказался тяжелее заявленного — покупателю выставлена доплата
+          {{ formatPrice(order.surcharge_amount ?? 0) }}. Заказ нельзя завершить, пока
+          покупатель не подтвердит оплату.
+        </template>
       </div>
 
       <div v-if="order.pick_note" class="card bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 text-sm text-pink-800 dark:text-pink-300 space-y-1">

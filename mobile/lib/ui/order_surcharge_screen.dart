@@ -107,33 +107,44 @@ class _OrderSurchargeScreenState extends State<OrderSurchargeScreen> {
                 const SizedBox(height: 20),
                 Text(formatRubles(amount), style: theme.textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                if (!expired)
+                if (widget.order.surchargeAutoCharging) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    'Осталось: ${_formatRemaining(_remaining)}',
+                    'Доплата списывается автоматически с карты, которой оплачен заказ — ничего делать не нужно',
+                    textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
-                  )
-                else
-                  Text(
-                    'Время на подтверждение истекло',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
                   ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: TextStyle(color: theme.colorScheme.error), textAlign: TextAlign.center),
+                ] else ...[
+                  if (!expired)
+                    Text(
+                      'Осталось: ${_formatRemaining(_remaining)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    )
+                  else
+                    Text(
+                      'Время на подтверждение истекло',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                    ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_error!, style: TextStyle(color: theme.colorScheme.error), textAlign: TextAlign.center),
+                  ],
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: (_launching || expired) ? null : _pay,
+                    child: _launching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Оплатить'),
+                  ),
                 ],
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: (_launching || expired) ? null : _pay,
-                  child: _launching
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Оплатить'),
-                ),
               ],
             ),
           ),

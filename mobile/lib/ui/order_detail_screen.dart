@@ -252,18 +252,22 @@ class _SurchargeBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final amount = (order.surchargeAmountKopecks ?? 0) / 100;
 
+    final auto = order.surchargeAutoCharging;
+    final bgColor = auto ? theme.colorScheme.secondaryContainer : theme.colorScheme.errorContainer;
+    final fgColor = auto ? theme.colorScheme.onSecondaryContainer : theme.colorScheme.onErrorContainer;
+
     return Card(
-      color: theme.colorScheme.errorContainer,
+      color: bgColor,
       margin: const EdgeInsets.only(bottom: 16),
       child: ListTile(
-        leading: Icon(Icons.warning_amber_rounded, color: theme.colorScheme.onErrorContainer),
+        leading: Icon(auto ? Icons.autorenew : Icons.warning_amber_rounded, color: fgColor),
         title: Text(
-          'Требуется доплата ${formatRubles(amount)}',
-          style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w600),
+          auto ? 'Доплата ${formatRubles(amount)} списывается автоматически' : 'Требуется доплата ${formatRubles(amount)}',
+          style: TextStyle(color: fgColor, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           'Фактический вес оказался больше заявленного',
-          style: TextStyle(color: theme.colorScheme.onErrorContainer),
+          style: TextStyle(color: fgColor),
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () async {

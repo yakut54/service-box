@@ -214,18 +214,32 @@ class _OrderTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer,
+                    // Автосписание — не повод тревожить красным, покупателю
+                    // тут делать нечего (см. OrderSurchargeScreen).
+                    color: order.surchargeAutoCharging
+                        ? theme.colorScheme.secondaryContainer
+                        : theme.colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.warning_amber_rounded, size: 16, color: theme.colorScheme.onErrorContainer),
+                      Icon(
+                        order.surchargeAutoCharging ? Icons.autorenew : Icons.warning_amber_rounded,
+                        size: 16,
+                        color: order.surchargeAutoCharging
+                            ? theme.colorScheme.onSecondaryContainer
+                            : theme.colorScheme.onErrorContainer,
+                      ),
                       const SizedBox(width: 6),
                       Text(
-                        'Требуется доплата ${formatRubles((order.surchargeAmountKopecks ?? 0) / 100)}',
+                        order.surchargeAutoCharging
+                            ? 'Доплата ${formatRubles((order.surchargeAmountKopecks ?? 0) / 100)} списывается автоматически'
+                            : 'Требуется доплата ${formatRubles((order.surchargeAmountKopecks ?? 0) / 100)}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
+                          color: order.surchargeAutoCharging
+                              ? theme.colorScheme.onSecondaryContainer
+                              : theme.colorScheme.onErrorContainer,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
