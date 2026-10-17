@@ -9,7 +9,7 @@ import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiSpinner, UiAvatar, UiSkeleton } from '@/shared/ui'
+import { UiSpinner, UiAvatar, UiSkeleton, UiOrderStepper } from '@/shared/ui'
 import OrderActivityPanel from '@/components/OrderActivityPanel.vue'
 import type { Order } from '@/types'
 
@@ -194,6 +194,11 @@ async function updateStatus(status: string) {
           </button>
           <span :class="`badge-${order.status} text-sm px-3 py-1.5`">{{ ORDER_STATUS_LABELS[order.status] || order.status }}</span>
         </div>
+      </div>
+
+      <!-- Таймлайн статуса -->
+      <div class="mb-6">
+        <UiOrderStepper :status="order.status" :delivery-method="order.delivery_method" />
       </div>
 
       <!-- Status actions -->

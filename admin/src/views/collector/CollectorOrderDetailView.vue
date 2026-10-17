@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { formatPrice, formatWeight, formatDateTime } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
-import { UiNumberField, UiSkeleton } from '@/shared/ui'
+import { UiNumberField, UiSkeleton, UiOrderStepper } from '@/shared/ui'
 import OrderActivityPanel from '@/components/OrderActivityPanel.vue'
 import type { Order, OrderItem } from '@/types'
 
@@ -286,6 +286,10 @@ onUnmounted(() => {
           <p class="text-xs text-gray-500 dark:text-gray-400">Собрано {{ resolvedCount }} из {{ totalCount }}</p>
         </div>
       </div>
+
+      <!-- Таймлайн статуса заказа (не путать с прогресс-баром выше — тот
+           про позиции ВНУТРИ сборки, этот про стадии заказа целиком) -->
+      <UiOrderStepper :status="order.status" :delivery-method="order.delivery_method" />
 
       <!-- Claim banner -->
       <div v-if="!isClaimed" class="card space-y-3 text-center">

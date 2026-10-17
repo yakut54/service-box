@@ -9,6 +9,7 @@ import '../state/auth_state.dart';
 import 'order_surcharge_screen.dart';
 import 'widgets/error_view.dart';
 import 'widgets/order_status_badge.dart';
+import 'widgets/order_status_stepper.dart';
 import 'widgets/skeleton.dart';
 
 /// Детали заказа — состав, статус, факт. вес по позициям «по весу —
@@ -99,6 +100,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               OrderStatusBadge(status: order.status),
             ],
           ),
+          const SizedBox(height: 16),
+          OrderStatusStepper(status: order.status, deliveryMethod: order.deliveryMethod),
           const SizedBox(height: 16),
           if (order.hasPendingSurcharge) _SurchargeBanner(order: order, onPaid: _load),
           if (order.status == 'in_delivery' && order.deliveryMethod == 'courier')
