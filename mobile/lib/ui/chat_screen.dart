@@ -83,12 +83,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   (int, int)? _uploadProgress;
   ChatMessage? _replyTarget;
   // Отрывок текста, выделенный пользователем в _replyTarget (не весь текст)
-  // — заполняется только через режим выделения («Выделить текст» в меню
-  // долгого нажатия), см. PLAN.md 2026-10-18. null — обычный полный ответ.
+  // — заполняется через режим выделения текста (2-е долгое нажатие на уже
+  // выбранный бабл, см. PLAN.md 2026-10-18). null — обычный полный ответ.
   String? _quoteExcerpt;
-  // id сообщения, бабл которого сейчас в режиме выделения текста — не
-  // гонка жестов с долгим нажатием/свайпом (см. Context в плане), отдельный
-  // explicit-режим, включаемый через меню.
+  // id бабла, который сейчас «выбран» 1-м долгим нажатием (меню рядом с
+  // ним открыто или было открыто) — как в Телеграме: press & hold выбирает
+  // сообщение, второе press & hold на уже выбранном — переходит в
+  // посимвольное выделение (_selectingMessageId ниже). НЕ шторка снизу.
+  String? _selectedMessageId;
+  // id бабла в режиме выделения текста (SelectableText + ручки захвата) —
+  // включается ТОЛЬКО вторым долгим нажатием на уже _selectedMessageId,
+  // не через меню (меню для выделения текста ничего не предлагает).
   String? _selectingMessageId;
   String? _threadId;
 
@@ -594,13 +599,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
   }
 
-  /// Включить режим выделения текста для одного сообщения — см. «Выделить
-  /// текст» в _openMessageMenu и Context в PLAN.md (почему не второй
-  /// long-press).
-  void _startSelecting(ChatMessage m) {
-    setState(() => _selectingMessageId = m.id);
-  }
-
   void _cancelSelecting() {
     setState(() => _selectingMessageId = null);
   }
@@ -658,66 +656,75 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _openMessageMenu(ChatMessage m) {
+  /// Долгое нажатие на бабл — как в Телеграме: 1-е выбирает сообщение и
+  /// показывает меню РЯДОМ С НИМ (не шторку снизу), 2-е (на уже выбранном)
+  /// сразу переводит в посимвольное выделение текста, без меню.
+  void _onBubbleLongPress(ChatMessage m, Offset globalPosition) {
+    if (m.isDeleted && !m.isMine) return;
+
+    if (_selectedMessageId == m.id) {
+      if (m.body == null || m.body!.isEmpty) return;
+      HapticFeedback.mediumImpact();
+      setState(() {
+        _selectedMessageId = null;
+        _selectingMessageId = m.id;
+      });
+      return;
+    }
+
     HapticFeedback.selectionClick();
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Удалённому сообщению (плашке «Сообщение удалено») нечего
-            // предложить, кроме «Удалить» ниже — отвечать/копировать не на что.
-            if (!m.isDeleted)
-              ListTile(
-                leading: const Icon(Icons.reply_rounded),
-                title: const Text('Ответить'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _startReply(m);
-                },
-              ),
-            if (m.body != null && m.body!.isNotEmpty)
-              ListTile(
-                leading: const Icon(Icons.copy_rounded),
-                title: const Text('Скопировать'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _copyMessage(m);
-                },
-              ),
-            if (m.body != null && m.body!.isNotEmpty)
-              ListTile(
-                leading: const Icon(Icons.text_fields_rounded),
-                title: const Text('Выделить текст'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _startSelecting(m);
-                },
-              ),
-            if (m.isMine && _canDeleteOwnMessages)
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline_rounded,
-                  color: Theme.of(ctx).colorScheme.error,
-                ),
-                title: Text(
-                  'Удалить',
-                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                ),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  _deleteMessage(m);
-                },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+    setState(() => _selectedMessageId = m.id);
+    _showBubbleMenu(m, globalPosition);
+  }
+
+  /// Меню закреплено у точки нажатия (`showMenu` — тот же примитив, что у
+  /// системных контекстных меню), не шторка снизу экрана.
+  Future<void> _showBubbleMenu(ChatMessage m, Offset globalPosition) async {
+    final overlayBox = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromLTRB(
+      globalPosition.dx,
+      globalPosition.dy,
+      overlayBox.size.width - globalPosition.dx,
+      overlayBox.size.height - globalPosition.dy,
     );
+
+    final action = await showMenu<String>(
+      context: context,
+      position: position,
+      items: [
+        // Удалённому сообщению (плашке «Сообщение удалено») нечего
+        // предложить, кроме «Удалить» ниже — отвечать/копировать не на что.
+        if (!m.isDeleted)
+          const PopupMenuItem(
+            value: 'reply',
+            child: ListTile(leading: Icon(Icons.reply_rounded), title: Text('Ответить')),
+          ),
+        if (m.body != null && m.body!.isNotEmpty)
+          const PopupMenuItem(
+            value: 'copy',
+            child: ListTile(leading: Icon(Icons.copy_rounded), title: Text('Скопировать')),
+          ),
+        if (m.isMine && _canDeleteOwnMessages)
+          PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
+              title: Text('Удалить', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
+          ),
+      ],
+    );
+
+    if (mounted) setState(() => _selectedMessageId = null);
+
+    switch (action) {
+      case 'reply':
+        _startReply(m);
+      case 'copy':
+        _copyMessage(m);
+      case 'delete':
+        _deleteMessage(m);
+    }
   }
 
   void _showError(Object e, String fallback) {
@@ -844,17 +851,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       message: message,
                       isHighlighted: _highlightedMessageId == message.id,
                       isSelecting: _selectingMessageId == message.id,
+                      isSelected: _selectedMessageId == message.id,
                       onCancelSelecting: _cancelSelecting,
                       onConfirmQuote: (excerpt) => _confirmQuote(message, excerpt),
                       // Уже удалённому (плашка «Сообщение удалено») своему
                       // сообщению можно предложить только «Удалить» — стереть
                       // саму плашку насовсем (спека 2026-09-16); ответить или
-                      // скопировать уже нечего — см. _openMessageMenu. Чужому
+                      // скопировать уже нечего — см. _onBubbleLongPress. Чужому
                       // (магазина) удалённому сообщению — вообще нечего
                       // предложить, у него так и остаётся пусто.
-                      onLongPress: (message.isDeleted && !message.isMine)
-                          ? () {}
-                          : () => _openMessageMenu(message),
+                      onLongPress: (pos) => _onBubbleLongPress(message, pos),
                       onSwipeReply: message.isDeleted ? () {} : () => _startReply(message),
                       // «Удалить» — только если магазин это разрешил
                       // (shops.chat_customer_delete_enabled); сервер тоже
@@ -1099,14 +1105,19 @@ class Uint8ListHolder {
 class _MessageBubble extends StatefulWidget {
   final ChatMessage message;
   final bool isHighlighted;
-  final VoidCallback onLongPress;
+  // Позиция пальца в момент долгого нажатия — нужна экрану, чтобы
+  // закрепить контекстное меню рядом с баблом (showMenu), не шторкой снизу.
+  final void Function(Offset globalPosition) onLongPress;
   final VoidCallback onSwipeReply;
   final VoidCallback? onDelete;
   final VoidCallback? onQuoteTap;
-  // Режим выделения текста («Выделить текст» в меню долгого нажатия, см.
-  // PLAN.md 2026-10-18) — включается на уровне экрана (один activeId на
-  // все бабблы), не локальным состоянием бабла, иначе переключение между
-  // сообщениями не закрывало бы предыдущее выделение.
+  // «Выбран» 1-м долгим нажатием (меню рядом с баблом открыто/было
+  // открыто) — как в Телеграме. Отдельно от isSelecting ниже.
+  final bool isSelected;
+  // Режим выделения текста — включается ТОЛЬКО вторым долгим нажатием на
+  // уже выбранный бабл (см. PLAN.md 2026-10-18), не через меню. Один
+  // activeId на уровне экрана, не локальное состояние бабла — иначе
+  // переключение между сообщениями не закрывало бы предыдущее выделение.
   final bool isSelecting;
   final VoidCallback? onCancelSelecting;
   final ValueChanged<String>? onConfirmQuote;
@@ -1119,6 +1130,7 @@ class _MessageBubble extends StatefulWidget {
     required this.onSwipeReply,
     this.onDelete,
     this.onQuoteTap,
+    this.isSelected = false,
     this.isSelecting = false,
     this.onCancelSelecting,
     this.onConfirmQuote,
@@ -1189,7 +1201,9 @@ class _MessageBubbleState extends State<_MessageBubble>
       // риск, описанный в PLAN.md 2026-10-18).
       onHorizontalDragUpdate: widget.isSelecting ? null : _onDragUpdate,
       onHorizontalDragEnd: widget.isSelecting ? null : _onDragEnd,
-      onLongPress: widget.isSelecting ? null : widget.onLongPress,
+      onLongPressStart: widget.isSelecting
+          ? null
+          : (details) => widget.onLongPress(details.globalPosition),
       child: Stack(
         children: [
           if (_dragOffset > 4)
@@ -1233,6 +1247,12 @@ class _MessageBubbleState extends State<_MessageBubble>
                     bottomLeft: Radius.circular(isMine ? 14 : 4),
                     bottomRight: Radius.circular(isMine ? 4 : 14),
                   ),
+                  // «Выбран» 1-м долгим нажатием (меню рядом с баблом) —
+                  // тонкая рамка, как в Телеграме подсвечивает выбранное
+                  // сообщение, не меняя сам цвет заливки.
+                  border: widget.isSelected
+                      ? Border.all(color: theme.colorScheme.primary, width: 1.5)
+                      : null,
                 ),
                 child: IntrinsicWidth(
                   child: Column(
@@ -1531,56 +1551,61 @@ class _FullImageViewer extends StatelessWidget {
     }
   }
 
-  void _openMenu(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.download_rounded),
-              title: const Text('Сохранить в галерею'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _save(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.reply_rounded),
-              title: const Text('Ответить'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                Navigator.of(context).pop();
-                onReply();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share_rounded),
-              title: const Text('Поделиться'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _share(context);
-              },
-            ),
-            if (onDelete != null)
-              ListTile(
-                leading: Icon(Icons.delete_outline_rounded, color: Theme.of(ctx).colorScheme.error),
-                title: Text('Удалить', style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop();
-                  onDelete!();
-                },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+  /// «Три точки» в AppBar — меню закреплено у самой кнопки (showMenu), как
+  /// в настоящем Телеграме, не шторка снизу (см. PLAN.md 2026-10-18).
+  /// `context` — контекст самой кнопки (см. Builder в build() ниже), не
+  /// общий контекст экрана, иначе позицию взять было бы не у чего.
+  Future<void> _openMenu(BuildContext context) async {
+    final box = context.findRenderObject() as RenderBox;
+    final topLeft = box.localToGlobal(Offset.zero);
+    final overlayBox = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final position = RelativeRect.fromLTRB(
+      topLeft.dx,
+      topLeft.dy + box.size.height,
+      overlayBox.size.width - topLeft.dx - box.size.width,
+      0,
     );
+
+    final action = await showMenu<String>(
+      context: context,
+      position: position,
+      items: [
+        const PopupMenuItem(
+          value: 'save',
+          child: ListTile(leading: Icon(Icons.download_rounded), title: Text('Сохранить в галерею')),
+        ),
+        const PopupMenuItem(
+          value: 'reply',
+          child: ListTile(leading: Icon(Icons.reply_rounded), title: Text('Ответить')),
+        ),
+        const PopupMenuItem(
+          value: 'share',
+          child: ListTile(leading: Icon(Icons.share_rounded), title: Text('Поделиться')),
+        ),
+        if (onDelete != null)
+          PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
+              title: Text('Удалить', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
+          ),
+      ],
+    );
+
+    if (!context.mounted) return;
+    switch (action) {
+      case 'save':
+        _save(context);
+      case 'reply':
+        Navigator.of(context).pop();
+        onReply();
+      case 'share':
+        _share(context);
+      case 'delete':
+        Navigator.of(context).pop();
+        onDelete!();
+    }
   }
 
   @override
@@ -1592,9 +1617,14 @@ class _FullImageViewer extends StatelessWidget {
         foregroundColor: Colors.white,
         title: Text(formatMessageDateTime(message.createdAt), style: const TextStyle(fontSize: 16)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert_rounded),
-            onPressed: () => _openMenu(context),
+          // Builder — контекст СКОПИРОВАН на саму кнопку (не общий контекст
+          // экрана), иначе в _openMenu не у чего было бы взять позицию для
+          // закреплённого меню (showMenu).
+          Builder(
+            builder: (btnContext) => IconButton(
+              icon: const Icon(Icons.more_vert_rounded),
+              onPressed: () => _openMenu(btnContext),
+            ),
           ),
         ],
       ),
