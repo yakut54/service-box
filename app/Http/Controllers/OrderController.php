@@ -818,10 +818,17 @@ class OrderController extends Controller
     }
 
     /**
-     * Отказаться от заказа — освободить claim без смены статуса (прогресс
-     * сборки, picking_started_at, остаётся — следующий исполнитель видит,
-     * что уже сделано). Владелец/админ могут освободить любой заказ;
-     * сборщик — только свой.
+     * Отказаться от заказа — освободить claim. Прогресс сборки
+     * (picking_started_at, picked_qty по товарам) не трогаем — следующий
+     * исполнитель видит, что уже сделано. Владелец/админ могут освободить
+     * любой заказ; сборщик — только свой.
+     *
+     * Статус переводим в needs_attention (кроме уже закрытых) — раньше
+     * статус вообще не трогался, и заказ мог висеть "В работе" без единого
+     * исполнителя, что выглядело как заказ в работе, хотя им никто не
+     * занимается (баг найден живым разбором 2026-10-17). needs_attention —
+     * существующая командная очередь: видна и действуема любым админом или
+     * сборщиком с доступом по категориям, не только владельцем.
      *
      * PATCH /api/admin/orders/{order}/release
      */
@@ -841,9 +848,13 @@ class OrderController extends Controller
             return response()->json(['message' => 'Это не ваш заказ'], 403);
         }
 
+        $becomesNeedsAttention = !in_array($orderModel->status, ['completed', 'cancelled', 'needs_attention'], true);
+
         $orderModel->update([
             'collector_id' => null,
             'collector_name' => null,
+            'status' => $becomesNeedsAttention ? 'needs_attention' : $orderModel->status,
+            'seen_at' => $becomesNeedsAttention ? null : $orderModel->seen_at,
         ]);
 
         OrderActivityLog::record($orderModel, $request, 'released');
