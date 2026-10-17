@@ -38,6 +38,9 @@ const problemNote = ref('')
 const showProblemForm = ref(false)
 const reportingProblem = ref(false)
 
+const releaseNote = ref('')
+const showReleaseForm = ref(false)
+
 async function load() {
   loading.value = true
   error.value = ''
@@ -90,10 +93,12 @@ const finishBlockedReason = computed(() => {
   return undefined
 })
 
-// «Моя» ли это сборка — сравниваем по имени: у сборщика нет отдельного id
-// на фронте (staff_id не отдаётся в /auth/me), а магазин маленький (1-3
-// сборщика) — совпадение имён можно не учитывать всерьёз.
-const isMine = computed(() => !order.value?.collector_name || order.value.collector_name === authStore.user?.name)
+// «Моя» ли это сборка — по id, не по имени (2026-10-18: раньше сравнивали
+// по имени из-за устаревшего комментария «id сборщика нет на фронте» — это
+// неверно, /auth/me отдаёт user.id, и это тот же users.id, что бэкенд пишет
+// в collector_id при claim(). Важно для владельца/админа, которые теперь
+// тоже заходят на этот экран — их имя вполне может совпасть со сборщиком).
+const isMine = computed(() => !order.value?.collector_id || order.value.collector_id === authStore.user?.id)
 const isClaimed = computed(() => !!order.value?.collector_name)
 
 async function claim(takeover = false) {
@@ -111,12 +116,19 @@ async function claim(takeover = false) {
   }
 }
 
+function openReleaseForm() {
+  releaseNote.value = ''
+  showReleaseForm.value = true
+}
+
 async function release() {
-  if (!order.value) return
+  if (!order.value || !releaseNote.value.trim()) return
   releasing.value = true
   try {
-    await api.releaseOrder(order.value.id)
-    order.value = { ...order.value, collector_id: null, collector_name: null }
+    await api.releaseOrder(order.value.id, releaseNote.value.trim())
+    order.value = { ...order.value, collector_id: null, collector_name: null, pick_note: releaseNote.value.trim() }
+    showReleaseForm.value = false
+    releaseNote.value = ''
     toast.success('Вы отказались от заказа')
     activityPanel.value?.reload()
   } catch (e) {
@@ -208,7 +220,7 @@ async function submitProblem() {
     order.value = resp.data
     showProblemForm.value = false
     problemNote.value = ''
-    toast.success('Владелец уведомлён')
+    toast.success('Проблема зафиксирована')
   } catch (e) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось отправить')
   } finally {
@@ -459,11 +471,27 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <!-- Отказаться от заказа -->
-      <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="card">
-        <button type="button" class="text-sm text-gray-500 dark:text-gray-400" :disabled="releasing" @click="release">
-          {{ releasing ? 'Отказываюсь…' : 'Отказаться от заказа' }}
+      <!-- Отказаться от заказа — только пока «В работе» (2026-10-18): на
+           уже «Собрано» откат в needs_attention стирал бы весь прогресс
+           сборки без всякой пользы (живой разбор, баг с «кашей» статусов) -->
+      <div v-if="isClaimed && isMine && order.status === 'processing'" class="card space-y-2">
+        <button v-if="!showReleaseForm" type="button" class="text-sm text-gray-500 dark:text-gray-400" @click="openReleaseForm">
+          Отказаться от заказа
         </button>
+        <template v-if="showReleaseForm">
+          <textarea
+            v-model="releaseNote"
+            rows="2"
+            placeholder="Почему отказываетесь? (нужно для следующего сборщика)"
+            class="input w-full"
+          />
+          <div class="flex gap-2">
+            <button class="btn-secondary btn-sm flex-1" @click="showReleaseForm = false">Отмена</button>
+            <button class="btn-danger btn-sm flex-1" :disabled="!releaseNote.trim() || releasing" @click="release">
+              {{ releasing ? 'Отказываюсь…' : 'Отказаться' }}
+            </button>
+          </div>
+        </template>
       </div>
 
       <!-- Проблема с заказом -->
@@ -481,7 +509,7 @@ onUnmounted(() => {
           <div class="flex gap-2">
             <button class="btn-secondary btn-sm flex-1" @click="showProblemForm = false">Отмена</button>
             <button class="btn-danger btn-sm flex-1" :disabled="!problemNote.trim() || reportingProblem" @click="submitProblem">
-              {{ order.pick_note ? 'Сохранить' : 'Сообщить владельцу' }}
+              {{ order.pick_note ? 'Сохранить' : 'Сообщить о проблеме' }}
             </button>
           </div>
         </template>

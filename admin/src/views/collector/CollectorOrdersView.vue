@@ -53,7 +53,11 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const res = await api.getOrders(tab.value === 'done' ? { scope: 'done' } : undefined)
+    // scope шлём всегда явно (не только на done) — иначе владелец/админ
+    // (2026-10-18, этот экран теперь доступен и им) получили бы на вкладке
+    // «В работе» ветку «весь список заказов» вместо очереди на сборку, т.к.
+    // бэкенд включает очередь по роли ИЛИ по наличию scope в запросе.
+    const res = await api.getOrders({ scope: tab.value })
     orders.value = res.data
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Ошибка загрузки'

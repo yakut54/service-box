@@ -406,8 +406,11 @@ class ApiClient {
     )
   }
 
-  async releaseOrder(orderId: string) {
-    return this.request<{ message: string }>(`/admin/orders/${orderId}/release`, { method: 'PATCH' })
+  async releaseOrder(orderId: string, note: string) {
+    return this.request<{ message: string }>(`/admin/orders/${orderId}/release`, {
+      method: 'PATCH',
+      body: JSON.stringify({ note }),
+    })
   }
 
   async getOrderActivity(orderId: string) {

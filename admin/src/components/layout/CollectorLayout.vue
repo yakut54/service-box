@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import { RouterView } from 'vue-router'
+import { RouterView, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePresenceStore } from '@/stores/presence'
 import { useTheme } from '@/composables/useTheme'
@@ -33,11 +33,22 @@ onUnmounted(() => presenceStore.leave())
             {{ authStore.shop?.name }}
           </span>
           <span class="text-xs text-gray-500 dark:text-gray-400 truncate leading-tight">
-            Сборщик · {{ authStore.user?.name }}
+            {{ authStore.isCollector ? 'Сборщик' : 'Сборка' }} · {{ authStore.user?.name }}
           </span>
         </div>
 
         <div class="flex items-center gap-2 flex-shrink-0">
+          <RouterLink
+            v-if="!authStore.isCollector"
+            to="/orders"
+            class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Вернуться в админку"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </RouterLink>
+
           <button
             @click="toggle"
             class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

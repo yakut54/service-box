@@ -43,12 +43,24 @@ async function claim(takeover = false) {
   }
 }
 
+const releaseNote = ref('')
+const showReleaseForm = ref(false)
+
+function openReleaseForm() {
+  releaseNote.value = ''
+  showReleaseForm.value = true
+}
+
+// Заметка обязательна (2026-10-18, см. PLAN.md) — без неё release() теперь
+// отвечает 422, тот же бэкенд-гейт, что и у экрана сборщика.
 async function release() {
-  if (!order.value) return
+  if (!order.value || !releaseNote.value.trim()) return
   releasing.value = true
   try {
-    await api.releaseOrder(order.value.id)
-    order.value = { ...order.value, collector_id: null, collector_name: null }
+    await api.releaseOrder(order.value.id, releaseNote.value.trim())
+    order.value = { ...order.value, collector_id: null, collector_name: null, pick_note: releaseNote.value.trim() }
+    showReleaseForm.value = false
+    releaseNote.value = ''
     toast.success('Вы отказались от заказа')
     activityPanel.value?.reload()
   } catch (e) {
@@ -211,6 +223,13 @@ async function updateStatus(status: string) {
           <button v-if="['pending','needs_attention'].includes(order.status)" @click="updateStatus('processing')" :disabled="updating" class="btn-primary btn-sm">
             {{ order.status === 'needs_attention' ? 'Вернуть в работу' : 'В работу' }}
           </button>
+          <RouterLink
+            v-if="(authStore.isOwner || authStore.isAdmin) && ['pending','paid','processing'].includes(order.status)"
+            :to="{ name: 'collector-order-detail', params: { id: order.id } }"
+            class="btn-secondary btn-sm"
+          >
+            Собрать самому
+          </RouterLink>
           <button v-if="order.status === 'collected' && order.delivery_method === 'courier'" @click="updateStatus('in_delivery')" :disabled="updating" class="btn-primary btn-sm">
             Передать в доставку
           </button>
@@ -394,14 +413,28 @@ async function updateStatus(status: string) {
                 {{ claiming ? 'Беру…' : 'Взять в работу' }}
               </button>
               <template v-else>
-                <button v-if="order.collector_name !== authStore.user?.name" @click="claim(true)" :disabled="claiming" class="btn-secondary btn-sm flex-1">
+                <button v-if="order.collector_id !== authStore.user?.id" @click="claim(true)" :disabled="claiming" class="btn-secondary btn-sm flex-1">
                   Забрать себе
                 </button>
-                <button @click="release" :disabled="releasing" class="btn-secondary btn-sm flex-1">
-                  {{ releasing ? 'Отказываюсь…' : 'Отказаться' }}
+                <button v-if="!showReleaseForm && order.status === 'processing'" @click="openReleaseForm" :disabled="releasing" class="btn-secondary btn-sm flex-1">
+                  Отказаться
                 </button>
               </template>
             </div>
+            <template v-if="showReleaseForm">
+              <textarea
+                v-model="releaseNote"
+                rows="2"
+                placeholder="Почему отказываетесь? (нужно для следующего сборщика)"
+                class="input w-full mt-2"
+              />
+              <div class="flex gap-2 mt-2">
+                <button class="btn-secondary btn-sm flex-1" @click="showReleaseForm = false">Отмена</button>
+                <button class="btn-danger btn-sm flex-1" :disabled="!releaseNote.trim() || releasing" @click="release">
+                  {{ releasing ? 'Отказываюсь…' : 'Отказаться' }}
+                </button>
+              </div>
+            </template>
           </div>
 
           <OrderActivityPanel ref="activityPanel" :order-id="order.id" />

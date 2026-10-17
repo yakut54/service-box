@@ -273,8 +273,10 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
-  // Не-сборщик пытается открыть раздел сборщика
-  if (to.meta.requiresCollector && !authStore.isCollector) {
+  // Не-сборщик пытается открыть раздел сборщика — владельца/админа пускаем
+  // (2026-10-18): «Собрать самому», тот же экран, что у сборщика, см.
+  // PLAN.md. Мастера и прочих по-прежнему уводим на дашборд.
+  if (to.meta.requiresCollector && !authStore.isCollector && !authStore.isOwner && !authStore.isAdmin) {
     next({ name: 'dashboard' })
     return
   }
