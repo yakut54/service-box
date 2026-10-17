@@ -351,11 +351,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         pick_note               TEXT,
                         pick_note_at            TIMESTAMPTZ,
                         pick_note_edited_at     TIMESTAMPTZ,
-                        -- Владелец/админ открыл именно ЭТОТ проблемный заказ —
-                        -- сбрасывается в NULL каждый раз, когда заказ заново
-                        -- становится needs_attention (см. OrderController::
-                        -- reportProblem, CheckSurchargeDeadline). Бейдж в
-                        -- сайдбаре считает needs_attention с seen_at IS NULL.
+                        -- УСТАРЕЛО (2026-10-17) — был общим на весь магазин
+                        -- (баг: открыл Ховар, бейдж погас и у Юлии, хотя она
+                        -- не смотрела — тот же класс бага, что уже чинили для
+                        -- chat_thread_reads). Заменён персональной таблицей
+                        -- order_seen ниже, колонку не трогаем (данные есть,
+                        -- дропать лишний риск), просто код её больше не читает.
                         seen_at                 TIMESTAMPTZ
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name);
@@ -397,6 +398,20 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     )
                 $sql$, p_schema_name, p_schema_name, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.order_items(order_id)', p_schema_name);
+
+                -- order_seen: персональная отметка "я (сотрудник) открыл этот
+                -- needs_attention заказ" — заменяет общий на весь магазин
+                -- orders.seen_at (см. комментарий у той колонки выше). Тот же
+                -- приём, что уже есть у chat_thread_reads: открыл заказ один
+                -- человек — бейдж гаснет только у него, не у всех.
+                EXECUTE format($sql$
+                    CREATE TABLE %I.order_seen (
+                        order_id UUID NOT NULL REFERENCES %I.orders(id) ON DELETE CASCADE,
+                        user_id  UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+                        seen_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        PRIMARY KEY (order_id, user_id)
+                    )
+                $sql$, p_schema_name, p_schema_name);
 
                 -- discount_uses
                 EXECUTE format($sql$

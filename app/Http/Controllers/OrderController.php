@@ -568,13 +568,28 @@ class OrderController extends Controller
 
         // Открыл именно ЭТОТ проблемный заказ — бейдж в сайдбаре должен
         // уменьшиться сразу на 1, а не когда просто зашёл в раздел «Заказы»
-        // (было так, не понравилось — см. живой тест 2026-09-14).
-        if (!$isCollector && $order->status === 'needs_attention' && $order->seen_at === null) {
-            $order->update(['seen_at' => now()]);
+        // (было так, не понравилось — см. живой тест 2026-09-14). Личная
+        // отметка (order_seen), не общий orders.seen_at — баг найден живьём
+        // 2026-10-17: Ховар открыл проблемный заказ, бейдж погас и у Юлии,
+        // хотя она его не видела (тот же класс бага, что уже чинили для
+        // chat_thread_reads).
+        if (!$isCollector && $order->status === 'needs_attention') {
+            $alreadySeen = DB::table('order_seen')
+                ->where('order_id', $order->id)
+                ->where('user_id', $request->user()->id)
+                ->exists();
 
-            $shop = $request->attributes->get('shop');
-            if ($shop) {
-                \App\Events\OrdersUpdated::dispatch($shop->id);
+            if (!$alreadySeen) {
+                DB::table('order_seen')->insert([
+                    'order_id' => $order->id,
+                    'user_id'  => $request->user()->id,
+                    'seen_at'  => now(),
+                ]);
+
+                $shop = $request->attributes->get('shop');
+                if ($shop) {
+                    \App\Events\OrdersUpdated::dispatch($shop->id);
+                }
             }
         }
 
@@ -895,8 +910,13 @@ class OrderController extends Controller
             'collector_id' => null,
             'collector_name' => null,
             'status' => $becomesNeedsAttention ? 'needs_attention' : $orderModel->status,
-            'seen_at' => $becomesNeedsAttention ? null : $orderModel->seen_at,
         ]);
+
+        // Свежий needs_attention — все сотрудники должны снова увидеть заказ
+        // непрочитанным (см. order_seen, докблок в show()/needsAttentionCount).
+        if ($becomesNeedsAttention) {
+            DB::table('order_seen')->where('order_id', $orderModel->id)->delete();
+        }
 
         OrderActivityLog::record($orderModel, $request, 'released');
 
@@ -1016,8 +1036,10 @@ class OrderController extends Controller
             'pick_note' => $request->note,
             'pick_note_at' => $orderModel->pick_note_at ?? now(),
             'pick_note_edited_at' => $isEdit ? now() : null,
-            'seen_at' => null,
         ]);
+
+        // Свежий needs_attention — см. комментарий в release() выше.
+        DB::table('order_seen')->where('order_id', $orderModel->id)->delete();
 
         OrderActivityLog::record($orderModel, $request, 'problem_reported', $oldStatus, 'needs_attention', $request->note);
 
@@ -1170,21 +1192,30 @@ class OrderController extends Controller
     }
 
     /**
-     * Счётчик для бейджа «Заказы» в сайдбаре — считает needs_attention с
-     * seen_at IS NULL, то есть заказы, которые владелец/админ ещё не открыл
-     * САМИ (не просто зашёл в раздел «Заказы» — так было и не понравилось,
-     * см. живой тест 2026-09-14). seen_at выставляется в show(), сбрасывается
-     * в NULL при каждом новом попадании в needs_attention (reportProblem,
-     * CheckSurchargeDeadline). Сортировка «проблемные — наверх списка» на
-     * это не влияет и остаётся как есть.
+     * Счётчик для бейджа «Заказы» в сайдбаре — считает needs_attention,
+     * которые ЭТОТ сотрудник ещё не открыл сам (не просто зашёл в раздел
+     * «Заказы» — так было и не понравилось, см. живой тест 2026-09-14).
+     * Личная отметка (order_seen), не общий orders.seen_at — см. докблок в
+     * show(). Строка в order_seen для заказа удаляется при каждом новом
+     * попадании в needs_attention (reportProblem, release,
+     * CheckSurchargeDeadline) — все сотрудники снова видят его непрочитанным.
+     * Сортировка «проблемные — наверх списка» на это не влияет и остаётся
+     * как есть.
      *
      * GET /api/admin/orders/needs-attention-count
      */
     public function needsAttentionCount(Request $request): JsonResponse
     {
+        $userId = $request->user()->id;
+
         $query = Order::query()
             ->where('status', 'needs_attention')
-            ->whereNull('seen_at');
+            ->whereNotExists(function ($q) use ($userId) {
+                $q->selectRaw('1')
+                  ->from('order_seen')
+                  ->whereColumn('order_seen.order_id', 'orders.id')
+                  ->where('order_seen.user_id', $userId);
+            });
         $this->applyCategoryScope($query, $request);
 
         return response()->json(['count' => $query->count()]);

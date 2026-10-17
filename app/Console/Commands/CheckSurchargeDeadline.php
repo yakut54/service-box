@@ -45,9 +45,12 @@ class CheckSurchargeDeadline extends Command
         foreach ($orders as $order) {
             try {
                 DB::statement(
-                    "UPDATE {$s}.orders SET status = 'needs_attention', surcharge_status = 'expired', seen_at = NULL WHERE id = ?",
+                    "UPDATE {$s}.orders SET status = 'needs_attention', surcharge_status = 'expired' WHERE id = ?",
                     [$order->id]
                 );
+                // Свежий needs_attention — все сотрудники должны снова
+                // увидеть заказ непрочитанным (см. order_seen, OrderController).
+                DB::statement("DELETE FROM {$s}.order_seen WHERE order_id = ?", [$order->id]);
 
                 if ($shop->telegram_bot_connected) {
                     try { TelegramService::notifyOwnerSurchargeExpired($shop, $order); } catch (\Throwable) {}
