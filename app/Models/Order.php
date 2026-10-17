@@ -152,12 +152,22 @@ class Order extends Model
         $this->save();
     }
 
+    /**
+     * Вебхук ЮKassa теперь может прилететь, когда заказ уже ушёл из pending
+     * (claim() сборщика переводит в processing без проверки оплаты, см.
+     * PaymentController::handleYooKassaWebhook) — нельзя просто писать
+     * status='paid' поверх чего угодно, иначе поздний вебхук откатывал бы
+     * "В работе"/"Требует внимания" обратно на "Оплачен". Статус двигаем
+     * только из pending; из любой другой стадии — оставляем как есть,
+     * только фиксируем сам факт оплаты (paid_at/payment_id/комиссия).
+     */
     public function markAsPaid(string $paymentId): void
     {
         $wasPaid = $this->status === 'paid';
+        $isClosed = in_array($this->status, ['completed', 'cancelled'], true);
 
         $this->update([
-            'status' => 'paid',
+            'status' => $this->status === 'pending' ? 'paid' : $this->status,
             'payment_id' => $paymentId,
             'paid_at' => now(),
             'commission_amount' => $this->calculateCommission(),
@@ -167,7 +177,10 @@ class Order extends Model
             $this->customer->updateStats();
         }
 
-        if (!$wasPaid) {
+        // На закрытый заказ (completed/cancelled) пуш "Оплата получена" не
+        // шлём — поздняя оплата уже отменённого/завершённого заказа не
+        // повод путать покупателя, персонал увидит это в самом заказе.
+        if (!$wasPaid && !$isClosed) {
             \App\Jobs\SendOrderStatusPush::dispatchFor($this, 'paid');
         }
     }

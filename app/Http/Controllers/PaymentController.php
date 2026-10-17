@@ -279,7 +279,15 @@ class PaymentController extends Controller
                     return response()->json(['error' => 'Order not found'], 404);
                 }
 
-                if ($order->status !== 'pending') {
+                // Идемпотентность по факту оплаты (paid_at), не по стадии
+                // заказа — раньше проверяли status==='pending', и как только
+                // сборщик забирал заказ в работу (claim() переводит его в
+                // processing безотносительно оплаты), более поздний вебхук
+                // (в т.ч. списание холда после взвешивания — см.
+                // OrderReweighService) считался "уже обработан" и
+                // отбрасывался, paid_at не проставлялся никогда, хотя деньги
+                // реально приходили. Найдено живым разбором 2026-10-17.
+                if ($order->paid_at !== null) {
                     return response()->json(['status' => 'already_processed']);
                 }
 

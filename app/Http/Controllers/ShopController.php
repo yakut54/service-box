@@ -51,6 +51,11 @@ class ShopController extends Controller
             'chat_customer_delete_enabled' => (bool) $shop->chat_customer_delete_enabled,
             'prepayment_enabled'  => (bool) $shop->prepayment_enabled,
             'prepayment_amount'   => (int) $shop->prepayment_amount,
+            // Онлайн-оплата заказа (не только "по весу — перевзвешивание",
+            // см. PaymentController::createOrderPayment) — виджет/приложение
+            // используют этот флаг, чтобы решить, предлагать ли оплату после
+            // оформления. Сами ключи ЮKassa наружу не отдаём, только факт.
+            'online_payment_enabled' => (bool) ($shop->yookassa_shop_id && $shop->yookassa_secret_key),
             'delivery_settings'   => $enabledMethods ?: null,
             'min_order_amount_kopecks' => (int) config('platform.min_order_amount_kopecks'),
             'legal'             => [
