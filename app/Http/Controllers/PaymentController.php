@@ -21,7 +21,15 @@ class PaymentController extends Controller
      */
     public function createOrderPayment(Request $request, string $orderId): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
+        // Виджет-роут (middleware 'tenant' → TenantContext), не админский
+        // ('auth.shop' → SetShopFromAuth) — тот кладёт магазин в
+        // attributes->set('shop', ...), этот — через $request->merge(['_shop' => ...]),
+        // читается только $request->get('_shop') (как везде в остальных
+        // виджет-контроллерах: ReviewController/ProductController/ChatController/
+        // Api\WriteController). Было $request->attributes->get('shop') — всегда
+        // null на виджет-роуте, из-за чего оплата заказа не работала вообще,
+        // ни при каких credentials (найдено живым тестом 2026-10-17).
+        $shop = $request->get('_shop');
 
         if (!$shop || !$shop->yookassa_shop_id || !$shop->yookassa_secret_key) {
             return response()->json(['message' => 'Онлайн-оплата не настроена для этого магазина'], 422);
@@ -92,7 +100,8 @@ class PaymentController extends Controller
      */
     public function createOrderSurchargePayment(Request $request, string $orderId): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
+        // См. комментарий в createOrderPayment() — тот же баг, тот же фикс.
+        $shop = $request->get('_shop');
 
         if (!$shop || !$shop->yookassa_shop_id || !$shop->yookassa_secret_key) {
             return response()->json(['message' => 'Онлайн-оплата не настроена для этого магазина'], 422);
@@ -156,7 +165,8 @@ class PaymentController extends Controller
      */
     public function createBookingPayment(Request $request, string $bookingId): JsonResponse
     {
-        $shop = $request->attributes->get('shop');
+        // См. комментарий в createOrderPayment() — тот же баг, тот же фикс.
+        $shop = $request->get('_shop');
 
         if (!$shop || !$shop->yookassa_shop_id || !$shop->yookassa_secret_key) {
             return response()->json(['message' => 'Онлайн-оплата не настроена для этого магазина'], 422);
