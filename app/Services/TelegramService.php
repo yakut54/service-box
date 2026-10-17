@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\SendTelegramMessage as SendTelegramMessageJob;
 use App\Models\Shop;
+use App\Models\ShopStaff;
 use App\Models\TelegramMessage;
 use App\Support\Money;
 use Illuminate\Support\Facades\Http;
@@ -267,18 +268,78 @@ class TelegramService
      */
     public static function notifyOwnerOrderCollected(Shop $shop, $order): void
     {
-        $name = $order->customer_name ?? $order->customer_phone;
-
-        $text = "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
-              . "Клиент: " . self::esc($name);
-
         self::sendMessage(
             shop: $shop,
-            text: $text,
+            text: self::orderCollectedText($order),
             type: 'system_notification',
             entityType: 'Order',
             entityId: $order->id
         );
+    }
+
+    /** Общий текст для шаред-чата владельца и личных сообщений админам. */
+    private static function orderCollectedText($order): string
+    {
+        $name = $order->customer_name ?? $order->customer_phone;
+
+        return "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
+             . "Клиент: " . self::esc($name);
+    }
+
+    /**
+     * Личное сообщение одному админу — bare-отправка, НЕ sendToMaster() (та
+     * крепит мастерскую persistent-клавиатуру «Сегодня/Неделя/Статистика»,
+     * админу эти команды ни к чему и работать осмысленно не будут).
+     */
+    public static function notifyAdminOrderCollected(int $chatId, $order): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+            'chat_id'    => $chatId,
+            'text'       => self::orderCollectedText($order),
+            'parse_mode' => 'HTML',
+        ]);
+    }
+
+    /**
+     * Рассылка всем админам магазина с личной привязкой Telegram (self-
+     * service, см. MasterPortalController) — независимо от
+     * shop->telegram_bot_connected, тот флаг про ОБЩИЙ бот магазина, личная
+     * привязка от него не зависит (ровно как и у мастера).
+     */
+    public static function notifyAdminsOrderCollected(Shop $shop, $order): void
+    {
+        $admins = ShopStaff::where('shop_id', $shop->id)
+            ->where('role', 'admin')
+            ->whereNotNull('accepted_at')
+            ->whereNotNull('telegram_chat_id')
+            ->get();
+
+        foreach ($admins as $admin) {
+            try {
+                self::notifyAdminOrderCollected($admin->telegram_chat_id, $order);
+            } catch (\Throwable $e) {
+                Log::warning('notifyAdminOrderCollected failed', ['staff_id' => $admin->id, 'error' => $e->getMessage()]);
+            }
+        }
+    }
+
+    /**
+     * Приветствие после привязки для роли admin — без мастерской
+     * persistent-клавиатуры (см. notifyAdminOrderCollected docblock).
+     */
+    public static function sendAdminWelcome(int $chatId): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+            'chat_id'    => $chatId,
+            'text'       => "✅ <b>Готово!</b> Теперь вы будете получать уведомления о собранных заказах прямо сюда.",
+            'parse_mode' => 'HTML',
+        ]);
     }
 
     /**

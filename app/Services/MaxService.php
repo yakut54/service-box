@@ -291,12 +291,48 @@ class MaxService
     /** См. TelegramService::notifyOwnerOrderCollected — тот же повод/текст. */
     public static function notifyOwnerOrderCollected(Shop $shop, $order): void
     {
+        self::sendMessage($shop, self::orderCollectedText($order));
+    }
+
+    /** Общий текст для шаред-чата владельца и личных сообщений админам. */
+    private static function orderCollectedText($order): string
+    {
         $name = $order->customer_name ?? $order->customer_phone;
 
-        $text = "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
-              . "Клиент: " . self::esc($name);
+        return "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
+             . "Клиент: " . self::esc($name);
+    }
 
-        self::sendMessage($shop, $text);
+    /**
+     * Личное сообщение одному админу — sendRaw без кнопок, тут (в отличие
+     * от Telegram) переиспользовать безопасно: sendMasterMenu с мастерским
+     * меню отдельный метод, sendRaw сам по себе role-agnostic.
+     */
+    public static function notifyAdminOrderCollected(int $userId, $order): void
+    {
+        self::sendRaw($userId, self::orderCollectedText($order));
+    }
+
+    /**
+     * Рассылка всем админам магазина с личной привязкой MAX — независимо от
+     * shop->max_bot_connected (тот флаг про общий бот магазина), ровно как
+     * и у мастера.
+     */
+    public static function notifyAdminsOrderCollected(Shop $shop, $order): void
+    {
+        $admins = \App\Models\ShopStaff::where('shop_id', $shop->id)
+            ->where('role', 'admin')
+            ->whereNotNull('accepted_at')
+            ->whereNotNull('max_user_id')
+            ->get();
+
+        foreach ($admins as $admin) {
+            try {
+                self::notifyAdminOrderCollected($admin->max_user_id, $order);
+            } catch (\Throwable $e) {
+                Log::warning('notifyAdminOrderCollected (max) failed', ['staff_id' => $admin->id, 'error' => $e->getMessage()]);
+            }
+        }
     }
 
     public static function removeButtonsByEntity(string $type, string $entityId): void

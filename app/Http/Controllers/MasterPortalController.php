@@ -155,6 +155,12 @@ class MasterPortalController extends Controller
         ]);
     }
 
+    /**
+     * `admin` добавлен 2026-10-17 — у админов не было личного канала
+     * уведомлений вообще (только у мастера), пользователь явно попросил
+     * расширить self-service привязку Telegram/MAX на эту роль тоже. Сам
+     * портал (`/master/*`) не переименовываем — только открываем доступ.
+     */
     private function getStaff(Request $request): ShopStaff
     {
         $userId = auth()->id();
@@ -162,7 +168,7 @@ class MasterPortalController extends Controller
 
         return ShopStaff::where('user_id', $userId)
             ->where('shop_id', $shopId)
-            ->where('role', 'master')
+            ->whereIn('role', ['master', 'admin'])
             ->whereNotNull('accepted_at')
             ->firstOrFail();
     }

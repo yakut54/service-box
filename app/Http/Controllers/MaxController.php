@@ -237,9 +237,24 @@ class MaxController extends Controller
         );
     }
 
+    /**
+     * `admin` добавлен 2026-10-17 (см. MasterPortalController::getStaff) —
+     * sendMasterMenu крепит inline-кнопки «Сегодня/Неделя/Статистика» про
+     * записи МАСТЕРА (callback ведёт в его расписание по master_id), у
+     * админа этого поля нет — ветвим на простое приветствие без меню.
+     */
     private function tryConnectMaster(int $userId, \App\Models\ShopStaff $staff): void
     {
         MaxService::connectMaster($staff, $userId);
+
+        if ($staff->role === 'admin') {
+            MaxService::sendRaw(
+                $userId,
+                "✅ <b>Готово!</b> Теперь вы будете получать уведомления о собранных заказах прямо сюда."
+            );
+            return;
+        }
+
         MaxService::sendMasterMenu(
             $userId,
             "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.\n\nИспользуйте кнопки ниже 👇"

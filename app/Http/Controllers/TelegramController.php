@@ -251,10 +251,15 @@ class TelegramController extends Controller
         $this->sendReply($chatId, '❌ Ссылка недействительна или устарела. Создайте новую запись.');
     }
 
+    /**
+     * `admin` добавлен 2026-10-17 вместе с self-service привязкой для этой
+     * роли (см. MasterPortalController::getStaff) — без этого ссылка,
+     * которую сгенерировал админ, здесь никогда бы не резолвилась.
+     */
     private function handleMasterLink(string $token, int $chatId): void
     {
         $staff = \App\Models\ShopStaff::where('messenger_link_token', $token)
-            ->where('role', 'master')
+            ->whereIn('role', ['master', 'admin'])
             ->where('messenger_link_token_expires_at', '>', now())
             ->first();
 
@@ -269,8 +274,15 @@ class TelegramController extends Controller
             'messenger_link_token_expires_at' => null,
         ]);
 
-        TelegramService::sendMasterWelcome($chatId);
-        Log::info('[TG] master linked', ['staff_id' => $staff->id, 'chat_id' => $chatId]);
+        // Мастерское приветствие крепит persistent-клавиатуру с кнопками
+        // «Сегодня/Неделя/Статистика» — это команды ПРО ЕГО записи
+        // (master_id), у админа такого поля нет и кнопки ему не нужны.
+        if ($staff->role === 'admin') {
+            TelegramService::sendAdminWelcome($chatId);
+        } else {
+            TelegramService::sendMasterWelcome($chatId);
+        }
+        Log::info('[TG] master/admin linked', ['staff_id' => $staff->id, 'role' => $staff->role, 'chat_id' => $chatId]);
     }
 
     private function handleCallbackQuery(array $callbackQuery): void

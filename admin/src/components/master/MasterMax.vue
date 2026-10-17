@@ -4,6 +4,11 @@ import { api } from '@/lib/api'
 import { parseApiError } from '@/lib/parseApiError'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 
+// См. docblock у props в MasterTelegram.vue — тот же приём.
+const props = withDefaults(defineProps<{ subject?: string }>(), {
+  subject: 'о новых записях',
+})
+
 const connecting    = ref(false)
 const awaiting      = ref(false)
 const error         = ref('')
@@ -69,7 +74,7 @@ async function disconnect() {
 <template>
   <div class="card">
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">MAX уведомления</h2>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Мгновенные уведомления о новых записях прямо в MAX.</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Мгновенные уведомления {{ props.subject }} прямо в MAX.</p>
 
     <!-- Connected -->
     <div v-if="connected" class="space-y-3">
@@ -137,6 +142,6 @@ async function disconnect() {
     :danger="true"
     @confirm="showConfirm = false; disconnect()"
   >
-    Уведомления о новых записях перестанут приходить. Подключить заново можно в любой момент.
+    Уведомления {{ props.subject }} перестанут приходить. Подключить заново можно в любой момент.
   </UiConfirmDialog>
 </template>

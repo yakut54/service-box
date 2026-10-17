@@ -741,6 +741,13 @@ class OrderController extends Controller
             if ($shop->max_bot_connected) {
                 try { MaxService::notifyOwnerOrderCollected($shop, $order); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderCollected (max) failed', ['error' => $e->getMessage()]); }
             }
+
+            // Админы — личная привязка (self-service, см.
+            // MasterPortalController), независимо от shop-wide ботов, как
+            // и уведомления мастеру (2026-10-17: раньше у админов такого
+            // канала не было вообще).
+            try { TelegramService::notifyAdminsOrderCollected($shop, $order); } catch (\Throwable $e) { Log::warning('notifyAdminsOrderCollected (telegram) failed', ['error' => $e->getMessage()]); }
+            try { MaxService::notifyAdminsOrderCollected($shop, $order); } catch (\Throwable $e) { Log::warning('notifyAdminsOrderCollected (max) failed', ['error' => $e->getMessage()]); }
         }
 
         $order->load(['items.product.physical', 'customer']);

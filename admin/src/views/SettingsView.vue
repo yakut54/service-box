@@ -19,6 +19,8 @@ import SettingsWidgetAnalytics  from '@/components/settings/SettingsWidgetAnalyt
 import SettingsDelivery         from '@/components/settings/SettingsDelivery.vue'
 import SettingsYandexDelivery   from '@/components/settings/SettingsYandexDelivery.vue'
 import SettingsChatModeration   from '@/components/settings/SettingsChatModeration.vue'
+import MasterTelegram           from '@/components/master/MasterTelegram.vue'
+import MasterMax                from '@/components/master/MasterMax.vue'
 
 const route     = useRoute()
 const router    = useRouter()
@@ -32,30 +34,37 @@ const mailFailuresStore = useMailFailuresStore()
 // сотрудников (admin/collector) своя запись в shop_staff и своё редактирование
 // через "Команду" (см. AdminFormModal) — самообслуживание для них не добавляли.
 // 'notifications'/'payments' — ownerOnly: боты магазина и платёжные ключи
-// остаются владельцу, управляющему точки (роль admin) видна только вкладка
-// "Основное" (там часы работы) и "Доставка".
+// остаются владельцу, управляющему точки (роль admin) видна вкладка
+// "Основное" (там часы работы), "Доставка" и своя "Мои уведомления".
+// 'my-notifications' — adminOnly: личная привязка Telegram/MAX для роли
+// admin (2026-10-17, переиспользует MasterTelegram/MasterMax — те же
+// role-agnostic компоненты, что и у портала мастера, см. PLAN.md). Мастер
+// сюда не заходит — у него свой отдельный портал (/master/notifications).
 const tabs = [
-  { id: 'profile',       label: 'Профиль', ownerOnly: true },
-  { id: 'main',          label: 'Основное' },
-  { id: 'widget',        label: 'Виджет', hidden: true },
-  { id: 'notifications', label: 'Уведомления', ownerOnly: true },
-  { id: 'payments',      label: 'Платежи', ownerOnly: true },
-  { id: 'delivery',      label: 'Доставка' },
+  { id: 'profile',         label: 'Профиль', ownerOnly: true },
+  { id: 'main',            label: 'Основное' },
+  { id: 'widget',          label: 'Виджет', hidden: true },
+  { id: 'notifications',   label: 'Уведомления', ownerOnly: true },
+  { id: 'my-notifications', label: 'Мои уведомления', adminOnly: true },
+  { id: 'payments',        label: 'Платежи', ownerOnly: true },
+  { id: 'delivery',        label: 'Доставка' },
 ] as const
 
 type TabId = (typeof tabs)[number]['id']
 
-const visibleTabs = computed(() => tabs.filter(tab =>
-  !('hidden' in tab && tab.hidden) &&
-  (!('ownerOnly' in tab && tab.ownerOnly) || authStore.isOwner)
-))
+function tabVisible(tab: (typeof tabs)[number]): boolean {
+  if ('hidden' in tab && tab.hidden) return false
+  if ('ownerOnly' in tab && tab.ownerOnly && !authStore.isOwner) return false
+  if ('adminOnly' in tab && tab.adminOnly && !authStore.isAdmin) return false
+  return true
+}
+
+const visibleTabs = computed(() => tabs.filter(tabVisible))
 
 const activeTab = computed<TabId>(() => {
   const t = route.query.tab as string | undefined
   const match = tabs.find(tab => tab.id === t)
-  if (!match) return 'main'
-  if ('hidden' in match && match.hidden) return 'main'
-  if ('ownerOnly' in match && match.ownerOnly && !authStore.isOwner) return 'main'
+  if (!match || !tabVisible(match)) return 'main'
   return match.id
 })
 
@@ -123,6 +132,12 @@ function setTab(id: TabId) {
       <SettingsTelegram />
       <SettingsMax />
       <SettingsMailFailures class="lg:col-span-2" />
+    </div>
+
+    <!-- Мои уведомления (управляющий точки, роль admin) -->
+    <div v-show="activeTab === 'my-notifications'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <MasterTelegram subject="о собранных заказах" />
+      <MasterMax subject="о собранных заказах" />
     </div>
 
     <!-- Платежи -->
