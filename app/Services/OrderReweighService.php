@@ -126,7 +126,51 @@ class OrderReweighService
             'surcharge_deadline_at' => now()->addHours(3),
         ]);
 
-        self::notifySurcharge($order, $shop);
+        // Пробуем списать доплату автоматически с той же карты, которой
+        // оплачен исходный заказ (payment_method_id сохранён вебхуком
+        // payment.waiting_for_capture, см. PaymentController::handleYooKassaWebhook)
+        // — без повторного похода покупателя на оплату. Подтверждение
+        // приходит тем же вебхуком, что и ручная доплата по ссылке
+        // (type=order_surcharge, payment.succeeded) — он уже умеет ставить
+        // surcharge_status='paid', отдельной логики здесь не нужно.
+        //
+        // ЮKassa может отказать (у магазина не включены автоплатежи — это
+        // разрешение конкретного мерчанта, не наша галочка, см. PLAN.md) —
+        // тогда просто откатываемся на уже работающий сценарий со ссылкой.
+        $autoChargeAttempted = false;
+        if ($yooKassa && $order->payment_method_id) {
+            try {
+                $result = $yooKassa->chargeWithSavedMethod(
+                    $order->payment_method_id,
+                    $surcharge / 100,
+                    "Доплата за заказ #{$order->id}",
+                    [
+                        'order_id' => $order->id,
+                        'shop_id'  => $shop->id,
+                        'type'     => 'order_surcharge',
+                    ],
+                );
+
+                if (in_array($result['status'], ['succeeded', 'pending', 'waiting_for_capture'], true)) {
+                    $order->update([
+                        'surcharge_payment_id' => $result['payment_id'],
+                        'surcharge_auto_charged_at' => now(),
+                    ]);
+                    $autoChargeAttempted = true;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Surcharge auto-charge via saved card failed, falling back to manual payment link', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Автосписание уже идёт — не беспокоим покупателя просьбой оплатить,
+        // он тут ни при чём, подтверждение придёт вебхуком.
+        if (!$autoChargeAttempted) {
+            self::notifySurcharge($order, $shop);
+        }
     }
 
     /** Все три канала — параллельно, каждый в своём try/catch, best-effort. */

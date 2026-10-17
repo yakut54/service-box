@@ -332,6 +332,14 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         surcharge_payment_url   TEXT,
                         surcharge_requested_at  TIMESTAMPTZ,
                         surcharge_deadline_at   TIMESTAMPTZ,
+                        -- Автосписание доплаты без похода покупателя на оплату
+                        -- (см. OrderReweighService::finalizeOrder). payment_method_id —
+                        -- сохранённый способ оплаты исходного холда (приходит вебхуком
+                        -- payment.waiting_for_capture), surcharge_auto_charged_at —
+                        -- когда была предпринята попытка списать им доплату (не
+                        -- гарантия успеха — подтверждение всё равно по вебхуку).
+                        payment_method_id       TEXT,
+                        surcharge_auto_charged_at TIMESTAMPTZ,
                         -- Кто собирает заказ (сборщик). collector_id — id строки
                         -- public.shop_staff, без FK: shop_staff живёт в другой схеме
                         -- (public), кросс-схемная ссылка невозможна. collector_name —

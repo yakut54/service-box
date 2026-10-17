@@ -158,6 +158,7 @@ class OrderController extends Controller
             $data['discount_amount'],
             $data['payment_id'],
             $data['payment_url'],
+            $data['payment_method_id'],
             $data['customer_email'],
             $data['consent_offer_accepted'],
             $data['consent_privacy_accepted'],

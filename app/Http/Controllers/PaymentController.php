@@ -59,6 +59,11 @@ class PaymentController extends Controller
                     'type'     => 'order',
                 ],
                 capture: !$hasWeightVariable,
+                // Сохраняем способ оплаты только там, где потом реально
+                // может понадобиться доплата (см. OrderReweighService) —
+                // чтобы попробовать списать её автоматически, без того
+                // чтобы покупатель второй раз шёл платить по ссылке.
+                savePaymentMethod: $hasWeightVariable ? true : null,
             );
 
             $order->update([
@@ -97,6 +102,13 @@ class PaymentController extends Controller
 
         if ($order->surcharge_status !== 'pending') {
             return response()->json(['message' => 'Доплата не требуется или уже обработана'], 422);
+        }
+
+        // Автосписание уже в процессе (см. OrderReweighService::finalizeOrder)
+        // — нельзя одновременно создать ещё и ручной платёж по ссылке, иначе
+        // покупателя могут списать дважды.
+        if ($order->surcharge_auto_charged_at !== null) {
+            return response()->json(['message' => 'Доплата уже списывается автоматически, подождите подтверждения'], 422);
         }
 
         // Если ссылка уже создана — вернуть существующую
@@ -220,7 +232,13 @@ class PaymentController extends Controller
         $event   = $request->input('event');
         $payment = $request->input('object');
 
-        if ($event !== 'payment.succeeded') {
+        // payment.waiting_for_capture нужен только заказам с холдом (type=order,
+        // «по весу — перевзвешивание») — там это момент, когда карта уже
+        // авторизована и можно забрать payment_method.id для будущего
+        // автосписания доплаты (см. ветку type=order ниже). Остальным типам
+        // (booking/order_surcharge) он не нужен — фильтр для них остаётся
+        // ниже, как было.
+        if (!in_array($event, ['payment.succeeded', 'payment.waiting_for_capture'], true)) {
             return response()->json(['status' => 'ignored']);
         }
 
@@ -239,9 +257,13 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Missing or unknown shop_id in metadata'], 400);
         }
 
-        return TenantService::inContext($shop, function () use ($type, $metadata, $payment) {
+        return TenantService::inContext($shop, function () use ($event, $type, $metadata, $payment) {
             // ── Предоплата за запись ──────────────────────────────────
             if ($type === 'booking') {
+                if ($event !== 'payment.succeeded') {
+                    return response()->json(['status' => 'ignored']);
+                }
+
                 $bookingId = $metadata['booking_id'] ?? null;
 
                 if (!$bookingId) {
@@ -279,6 +301,26 @@ class PaymentController extends Controller
                     return response()->json(['error' => 'Order not found'], 404);
                 }
 
+                // Холд авторизован, но ещё не списан (двухстадийная оплата
+                // «по весу — перевзвешивание», см. OrderReweighService) —
+                // карта уже привязана к платежу, сохраняем её ID для
+                // будущего автосписания доплаты, если факт окажется больше
+                // холда. Это НЕ оплата заказа — markAsPaid() здесь не зовём,
+                // paid_at проставится позже отдельным payment.succeeded
+                // (списание холда/капча).
+                if ($event === 'payment.waiting_for_capture') {
+                    $method = $payment['payment_method'] ?? [];
+                    if (!empty($method['saved']) && !empty($method['id']) && !$order->payment_method_id) {
+                        $order->update(['payment_method_id' => $method['id']]);
+                        Log::info('Order payment method saved for future surcharge auto-charge', [
+                            'order_id' => $orderId,
+                            'payment_method_id' => $method['id'],
+                        ]);
+                    }
+
+                    return response()->json(['status' => 'success']);
+                }
+
                 // Идемпотентность по факту оплаты (paid_at), не по стадии
                 // заказа — раньше проверяли status==='pending', и как только
                 // сборщик забирал заказ в работу (claim() переводит его в
@@ -300,6 +342,10 @@ class PaymentController extends Controller
 
             // ── Доплата за перевзвешенный заказ ────────────────────────
             if ($type === 'order_surcharge') {
+                if ($event !== 'payment.succeeded') {
+                    return response()->json(['status' => 'ignored']);
+                }
+
                 $orderId = $metadata['order_id'] ?? null;
 
                 if (!$orderId) {
