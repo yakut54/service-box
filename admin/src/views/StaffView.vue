@@ -284,8 +284,11 @@ onUnmounted(() => {
             {{ lastLoginText(admin) }}
           </div>
 
-          <!-- Actions -->
-          <div class="flex gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
+          <!-- Actions — mt-auto прижимает к низу карточки: у сборщика строкой
+               больше ("Администратор: X"), чем у админа/владельца, грид
+               растягивает карточки по высоте под самую высокую в ряду, и без
+               mt-auto кнопки съезжали на разный уровень между карточками. -->
+          <div class="flex gap-2 pt-1 mt-auto border-t border-gray-100 dark:border-gray-700">
             <button @click="openEdit(admin)" class="btn-secondary btn-sm flex-1">
               Редактировать
             </button>
