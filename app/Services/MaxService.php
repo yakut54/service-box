@@ -299,8 +299,14 @@ class MaxService
     {
         $name = $order->customer_name ?? $order->customer_phone;
 
-        return "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
-             . "Клиент: " . self::esc($name);
+        $text = "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
+              . "Клиент: " . self::esc($name);
+
+        if (!empty($order->collector_name)) {
+            $text .= "\nСобрал: " . self::esc($order->collector_name);
+        }
+
+        return $text;
     }
 
     /**

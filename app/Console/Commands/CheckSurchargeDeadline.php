@@ -44,8 +44,16 @@ class CheckSurchargeDeadline extends Command
 
         foreach ($orders as $order) {
             try {
+                // pick_note проставляем сами — автоматика, человека, который
+                // мог бы написать причину, тут нет, а needs_attention без
+                // заметки оставляет следующего сотрудника без контекста (тот
+                // же принцип, что у release()/reportProblem(), см. PLAN.md
+                // 2026-10-18).
                 DB::statement(
-                    "UPDATE {$s}.orders SET status = 'needs_attention', surcharge_status = 'expired' WHERE id = ?",
+                    "UPDATE {$s}.orders SET status = 'needs_attention', surcharge_status = 'expired',
+                        pick_note = 'Доплата за перевес не подтверждена вовремя — дедлайн истёк',
+                        pick_note_at = COALESCE(pick_note_at, NOW())
+                     WHERE id = ?",
                     [$order->id]
                 );
                 // Свежий needs_attention — все сотрудники должны снова

@@ -282,8 +282,17 @@ class TelegramService
     {
         $name = $order->customer_name ?? $order->customer_phone;
 
-        return "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
-             . "Клиент: " . self::esc($name);
+        $text = "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
+              . "Клиент: " . self::esc($name);
+
+        // Без этого в самом уведомлении не было видно, КЕМ заказ собран —
+        // найдено живым разбором 2026-10-18 (скриншот реального сообщения
+        // в Telegram, вопрос «собран КЕМ?»).
+        if (!empty($order->collector_name)) {
+            $text .= "\nСобрал: " . self::esc($order->collector_name);
+        }
+
+        return $text;
     }
 
     /**

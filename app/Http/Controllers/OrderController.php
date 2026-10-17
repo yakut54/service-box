@@ -194,12 +194,20 @@ class OrderController extends Controller
         $shop = $request->attributes->get('shop');
         $isCollector = $request->attributes->get('staff_role') === 'collector';
 
+        // Владелец/админ тоже могут зайти на экран сборки «Собрать самому»
+        // (2026-10-18, см. PLAN.md) — тот же CollectorOrdersView.vue, та же
+        // очередь, просто роль другая. Раньше очередь включалась только по
+        // роли collector; теперь — по явному scope в запросе (обычный
+        // OrdersView.vue его никогда не шлёт, так что для него ничего не
+        // меняется).
+        $isQueueView = $isCollector || $request->filled('scope');
+
         // items.product.physical — сборщику (роль collector) нужен sale_mode и
         // вес каждой позиции, чтобы показать поле ввода факт. веса только для
         // weight_variable (см. CollectorOrderDetailView.vue).
         $query = Order::query()->with(['items.product.physical', 'customer']);
 
-        if ($isCollector) {
+        if ($isQueueView) {
             if ($request->input('scope') === 'done') {
                 // «Собранные сегодня» — по таймзоне магазина, не сервера.
                 // collected добавлен 2026-10-17: «Готово» у сборщика теперь
@@ -242,7 +250,7 @@ class OrderController extends Controller
 
         $this->applyCategoryScope($query, $request);
 
-        if ($isCollector) {
+        if ($isQueueView) {
             // Очередь сборщика маленькая по определению (только активные
             // заказы одного магазина) — пагинация тут не нужна.
             $orders = $query->oldest('created_at')->get();
@@ -615,6 +623,13 @@ class OrderController extends Controller
 
         $isCollector = $request->attributes->get('staff_role') === 'collector';
 
+        // Владелец/админ тоже может лично собирать заказ (claim → чек-лист →
+        // «Готово», см. CollectorOrderDetailView.vue, 2026-10-18) — чек-лист
+        // и форма ответа ниже должны сработать для НЕГО ТОЖЕ, не только для
+        // роли collector, иначе он мог бы обойти чек-лист прямо с экрана
+        // сборки через ту же кнопку.
+        $isSelfCollecting = $order->collector_id && $order->collector_id === $request->user()->id;
+
         $request->validate([
             // 'paid' сюда сознательно не входит — этот статус проставляет
             // только вебхук ЮKassa (Order::markAsPaid), после реальной
@@ -663,10 +678,13 @@ class OrderController extends Controller
 
         // Сборщик завершает заказ только когда разобрал каждую позицию —
         // тапом (picked_qty) или взвешиванием (actual_weight_grams для
-        // weight_variable). Гейт только для роли collector: владелец/админ
-        // по-прежнему может завершить заказ напрямую из обычной админки, не
-        // проходя чек-лист сборки (не у всех магазинов вообще есть сборщик).
-        if ($isFinalizing && $isCollector) {
+        // weight_variable). Гейт — роль collector ИЛИ тот, кто лично собирает
+        // этот заказ ($isSelfCollecting, см. выше): владелец/админ, который
+        // НЕ брал заказ в сборку, по-прежнему может завершить его напрямую
+        // из обычной админки, не проходя чек-лист (не у всех магазинов вообще
+        // есть сборщик) — но если он сам встал на сборку, чек-лист обязателен
+        // точно так же, как у сборщика.
+        if ($isFinalizing && ($isCollector || $isSelfCollecting)) {
             $unresolved = $order->items->contains(function ($item) {
                 return $item->product?->physical?->sale_mode === 'weight_variable'
                     ? $item->actual_weight_grams === null
@@ -769,7 +787,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Статус заказа обновлён',
-            'data' => $isCollector ? $this->collectorPayload($order, $shop) : $order,
+            'data' => ($isCollector || $isSelfCollecting) ? $this->collectorPayload($order, $shop) : $order,
         ]);
     }
 
@@ -811,10 +829,13 @@ class OrderController extends Controller
         $orderModel->refresh()->load(['items.product.physical', 'customer']);
 
         $isCollector = $request->attributes->get('staff_role') === 'collector';
+        // Владелец/админ лично собирает этот заказ (см. updateStatus) — тот
+        // же экран сборки, та же форма ответа.
+        $isSelfCollecting = $orderModel->collector_id && $orderModel->collector_id === $request->user()->id;
 
         return response()->json([
             'message' => 'Вес подтверждён',
-            'data' => $isCollector ? $this->collectorPayload($orderModel, $shop) : $orderModel,
+            'data' => ($isCollector || $isSelfCollecting) ? $this->collectorPayload($orderModel, $shop) : $orderModel,
         ]);
     }
 
@@ -886,10 +907,19 @@ class OrderController extends Controller
      * существующая командная очередь: видна и действуема любым админом или
      * сборщиком с доступом по категориям, не только владельцем.
      *
+     * Заметка обязательна (2026-10-18) — раньше отказ был в один клик без
+     * причины, следующий, кто открывал needs_attention заказ, не понимал,
+     * что случилось (живой разбор). Та же колонка pick_note, что у
+     * reportProblem() — одно место для причины, не два разных поля.
+     *
      * PATCH /api/admin/orders/{order}/release
      */
     public function release(Request $request, string $order): JsonResponse
     {
+        $request->validate([
+            'note' => 'required|string|max:1000',
+        ]);
+
         $orderModel = Order::findOrFail($order);
 
         if (!$this->orderInScope($orderModel, $request)) {
@@ -905,11 +935,15 @@ class OrderController extends Controller
         }
 
         $becomesNeedsAttention = !in_array($orderModel->status, ['completed', 'cancelled', 'needs_attention'], true);
+        $isEdit = $orderModel->pick_note !== null;
 
         $orderModel->update([
             'collector_id' => null,
             'collector_name' => null,
             'status' => $becomesNeedsAttention ? 'needs_attention' : $orderModel->status,
+            'pick_note' => $request->note,
+            'pick_note_at' => $orderModel->pick_note_at ?? now(),
+            'pick_note_edited_at' => $isEdit ? now() : null,
         ]);
 
         // Свежий needs_attention — все сотрудники должны снова увидеть заказ
@@ -918,7 +952,7 @@ class OrderController extends Controller
             DB::table('order_seen')->where('order_id', $orderModel->id)->delete();
         }
 
-        OrderActivityLog::record($orderModel, $request, 'released');
+        OrderActivityLog::record($orderModel, $request, 'released', null, null, $request->note);
 
         $shop = $request->attributes->get('shop');
         \App\Events\OrdersUpdated::dispatch($shop->id);
