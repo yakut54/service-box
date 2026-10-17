@@ -597,6 +597,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         image_url          TEXT,
                         status             TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'read')),
                         reply_to_message_id UUID REFERENCES %I.chat_messages(id) ON DELETE SET NULL,
+                        -- Отрывок текста, который покупатель выделил в
+                        -- оригинальном сообщении и процитировал (мобильное,
+                        -- 2026-10-18) — НЕ всё reply_to.body, именно
+                        -- выделенный кусок. NULL — обычный ответ без цитаты
+                        -- (reply_to_message_id уже есть, этого достаточно).
+                        reply_quote        TEXT,
                         edited_at          TIMESTAMPTZ,
                         deleted_at         TIMESTAMPTZ,
                         created_at         TIMESTAMPTZ DEFAULT NOW(),

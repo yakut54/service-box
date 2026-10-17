@@ -432,6 +432,10 @@ export interface ChatMessage {
   created_at: string
   reply_to_message_id?: string | null
   reply_to?: ChatMessage | null
+  // Отрывок, который БАЙЕР выделил в оригинале и процитировал (мобильное
+  // приложение, 2026-10-18) — не всё reply_to.body. У сообщений, созданных
+  // из админки, всегда null (у персонала нет этой точки входа).
+  reply_quote?: string | null
   edited_at?: string | null
   deleted_at?: string | null
 }

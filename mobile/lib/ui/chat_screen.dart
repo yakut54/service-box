@@ -82,6 +82,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   // не грузится. Используется и для гейта кнопок, и для текста "N из M".
   (int, int)? _uploadProgress;
   ChatMessage? _replyTarget;
+  // Отрывок текста, выделенный пользователем в _replyTarget (не весь текст)
+  // — заполняется только через режим выделения («Выделить текст» в меню
+  // долгого нажатия), см. PLAN.md 2026-10-18. null — обычный полный ответ.
+  String? _quoteExcerpt;
+  // id сообщения, бабл которого сейчас в режиме выделения текста — не
+  // гонка жестов с долгим нажатием/свайпом (см. Context в плане), отдельный
+  // explicit-режим, включаемый через меню.
+  String? _selectingMessageId;
   String? _threadId;
 
   // ── "Печатает…" / "в сети" (магазин) — эфемерный пинг в тот же WS-канал,
@@ -531,6 +539,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           imageUrl: images.isEmpty ? null : images[i].url,
           clientMessageId: generateUuidV4(),
           replyToMessageId: isFirst ? _replyTarget?.id : null,
+          replyQuote: isFirst ? _quoteExcerpt : null,
         );
         sent++;
         if (!mounted) return;
@@ -540,6 +549,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           if (isFirst) {
             _draftController.clear();
             _replyTarget = null;
+            _quoteExcerpt = null;
           }
         });
       }
@@ -571,11 +581,40 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _startReply(ChatMessage m) {
-    setState(() => _replyTarget = m);
+    setState(() {
+      _replyTarget = m;
+      _quoteExcerpt = null;
+    });
   }
 
   void _cancelReply() {
-    setState(() => _replyTarget = null);
+    setState(() {
+      _replyTarget = null;
+      _quoteExcerpt = null;
+    });
+  }
+
+  /// Включить режим выделения текста для одного сообщения — см. «Выделить
+  /// текст» в _openMessageMenu и Context в PLAN.md (почему не второй
+  /// long-press).
+  void _startSelecting(ChatMessage m) {
+    setState(() => _selectingMessageId = m.id);
+  }
+
+  void _cancelSelecting() {
+    setState(() => _selectingMessageId = null);
+  }
+
+  /// Подтверждение выделенного отрывка — превращается в ответ-с-цитатой
+  /// (не обычный полный ответ, см. _startReply выше).
+  void _confirmQuote(ChatMessage m, String excerpt) {
+    final trimmed = excerpt.trim();
+    if (trimmed.isEmpty) return;
+    setState(() {
+      _replyTarget = m;
+      _quoteExcerpt = trimmed;
+      _selectingMessageId = null;
+    });
   }
 
   Future<void> _copyMessage(ChatMessage m) async {
@@ -648,6 +687,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 onTap: () {
                   Navigator.of(ctx).pop();
                   _copyMessage(m);
+                },
+              ),
+            if (m.body != null && m.body!.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.text_fields_rounded),
+                title: const Text('Выделить текст'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _startSelecting(m);
                 },
               ),
             if (m.isMine && _canDeleteOwnMessages)
@@ -795,6 +843,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       key: key,
                       message: message,
                       isHighlighted: _highlightedMessageId == message.id,
+                      isSelecting: _selectingMessageId == message.id,
+                      onCancelSelecting: _cancelSelecting,
+                      onConfirmQuote: (excerpt) => _confirmQuote(message, excerpt),
                       // Уже удалённому (плашка «Сообщение удалено») своему
                       // сообщению можно предложить только «Удалить» — стереть
                       // саму плашку насовсем (спека 2026-09-16); ответить или
@@ -867,14 +918,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Ответ на сообщение',
+                            _quoteExcerpt != null ? 'Цитата' : 'Ответ на сообщение',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: theme.colorScheme.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
-                            _replyTarget!.body ?? (_replyTarget!.imageUrl != null ? '📷 Фото' : ''),
+                            _quoteExcerpt ??
+                                _replyTarget!.body ??
+                                (_replyTarget!.imageUrl != null ? '📷 Фото' : ''),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall,
@@ -1050,6 +1103,13 @@ class _MessageBubble extends StatefulWidget {
   final VoidCallback onSwipeReply;
   final VoidCallback? onDelete;
   final VoidCallback? onQuoteTap;
+  // Режим выделения текста («Выделить текст» в меню долгого нажатия, см.
+  // PLAN.md 2026-10-18) — включается на уровне экрана (один activeId на
+  // все бабблы), не локальным состоянием бабла, иначе переключение между
+  // сообщениями не закрывало бы предыдущее выделение.
+  final bool isSelecting;
+  final VoidCallback? onCancelSelecting;
+  final ValueChanged<String>? onConfirmQuote;
 
   const _MessageBubble({
     super.key,
@@ -1059,6 +1119,9 @@ class _MessageBubble extends StatefulWidget {
     required this.onSwipeReply,
     this.onDelete,
     this.onQuoteTap,
+    this.isSelecting = false,
+    this.onCancelSelecting,
+    this.onConfirmQuote,
   });
 
   @override
@@ -1070,6 +1133,28 @@ class _MessageBubbleState extends State<_MessageBubble>
   double _dragOffset = 0;
   static const _replyThreshold = 64.0;
   static const _maxDrag = 80.0;
+
+  // Текущее выделение в режиме «Выделить текст» (widget.isSelecting) —
+  // живёт тут, не на уровне экрана: у каждого бабла своя SelectableText.
+  TextSelection? _textSelection;
+
+  String? get _selectedExcerpt {
+    final sel = _textSelection;
+    final body = widget.message.body;
+    if (sel == null || body == null || sel.isCollapsed) return null;
+    return body.substring(sel.start, sel.end);
+  }
+
+  @override
+  void didUpdateWidget(_MessageBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Вышли из режима выделения (например, отменили из другого бабла,
+    // переключая widget.isSelecting глобально) — сбрасываем локальный
+    // диапазон, иначе он «протухшим» всплывёт при следующем входе.
+    if (oldWidget.isSelecting && !widget.isSelecting) {
+      _textSelection = null;
+    }
+  }
 
   void _onDragUpdate(DragUpdateDetails details) {
     // Свайп ВЛЕВО = ответить (delta.dx отрицательный при движении влево,
@@ -1098,9 +1183,13 @@ class _MessageBubbleState extends State<_MessageBubble>
         '${message.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
 
     return GestureDetector(
-      onHorizontalDragUpdate: _onDragUpdate,
-      onHorizontalDragEnd: _onDragEnd,
-      onLongPress: widget.onLongPress,
+      // В режиме выделения (widget.isSelecting) эти жесты выключены — иначе
+      // протяжка ручки выделения SelectableText (внутри того же дерева)
+      // соревновалась бы со свайпом-ответом в одной gesture arena (ровно
+      // риск, описанный в PLAN.md 2026-10-18).
+      onHorizontalDragUpdate: widget.isSelecting ? null : _onDragUpdate,
+      onHorizontalDragEnd: widget.isSelecting ? null : _onDragEnd,
+      onLongPress: widget.isSelecting ? null : widget.onLongPress,
       child: Stack(
         children: [
           if (_dragOffset > 4)
@@ -1191,7 +1280,11 @@ class _MessageBubbleState extends State<_MessageBubble>
                               child: Text(
                                 message.replyTo!.isDeleted
                                     ? 'Сообщение удалено'
-                                    : (message.replyTo!.body ??
+                                    // replyQuote — отрывок, который реально
+                                    // выделили (см. PLAN.md 2026-10-18), а не
+                                    // весь текст оригинала.
+                                    : (message.replyQuote ??
+                                        message.replyTo!.body ??
                                         (message.replyTo!.imageUrl != null ? '📷 Фото' : '')),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1247,16 +1340,29 @@ class _MessageBubbleState extends State<_MessageBubble>
                           padding: EdgeInsets.only(
                             top: message.imageUrl != null ? 6 : 0,
                           ),
-                          child: Text(
-                            message.body!,
-                            textAlign: isMine ? TextAlign.right : TextAlign.left,
-                            style: TextStyle(
-                              color: isMine
-                                  ? theme.colorScheme.onPrimary
-                                  : theme.colorScheme.onSurface,
-                            ),
-                          ),
+                          child: widget.isSelecting
+                              ? SelectableText(
+                                  message.body!,
+                                  textAlign: isMine ? TextAlign.right : TextAlign.left,
+                                  style: TextStyle(
+                                    color: isMine
+                                        ? theme.colorScheme.onPrimary
+                                        : theme.colorScheme.onSurface,
+                                  ),
+                                  onSelectionChanged: (selection, cause) =>
+                                      setState(() => _textSelection = selection),
+                                )
+                              : Text(
+                                  message.body!,
+                                  textAlign: isMine ? TextAlign.right : TextAlign.left,
+                                  style: TextStyle(
+                                    color: isMine
+                                        ? theme.colorScheme.onPrimary
+                                        : theme.colorScheme.onSurface,
+                                  ),
+                                ),
                         ),
+                      if (widget.isSelecting) _buildSelectionToolbar(theme, isMine),
                     ],
                     const SizedBox(height: 2),
                     Row(
@@ -1300,6 +1406,46 @@ class _MessageBubbleState extends State<_MessageBubble>
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Панель действий режима выделения — «Отмена» всегда доступна,
+  /// «Копировать»/«Процитировать» только когда реально что-то выделено
+  /// (не схлопнутый курсор).
+  Widget _buildSelectionToolbar(ThemeData theme, bool isMine) {
+    final excerpt = _selectedExcerpt;
+    final fg = isMine ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+        spacing: 4,
+        children: [
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: fg.withValues(alpha: 0.7)),
+            onPressed: widget.onCancelSelecting,
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: fg),
+            onPressed: excerpt == null
+                ? null
+                : () async {
+                    await Clipboard.setData(ClipboardData(text: excerpt));
+                    widget.onCancelSelecting?.call();
+                  },
+            child: const Text('Копировать'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: fg),
+            onPressed: excerpt == null
+                ? null
+                : () => widget.onConfirmQuote?.call(excerpt),
+            child: const Text('Процитировать'),
           ),
         ],
       ),

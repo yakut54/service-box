@@ -22,6 +22,7 @@ class ChatMessage extends Model
         'image_url',
         'status',
         'reply_to_message_id',
+        'reply_quote',
         'edited_at',
         'deleted_at',
     ];

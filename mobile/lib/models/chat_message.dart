@@ -10,6 +10,10 @@ class ChatMessage {
   final String clientMessageId;
   final String? replyToMessageId;
   final ChatMessage? replyTo;
+
+  /// Отрывок текста, выделенный и процитированный в replyTo (не всё
+  /// оригинальное сообщение) — см. PLAN.md 2026-10-18, выделение текста.
+  final String? replyQuote;
   final DateTime? editedAt;
   final DateTime? deletedAt;
 
@@ -24,6 +28,7 @@ class ChatMessage {
     required this.clientMessageId,
     this.replyToMessageId,
     this.replyTo,
+    this.replyQuote,
     this.editedAt,
     this.deletedAt,
   });
@@ -44,6 +49,7 @@ class ChatMessage {
     replyTo: json['reply_to'] != null
         ? ChatMessage.fromJson(json['reply_to'] as Map<String, dynamic>)
         : null,
+    replyQuote: json['reply_quote'] as String?,
     editedAt: json['edited_at'] != null
         ? DateTime.tryParse(json['edited_at'] as String)
         : null,

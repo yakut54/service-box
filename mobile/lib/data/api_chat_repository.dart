@@ -29,12 +29,14 @@ class ApiChatRepository implements ChatRepository {
     String? imageUrl,
     required String clientMessageId,
     String? replyToMessageId,
+    String? replyQuote,
   }) async {
     final json = await _client.post('/widget/chat/messages', {
       if (body != null) 'body': body,
       if (imageUrl != null) 'image_url': imageUrl,
       'client_message_id': clientMessageId,
       if (replyToMessageId != null) 'reply_to_message_id': replyToMessageId,
+      if (replyQuote != null) 'reply_quote': replyQuote,
     }, headers: _authHeaders(sessionToken));
     final data = json['data'] as Map<String, dynamic>?;
     if (data == null) throw AppException.badResponse();

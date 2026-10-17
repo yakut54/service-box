@@ -14,6 +14,10 @@ abstract class ChatRepository {
     String? imageUrl,
     required String clientMessageId,
     String? replyToMessageId,
+    /// Отрывок текста, выделенный пользователем в сообщении
+    /// replyToMessageId (не весь текст) — см. PLAN.md 2026-10-18.
+    /// Бессмысленна без replyToMessageId, бэкенд это тоже проверяет.
+    String? replyQuote,
   });
 
   /// Только своё сообщение, и только если магазин разрешил это в настройках

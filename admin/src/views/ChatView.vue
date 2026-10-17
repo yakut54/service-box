@@ -313,9 +313,15 @@ function cancelReply() {
   replyTarget.value = null
 }
 
+// Принимает сообщение, которое ССЫЛАЕТСЯ на reply_to (не сам reply_to) —
+// у него может быть reply_quote (отрывок, выделенный байером на мобильном,
+// 2026-10-18), тогда показываем именно его, а не весь текст оригинала.
 function replyPreviewText(m: ChatMessage): string {
-  if (m.deleted_at) return 'Сообщение удалено'
-  return m.body || (m.image_url ? '📷 Фото' : '')
+  if (m.reply_quote) return m.reply_quote
+  const original = m.reply_to
+  if (!original) return ''
+  if (original.deleted_at) return 'Сообщение удалено'
+  return original.body || (original.image_url ? '📷 Фото' : '')
 }
 
 // ── Редактирование своего сообщения (переиспользует композер, как в
@@ -745,7 +751,7 @@ loadThreads()
                           :src="m.reply_to.image_url"
                           class="w-5 h-5 rounded-sm object-cover shrink-0"
                         />
-                        <span class="truncate">{{ replyPreviewText(m.reply_to) }}</span>
+                        <span class="truncate">{{ replyPreviewText(m) }}</span>
                       </div>
                       <div v-else-if="m.reply_to_message_id" class="text-xs mb-1.5 pl-2 border-l-2 border-gray-300 text-gray-400 italic">
                         Сообщение удалено

@@ -87,10 +87,19 @@ class ChatController extends Controller
             'image_url'            => 'nullable|url|max:1000',
             'client_message_id'    => 'required|uuid',
             'reply_to_message_id'  => 'nullable|uuid',
+            'reply_quote'          => 'nullable|string|max:500',
         ]);
 
         if (empty($data['body']) && empty($data['image_url'])) {
             return response()->json(['message' => 'Сообщение не может быть пустым'], 422);
+        }
+
+        // Цитата-отрывок (выделение части текста, см. PLAN.md 2026-10-18) без
+        // сообщения, к которому она относится, — бессмысленна. Только
+        // мобильное приложение сейчас умеет её создавать (эта точка входа,
+        // не Admin\ChatController — у персонала нет UI для выделения).
+        if (!empty($data['reply_quote']) && empty($data['reply_to_message_id'])) {
+            return response()->json(['message' => 'Цитата должна ссылаться на сообщение'], 422);
         }
 
         $existingThread = ChatThread::where('customer_id', $customer->id)->first();
@@ -129,6 +138,9 @@ class ChatController extends Controller
             'image_url'            => $data['image_url'] ?? null,
             'client_message_id'    => $data['client_message_id'],
             'reply_to_message_id'  => $replyToId,
+            // Только если reply_to реально нашёлся в этом треде — иначе
+            // цитата без своего сообщения-родителя (см. проверку выше).
+            'reply_quote'          => $replyToId ? ($data['reply_quote'] ?? null) : null,
         ]);
         $message->load('replyTo');
 
