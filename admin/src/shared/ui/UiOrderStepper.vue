@@ -17,6 +17,11 @@ import { orderStatusSteps, orderStepIndex } from '@/shared/lib/labels'
 const props = defineProps<{
   status: string
   deliveryMethod?: string | null
+  /** order.pick_note — есть ли реально заметка, на которую можно сослаться.
+   *  Без неё (например, заказ просто отказались собирать без причины —
+   *  см. OrderController::release) подпись «см. заметку ниже» вела в
+   *  никуда — найдено живым разбором 2026-10-17. */
+  hasNote?: boolean
 }>()
 
 const steps = computed(() => orderStatusSteps(props.deliveryMethod))
@@ -67,7 +72,8 @@ const isStuck = computed(() => props.status === 'needs_attention')
     </div>
 
     <p v-if="!isCancelled && isStuck" class="mt-3 text-xs text-pink-600 dark:text-pink-400 font-medium">
-      ⚠ Требует внимания — сборка остановлена, см. заметку ниже
+      <template v-if="hasNote">⚠ Требует внимания — сборка остановлена, см. заметку ниже</template>
+      <template v-else>⚠ Требует внимания — посмотрите детали заказа ниже</template>
     </p>
   </div>
 </template>

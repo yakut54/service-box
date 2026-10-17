@@ -198,7 +198,7 @@ async function updateStatus(status: string) {
 
       <!-- Таймлайн статуса -->
       <div class="mb-6">
-        <UiOrderStepper :status="order.status" :delivery-method="order.delivery_method" />
+        <UiOrderStepper :status="order.status" :delivery-method="order.delivery_method" :has-note="!!order.pick_note" />
       </div>
 
       <!-- Status actions -->

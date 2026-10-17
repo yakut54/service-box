@@ -289,7 +289,7 @@ onUnmounted(() => {
 
       <!-- Таймлайн статуса заказа (не путать с прогресс-баром выше — тот
            про позиции ВНУТРИ сборки, этот про стадии заказа целиком) -->
-      <UiOrderStepper :status="order.status" :delivery-method="order.delivery_method" />
+      <UiOrderStepper :status="order.status" :delivery-method="order.delivery_method" :has-note="!!order.pick_note" />
 
       <!-- Claim banner -->
       <div v-if="!isClaimed" class="card space-y-3 text-center">
