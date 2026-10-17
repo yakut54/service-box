@@ -239,13 +239,13 @@ onMounted(async () => {
           <p v-else class="font-medium text-gray-400 dark:text-gray-500 truncate">{{ row.product_name }} <span class="text-xs">(товар удалён)</span></p>
           <p v-if="row.variant_label" class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ row.variant_label }}</p>
         </div>
-        <p v-if="row.action === 'updated'" class="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+        <p v-if="row.action === 'updated'" class="text-sm text-gray-700 dark:text-gray-300 sm:whitespace-nowrap">
           <span class="text-gray-400 dark:text-gray-500">{{ PRODUCT_CHANGE_FIELD_LABELS[row.field ?? ''] ?? row.field }}:</span>
           {{ formatProductChangeValue(row.field, row.unit, row.old_value) }}
           →
           {{ formatProductChangeValue(row.field, row.unit, row.new_value) }}
         </p>
-        <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+        <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300 sm:whitespace-nowrap">
           {{ PRODUCT_CHANGE_ACTION_LABELS[row.action] ?? row.action }}
         </p>
         <p class="text-sm text-gray-500 dark:text-gray-400 min-w-0 flex-1 truncate">{{ row.actor_name }}{{ row.reason ? ` · ${row.reason}` : '' }}</p>
