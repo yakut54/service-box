@@ -112,6 +112,10 @@ Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show']);
     Route::post('/orders/{order}/payment', [PaymentController::class, 'createOrderPayment'])->middleware('throttle:10,1');
     Route::post('/orders/{order}/surcharge-payment', [PaymentController::class, 'createOrderSurchargePayment'])->middleware('throttle:10,1');
+    // Подтверждение получения заказа от курьера — только мобильная сессия
+    // (verify.phone.session), см. confirmReceived в OrderController.
+    Route::post('/orders/{order}/confirm-received', [OrderController::class, 'confirmReceived'])
+        ->middleware(['verify.phone.session', 'throttle:10,1']);
 
     // Bookings (widget can create bookings) — гейт entitlements, см. МФ4 в PLAN.md
     Route::middleware('feature:booking')->group(function () {

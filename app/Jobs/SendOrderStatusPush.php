@@ -29,10 +29,12 @@ class SendOrderStatusPush implements ShouldQueue
 
     /** Статусы, о которых пишем байеру, и текст уведомления. Остальные молчат. */
     private const LABELS = [
-        'paid'       => 'Оплата получена',
-        'processing' => 'Заказ собирается',
-        'completed'  => 'Заказ выполнен',
-        'cancelled'  => 'Заказ отменён',
+        'paid'        => 'Оплата получена',
+        'processing'  => 'Заказ собирается',
+        'collected'   => 'Заказ собран',
+        'in_delivery' => 'Заказ в пути',
+        'completed'   => 'Заказ выполнен',
+        'cancelled'   => 'Заказ отменён',
     ];
 
     public function __construct(

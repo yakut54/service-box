@@ -2,6 +2,8 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   pending:         'Ожидает',
   paid:            'Оплачен',
   processing:      'В работе',
+  collected:       'Собрано',
+  in_delivery:     'В доставке',
   completed:       'Завершён',
   cancelled:       'Отменён',
   needs_attention: 'Требует внимания',

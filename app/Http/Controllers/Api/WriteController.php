@@ -297,8 +297,11 @@ class WriteController extends Controller
     public function updateOrderStatus(Request $request, string $id): JsonResponse
     {
         // 'paid' сознательно не входит — см. OrderController::updateStatus,
-        // тот же вопрос комиссии актуален и для внешнего API.
-        $request->validate(['status' => 'required|in:processing,completed,cancelled']);
+        // тот же вопрос комиссии актуален и для внешнего API. collected/
+        // in_delivery добавлены 2026-10-17 вместе с тем же промежуточным
+        // статусом в OrderController — иначе внешний API не мог бы вести
+        // заказ через новую модель статусов вообще.
+        $request->validate(['status' => 'required|in:processing,collected,in_delivery,completed,cancelled']);
 
         $order     = Order::with('items.product')->findOrFail($id);
         $oldStatus = $order->status;
@@ -314,7 +317,10 @@ class WriteController extends Controller
             ], 422);
         }
 
-        if ($newStatus === 'completed' && !$order->paid_at) {
+        // collected — тоже точка финализации сборки (см. OrderController::
+        // updateStatus), проверка оплаты актуальна уже на ней, не только на
+        // completed.
+        if (in_array($newStatus, ['collected', 'completed'], true) && !$order->paid_at) {
             return response()->json([
                 'message' => 'Нельзя завершить неоплаченный заказ — оплата проходит только через ЮKassa',
             ], 422);

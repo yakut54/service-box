@@ -34,5 +34,12 @@ abstract class OrderRepository {
   /// возвращает ссылку на оплату ЮKassa.
   Future<String> createSurchargePayment(String orderId);
 
+  /// Байер подтверждает получение заказа от курьера (см.
+  /// OrderController::confirmReceived) — переводит заказ in_delivery →
+  /// completed. Требует 60-дневную сессию (X-Phone-Session), не UUID заказа
+  /// как токен доступа — подтверждение получения чувствительнее простого
+  /// просмотра, нужно точно знать, что это тот же покупатель.
+  Future<Order> confirmReceived(String orderId, String sessionToken);
+
   factory OrderRepository.create() => ApiOrderRepository();
 }

@@ -260,6 +260,28 @@ class TelegramService
     }
 
     /**
+     * Заказ собран сборщиком — раньше владелец узнавал об этом только по
+     * беззвучному realtime-эвенту (если открыта вкладка админки), теперь
+     * ещё и сюда. Общий чат магазина — личного канала у владельца нет (см.
+     * PLAN.md 2026-10-17), но на практике это и есть его личный чат.
+     */
+    public static function notifyOwnerOrderCollected(Shop $shop, $order): void
+    {
+        $name = $order->customer_name ?? $order->customer_phone;
+
+        $text = "📦 <b>Заказ №" . substr($order->id, 0, 8) . " собран</b>\n\n"
+              . "Клиент: " . self::esc($name);
+
+        self::sendMessage(
+            shop: $shop,
+            text: $text,
+            type: 'system_notification',
+            entityType: 'Order',
+            entityId: $order->id
+        );
+    }
+
+    /**
      * Generate a deep-link token so a customer can link their Telegram.
      * Returns the full t.me URL to put in the widget.
      */

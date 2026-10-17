@@ -181,7 +181,7 @@ async function finish() {
   const totalBefore = order.value.total_price
   finishing.value = true
   try {
-    const resp = await api.updateOrderStatus(order.value.id, 'completed')
+    const resp = await api.updateOrderStatus(order.value.id, 'collected')
     order.value = resp.data
     if (order.value.total_price < totalBefore) {
       toast.success(`Заказ собран — покупателю возвращено ${formatPrice(totalBefore - order.value.total_price)}`)
@@ -486,7 +486,7 @@ onUnmounted(() => {
       <OrderActivityPanel ref="activityPanel" :order-id="order.id" />
 
       <!-- Finish -->
-      <div v-if="isClaimed && isMine && order.status !== 'completed' && order.status !== 'cancelled'" class="fixed bottom-0 left-0 right-0 z-20 p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+      <div v-if="isClaimed && isMine && order.status !== 'collected' && order.status !== 'completed' && order.status !== 'cancelled'" class="fixed bottom-0 left-0 right-0 z-20 p-3 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div class="max-w-2xl mx-auto space-y-2">
           <button
             type="button"

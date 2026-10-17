@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../core/app_exception.dart';
 import '../core/format.dart';
 import '../data/order_repository.dart';
 import '../models/order.dart';
+import '../state/auth_state.dart';
 import 'order_surcharge_screen.dart';
 import 'widgets/error_view.dart';
 import 'widgets/order_status_badge.dart';
@@ -99,6 +101,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
           const SizedBox(height: 16),
           if (order.hasPendingSurcharge) _SurchargeBanner(order: order, onPaid: _load),
+          if (order.status == 'in_delivery' && order.deliveryMethod == 'courier')
+            _ConfirmReceivedBanner(order: order, onConfirmed: _load),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(14),
@@ -276,6 +280,99 @@ class _SurchargeBanner extends StatelessWidget {
           );
           if (paid == true) onPaid();
         },
+      ),
+    );
+  }
+}
+
+/// Подтверждение получения заказа от курьера (см. OrderController::
+/// confirmReceived) — единственный способ закрыть доставку курьером: роли
+/// курьера в системе нет, никто кроме самого покупателя физически не знает,
+/// что заказ доехал.
+class _ConfirmReceivedBanner extends StatefulWidget {
+  final Order order;
+  final VoidCallback onConfirmed;
+
+  const _ConfirmReceivedBanner({required this.order, required this.onConfirmed});
+
+  @override
+  State<_ConfirmReceivedBanner> createState() => _ConfirmReceivedBannerState();
+}
+
+class _ConfirmReceivedBannerState extends State<_ConfirmReceivedBanner> {
+  bool _confirming = false;
+  String? _error;
+
+  Future<void> _confirm() async {
+    final token = context.read<AuthState>().session?.sessionToken;
+    if (token == null) {
+      setState(() => _error = 'Нужно войти, чтобы подтвердить получение');
+      return;
+    }
+
+    setState(() {
+      _confirming = true;
+      _error = null;
+    });
+    try {
+      await OrderRepository.create().confirmReceived(widget.order.id, token);
+      widget.onConfirmed();
+    } on AppException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Не удалось подтвердить получение. Попробуйте позже.');
+    } finally {
+      if (mounted) setState(() => _confirming = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      color: theme.colorScheme.primaryContainer,
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.local_shipping_outlined, color: theme.colorScheme.onPrimaryContainer),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Заказ в пути',
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+            ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _confirming ? null : _confirm,
+                child: _confirming
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Я получил заказ'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

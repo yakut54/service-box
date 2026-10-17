@@ -110,11 +110,20 @@ class Order extends Model
      * бэкенд теперь просто не доверяет фронту то же самое молча.
      * `paid`/`needs_attention` сюда не входят ни как цель (их проставляют
      * вебхук ЮKassa и reportProblem() соответственно, не updateStatus).
+     *
+     * `collected`/`in_delivery` добавлены 2026-10-17 — раньше сборщик
+     * («Готово») вёл заказ сразу в completed, минуя какой-либо
+     * промежуточный шаг. `processing` по-прежнему допускает прямой
+     * `completed` (самовывоз, когда отдают сразу же) — кто именно имеет
+     * право им воспользоваться, решает роль-зависимая валидация в
+     * OrderController::updateStatus(), не этот общий для всех ролей список.
      */
     public const TRANSITIONS = [
         'pending'         => ['processing', 'completed', 'cancelled'],
         'paid'            => ['processing', 'completed', 'cancelled'],
-        'processing'      => ['completed', 'cancelled'],
+        'processing'      => ['collected', 'completed', 'cancelled'],
+        'collected'       => ['in_delivery', 'completed', 'cancelled'],
+        'in_delivery'     => ['completed', 'cancelled'],
         'needs_attention' => ['processing', 'cancelled'],
         'completed'       => [],
         'cancelled'       => [],
@@ -124,6 +133,8 @@ class Order extends Model
         'pending'         => 'Ожидает',
         'paid'            => 'Оплачен',
         'processing'      => 'В работе',
+        'collected'       => 'Собрано',
+        'in_delivery'     => 'В доставке',
         'needs_attention' => 'Требует внимания',
         'completed'       => 'Завершён',
         'cancelled'       => 'Отменён',

@@ -76,4 +76,16 @@ class ApiOrderRepository implements OrderRepository {
     if (url == null) throw AppException.badResponse();
     return url;
   }
+
+  @override
+  Future<Order> confirmReceived(String orderId, String sessionToken) async {
+    final json = await _client.post(
+      '/widget/orders/$orderId/confirm-received',
+      {},
+      headers: {'X-Phone-Session': sessionToken},
+    );
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return Order.fromJson(data);
+  }
 }

@@ -114,6 +114,8 @@
   .badge-pending,
   .badge-paid,
   .badge-processing,
+  .badge-collected,
+  .badge-in_delivery,
   .badge-completed,
   .badge-cancelled,
   .badge-confirmed,
@@ -127,6 +129,8 @@
   .badge-pending::before,
   .badge-paid::before,
   .badge-processing::before,
+  .badge-collected::before,
+  .badge-in_delivery::before,
   .badge-completed::before,
   .badge-cancelled::before,
   .badge-confirmed::before,
@@ -394,6 +398,8 @@
   .dark .badge-pending    { background-color: rgb(120 53 15 / 0.3);   color: rgb(252 211 77);   border-color: rgb(180 83 9 / 0.4); }
   .dark .badge-paid       { background-color: rgb(6  78 59 / 0.3);    color: rgb(110 231 183);  border-color: rgb(5 150 105 / 0.4); }
   .dark .badge-processing { background-color: rgb(30 58 138 / 0.3);   color: rgb(147 197 253);  border-color: rgb(37 99 235 / 0.4); }
+  .dark .badge-collected  { background-color: rgb(19 78 74 / 0.3);    color: rgb(94 234 212);   border-color: rgb(13 148 136 / 0.4); }
+  .dark .badge-in_delivery { background-color: rgb(12 74 110 / 0.3); color: rgb(125 211 252);  border-color: rgb(2 132 199 / 0.4); }
   .dark .badge-completed  { background-color: rgb(76 29 149 / 0.3);   color: rgb(196 181 253);  border-color: rgb(124 58 237 / 0.4); }
   .dark .badge-cancelled  { background-color: rgb(127 29 29 / 0.3);   color: rgb(252 165 165);  border-color: rgb(220 38 38 / 0.4); }
   .dark .badge-needs_attention { background-color: rgb(131 24 67 / 0.3); color: rgb(249 168 212); border-color: rgb(219 39 119 / 0.4); }
@@ -459,6 +465,8 @@
 .badge-pending::before    { background-color: #d97706; }
 .badge-paid::before       { background-color: #059669; }
 .badge-processing::before { background-color: #2563eb; }
+.badge-collected::before  { background-color: #0d9488; }
+.badge-in_delivery::before { background-color: #0284c7; }
 .badge-completed::before  { background-color: #7c3aed; }
 .badge-cancelled::before  { background-color: #dc2626; }
 .badge-confirmed::before  { background-color: #4f46e5; }
@@ -469,6 +477,8 @@
 .badge-pending    { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
 .badge-paid       { background-color: #d1fae5; color: #065f46; border-color: #6ee7b7; }
 .badge-processing { background-color: #dbeafe; color: #1e3a8a; border-color: #93c5fd; }
+.badge-collected  { background-color: #ccfbf1; color: #115e59; border-color: #5eead4; }
+.badge-in_delivery { background-color: #e0f2fe; color: #075985; border-color: #7dd3fc; }
 .badge-completed  { background-color: #ede9fe; color: #4c1d95; border-color: #c4b5fd; }
 .badge-cancelled  { background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 .badge-confirmed  { background-color: #e0e7ff; color: #3730a3; border-color: #a5b4fc; }

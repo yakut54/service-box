@@ -202,8 +202,13 @@ class OrderController extends Controller
         if ($isCollector) {
             if ($request->input('scope') === 'done') {
                 // «Собранные сегодня» — по таймзоне магазина, не сервера.
+                // collected добавлен 2026-10-17: «Готово» у сборщика теперь
+                // ведёт в collected, не completed — без этого статуса здесь
+                // вкладка «Собранные сегодня» показывала бы пусто для всего,
+                // что сборщик закончил, но магазин ещё не передал в доставку
+                // / не закрыл сам.
                 $todayStart = now($shop->timezone ?? 'Europe/Moscow')->startOfDay();
-                $query->whereIn('status', ['completed', 'cancelled'])
+                $query->whereIn('status', ['collected', 'completed', 'cancelled'])
                       ->where('created_at', '>=', $todayStart);
             } else {
                 $query->whereIn('status', ['pending', 'paid', 'processing', 'needs_attention']);
@@ -602,7 +607,11 @@ class OrderController extends Controller
             // без единого рубля и не заплатить комиссию (см. PLAN.md).
             // Сборщик отдельно не может «отменить» — это решение владельца/
             // админа, у сборщика для проблемных заказов есть /problem.
-            'status' => $isCollector ? 'required|in:processing,completed' : 'required|in:processing,completed,cancelled',
+            // collected — сборщик сам и собирает, и (для самовывоза) часто
+            // сам же отдаёт, поэтому completed у него тоже остаётся.
+            'status' => $isCollector
+                ? 'required|in:collected,completed'
+                : 'required|in:processing,collected,in_delivery,completed,cancelled',
             'note'   => 'nullable|string|max:1000',
         ]);
 
@@ -618,13 +627,20 @@ class OrderController extends Controller
             ], 422);
         }
 
-        if ($newStatus === 'completed' && !$order->paid_at) {
+        // collected — новый промежуточный статус (2026-10-17): раньше
+        // сборщик вёл заказ сразу в completed, все эти проверки (оплата,
+        // доплата, чек-лист сборки) были только на completed. Теперь они
+        // срабатывают уже на collected — именно туда теперь ведёт «Готово»
+        // у сборщика, не в completed напрямую.
+        $isFinalizing = in_array($newStatus, ['collected', 'completed'], true);
+
+        if ($isFinalizing && !$order->paid_at) {
             return response()->json([
                 'message' => 'Нельзя завершить неоплаченный заказ — оплата проходит только через ЮKassa',
             ], 422);
         }
 
-        if ($newStatus === 'completed' && $order->surcharge_status === 'pending') {
+        if ($isFinalizing && $order->surcharge_status === 'pending') {
             return response()->json([
                 'message' => 'Нельзя завершить заказ — покупатель ещё не подтвердил доплату за перевзвешенный товар',
             ], 422);
@@ -635,7 +651,7 @@ class OrderController extends Controller
         // weight_variable). Гейт только для роли collector: владелец/админ
         // по-прежнему может завершить заказ напрямую из обычной админки, не
         // проходя чек-лист сборки (не у всех магазинов вообще есть сборщик).
-        if ($newStatus === 'completed' && $isCollector) {
+        if ($isFinalizing && $isCollector) {
             $unresolved = $order->items->contains(function ($item) {
                 return $item->product?->physical?->sale_mode === 'weight_variable'
                     ? $item->actual_weight_grams === null
@@ -665,7 +681,11 @@ class OrderController extends Controller
         // весового товара (см. OrderReweighService), только в обратную
         // сторону: там деньги ещё на холде, тут уже списаны, поэтому не
         // "списать меньше", а настоящий возврат через ЮKassa.
-        if ($newStatus === 'completed') {
+        if ($isFinalizing) {
+            // Идемпотентно само по себе: refundShortageIfAny сразу же
+            // подгоняет total_price под фактическую сумму, так что при
+            // следующем вызове (например, collected → completed) shortfall
+            // уже посчитается нулевым — повторного возврата не будет.
             $refundError = $this->refundShortageIfAny($order, $request->attributes->get('shop'));
             if ($refundError) {
                 return response()->json(['message' => $refundError], 422);
@@ -708,6 +728,19 @@ class OrderController extends Controller
         $shop = $request->attributes->get('shop');
         if ($newStatus !== $oldStatus && $shop) {
             \App\Events\OrdersUpdated::dispatch($shop->id);
+        }
+
+        // Заказ только что собран — раньше владелец узнавал об этом только
+        // зайдя в админку руками, никакого уведомления не было вообще
+        // (найдено живым разбором 2026-10-17). Общий чат магазина — личного
+        // канала у владельца нет, см. докблок notifyOwnerOrderCollected.
+        if ($newStatus === 'collected' && $oldStatus !== 'collected' && $shop) {
+            if ($shop->telegram_bot_connected) {
+                try { TelegramService::notifyOwnerOrderCollected($shop, $order); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderCollected (telegram) failed', ['error' => $e->getMessage()]); }
+            }
+            if ($shop->max_bot_connected) {
+                try { MaxService::notifyOwnerOrderCollected($shop, $order); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderCollected (max) failed', ['error' => $e->getMessage()]); }
+            }
         }
 
         $order->load(['items.product.physical', 'customer']);
@@ -1080,6 +1113,56 @@ class OrderController extends Controller
     }
 
     /**
+     * Покупатель подтверждает получение заказа от курьера — «в доставке»
+     * раньше не имело выхода без ручного вмешательства магазина: роли/
+     * сущности курьера в системе нет (подтверждено при проектировании
+     * статуса 2026-10-17), курьер — реальный человек, который просто везёт
+     * заказ, никуда в систему не заходит. Единственный, кто физически знает,
+     * что заказ доехал, — сам покупатель.
+     *
+     * Только мобильная сессия (verify.phone.session) — в вебе (виджете) для
+     * этой кнопки сначала нужно протащить телефон/токен через MyOrders.vue
+     * (см. PLAN.md, сознательно не делаем в этом заходе).
+     *
+     * Без OrderActivityLog::record() — тот рассчитан на залогиненного
+     * сотрудника (staff_id/staff_name в сессии), не на покупателя; известный,
+     * осознанный пробел истории заказа, не блокирующий.
+     *
+     * POST /api/widget/orders/{order}/confirm-received
+     */
+    public function confirmReceived(Request $request, string $order): JsonResponse
+    {
+        $customer = $request->attributes->get('customer');
+        if (!$customer) {
+            return response()->json(['message' => 'Нужна авторизация'], 401);
+        }
+
+        $orderModel = Order::findOrFail($order);
+
+        if ($orderModel->customer_id !== $customer->id) {
+            return response()->json(['message' => 'Доступ запрещён'], 403);
+        }
+
+        if ($orderModel->status !== 'in_delivery') {
+            return response()->json([
+                'message' => 'Заказ нельзя подтвердить — он не в доставке (статус: '
+                    . (Order::STATUS_LABELS[$orderModel->status] ?? $orderModel->status) . ')',
+            ], 422);
+        }
+
+        $orderModel->update(['status' => 'completed']);
+
+        \App\Jobs\SendOrderStatusPush::dispatchFor($orderModel, 'completed');
+
+        $shop = $request->get('_shop');
+        if ($shop) {
+            \App\Events\OrdersUpdated::dispatch($shop->id);
+        }
+
+        return response()->json(['message' => 'Получение подтверждено', 'data' => $orderModel]);
+    }
+
+    /**
      * Счётчик для бейджа «Заказы» в сайдбаре — считает needs_attention с
      * seen_at IS NULL, то есть заказы, которые владелец/админ ещё не открыл
      * САМИ (не просто зашёл в раздел «Заказы» — так было и не понравилось,
@@ -1142,6 +1225,8 @@ class OrderController extends Controller
             'pending_orders'     => (clone $baseQuery)->where('status', 'pending')->count(),
             'paid_orders'        => (clone $baseQuery)->where('status', 'paid')->count(),
             'processing_orders'  => (clone $baseQuery)->where('status', 'processing')->count(),
+            'collected_orders'   => (clone $baseQuery)->where('status', 'collected')->count(),
+            'in_delivery_orders' => (clone $baseQuery)->where('status', 'in_delivery')->count(),
             'completed_orders'   => (clone $baseQuery)->where('status', 'completed')->count(),
             'cancelled_orders'   => (clone $baseQuery)->where('status', 'cancelled')->count(),
             'average_order_value'=> (clone $baseQuery)->where('status', '!=', 'cancelled')->avg('total_price'),
@@ -1240,6 +1325,8 @@ class OrderController extends Controller
             'pending'         => 'Ожидает',
             'paid'            => 'Оплачен',
             'processing'      => 'В работе',
+            'collected'       => 'Собрано',
+            'in_delivery'     => 'В доставке',
             'completed'       => 'Завершён',
             'cancelled'       => 'Отменён',
             'needs_attention' => 'Требует внимания',

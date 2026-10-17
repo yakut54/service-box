@@ -49,6 +49,10 @@ class Order {
   final DateTime? createdAt;
   final List<OrderItem> items;
 
+  /// 'pickup' | 'courier' | 'postal' — только courier показывает кнопку «Я
+  /// получил заказ» на статусе in_delivery (см. OrderDetailScreen).
+  final String? deliveryMethod;
+
   // Режим «по весу — перевзвешивание» (см. PLAN.md).
   final DateTime? weighedAt;
   final int? surchargeAmountKopecks;
@@ -69,6 +73,7 @@ class Order {
     required this.totalPriceKopecks,
     this.createdAt,
     this.items = const [],
+    this.deliveryMethod,
     this.weighedAt,
     this.surchargeAmountKopecks,
     this.surchargeStatus,
@@ -99,6 +104,7 @@ class Order {
             ?.map((i) => OrderItem.fromJson(i as Map<String, dynamic>))
             .toList() ??
         const [],
+    deliveryMethod: json['delivery_method'] as String?,
     weighedAt: json['weighed_at'] != null
         ? DateTime.tryParse(json['weighed_at'] as String)
         : null,

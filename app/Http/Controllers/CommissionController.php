@@ -55,6 +55,8 @@ class CommissionController extends Controller
             'pending'         => 'Ожидает',
             'paid'            => 'Оплачен',
             'processing'      => 'В работе',
+            'collected'       => 'Собрано',
+            'in_delivery'     => 'В доставке',
             'completed'       => 'Завершён',
             'cancelled'       => 'Отменён',
             'needs_attention' => 'Требует внимания',

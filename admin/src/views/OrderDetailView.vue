@@ -206,7 +206,10 @@ async function updateStatus(status: string) {
           <button v-if="['pending','needs_attention'].includes(order.status)" @click="updateStatus('processing')" :disabled="updating" class="btn-primary btn-sm">
             {{ order.status === 'needs_attention' ? 'Вернуть в работу' : 'В работу' }}
           </button>
-          <button v-if="['pending','paid','processing'].includes(order.status)" @click="updateStatus('completed')" :disabled="updating" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700">
+          <button v-if="order.status === 'collected' && order.delivery_method === 'courier'" @click="updateStatus('in_delivery')" :disabled="updating" class="btn-primary btn-sm">
+            Передать в доставку
+          </button>
+          <button v-if="['pending','paid','processing','collected','in_delivery'].includes(order.status)" @click="updateStatus('completed')" :disabled="updating" class="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700">
             Завершить
           </button>
           <div class="flex-1 hidden sm:block"></div>

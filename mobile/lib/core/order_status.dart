@@ -10,6 +10,10 @@ String orderStatusLabel(String status) {
       return 'Оплачен';
     case 'processing':
       return 'В работе';
+    case 'collected':
+      return 'Собран';
+    case 'in_delivery':
+      return 'В доставке';
     case 'completed':
       return 'Завершён';
     case 'cancelled':
@@ -29,6 +33,10 @@ Color orderStatusColor(BuildContext context, String status) {
       return Colors.green;
     case 'processing':
       return scheme.primary;
+    case 'collected':
+      return Colors.teal;
+    case 'in_delivery':
+      return Colors.lightBlue;
     case 'cancelled':
     case 'needs_attention':
       return scheme.error;

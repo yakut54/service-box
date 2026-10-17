@@ -89,6 +89,8 @@ const orderBreakdown = computed(() => {
     { label: 'Ожидают',   color: 'bg-yellow-400',  count: stats.value.pending_orders    ?? 0, pct: Math.round((stats.value.pending_orders    ?? 0) / t * 100) },
     { label: 'Оплачены',  color: 'bg-emerald-500', count: stats.value.paid_orders       ?? 0, pct: Math.round((stats.value.paid_orders       ?? 0) / t * 100) },
     { label: 'В работе',  color: 'bg-blue-500',    count: stats.value.processing_orders ?? 0, pct: Math.round((stats.value.processing_orders ?? 0) / t * 100) },
+    { label: 'Собраны',   color: 'bg-teal-500',    count: stats.value.collected_orders  ?? 0, pct: Math.round((stats.value.collected_orders  ?? 0) / t * 100) },
+    { label: 'В доставке', color: 'bg-sky-500',    count: stats.value.in_delivery_orders ?? 0, pct: Math.round((stats.value.in_delivery_orders ?? 0) / t * 100) },
     { label: 'Завершены', color: 'bg-violet-500',  count: stats.value.completed_orders  ?? 0, pct: Math.round((stats.value.completed_orders  ?? 0) / t * 100) },
     { label: 'Отменены',  color: 'bg-red-400',     count: stats.value.cancelled_orders  ?? 0, pct: Math.round((stats.value.cancelled_orders  ?? 0) / t * 100) },
   ]

@@ -41,6 +41,8 @@ const statusOptions = [
   { value: 'pending', label: 'Ожидают' },
   { value: 'paid', label: 'Оплачены' },
   { value: 'processing', label: 'В работе' },
+  { value: 'collected', label: 'Собраны' },
+  { value: 'in_delivery', label: 'В доставке' },
   { value: 'completed', label: 'Завершены' },
   { value: 'cancelled', label: 'Отменены' },
 ]

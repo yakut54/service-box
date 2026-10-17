@@ -317,7 +317,7 @@ export interface ShippingAddress {
   postal_code?: string | null
 }
 
-export type OrderStatus = 'pending' | 'paid' | 'processing' | 'completed' | 'cancelled' | 'needs_attention'
+export type OrderStatus = 'pending' | 'paid' | 'processing' | 'collected' | 'in_delivery' | 'completed' | 'cancelled' | 'needs_attention'
 
 export interface Order {
   id: string
@@ -361,6 +361,8 @@ export interface OrderStats {
   pending_orders: number
   paid_orders: number
   processing_orders: number
+  collected_orders: number
+  in_delivery_orders: number
   completed_orders: number
   cancelled_orders: number
   average_order_value: number
