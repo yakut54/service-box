@@ -100,6 +100,15 @@ async function accept() {
     const res = await api.acceptInvite(payload)
     api.setToken(res.token)
     const meData = await api.me()
+    // meData.shop типизирован как Shop | null (платформенный суперадмин
+    // может быть без привязки к магазину) — но тут мы только что приняли
+    // приглашение В конкретный магазин, так что null здесь означало бы
+    // реальную рассинхронизацию на бэкенде, не ожидаемый случай.
+    if (!meData.shop) {
+      submitError.value = 'Не удалось получить данные магазина. Попробуйте войти заново.'
+      submitting.value = false
+      return
+    }
     authStore.loginWithToken(res.token, meData.user, meData.shop)
     stage.value = 'done'
     setTimeout(() => router.push('/'), 1500)

@@ -75,7 +75,11 @@ class ApiClient {
     this.unauthorizedHandler = handler
   }
 
-  private async request<T>(
+  // Публичный — MasterTelegram/MasterMax/MasterLayout зовут напрямую для
+  // /master/* эндпоинтов без именованных обёрток (их слишком много под
+  // одну роль, заводить метод на каждый не стали). Остальной клиент
+  // по-прежнему ходит через именованные методы ниже, не напрямую.
+  async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {

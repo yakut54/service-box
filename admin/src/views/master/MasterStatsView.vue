@@ -66,7 +66,7 @@ async function load() {
   loading.value = true
   stats.value   = null
   try {
-    stats.value = await (api as any).request<StatsData>(
+    stats.value = await api.request<StatsData>(
       `/master/stats?from=${range.value.from}&to=${range.value.to}`
     )
   } catch { /* not a master */ }
