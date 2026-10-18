@@ -65,6 +65,20 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> patch(
+    String path,
+    Map<String, dynamic> body, {
+    Map<String, String>? headers,
+  }) {
+    return _send(
+      () => http.patch(
+        _uri(path),
+        headers: {..._headers, ...?headers},
+        body: jsonEncode(body),
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> delete(
     String path, {
     Map<String, String>? headers,

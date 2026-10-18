@@ -54,6 +54,18 @@ class ApiChatRepository implements ChatRepository {
   }
 
   @override
+  Future<ChatMessage> editMessage(String sessionToken, String messageId, String body) async {
+    final json = await _client.patch(
+      '/widget/chat/messages/$messageId',
+      {'body': body},
+      headers: _authHeaders(sessionToken),
+    );
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) throw AppException.badResponse();
+    return ChatMessage.fromJson(data);
+  }
+
+  @override
   Future<Map<String, dynamic>> broadcastAuth(
     String sessionToken, {
     required String channelName,

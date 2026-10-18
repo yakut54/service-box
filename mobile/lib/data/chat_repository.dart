@@ -31,6 +31,11 @@ abstract class ChatRepository {
   /// возвращает null — вот тогда сообщение убирается из списка.
   Future<ChatMessage?> deleteMessage(String sessionToken, String messageId);
 
+  /// Редактирование СВОЕГО сообщения — переиспользует композер на экране
+  /// (см. ChatScreen._startEdit), не отдельный диалог. Сервер отклонит
+  /// чужое/уже удалённое сообщение (403/422).
+  Future<ChatMessage> editMessage(String sessionToken, String messageId, String body);
+
   Future<void> markRead(String sessionToken);
 
   /// Эфемерный пинг "печатаю"/"я тут" — не персистентный, просто пролетает

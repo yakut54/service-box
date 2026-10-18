@@ -86,15 +86,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   // — заполняется через режим выделения текста (2-е долгое нажатие на уже
   // выбранный бабл, см. PLAN.md 2026-10-18). null — обычный полный ответ.
   String? _quoteExcerpt;
-  // id бабла, который сейчас «выбран» 1-м долгим нажатием (меню рядом с
-  // ним открыто или было открыто) — как в Телеграме: press & hold выбирает
-  // сообщение, второе press & hold на уже выбранном — переходит в
-  // посимвольное выделение (_selectingMessageId ниже). НЕ шторка снизу.
-  String? _selectedMessageId;
+  // Режим множественного выбора, как в Телеграме: 1-е долгое нажатие на
+  // ЛЮБОЙ бабл добавляет его сюда и показывает AppBar выбора (крестик /
+  // «Выбрано N» / иконки действий); пока набор не пуст — обычный тап по
+  // любому сообщению тоже тоггл-ит выбор. 2-е долгое нажатие на уже
+  // ЕДИНСТВЕННОМ выбранном — не трогает это множество, переводит в
+  // посимвольное выделение (_selectingMessageId ниже).
+  final Set<String> _selectedIds = {};
   // id бабла в режиме выделения текста (SelectableText + ручки захвата) —
-  // включается ТОЛЬКО вторым долгим нажатием на уже _selectedMessageId,
-  // не через меню (меню для выделения текста ничего не предлагает).
+  // включается ТОЛЬКО вторым долгим нажатием на единственный выбранный.
   String? _selectingMessageId;
+  // Редактируемое сообщение — композер переиспользуется (как в админке,
+  // не отдельный диалог), см. _startEdit/_cancelEdit/_send.
+  ChatMessage? _editingMessage;
   String? _threadId;
 
   // ── "Печатает…" / "в сети" (магазин) — эфемерный пинг в тот же WS-канал,
@@ -517,6 +521,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _send() async {
+    if (_editingMessage != null) {
+      await _saveEdit();
+      return;
+    }
+
     final body = _draftController.text.trim();
     final images = _pendingImages;
     if (body.isEmpty && images.isEmpty) return;
@@ -585,10 +594,36 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Редактирование СВОЕГО сообщения — переиспользует композер (как в
+  /// _send() выше, не отдельный диалог). Сервер отклонит чужое/уже
+  /// удалённое сообщение (403/422), экран просто покажет ошибку.
+  Future<void> _saveEdit() async {
+    final target = _editingMessage;
+    if (target == null) return;
+    final body = _draftController.text.trim();
+    if (body.isEmpty) return;
+
+    setState(() => _sending = true);
+    try {
+      final updated = await _repository.editMessage(_sessionToken, target.id, body);
+      if (!mounted) return;
+      setState(() {
+        _messages = _messages.map((m) => m.id == target.id ? updated : m).toList();
+        _editingMessage = null;
+        _draftController.clear();
+      });
+    } catch (e) {
+      if (mounted) _showError(e, 'Не удалось изменить сообщение');
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
   void _startReply(ChatMessage m) {
     setState(() {
       _replyTarget = m;
       _quoteExcerpt = null;
+      _editingMessage = null;
     });
   }
 
@@ -612,17 +647,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _replyTarget = m;
       _quoteExcerpt = trimmed;
       _selectingMessageId = null;
+      _editingMessage = null;
     });
-  }
-
-  Future<void> _copyMessage(ChatMessage m) async {
-    if (m.body == null || m.body!.isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: m.body!));
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Скопировано')));
-    }
   }
 
   /// `shops.chat_customer_delete_enabled` — вынесено в getter, используется
@@ -656,75 +682,78 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Долгое нажатие на бабл — как в Телеграме: 1-е выбирает сообщение и
-  /// показывает меню РЯДОМ С НИМ (не шторку снизу), 2-е (на уже выбранном)
-  /// сразу переводит в посимвольное выделение текста, без меню.
-  void _onBubbleLongPress(ChatMessage m, Offset globalPosition) {
+  /// Долгое нажатие на бабл — как в Телеграме: 1-е входит в режим
+  /// множественного выбора (AppBar подменяется на панель выбора), 2-е (на
+  /// уже единственном выбранном) сразу переводит в посимвольное выделение
+  /// текста, минуя режим выбора.
+  void _onBubbleLongPress(ChatMessage m) {
     if (m.isDeleted && !m.isMine) return;
 
-    if (_selectedMessageId == m.id) {
+    if (_selectedIds.length == 1 && _selectedIds.contains(m.id)) {
       if (m.body == null || m.body!.isEmpty) return;
       HapticFeedback.mediumImpact();
       setState(() {
-        _selectedMessageId = null;
+        _selectedIds.clear();
         _selectingMessageId = m.id;
       });
       return;
     }
 
     HapticFeedback.selectionClick();
-    setState(() => _selectedMessageId = m.id);
-    _showBubbleMenu(m, globalPosition);
+    setState(() => _selectedIds.add(m.id));
   }
 
-  /// Меню закреплено у точки нажатия (`showMenu` — тот же примитив, что у
-  /// системных контекстных меню), не шторка снизу экрана.
-  Future<void> _showBubbleMenu(ChatMessage m, Offset globalPosition) async {
-    final overlayBox = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final position = RelativeRect.fromLTRB(
-      globalPosition.dx,
-      globalPosition.dy,
-      overlayBox.size.width - globalPosition.dx,
-      overlayBox.size.height - globalPosition.dy,
-    );
+  /// Тап по баблу, пока режим выбора активен — тоггл, не открывает/не
+  /// отвечает. Вне режима выбора этот колбэк вообще не подключён.
+  void _onBubbleTap(ChatMessage m) {
+    setState(() {
+      if (!_selectedIds.remove(m.id)) _selectedIds.add(m.id);
+    });
+  }
 
-    final action = await showMenu<String>(
-      context: context,
-      position: position,
-      items: [
-        // Удалённому сообщению (плашке «Сообщение удалено») нечего
-        // предложить, кроме «Удалить» ниже — отвечать/копировать не на что.
-        if (!m.isDeleted)
-          const PopupMenuItem(
-            value: 'reply',
-            child: ListTile(leading: Icon(Icons.reply_rounded), title: Text('Ответить')),
-          ),
-        if (m.body != null && m.body!.isNotEmpty)
-          const PopupMenuItem(
-            value: 'copy',
-            child: ListTile(leading: Icon(Icons.copy_rounded), title: Text('Скопировать')),
-          ),
-        if (m.isMine && _canDeleteOwnMessages)
-          PopupMenuItem(
-            value: 'delete',
-            child: ListTile(
-              leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
-              title: Text('Удалить', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ),
-          ),
-      ],
-    );
+  void _exitSelection() {
+    setState(() => _selectedIds.clear());
+  }
 
-    if (mounted) setState(() => _selectedMessageId = null);
-
-    switch (action) {
-      case 'reply':
-        _startReply(m);
-      case 'copy':
-        _copyMessage(m);
-      case 'delete':
-        _deleteMessage(m);
+  Future<void> _copySelection() async {
+    final ids = _selectedIds;
+    final texts = _messages
+        .where((m) => ids.contains(m.id) && m.body != null && m.body!.isNotEmpty)
+        .map((m) => m.body!)
+        .toList();
+    if (texts.isNotEmpty) {
+      await Clipboard.setData(ClipboardData(text: texts.join('\n')));
     }
+    if (mounted) {
+      setState(() => _selectedIds.clear());
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Скопировано')));
+    }
+  }
+
+  Future<void> _deleteSelection() async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Удалить ${_selectedIds.length} сообщени${_selectedIds.length == 1 ? 'е' : 'я'}?',
+      message: 'Сообщения и приложенные фото (если есть) будут удалены безвозвратно.',
+      confirmLabel: 'Удалить',
+    );
+    if (!confirmed || !mounted) return;
+
+    final targets = _messages.where((m) => _selectedIds.contains(m.id)).toList();
+    for (final m in targets) {
+      try {
+        final updated = await _repository.deleteMessage(_sessionToken, m.id);
+        if (!mounted) return;
+        setState(() {
+          _messages = updated != null
+              ? _messages.map((x) => x.id == m.id ? updated : x).toList()
+              : _messages.where((x) => x.id != m.id).toList();
+        });
+      } catch (e) {
+        if (mounted) _showError(e, 'Не удалось удалить сообщение');
+      }
+    }
+    if (mounted) setState(() => _selectedIds.clear());
   }
 
   void _showError(Object e, String fallback) {
@@ -734,11 +763,73 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Композер переиспользуется (как у персонала в админке, не отдельный
+  /// диалог), см. _send/_saveEdit. Снимает режим выбора.
+  void _startEdit(ChatMessage m) {
+    setState(() {
+      _editingMessage = m;
+      _draftController.text = m.body ?? '';
+      _selectedIds.clear();
+      _replyTarget = null;
+      _quoteExcerpt = null;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editingMessage = null;
+      _draftController.clear();
+    });
+  }
+
+  /// AppBar режима множественного выбора — крестик-отмена / «Выбрано N» /
+  /// иконки действий, подменяет обычный AppBar пока _selectedIds не пуст
+  /// (см. build() ниже). Карандаш — только когда выбрано ровно одно СВОЁ
+  /// неудалённое текстовое сообщение (симметрично новой фиче
+  /// редактирования у байера); удалить — только если магазин разрешил
+  /// (`chat_customer_delete_enabled`) и все выбранные — свои.
+  PreferredSizeWidget _buildSelectionAppBar() {
+    final selected = _messages.where((m) => _selectedIds.contains(m.id)).toList();
+    final singleEditable = selected.length == 1 &&
+        selected.first.isMine &&
+        !selected.first.isDeleted &&
+        selected.first.body != null &&
+        selected.first.body!.isNotEmpty;
+    final canDeleteAll = _canDeleteOwnMessages && selected.isNotEmpty && selected.every((m) => m.isMine);
+
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.close_rounded),
+        onPressed: _exitSelection,
+      ),
+      title: Text('Выбрано ${_selectedIds.length}'),
+      actions: [
+        if (singleEditable)
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Изменить',
+            onPressed: () => _startEdit(selected.first),
+          ),
+        IconButton(
+          icon: const Icon(Icons.copy_rounded),
+          tooltip: 'Скопировать',
+          onPressed: _copySelection,
+        ),
+        if (canDeleteAll)
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded),
+            tooltip: 'Удалить',
+            onPressed: _deleteSelection,
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: _selectedIds.isNotEmpty ? _buildSelectionAppBar() : AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -851,16 +942,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       message: message,
                       isHighlighted: _highlightedMessageId == message.id,
                       isSelecting: _selectingMessageId == message.id,
-                      isSelected: _selectedMessageId == message.id,
+                      isSelectionModeActive: _selectedIds.isNotEmpty,
+                      isChecked: _selectedIds.contains(message.id),
+                      onToggle: () => _onBubbleTap(message),
                       onCancelSelecting: _cancelSelecting,
                       onConfirmQuote: (excerpt) => _confirmQuote(message, excerpt),
                       // Уже удалённому (плашка «Сообщение удалено») своему
                       // сообщению можно предложить только «Удалить» — стереть
                       // саму плашку насовсем (спека 2026-09-16); ответить или
-                      // скопировать уже нечего — см. _onBubbleLongPress. Чужому
+                      // выбрать уже нечего — см. _onBubbleLongPress. Чужому
                       // (магазина) удалённому сообщению — вообще нечего
                       // предложить, у него так и остаётся пусто.
-                      onLongPress: (pos) => _onBubbleLongPress(message, pos),
+                      onLongPress: message.isDeleted && !message.isMine
+                          ? () {}
+                          : () => _onBubbleLongPress(message),
                       onSwipeReply: message.isDeleted ? () {} : () => _startReply(message),
                       // «Удалить» — только если магазин это разрешил
                       // (shops.chat_customer_delete_enabled); сервер тоже
@@ -894,7 +989,37 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_replyTarget != null)
+            if (_editingMessage != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Изменить сообщение',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                      onPressed: _cancelEdit,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              )
+            else if (_replyTarget != null)
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1014,7 +1139,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               children: [
                 IconButton(
                   icon: const Icon(Icons.image_outlined),
-                  onPressed: _isBlockedByShop || _uploadProgress != null
+                  // Вложение фото недоступно во время редактирования — как
+                  // у персонала в админке (ChatView.vue::startEdit), чтобы
+                  // не путать "добавить фото к новому сообщению" с правкой
+                  // уже отправленного текста.
+                  onPressed: _isBlockedByShop || _uploadProgress != null || _editingMessage != null
                       ? null
                       : _pickImage,
                 ),
@@ -1025,7 +1154,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     maxLines: 4,
                     enabled: !_isBlockedByShop,
                     decoration: InputDecoration(
-                      hintText: 'Сообщение...',
+                      hintText: _editingMessage != null ? 'Изменить текст…' : 'Сообщение...',
                       filled: true,
                       fillColor: theme.colorScheme.surfaceContainerHighest,
                       border: OutlineInputBorder(
@@ -1041,7 +1170,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  icon: const Icon(Icons.send_rounded),
+                  icon: Icon(_editingMessage != null ? Icons.check_rounded : Icons.send_rounded),
                   onPressed: _isBlockedByShop || _sending ? null : _send,
                 ),
               ],
@@ -1105,19 +1234,23 @@ class Uint8ListHolder {
 class _MessageBubble extends StatefulWidget {
   final ChatMessage message;
   final bool isHighlighted;
-  // Позиция пальца в момент долгого нажатия — нужна экрану, чтобы
-  // закрепить контекстное меню рядом с баблом (showMenu), не шторкой снизу.
-  final void Function(Offset globalPosition) onLongPress;
+  final VoidCallback onLongPress;
   final VoidCallback onSwipeReply;
   final VoidCallback? onDelete;
   final VoidCallback? onQuoteTap;
-  // «Выбран» 1-м долгим нажатием (меню рядом с баблом открыто/было
-  // открыто) — как в Телеграме. Отдельно от isSelecting ниже.
-  final bool isSelected;
+  // Режим множественного выбора активен на экране (набор выбранных не
+  // пуст) — у ВСЕХ баблов слева появляется кружок-чекбокс (как в
+  // Телеграме), свайп-ответ выключается, тап по баблу тоже тоггл-ит выбор.
+  final bool isSelectionModeActive;
+  // Этот конкретный бабл отмечен галочкой в наборе выбора.
+  final bool isChecked;
+  // Тап по кружку/баблу в режиме выбора — тоггл в наборе на экране.
+  final VoidCallback? onToggle;
   // Режим выделения текста — включается ТОЛЬКО вторым долгим нажатием на
-  // уже выбранный бабл (см. PLAN.md 2026-10-18), не через меню. Один
-  // activeId на уровне экрана, не локальное состояние бабла — иначе
-  // переключение между сообщениями не закрывало бы предыдущее выделение.
+  // уже единственный выбранный бабл (см. PLAN.md 2026-10-18), не через
+  // меню. Один activeId на уровне экрана, не локальное состояние бабла —
+  // иначе переключение между сообщениями не закрывало бы предыдущее
+  // выделение.
   final bool isSelecting;
   final VoidCallback? onCancelSelecting;
   final ValueChanged<String>? onConfirmQuote;
@@ -1130,7 +1263,9 @@ class _MessageBubble extends StatefulWidget {
     required this.onSwipeReply,
     this.onDelete,
     this.onQuoteTap,
-    this.isSelected = false,
+    this.isSelectionModeActive = false,
+    this.isChecked = false,
+    this.onToggle,
     this.isSelecting = false,
     this.onCancelSelecting,
     this.onConfirmQuote,
@@ -1194,16 +1329,21 @@ class _MessageBubbleState extends State<_MessageBubble>
         '${message.createdAt.toLocal().hour.toString().padLeft(2, '0')}:'
         '${message.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
 
-    return GestureDetector(
+    final bubble = GestureDetector(
       // В режиме выделения (widget.isSelecting) эти жесты выключены — иначе
       // протяжка ручки выделения SelectableText (внутри того же дерева)
       // соревновалась бы со свайпом-ответом в одной gesture arena (ровно
-      // риск, описанный в PLAN.md 2026-10-18).
-      onHorizontalDragUpdate: widget.isSelecting ? null : _onDragUpdate,
-      onHorizontalDragEnd: widget.isSelecting ? null : _onDragEnd,
-      onLongPressStart: widget.isSelecting
-          ? null
-          : (details) => widget.onLongPress(details.globalPosition),
+      // риск, описанный в PLAN.md 2026-10-18). В режиме множественного
+      // выбора свайп-ответ тоже выключен — долгое нажатие НЕ выключаем, оно
+      // по-прежнему должно сработать 2-м разом на уже единственном
+      // выбранном бабле, переводя в выделение текста (см. _onBubbleLongPress
+      // в ChatScreen).
+      onHorizontalDragUpdate: widget.isSelecting || widget.isSelectionModeActive ? null : _onDragUpdate,
+      onHorizontalDragEnd: widget.isSelecting || widget.isSelectionModeActive ? null : _onDragEnd,
+      onLongPress: widget.isSelecting ? null : widget.onLongPress,
+      // Обычный тап по баблу, пока активен режим выбора — тоже тоггл-ит
+      // выбор (как в Телеграме), не только кружок слева.
+      onTap: widget.isSelectionModeActive ? widget.onToggle : null,
       child: Stack(
         children: [
           if (_dragOffset > 4)
@@ -1236,23 +1376,15 @@ class _MessageBubbleState extends State<_MessageBubble>
                   // Короткая подсветка при прыжке по цитате к оригиналу
                   // (см. ChatScreen._jumpToMessage) — тот же цвет для обеих
                   // сторон бабла, чтобы не путать с обычным «своим» цветом.
-                  color: widget.isHighlighted
-                      ? theme.colorScheme.tertiaryContainer
-                      : isMine
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.surfaceContainerHighest,
+                  // Отмеченный в режиме выбора бабл — слегка темнее (как в
+                  // Телеграме), не рамка — сам фон.
+                  color: _bubbleColor(theme, isMine),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(14),
                     topRight: const Radius.circular(14),
                     bottomLeft: Radius.circular(isMine ? 14 : 4),
                     bottomRight: Radius.circular(isMine ? 4 : 14),
                   ),
-                  // «Выбран» 1-м долгим нажатием (меню рядом с баблом) —
-                  // тонкая рамка, как в Телеграме подсвечивает выбранное
-                  // сообщение, не меняя сам цвет заливки.
-                  border: widget.isSelected
-                      ? Border.all(color: theme.colorScheme.primary, width: 1.5)
-                      : null,
                 ),
                 child: IntrinsicWidth(
                   child: Column(
@@ -1369,8 +1501,49 @@ class _MessageBubbleState extends State<_MessageBubble>
                                         ? theme.colorScheme.onPrimary
                                         : theme.colorScheme.onSurface,
                                   ),
-                                  onSelectionChanged: (selection, cause) =>
-                                      setState(() => _textSelection = selection),
+                                  onSelectionChanged: (selection, cause) {
+                                    // Была реальная (не схлопнутая) выделенная
+                                    // область, а стала схлопнутой — байер тапнул
+                                    // мимо/отпустил выделение — выходим из режима
+                                    // выделения, как это делает настоящий
+                                    // Телеграм (не проверено живьём, нет
+                                    // эмулятора — см. PLAN.md 2026-10-18).
+                                    final hadRealSelection =
+                                        _textSelection != null && !_textSelection!.isCollapsed;
+                                    setState(() => _textSelection = selection);
+                                    if (hadRealSelection && selection.isCollapsed) {
+                                      widget.onCancelSelecting?.call();
+                                    }
+                                  },
+                                  // Плавающая панель ПРЯМО НАД выделением —
+                                  // штатный механизм Flutter (не самодельная
+                                  // панель под текстом, как было раньше), «⋮»
+                                  // сознательно не добавляем (см. PLAN.md —
+                                  // нет форварда/перевода, нечего в неё класть).
+                                  contextMenuBuilder: (menuContext, editableTextState) {
+                                    final excerpt = _selectedExcerpt;
+                                    if (excerpt == null) return const SizedBox.shrink();
+                                    return AdaptiveTextSelectionToolbar.buttonItems(
+                                      anchors: editableTextState.contextMenuAnchors,
+                                      buttonItems: [
+                                        ContextMenuButtonItem(
+                                          label: 'Копировать',
+                                          onPressed: () async {
+                                            await Clipboard.setData(ClipboardData(text: excerpt));
+                                            editableTextState.hideToolbar();
+                                            widget.onCancelSelecting?.call();
+                                          },
+                                        ),
+                                        ContextMenuButtonItem(
+                                          label: 'Цитировать',
+                                          onPressed: () {
+                                            editableTextState.hideToolbar();
+                                            widget.onConfirmQuote?.call(excerpt);
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 )
                               : Text(
                                   message.body!,
@@ -1382,7 +1555,6 @@ class _MessageBubbleState extends State<_MessageBubble>
                                   ),
                                 ),
                         ),
-                      if (widget.isSelecting) _buildSelectionToolbar(theme, isMine),
                     ],
                     const SizedBox(height: 2),
                     Row(
@@ -1430,46 +1602,49 @@ class _MessageBubbleState extends State<_MessageBubble>
         ],
       ),
     );
+
+    // Кружок-чекбокс слева у ВСЕХ баблов (и своих, и чужих — как в
+    // Телеграме), появляется/исчезает плавно с режимом выбора. Сам бабл
+    // по-прежнему выравнивается внутри Expanded через Align (см. выше) —
+    // поэтому «правые стоят на месте», просто теснее на ширину кружка.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          child: widget.isSelectionModeActive
+              ? Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: GestureDetector(
+                    onTap: widget.onToggle,
+                    child: Icon(
+                      widget.isChecked ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                      color: widget.isChecked
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline,
+                      size: 22,
+                    ),
+                  ),
+                )
+              : const SizedBox(width: 0, height: 0),
+        ),
+        Expanded(child: bubble),
+      ],
+    );
   }
 
-  /// Панель действий режима выделения — «Отмена» всегда доступна,
-  /// «Копировать»/«Процитировать» только когда реально что-то выделено
-  /// (не схлопнутый курсор).
-  Widget _buildSelectionToolbar(ThemeData theme, bool isMine) {
-    final excerpt = _selectedExcerpt;
-    final fg = isMine ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Wrap(
-        alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
-        spacing: 4,
-        children: [
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: fg.withValues(alpha: 0.7)),
-            onPressed: widget.onCancelSelecting,
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: fg),
-            onPressed: excerpt == null
-                ? null
-                : () async {
-                    await Clipboard.setData(ClipboardData(text: excerpt));
-                    widget.onCancelSelecting?.call();
-                  },
-            child: const Text('Копировать'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: fg),
-            onPressed: excerpt == null
-                ? null
-                : () => widget.onConfirmQuote?.call(excerpt),
-            child: const Text('Процитировать'),
-          ),
-        ],
-      ),
-    );
+  /// Фон бабла: обычный цвет, подсветка при прыжке по цитате, либо чуть
+  /// темнее — когда бабл отмечен в режиме множественного выбора (как в
+  /// Телеграме — тёмный оверлей на тот же цвет, не замена самого цвета).
+  Color _bubbleColor(ThemeData theme, bool isMine) {
+    final base = widget.isHighlighted
+        ? theme.colorScheme.tertiaryContainer
+        : isMine
+            ? theme.colorScheme.primary
+            : theme.colorScheme.surfaceContainerHighest;
+    if (!widget.isChecked) return base;
+    return Color.alphaBlend(Colors.black.withValues(alpha: 0.12), base);
   }
 
   void _openFullImage(BuildContext context, ChatMessage message) {
