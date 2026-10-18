@@ -1065,6 +1065,37 @@ class TelegramService
         }
     }
 
+    /**
+     * Заменяет кнопки "Подтвердить/Отменить" под сообщением о заказе на
+     * список сотрудников — следующий шаг после "Подтвердить" на физическом
+     * заказе (PLAN.md 2026-10-18: статус "В работе" пишется только вместе
+     * с исполнителем, выбор которого и есть этот список).
+     *
+     * @param array<int, array{id: string, name: string}> $options
+     */
+    public static function showOrderCollectorPicker(int $chatId, int $messageId, string $orderId, array $options): void
+    {
+        $botToken = config('services.telegram.bot_token');
+        if (!$botToken) return;
+
+        $buttons = array_map(
+            fn (array $opt) => ['text' => $opt['name'], 'callback_data' => "order:assign:{$orderId}:{$opt['id']}"],
+            $options,
+        );
+        // По 2 в ряд — один длинный ряд с именами сотрудников неудобно читать.
+        $rows = array_chunk($buttons, 2);
+
+        try {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
+                'chat_id'      => $chatId,
+                'message_id'   => $messageId,
+                'reply_markup' => json_encode(['inline_keyboard' => $rows]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[TG] showOrderCollectorPicker failed', ['error' => $e->getMessage()]);
+        }
+    }
+
     public static function notifyMasterReview(int $chatId, string $customerName, int $score, ?string $text): void
     {
         $botToken = config('services.telegram.bot_token');

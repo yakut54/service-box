@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
+use App\Models\ShopStaff;
 use App\Services\MasterBotService;
 use App\Services\MaxService;
+use App\Services\OrderActivityLog;
 use App\Services\TelegramService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
@@ -383,6 +385,14 @@ class TelegramController extends Controller
 
     private function handleOrderAction(string $callbackId, string $orderId, string $action, int $chatId, ?int $messageId): void
     {
+        // 'assign' приходит как "order:assign:{orderId}:{actorUserId}" —
+        // upstream-парсер handleCallbackQuery() (explode(':', $data, 3))
+        // кладёт всё после 2-го ':' в $orderId одним куском, разбираем сами.
+        if ($action === 'assign') {
+            $this->handleOrderAssign($callbackId, $orderId, $chatId, $messageId);
+            return;
+        }
+
         $order = Order::find($orderId);
 
         if (!$order) {
@@ -397,8 +407,24 @@ class TelegramController extends Controller
 
         $isDigitalOnly = $order->items()->where('product_type', '!=', 'digital')->doesntExist();
 
+        // «Подтвердить» на физическом заказе больше не пишет processing
+        // сразу — сначала спрашиваем, кто берёт собирать (см. claimBy() /
+        // PLAN.md 2026-10-18: processing без исполнителя создавало
+        // противоречие «в работе, но никто не взял»).
+        if ($action === 'confirm' && !$isDigitalOnly) {
+            $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
+            if (!$shop || !$messageId) {
+                $this->answerCallback($callbackId, 'Магазин не найден');
+                return;
+            }
+
+            $this->answerCallback($callbackId, 'Выберите, кто берёт заказ');
+            TelegramService::showOrderCollectorPicker($chatId, $messageId, $order->id, $this->collectorOptions($shop));
+            return;
+        }
+
         $newStatus = match ($action) {
-            'confirm' => $isDigitalOnly ? 'completed' : 'processing',
+            'confirm' => 'completed', // сюда доходит только digital-only
             'cancel'  => 'cancelled',
             default   => null,
         };
@@ -429,6 +455,101 @@ class TelegramController extends Controller
         Log::info('Order status updated via Telegram', [
             'order_id' => $orderId,
             'status'   => $newStatus,
+        ]);
+    }
+
+    /**
+     * Список кандидатов "кто берёт заказ" — владелец + принятые
+     * admin/collector этого магазина. Роль master сознательно не включаем —
+     * салоны/мастера вне фокуса этой фичи (PLAN.md 2026-10-18).
+     *
+     * @return array<int, array{id: string, name: string}>
+     */
+    private function collectorOptions(Shop $shop): array
+    {
+        $options = [['id' => $shop->user_id, 'name' => $shop->user->name]];
+
+        $staff = ShopStaff::where('shop_id', $shop->id)
+            ->whereIn('role', ['admin', 'collector'])
+            ->whereNotNull('accepted_at')
+            ->with('user')
+            ->get();
+
+        foreach ($staff as $member) {
+            if ($member->user) {
+                $options[] = ['id' => $member->user_id, 'name' => $member->user->name];
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Резолвит имя исполнителя по userId, но ТОЛЬКО если это реально
+     * владелец или принятый admin/collector именно этого магазина —
+     * callback_data приходит от клиента, доверять userId без проверки
+     * нельзя (иначе можно закрепить заказ за произвольным чужим id).
+     */
+    private function resolveCollectorName(Shop $shop, string $actorUserId): ?string
+    {
+        if ($shop->user_id === $actorUserId) {
+            return $shop->user->name;
+        }
+
+        $staff = ShopStaff::where('shop_id', $shop->id)
+            ->where('user_id', $actorUserId)
+            ->whereIn('role', ['admin', 'collector'])
+            ->whereNotNull('accepted_at')
+            ->with('user')
+            ->first();
+
+        return $staff?->user?->name;
+    }
+
+    private function handleOrderAssign(string $callbackId, string $combined, int $chatId, ?int $messageId): void
+    {
+        [$orderId, $actorUserId] = array_pad(explode(':', $combined, 2), 2, null);
+
+        if (!$orderId || !$actorUserId) {
+            $this->answerCallback($callbackId, 'Некорректные данные');
+            return;
+        }
+
+        $order = Order::find($orderId);
+        if (!$order) {
+            $this->answerCallback($callbackId, 'Заказ не найден');
+            return;
+        }
+
+        $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
+        $actorName = $shop ? $this->resolveCollectorName($shop, $actorUserId) : null;
+
+        if (!$actorName) {
+            $this->answerCallback($callbackId, 'Сотрудник не найден', true);
+            return;
+        }
+
+        $result = $order->claimBy($actorUserId, $actorName);
+
+        if (!$result['ok']) {
+            $this->answerCallback($callbackId, $result['message'], true);
+            return;
+        }
+
+        OrderActivityLog::record($order, $actorUserId, $actorName, null, 'claimed');
+
+        $this->answerCallback($callbackId, "Заказ закреплён за {$actorName}");
+        $this->removeKeyboard($chatId, $messageId);
+        MaxService::removeButtonsByEntity('order', $order->id);
+
+        $shortId = substr($order->id, 0, 8);
+        $text = "Заказ #{$shortId} — ✅ В работе, собирает {$actorName}";
+        $this->sendReply($chatId, $text);
+        if ($shop) MaxService::sendMessage($shop, $text);
+
+        Log::info('Order claimed via Telegram picker', [
+            'order_id' => $order->id,
+            'actor_user_id' => $actorUserId,
         ]);
     }
 
