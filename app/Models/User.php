@@ -47,4 +47,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(ShopStaff::class)->whereNotNull('accepted_at');
     }
+
+    /**
+     * "Онлайн" — живой Sanctum-токен прямо сейчас, не last_login_at (не
+     * отражает выход) и не WS-presence (нужна открытая вкладка прямо
+     * сейчас, не переживает обрыв соединения) — тот же источник истины,
+     * что уже используется для "Активен" в разделе Команда
+     * (StaffController::index) и для карточки заказа
+     * (OrderController::show). Статический метод — не требует
+     * предзагрузки модели, нужен только id.
+     */
+    public static function isOnline(string $userId): bool
+    {
+        return \Illuminate\Support\Facades\DB::table('personal_access_tokens')
+            ->where('tokenable_type', self::class)
+            ->where('tokenable_id', $userId)
+            ->exists();
+    }
 }

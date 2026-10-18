@@ -635,10 +635,7 @@ class OrderController extends Controller
         // переживает обрыв соединения). Один запрос, не на список — только
         // когда реально открыли карточку конкретного заказа.
         $payload['collector_is_online'] = $order->collector_id
-            ? DB::table('personal_access_tokens')
-                ->where('tokenable_type', \App\Models\User::class)
-                ->where('tokenable_id', $order->collector_id)
-                ->exists()
+            ? \App\Models\User::isOnline($order->collector_id)
             : null;
 
         return response()->json(['data' => $payload]);

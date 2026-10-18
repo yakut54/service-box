@@ -475,6 +475,12 @@ class MaxController extends Controller
         TelegramService::removeKeyboardByEntity('Order', $order->id);
 
         $text = "Заказ #" . substr($order->id, 0, 8) . " — ✅ В работе, собирает {$actorName}";
+        // Симметрично Telegram (см. комментарий там) — владелец должен
+        // увидеть это сразу в самом подтверждении, а не только если
+        // случайно откроет карточку заказа в админке.
+        if (!\App\Models\User::isOnline($actorUserId)) {
+            $text .= "\n⚠️ {$actorName} сейчас не в сети — убедитесь, что он(а) увидит заказ";
+        }
         MaxService::sendRaw($shop->max_chat_id, $text);
         TelegramService::sendMessage(shop: $shop, text: $text);
 
