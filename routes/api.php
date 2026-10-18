@@ -247,6 +247,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'auth.shop', 'not.master', '
     Route::get('/orders/{order}/activity', [OrderController::class, 'activity']);
     Route::patch('/orders/{order}/items/{item}/pick', [OrderController::class, 'pickItem']);
     Route::patch('/orders/{order}/problem', [OrderController::class, 'reportProblem']);
+    Route::get('/orders/{order}/assignment-candidates', [OrderController::class, 'assignmentCandidates']);
+    Route::post('/orders/{order}/request-assignment', [OrderController::class, 'requestAssignment']);
+    Route::patch('/orders/{order}/accept-assignment', [OrderController::class, 'acceptAssignment']);
+    Route::patch('/orders/{order}/decline-assignment', [OrderController::class, 'declineAssignment']);
 
     // Customers
     Route::get('/customers/export', [CustomerController::class, 'export']);

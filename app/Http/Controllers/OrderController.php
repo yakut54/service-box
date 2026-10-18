@@ -12,6 +12,8 @@ use App\Models\Shop;
 use App\Services\DiscountService;
 use App\Services\MaxService;
 use App\Services\OrderActivityLog;
+use App\Services\OrderAssignmentFlow;
+use App\Services\OrderCollectorCandidates;
 use App\Services\OrderReweighService;
 use App\Services\TableExport;
 use App\Services\TelegramService;
@@ -984,6 +986,127 @@ class OrderController extends Controller
         }
 
         return response()->json(['message' => 'Вы отказались от заказа']);
+    }
+
+    /**
+     * Владелец/админ выбирает исполнителя из списка (кнопка «В работу» в
+     * обычной карточке заказа) — тот же OrderAssignmentFlow, что и у бота,
+     * единая точка записи (PLAN.md 2026-10-19). Себя — claim сразу, кого-то
+     * другого — запрос, ждущий подтверждения.
+     *
+     * POST /api/admin/orders/{order}/request-assignment
+     */
+    public function requestAssignment(Request $request, string $order): JsonResponse
+    {
+        $request->validate(['candidate_id' => 'required|string']);
+
+        $orderModel = Order::findOrFail($order);
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $shop = $request->attributes->get('shop');
+        $result = OrderAssignmentFlow::request($orderModel, $shop, $request->user()->id, $request->candidate_id);
+
+        if (!$result['ok']) {
+            return response()->json(collect($result)->except('ok')->all(), 422);
+        }
+
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        return response()->json([
+            'message' => $result['pending']
+                ? "Запрос отправлен {$result['actor_name']}"
+                : "Заказ закреплён за {$result['actor_name']}",
+            'pending' => $result['pending'],
+        ]);
+    }
+
+    /**
+     * Список кандидатов с онлайн-статусом для модалки выбора исполнителя —
+     * то же самое, что видит бот (OrderCollectorCandidates::listFor()).
+     *
+     * GET /api/admin/orders/{order}/assignment-candidates
+     */
+    public function assignmentCandidates(Request $request, string $order): JsonResponse
+    {
+        $orderModel = Order::findOrFail($order);
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $shop = $request->attributes->get('shop');
+
+        return response()->json(['data' => OrderCollectorCandidates::listFor($shop)]);
+    }
+
+    /**
+     * Кандидат подтверждает запрос ("Беру") — только теперь реально
+     * claimBy() (PLAN.md 2026-10-19).
+     *
+     * PATCH /api/admin/orders/{order}/accept-assignment
+     */
+    public function acceptAssignment(Request $request, string $order): JsonResponse
+    {
+        $orderModel = Order::findOrFail($order);
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $shop = $request->attributes->get('shop');
+        $result = OrderAssignmentFlow::accept($orderModel, $shop, $request->user()->id);
+
+        if (!$result['ok']) {
+            return response()->json(collect($result)->except('ok')->all(), 422);
+        }
+
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        $text = "Заказ #" . substr($orderModel->id, 0, 8) . " — ✅ В работе, собирает {$result['actor_name']}";
+        if ($shop->telegram_bot_connected) {
+            try { TelegramService::sendMessage($shop, $text); } catch (\Throwable $e) { Log::warning('acceptAssignment notify (telegram) failed', ['error' => $e->getMessage()]); }
+        }
+        if ($shop->max_bot_connected) {
+            try { MaxService::sendMessage($shop, $text); } catch (\Throwable $e) { Log::warning('acceptAssignment notify (max) failed', ['error' => $e->getMessage()]); }
+        }
+
+        return response()->json(['message' => 'Вы взяли заказ в работу']);
+    }
+
+    /**
+     * Кандидат отказывается ("Не беру") — claim так и не произошёл, владелец
+     * узнаёт сразу и видит список кандидатов заново (симметрично
+     * notifyOwnerOrderProblem — не ждём, пока кто-то случайно заметит).
+     *
+     * PATCH /api/admin/orders/{order}/decline-assignment
+     */
+    public function declineAssignment(Request $request, string $order): JsonResponse
+    {
+        $orderModel = Order::findOrFail($order);
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $shop = $request->attributes->get('shop');
+        $result = OrderAssignmentFlow::decline($orderModel, $shop, $request->user()->id);
+
+        if (!$result['ok']) {
+            return response()->json(collect($result)->except('ok')->all(), 422);
+        }
+
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        $options = OrderCollectorCandidates::listFor($shop);
+        OrderCollectorCandidates::cache($orderModel->id, $options);
+
+        if ($shop->telegram_bot_connected) {
+            try { TelegramService::notifyAssignmentDeclined($shop, $orderModel, $result['decliner_name'], $options); } catch (\Throwable $e) { Log::warning('declineAssignment notify (telegram) failed', ['error' => $e->getMessage()]); }
+        }
+        if ($shop->max_bot_connected) {
+            try { MaxService::notifyAssignmentDeclined($shop, $orderModel, $result['decliner_name'], $options); } catch (\Throwable $e) { Log::warning('declineAssignment notify (max) failed', ['error' => $e->getMessage()]); }
+        }
+
+        return response()->json(['message' => 'Вы отклонили заказ']);
     }
 
     /**

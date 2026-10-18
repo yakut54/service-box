@@ -402,20 +402,7 @@ class MaxService
         $token = self::token();
         if (!$token) return;
 
-        // Индекс вместо userId в payload — симметрично Telegram (см. баг
-        // 2026-10-18: там это превышало лимит callback_data в 64 байта;
-        // здесь лимита может и не быть, но короче и единообразнее честнее).
-        //
-        // ✅/❌ на кнопке — видно, кого вообще можно выбрать, без тыка
-        // наугад (живой разбор 2026-10-19). «Обновить» перечитывает
-        // статусы без создания нового запроса.
-        $buttons = [];
-        foreach ($options as $i => $opt) {
-            $prefix = ($opt['is_online'] ?? true) ? '✅ ' : '❌ ';
-            $buttons[] = ['type' => 'callback', 'text' => $prefix . $opt['name'], 'payload' => "order:assign:{$orderId}:{$i}"];
-        }
-        $rows = array_chunk($buttons, 2);
-        $rows[] = [['type' => 'callback', 'text' => '🔄 Обновить', 'payload' => "order:refresh:{$orderId}"]];
+        $rows = self::collectorPickerButtons($orderId, $options);
 
         try {
             $response = Http::timeout(5)
@@ -437,6 +424,28 @@ class MaxService
         } catch (\Throwable $e) {
             Log::warning('[MAX] showOrderCollectorPicker failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    private static function collectorPickerButtons(string $orderId, array $options): array
+    {
+        $buttons = [];
+        foreach ($options as $i => $opt) {
+            $prefix = ($opt['is_online'] ?? true) ? '✅ ' : '❌ ';
+            $buttons[] = ['type' => 'callback', 'text' => $prefix . $opt['name'], 'payload' => "order:assign:{$orderId}:{$i}"];
+        }
+        $rows = array_chunk($buttons, 2);
+        $rows[] = [['type' => 'callback', 'text' => '🔄 Обновить', 'payload' => "order:refresh:{$orderId}"]];
+
+        return $rows;
+    }
+
+    /** Симметрично TelegramService::notifyAssignmentDeclined — см. её докблок. */
+    public static function notifyAssignmentDeclined(Shop $shop, $order, string $declinerName, array $options): void
+    {
+        $shortId = substr($order->id, 0, 8);
+        $text = "❌ <b>{$declinerName}</b> отклонил(а) заказ №{$shortId}. Выберите другого:";
+
+        self::sendMessage($shop, $text, self::collectorPickerButtons($order->id, $options));
     }
 
     // ── Customer subscription flow ────────────────────────────────────────

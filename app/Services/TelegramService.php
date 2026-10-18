@@ -1099,23 +1099,7 @@ class TelegramService
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) return;
 
-        // callback_data у Telegram ограничен 64 байтами — "order:assign:" +
-        // UUID заказа + UUID сотрудника туда не влезают (см. баг 2026-10-18),
-        // поэтому шлём позицию в $options, а не сам userId.
-        //
-        // ✅/❌ прямо на кнопке — чтобы было видно, кого вообще можно
-        // выбрать, не тыкая наугад (живой разбор 2026-10-19: выбор офлайн-
-        // человека через бота проходил молча). «Обновить» перечитывает
-        // статусы без создания нового запроса — например, пока ждут, чтобы
-        // выбранный зашёл в сеть.
-        $buttons = [];
-        foreach ($options as $i => $opt) {
-            $prefix = ($opt['is_online'] ?? true) ? '✅ ' : '❌ ';
-            $buttons[] = ['text' => $prefix . $opt['name'], 'callback_data' => "order:assign:{$orderId}:{$i}"];
-        }
-        // По 2 в ряд — один длинный ряд с именами сотрудников неудобно читать.
-        $rows = array_chunk($buttons, 2);
-        $rows[] = [['text' => '🔄 Обновить', 'callback_data' => "order:refresh:{$orderId}"]];
+        $rows = self::collectorPickerRows($orderId, $options);
 
         try {
             $response = Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
@@ -1137,6 +1121,58 @@ class TelegramService
         } catch (\Throwable $e) {
             Log::warning('[TG] showOrderCollectorPicker failed', ['error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Общие ряды кнопок пикера — используется и при показе/обновлении
+     * существующего сообщения (showOrderCollectorPicker), и при отправке
+     * нового (notifyAssignmentDeclined) — не дублируем построение кнопок.
+     *
+     * callback_data у Telegram ограничен 64 байтами — "order:assign:" +
+     * UUID заказа + UUID сотрудника туда не влезают (см. баг 2026-10-18),
+     * поэтому шлём позицию в $options, а не сам userId. ✅/❌ на кнопке —
+     * видно, кого вообще можно выбрать, без тыка наугад (живой разбор
+     * 2026-10-19). «Обновить» перечитывает статусы без нового запроса.
+     *
+     * @param array<int, array{id: string, name: string, is_online?: bool}> $options
+     * @return array<int, array<int, array{text: string, callback_data: string}>>
+     */
+    private static function collectorPickerRows(string $orderId, array $options): array
+    {
+        $buttons = [];
+        foreach ($options as $i => $opt) {
+            $prefix = ($opt['is_online'] ?? true) ? '✅ ' : '❌ ';
+            $buttons[] = ['text' => $prefix . $opt['name'], 'callback_data' => "order:assign:{$orderId}:{$i}"];
+        }
+        // По 2 в ряд — один длинный ряд с именами сотрудников неудобно читать.
+        $rows = array_chunk($buttons, 2);
+        $rows[] = [['text' => '🔄 Обновить', 'callback_data' => "order:refresh:{$orderId}"]];
+
+        return $rows;
+    }
+
+    /**
+     * Кандидат отказался от запроса (PLAN.md 2026-10-19) — владелец должен
+     * узнать сразу и сразу увидеть, кого ещё можно выбрать, а не только из
+     * карточки заказа в админке (симметрично notifyOwnerOrderProblem).
+     * Новое сообщение, не редактирование старого — то, прошлое, уже
+     * показывало "⏳ ждём ответа" и своей клавиатуры лишилось.
+     *
+     * @param array<int, array{id: string, name: string, is_online?: bool}> $options
+     */
+    public static function notifyAssignmentDeclined(Shop $shop, $order, string $declinerName, array $options): void
+    {
+        $shortId = substr($order->id, 0, 8);
+        $text = "❌ <b>{$declinerName}</b> отклонил(а) заказ №{$shortId}. Выберите другого:";
+
+        self::sendMessage(
+            shop: $shop,
+            text: $text,
+            inlineKeyboard: self::collectorPickerRows($order->id, $options),
+            type: 'system_notification',
+            entityType: 'Order',
+            entityId: $order->id,
+        );
     }
 
     public static function notifyMasterReview(int $chatId, string $customerName, int $score, ?string $text): void

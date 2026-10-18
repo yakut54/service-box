@@ -40,7 +40,14 @@ class RequireCollectorAccess
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/release$#i', $path) === 1)
             || ($request->isMethod('GET') && preg_match('#^api/admin/orders/' . self::UUID . '/activity$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/items/' . self::UUID . '/pick$#i', $path) === 1)
-            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/problem$#i', $path) === 1);
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/problem$#i', $path) === 1)
+            // Кнопка «В работу»/выбор исполнителя (PLAN.md 2026-10-19) —
+            // сборщик тоже может делегировать заказ другому сборщику, и
+            // точно должен уметь принять/отклонить предложенный ему.
+            || ($request->isMethod('GET') && preg_match('#^api/admin/orders/' . self::UUID . '/assignment-candidates$#i', $path) === 1)
+            || ($request->isMethod('POST') && preg_match('#^api/admin/orders/' . self::UUID . '/request-assignment$#i', $path) === 1)
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/accept-assignment$#i', $path) === 1)
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/decline-assignment$#i', $path) === 1);
 
         if ($allowed) {
             return $next($request);
