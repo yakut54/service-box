@@ -31,9 +31,9 @@ onUnmounted(() => presenceStore.leave())
       <div class="max-w-2xl mx-auto w-full px-4 h-14 flex items-center justify-between">
 
         <div class="flex items-center gap-2 min-w-0">
-          <!-- Тот же логотип, что в виджете (Настройки → Брендинг) — отдельную
-               аватарку под шапку сборщика заводить незачем, у магазина уже есть. -->
-          <UiAvatar :src="authStore.shop?.widget_config?.logo_url" :name="authStore.shop?.name" size="sm" />
+          <!-- Аватарка залогиненного сотрудника, не магазина — тот же приём,
+               что в AppLayout для обычной админки. -->
+          <UiAvatar :src="authStore.user?.avatar_url" :name="authStore.user?.name || authStore.user?.email" size="sm" />
           <div class="flex flex-col min-w-0">
             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate leading-tight">
               {{ authStore.shop?.name }}
