@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <!-- force="true" ВЕЗДЕ намеренно, но внутри Docker его одного не
+             хватает: наш docker-compose.yml уже задаёт DB_DATABASE=servicebox
+             (и прочие DB_*) на уровне ОС самого контейнера для dev-окружения,
+             и на практике (PHPUnit 11.5.53) это всё равно бьёт по dev-базе
+             вместо servicebox_testing — тихо, без единой ошибки (найдено
+             2026-10-18). Рабочий способ — передать нужные переменные явно
+             через сам `docker exec -e ...`, он имеет приоритет над тем, что
+             уже задано в контейнере: см. memory о тестовом окружении, там
+             точная рабочая команда. -->
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_KEY" value="base64:SoHc9GQtz6PjZUERJqeijXxjiTCBvlFR3mkr/u0UyD8=" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <!-- Отдельная БД (servicebox_testing), не та, что у докер-compose
+             dev-окружения (servicebox) — см. memory о тестовом окружении,
+             как её поднять. -->
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_HOST" value="db" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_DATABASE" value="servicebox_testing" force="true"/>
+        <env name="DB_USERNAME" value="servicebox" force="true"/>
+        <env name="DB_PASSWORD" value="servicebox" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+    </php>
+</phpunit>
