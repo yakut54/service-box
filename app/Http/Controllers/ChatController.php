@@ -7,7 +7,6 @@ use App\Models\ChatMessage;
 use App\Models\ChatThread;
 use App\Models\Customer;
 use App\Services\ImageCompressionService;
-use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +41,13 @@ class ChatController extends Controller
             return response()->json(['data' => [], 'thread' => null]);
         }
 
-        $query = ChatMessage::with('replyTo')->where('thread_id', $thread->id);
+        // hidden_from_customer_at — покупатель убрал у себя 2-й ступенью
+        // удаления (см. destroy() ниже); строка остаётся в базе навсегда —
+        // персонал продолжает её видеть, см. Admin\ChatController::messages()
+        // (без этого фильтра, 2026-10-18).
+        $query = ChatMessage::with('replyTo')
+            ->where('thread_id', $thread->id)
+            ->whereNull('hidden_from_customer_at');
 
         if ($request->filled('before')) {
             $cursor = $this->resolveCursor($thread, $request->input('before'));
@@ -62,7 +67,7 @@ class ChatController extends Controller
             ->get();
 
         return response()->json([
-            'data'   => $messages,
+            'data'   => $messages->map->toCustomerArray(),
             'thread' => [
                 'id'                 => $thread->id,
                 'is_blocked_by_shop' => $thread->is_blocked_by_shop,
@@ -120,7 +125,7 @@ class ChatController extends Controller
             ->where('client_message_id', $data['client_message_id'])
             ->first();
         if ($existing) {
-            return response()->json(['data' => $existing->load('replyTo')], 200);
+            return response()->json(['data' => $existing->load('replyTo')->toCustomerArray()], 200);
         }
 
         // Реплай — только на сообщение из ЭТОГО ЖЕ треда (см. Admin\ChatController::sendMessage).
@@ -156,14 +161,14 @@ class ChatController extends Controller
             $request->get('_shop')->api_key,
             $threadId,
             'message.new',
-            ['message' => $message],
+            ['message' => $message->toCustomerArray()],
         );
 
         // Бейдж «Чат» в сайдбаре обновляется сам, даже если у сотрудника не
         // открыт именно этот тред (там своя подписка, см. ChatView.vue).
         \App\Events\ChatUpdated::dispatch($request->get('_shop')->id);
 
-        return response()->json(['data' => $message], 201);
+        return response()->json(['data' => $message->toCustomerArray()], 201);
     }
 
     /**
@@ -250,11 +255,17 @@ class ChatController extends Controller
      * модерация только со стороны магазина (Admin\ChatController::deleteMessage,
      * которая всегда тихая, без следа).
      *
-     * Две ступени (спека 2026-09-16): первое удаление оставляет «надгробие» —
-     * и байер, и магазин видят плашку «Сообщение удалено» на месте текста.
-     * Повторное удаление — уже самой плашки — стирает её насовсем, у обеих
-     * сторон сразу. Отличие от Admin\ChatController::deleteMessage: там
-     * плашки не бывает никогда, сразу тихое жёсткое удаление.
+     * Две ступени (спека 2026-09-16, пересмотрена 2026-10-18): первое
+     * удаление оставляет «надгробие» — покупатель видит плашку «Сообщение
+     * удалено» на месте текста. Повторное удаление — уже самой плашки —
+     * убирает её из ЕГО СОБСТВЕННОЙ ленты насовсем (`hidden_from_customer_at`).
+     * На ЭТОМ ни разу не трогаются ни body/image_url в базе, ни файл фото —
+     * покупатель не может по-настоящему уничтожить своё сообщение: у
+     * персонала (Admin\ChatController, не вызывает toCustomerArray()) оно
+     * остаётся видно всегда, с тем же текстом/фото, просто с пометкой
+     * «Удалено» — намеренно, модерация (см. PLAN.md). Отличие от
+     * Admin\ChatController::deleteMessage: там плашки не бывает никогда,
+     * сразу настоящее жёсткое удаление строки и файла.
      */
     public function destroy(Request $request, string $message): JsonResponse
     {
@@ -275,7 +286,10 @@ class ChatController extends Controller
             ->findOrFail($message);
 
         if ($chatMessage->deleted_at) {
-            $chatMessage->delete();
+            // Строка и файл остаются — скрываем только от покупателя
+            // (см. index() выше, фильтр whereNull('hidden_from_customer_at')).
+            // Персонал как видел это сообщение, так и продолжает его видеть.
+            $chatMessage->update(['hidden_from_customer_at' => now()]);
             $thread->refreshLastMessagePreview();
 
             ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.deleted', ['id' => $chatMessage->id]);
@@ -287,8 +301,11 @@ class ChatController extends Controller
         // сообщение — тогда unread_by_shop не должен продолжать его считать.
         $wasUnreadByShop = !$thread->shop_last_read_at || $chatMessage->created_at->gt($thread->shop_last_read_at);
 
-        StorageService::deleteByUrl($chatMessage->image_url);
-        $chatMessage->update(['body' => null, 'image_url' => null, 'deleted_at' => now()]);
+        // body/image_url и сам файл НЕ трогаем — персонал должен видеть
+        // исходное содержимое навсегда (см. doc-блок метода и toCustomerArray()
+        // на модели). Раньше здесь был StorageService::deleteByUrl(...) и
+        // зануление body/image_url — убрано 2026-10-18.
+        $chatMessage->update(['deleted_at' => now()]);
 
         if ($wasUnreadByShop && $thread->unread_by_shop > 0) {
             $thread->decrement('unread_by_shop');
@@ -301,9 +318,9 @@ class ChatController extends Controller
         // Admin\ChatController::editMessage). Собеседник (магазин) уже
         // умеет мёрджить такое обновление в открытом чате, ничего нового
         // на приёмной стороне писать не нужно.
-        ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.updated', ['message' => $chatMessage]);
+        ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.updated', ['message' => $chatMessage->toCustomerArray()]);
 
-        return response()->json(['data' => $chatMessage]);
+        return response()->json(['data' => $chatMessage->toCustomerArray()]);
     }
 
     /**
@@ -346,9 +363,10 @@ class ChatController extends Controller
             $thread->update(['last_message_preview' => mb_substr($data['body'], 0, 80)]);
         }
 
-        ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.updated', ['message' => $chatMessage->load('replyTo')]);
+        $chatMessage->load('replyTo');
+        ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.updated', ['message' => $chatMessage->toCustomerArray()]);
 
-        return response()->json(['data' => $chatMessage->load('replyTo')]);
+        return response()->json(['data' => $chatMessage->toCustomerArray()]);
     }
 
     /**
