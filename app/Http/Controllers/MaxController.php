@@ -464,6 +464,12 @@ class MaxController extends Controller
 
         OrderActivityLog::record($order, $actorUserId, $actorName, $resolved['role'], 'claimed');
 
+        // Симметрично Telegram (см. комментарий там) — бот сам не трогал
+        // OrdersUpdated, и узнать о назначении назначенный мог только от
+        // того, кто физически нажал кнопки на телефоне магазина.
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+        \App\Events\OrderAssignedNotice::dispatch($shop->id, $order->id, $actorUserId, $actorName);
+
         MaxService::answerCallback($cbId, "Заказ закреплён за {$actorName}");
         MaxService::removeButtonsByEntity('order', $order->id);
         TelegramService::removeKeyboardByEntity('Order', $order->id);

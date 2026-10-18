@@ -501,6 +501,14 @@ class TelegramController extends Controller
 
         OrderActivityLog::record($order, $actorUserId, $actorName, $resolved['role'], 'claimed');
 
+        // Бот не трогал OrdersUpdated вовсе — без него список заказов в
+        // админке не обновился бы, пока кто-то не перезайдёт на страницу.
+        // OrderAssignedNotice — отдельное, адресное: с общего телефона
+        // магазина назначить могли не того, кто сейчас нажимает кнопки,
+        // так что узнать об этом назначенный может только отсюда.
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+        \App\Events\OrderAssignedNotice::dispatch($shop->id, $order->id, $actorUserId, $actorName);
+
         $this->answerCallback($callbackId, "Заказ закреплён за {$actorName}");
         $this->removeKeyboard($chatId, $messageId);
         MaxService::removeButtonsByEntity('order', $order->id);
