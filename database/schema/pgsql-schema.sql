@@ -605,6 +605,13 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         reply_quote        TEXT,
                         edited_at          TIMESTAMPTZ,
                         deleted_at         TIMESTAMPTZ,
+                        -- Покупатель удалил "заглушку" (2-я ступень удаления,
+                        -- см. Widget\ChatController::destroy) — должна исчезнуть
+                        -- из ЕГО собственной ленты, но НЕ из базы: персонал
+                        -- видит сообщение всегда, deleted_at у него уже
+                        -- проставлен с 1-й ступени (2026-10-18, модерация —
+                        -- покупатель не может по-настоящему стереть сообщение).
+                        hidden_from_customer_at TIMESTAMPTZ,
                         created_at         TIMESTAMPTZ DEFAULT NOW(),
                         CONSTRAINT chat_messages_not_empty CHECK (body IS NOT NULL OR image_url IS NOT NULL OR deleted_at IS NOT NULL)
                     )
