@@ -141,6 +141,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(lastClipboardText, 'привет мир');
+    // Копирование — тоже законченное действие: галочка не должна остаться.
+    expect(find.text('Выбрано 1'), findsNothing);
   });
 
   testWidgets(

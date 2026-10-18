@@ -720,6 +720,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
   }
 
+  /// Отрывок скопирован в буфер (кнопка «Копировать» в меню выделения,
+  /// см. _MessageBubble._buildSelectionToolbar) — как и цитата, законченное
+  /// действие: галочка на бабле снимается, а не остаётся висеть.
+  void _onExcerptCopied() {
+    if (_selectedIds.isNotEmpty) setState(() => _selectedIds.clear());
+  }
+
   /// `shops.chat_customer_delete_enabled` — вынесено в getter, используется
   /// и для «удалить своё сообщение», и для «стереть уже показанную плашку
   /// „Сообщение удалено“» (тот же тумблер, тот же эндпоинт на бэкенде).
@@ -1031,6 +1038,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       isChecked: _selectedIds.contains(message.id),
                       onToggle: () => _onBubbleTap(message),
                       onConfirmQuote: (excerpt) => _confirmQuote(message, excerpt),
+                      onCopied: _onExcerptCopied,
                       onTextSelectionChanged: (hasSelection) =>
                           _onBubbleTextSelectionChanged(message.id, hasSelection),
                       // Уже удалённому (плашка «Сообщение удалено») своему
@@ -1333,6 +1341,9 @@ class _MessageBubble extends StatefulWidget {
   // Тап по кружку/баблу в режиме выбора — тоггл в наборе на экране.
   final VoidCallback? onToggle;
   final ValueChanged<String>? onConfirmQuote;
+  // Отрывок скопирован в буфер — так же, как и цитата, законченное действие,
+  // после которого галочка на бабле снимается (см. _buildSelectionToolbar).
+  final VoidCallback? onCopied;
   // Сообщает экрану, что в ЭТОМ бабле появилось/пропало текстовое выделение
   // (см. PLAN.md 2026-10-18) — экрану нужно это для ступенчатого PopScope
   // (1-й "Назад" снимает только выделение) и чтобы увести бабл от поля
@@ -1351,6 +1362,7 @@ class _MessageBubble extends StatefulWidget {
     this.isChecked = false,
     this.onToggle,
     this.onConfirmQuote,
+    this.onCopied,
     this.onTextSelectionChanged,
   });
 
@@ -1397,6 +1409,10 @@ class _MessageBubbleState extends State<_MessageBubble>
             state.hideToolbar();
             if (excerpt != null) await Clipboard.setData(ClipboardData(text: excerpt));
             state.clearSelection();
+            // Копирование — тоже законченное действие (как и цитата,
+            // см. onConfirmQuote ниже) — галочка на бабле не должна
+            // оставаться висеть.
+            widget.onCopied?.call();
           },
         ),
         ContextMenuButtonItem(
