@@ -44,6 +44,8 @@ class FakeChatRepository implements ChatRepository {
     return const ChatPollResult(hasNew: false, unreadTotal: 0, threadId: 'thread-1');
   }
 
+  final List<ChatMessage> sentMessages = [];
+
   @override
   Future<ChatMessage> sendMessage(
     String sessionToken, {
@@ -53,7 +55,20 @@ class FakeChatRepository implements ChatRepository {
     String? replyToMessageId,
     String? replyQuote,
   }) async {
-    throw UnimplementedError('sendMessage не нужен для теста выделения текста');
+    final message = ChatMessage(
+      id: 'sent-${sentMessages.length}',
+      threadId: 'thread-1',
+      senderType: 'customer',
+      body: body,
+      imageUrl: imageUrl,
+      status: 'sent',
+      createdAt: DateTime(2026, 10, 18, 12, 1),
+      clientMessageId: clientMessageId,
+      replyToMessageId: replyToMessageId,
+      replyQuote: replyQuote,
+    );
+    sentMessages.add(message);
+    return message;
   }
 
   @override

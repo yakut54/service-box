@@ -120,6 +120,15 @@ void main() {
 
     expect(find.text('Цитата'), findsOneWidget);
     expect(find.text('Ответ на сообщение'), findsNothing);
+
+    // Отправка цитаты — естественное завершение режима выбора: галочка на
+    // процитированном пузыре не должна остаться висеть.
+    expect(find.text('Выбрано 1'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'эй');
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Выбрано 1'), findsNothing);
   });
 
   testWidgets('«Копировать» кладёт в буфер обмена ровно выделенный отрывок', (tester) async {

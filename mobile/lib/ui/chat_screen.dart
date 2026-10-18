@@ -577,6 +577,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             _draftController.clear();
             _replyTarget = null;
             _quoteExcerpt = null;
+            // Отправка — естественное завершение режима выбора (как и
+            // начало редактирования в _startEdit выше): если цитировали
+            // через множественный выбор, после отправки галочки не должны
+            // оставаться висеть.
+            _selectedIds.clear();
           }
         });
       }
