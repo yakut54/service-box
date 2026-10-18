@@ -1107,24 +1107,6 @@ CREATE TABLE IF NOT EXISTS public.user_flag_audit (
 
 
 --
--- Name: user_seen_cursors; Type: TABLE; Schema: public; Owner: -
---
-
--- "Я (конкретный пользователь) последний раз смотрел список X в момент T" —
--- персонально на человека, не общий курсор на весь магазин (см.
--- TracksSeenCursor). cursor_key: 'reviews' / 'mail_failures' /
--- 'product_changes' — составной PK вместо отдельной колонки на фичу в
--- shops, т.к. фич с этим паттерном уже три.
-CREATE TABLE IF NOT EXISTS public.user_seen_cursors (
-    user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    shop_id uuid NOT NULL REFERENCES public.shops(id) ON DELETE CASCADE,
-    cursor_key character varying(50) NOT NULL,
-    seen_at timestamp(0) without time zone NOT NULL,
-    PRIMARY KEY (user_id, shop_id, cursor_key)
-);
-
-
---
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1142,6 +1124,33 @@ CREATE TABLE IF NOT EXISTS public.users (
     is_superadmin boolean DEFAULT false NOT NULL,
     avatar_url character varying(1000),
     phone character varying(20)
+);
+
+
+--
+-- Name: user_seen_cursors; Type: TABLE; Schema: public; Owner: -
+--
+
+-- "Я (конкретный пользователь) последний раз смотрел список X в момент T" —
+-- персонально на человека, не общий курсор на весь магазин (см.
+-- TracksSeenCursor). cursor_key: 'reviews' / 'mail_failures' /
+-- 'product_changes' — составной PK вместо отдельной колонки на фичу в
+-- shops, т.к. фич с этим паттерном уже три.
+--
+-- FOREIGN KEY — отдельными ALTER TABLE ниже по файлу (там же, где и у
+-- остальных таблиц, см. user_seen_cursors_user_id_foreign/_shop_id_foreign),
+-- а не инлайн здесь: инлайн REFERENCES на public.users/public.shops падал на
+-- чистой БД — на момент CREATE TABLE (алфавитный порядок таблиц) у них ещё
+-- нет PRIMARY KEY, он добавляется в файле отдельной ALTER-секцией позже
+-- (найдено 2026-10-18 при подъёме тестового окружения с нуля; на проде не
+-- проявлялось — там таблица и колонки накручены руками раньше, чем
+-- появился этот баг в файле).
+CREATE TABLE IF NOT EXISTS public.user_seen_cursors (
+    user_id uuid NOT NULL,
+    shop_id uuid NOT NULL,
+    cursor_key character varying(50) NOT NULL,
+    seen_at timestamp(0) without time zone NOT NULL,
+    PRIMARY KEY (user_id, shop_id, cursor_key)
 );
 
 
@@ -1379,6 +1388,22 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_seen_cursors user_seen_cursors_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_seen_cursors
+    ADD CONSTRAINT user_seen_cursors_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_seen_cursors user_seen_cursors_shop_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_seen_cursors
+    ADD CONSTRAINT user_seen_cursors_shop_id_foreign FOREIGN KEY (shop_id) REFERENCES public.shops(id) ON DELETE CASCADE;
 
 
 --
