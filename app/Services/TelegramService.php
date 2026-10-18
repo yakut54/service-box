@@ -265,6 +265,27 @@ class TelegramService
     }
 
     /**
+     * Кто-то отказался от заказа (кнопка «Отказаться от заказа» в сборке,
+     * или «Закрыть» на уведомлении о назначении через бота) — владелец
+     * должен узнать сразу, иначе заказ тихо висит в needs_attention до
+     * следующего, кто туда заглянет (PLAN.md 2026-10-18).
+     */
+    public static function notifyOwnerOrderReleased(Shop $shop, $order, string $actorName, string $note): void
+    {
+        $text = "🔄 <b>Отказ от заказа №" . substr($order->id, 0, 8) . "</b>\n\n"
+              . self::esc($actorName) . " не взял(а) заказ\n"
+              . "Причина: " . self::esc($note);
+
+        self::sendMessage(
+            shop: $shop,
+            text: $text,
+            type: 'system_notification',
+            entityType: 'Order',
+            entityId: $order->id
+        );
+    }
+
+    /**
      * Заказ собран сборщиком — раньше владелец узнавал об этом только по
      * беззвучному realtime-эвенту (если открыта вкладка админки), теперь
      * ещё и сюда. Общий чат магазина — личного канала у владельца нет (см.

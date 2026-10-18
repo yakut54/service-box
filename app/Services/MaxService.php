@@ -315,6 +315,16 @@ class MaxService
         self::sendMessage($shop, $text);
     }
 
+    /** См. TelegramService::notifyOwnerOrderReleased — тот же повод/текст. */
+    public static function notifyOwnerOrderReleased(Shop $shop, $order, string $actorName, string $note): void
+    {
+        $text = "🔄 <b>Отказ от заказа №" . substr($order->id, 0, 8) . "</b>\n\n"
+              . self::esc($actorName) . " не взял(а) заказ\n"
+              . "Причина: " . self::esc($note);
+
+        self::sendMessage($shop, $text);
+    }
+
     /** См. TelegramService::notifyOwnerOrderCollected — тот же повод/текст. */
     public static function notifyOwnerOrderCollected(Shop $shop, $order): void
     {

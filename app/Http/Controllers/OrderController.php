@@ -962,6 +962,16 @@ class OrderController extends Controller
         $shop = $request->attributes->get('shop');
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
+        // Владелец должен узнать сразу, кто и почему отказался — иначе
+        // заказ тихо висит в needs_attention до следующего, кто туда
+        // заглянет (симметрично уже существующему notifyOwnerOrderProblem).
+        if ($shop->telegram_bot_connected) {
+            try { TelegramService::notifyOwnerOrderReleased($shop, $orderModel, $request->user()->name, $request->note); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderReleased (telegram) failed', ['error' => $e->getMessage()]); }
+        }
+        if ($shop->max_bot_connected) {
+            try { MaxService::notifyOwnerOrderReleased($shop, $orderModel, $request->user()->name, $request->note); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderReleased (max) failed', ['error' => $e->getMessage()]); }
+        }
+
         return response()->json(['message' => 'Вы отказались от заказа']);
     }
 
