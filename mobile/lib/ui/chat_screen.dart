@@ -1008,10 +1008,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   // позицию. Индекс 0 — самое новое сообщение, спиннер
                   // «загрузка старых» уезжает в конец (визуально — наверх).
                   reverse: true,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                  // Горизонтальный отступ — НЕ здесь, а внутри каждого бабла
+                  // (см. _MessageBubble.build(), AnimatedContainer с
+                  // подсветкой выбора) — иначе полоса подсветки отмеченного
+                  // сообщения упиралась бы в этот паддинг, а не шла от края
+                  // до края экрана (жалоба с реального устройства, 2026-10-18).
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: _messages.length + (_loadingOlder ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (_loadingOlder && index == _messages.length) {
@@ -1761,15 +1763,17 @@ class _MessageBubbleState extends State<_MessageBubble>
     // по-прежнему выравнивается внутри Expanded через Align (см. выше) —
     // поэтому «правые стоят на месте», просто теснее на ширину кружка.
     //
-    // Подсветка отмеченного сообщения — полоса через весь ряд (чекбокс +
-    // бабл + пустое место рядом), как в Телеграме, а не просто чуть более
-    // тёмный бабл (было почти не видно на тёмном «своём» бабле — жалоба
-    // пользователя с реального устройства, 2026-10-18).
+    // Подсветка отмеченного сообщения — полоса ОТ КРАЯ ДО КРАЯ экрана (не
+    // только внутри горизонтального отступа ленты), как в Телеграме. Поэтому
+    // сам отступ (12px) переехал сюда, внутрь подсветки, а не остался на
+    // ListView — см. padding у ListView.builder выше (жалоба пользователя со
+    // скриншотом, где красным обведён незатемнённый паддинг, 2026-10-18).
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       color: widget.isChecked
           ? theme.colorScheme.primary.withValues(alpha: 0.16)
           : Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
