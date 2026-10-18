@@ -1760,45 +1760,51 @@ class _MessageBubbleState extends State<_MessageBubble>
     // Телеграме), появляется/исчезает плавно с режимом выбора. Сам бабл
     // по-прежнему выравнивается внутри Expanded через Align (см. выше) —
     // поэтому «правые стоят на месте», просто теснее на ширину кружка.
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          child: widget.isSelectionModeActive
-              ? Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: GestureDetector(
-                    onTap: widget.onToggle,
-                    behavior: HitTestBehavior.opaque,
-                    child: Icon(
-                      widget.isChecked ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-                      color: widget.isChecked
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.outline,
-                      size: 22,
+    //
+    // Подсветка отмеченного сообщения — полоса через весь ряд (чекбокс +
+    // бабл + пустое место рядом), как в Телеграме, а не просто чуть более
+    // тёмный бабл (было почти не видно на тёмном «своём» бабле — жалоба
+    // пользователя с реального устройства, 2026-10-18).
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      color: widget.isChecked
+          ? theme.colorScheme.primary.withValues(alpha: 0.16)
+          : Colors.transparent,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: widget.isSelectionModeActive
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: GestureDetector(
+                      onTap: widget.onToggle,
+                      behavior: HitTestBehavior.opaque,
+                      child: Icon(
+                        widget.isChecked ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                        color: widget.isChecked
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outline,
+                        size: 22,
+                      ),
                     ),
-                  ),
-                )
-              : const SizedBox(width: 0, height: 0),
-        ),
-        Expanded(child: bubble),
-      ],
+                  )
+                : const SizedBox(width: 0, height: 0),
+          ),
+          Expanded(child: bubble),
+        ],
+      ),
     );
   }
 
-  /// Фон бабла: обычный цвет, подсветка при прыжке по цитате, либо чуть
-  /// темнее — когда бабл отмечен в режиме множественного выбора (как в
-  /// Телеграме — тёмный оверлей на тот же цвет, не замена самого цвета).
+  /// Фон бабла: обычный цвет, либо подсветка при прыжке по цитате. Подсветка
+  /// отметки в режиме выбора теперь на уровне всего ряда (см. build() выше),
+  /// не здесь — цвет самого бабла при отметке не меняется.
   Color _bubbleColor(ThemeData theme, bool isMine) {
-    final base = widget.isHighlighted
-        ? theme.colorScheme.tertiaryContainer
-        : isMine
-            ? theme.colorScheme.primary
-            : theme.colorScheme.surfaceContainerHighest;
-    if (!widget.isChecked) return base;
-    return Color.alphaBlend(Colors.black.withValues(alpha: 0.12), base);
+    if (widget.isHighlighted) return theme.colorScheme.tertiaryContainer;
+    return isMine ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest;
   }
 
   void _openFullImage(BuildContext context, ChatMessage message) {
