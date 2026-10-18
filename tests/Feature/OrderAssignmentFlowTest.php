@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
+use App\Models\OrderActivity;
 use App\Models\Shop;
 use App\Models\ShopStaff;
 use App\Models\User;
@@ -106,7 +107,7 @@ class OrderAssignmentFlowTest extends TestCase
         OrderAssignmentFlow::request($order, $shop, $shop->user_id, $staff->id);
         $order->refresh();
 
-        $result = OrderAssignmentFlow::accept($order, $staff->id, 'Егорка');
+        $result = OrderAssignmentFlow::accept($order, $shop, $staff->id);
 
         $this->assertTrue($result['ok']);
         $order->refresh();
@@ -115,6 +116,7 @@ class OrderAssignmentFlowTest extends TestCase
         $this->assertNull($order->pending_collector_id);
         $this->assertNull($order->pending_collector_name);
         $this->assertNull($order->pending_assignment_requested_at);
+        $this->assertTrue(OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->exists());
     }
 
     public function test_accept_rejects_a_user_the_request_was_not_sent_to(): void
@@ -126,7 +128,7 @@ class OrderAssignmentFlowTest extends TestCase
         OrderAssignmentFlow::request($order, $shop, $shop->user_id, $staff->id);
         $order->refresh();
 
-        $result = OrderAssignmentFlow::accept($order, (string) Str::uuid(), 'Кто-то другой');
+        $result = OrderAssignmentFlow::accept($order, $shop, (string) Str::uuid());
 
         $this->assertFalse($result['ok']);
         $this->assertSame('Этот запрос не для вас', $result['message']);
@@ -144,7 +146,7 @@ class OrderAssignmentFlowTest extends TestCase
         OrderAssignmentFlow::request($order, $shop, $shop->user_id, $staff->id);
         $order->refresh();
 
-        $result = OrderAssignmentFlow::decline($order, $staff->id);
+        $result = OrderAssignmentFlow::decline($order, $shop, $staff->id);
 
         $this->assertTrue($result['ok']);
         $this->assertSame('Егорка', $result['decliner_name']);
@@ -152,6 +154,7 @@ class OrderAssignmentFlowTest extends TestCase
         $this->assertSame('pending', $order->status);
         $this->assertNull($order->collector_id);
         $this->assertNull($order->pending_collector_id);
+        $this->assertTrue(OrderActivity::where('order_id', $order->id)->where('action', 'assignment_declined')->exists());
     }
 
     public function test_decline_rejects_a_user_the_request_was_not_sent_to(): void
@@ -163,7 +166,7 @@ class OrderAssignmentFlowTest extends TestCase
         OrderAssignmentFlow::request($order, $shop, $shop->user_id, $staff->id);
         $order->refresh();
 
-        $result = OrderAssignmentFlow::decline($order, (string) Str::uuid());
+        $result = OrderAssignmentFlow::decline($order, $shop, (string) Str::uuid());
 
         $this->assertFalse($result['ok']);
         $order->refresh();

@@ -40,6 +40,10 @@ class OrderAssignmentFlow
         if ($candidateId === $initiatorUserId) {
             $result = $order->claimBy($candidateId, $resolved['name']);
 
+            if ($result['ok']) {
+                OrderActivityLog::record($order, $candidateId, $resolved['name'], $resolved['role'], 'claimed');
+            }
+
             return array_merge($result, ['pending' => false, 'actor_name' => $resolved['name']]);
         }
 
@@ -65,16 +69,24 @@ class OrderAssignmentFlow
 
     /**
      * Кандидат подтверждает ("Беру") — только теперь реально claimBy().
+     * Имя/роль резолвятся заново через $shop, не берутся из уже
+     * денормализованного pending_collector_name — тот же принцип "не
+     * доверять без проверки", что у resolve() везде в этом флоу.
      *
-     * @return array{ok: bool, message?: string, collector_name?: string}
+     * @return array{ok: bool, message?: string, collector_name?: string, actor_name?: string}
      */
-    public static function accept(Order $order, string $userId, string $userName): array
+    public static function accept(Order $order, Shop $shop, string $userId): array
     {
         if (!$order->pending_collector_id || $order->pending_collector_id !== $userId) {
             return ['ok' => false, 'message' => 'Этот запрос не для вас'];
         }
 
-        $result = $order->claimBy($userId, $userName);
+        $resolved = OrderCollectorCandidates::resolve($shop, $userId);
+        if (!$resolved) {
+            return ['ok' => false, 'message' => 'Сотрудник не найден'];
+        }
+
+        $result = $order->claimBy($userId, $resolved['name']);
 
         $order->update([
             'pending_collector_id' => null,
@@ -82,7 +94,11 @@ class OrderAssignmentFlow
             'pending_assignment_requested_at' => null,
         ]);
 
-        return $result;
+        if ($result['ok']) {
+            OrderActivityLog::record($order, $userId, $resolved['name'], $resolved['role'], 'claimed');
+        }
+
+        return array_merge($result, ['actor_name' => $resolved['name']]);
     }
 
     /**
@@ -91,19 +107,22 @@ class OrderAssignmentFlow
      *
      * @return array{ok: bool, message?: string, decliner_name?: string}
      */
-    public static function decline(Order $order, string $userId): array
+    public static function decline(Order $order, Shop $shop, string $userId): array
     {
         if (!$order->pending_collector_id || $order->pending_collector_id !== $userId) {
             return ['ok' => false, 'message' => 'Этот запрос не для вас'];
         }
 
-        $declinerName = $order->pending_collector_name;
+        $resolved = OrderCollectorCandidates::resolve($shop, $userId);
+        $declinerName = $resolved['name'] ?? $order->pending_collector_name;
 
         $order->update([
             'pending_collector_id' => null,
             'pending_collector_name' => null,
             'pending_assignment_requested_at' => null,
         ]);
+
+        OrderActivityLog::record($order, $userId, $declinerName, $resolved['role'] ?? 'collector', 'assignment_declined');
 
         return ['ok' => true, 'decliner_name' => $declinerName];
     }
