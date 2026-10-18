@@ -15,7 +15,7 @@ import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import SessionSupersededModal from '@/components/SessionSupersededModal.vue'
-import OrderAssignedNoticeModal from '@/components/OrderAssignedNoticeModal.vue'
+import OrderAssignmentRequestModal from '@/components/OrderAssignmentRequestModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 import UiAvatar from '@/shared/ui/UiAvatar.vue'
 import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
@@ -511,5 +511,5 @@ async function handleLogout() {
   </div>
 
   <SessionSupersededModal />
-  <OrderAssignedNoticeModal />
+  <OrderAssignmentRequestModal />
 </template>

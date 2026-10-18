@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { usePresenceStore } from '@/stores/presence'
 import { useTheme } from '@/composables/useTheme'
 import ToastContainer from '@/components/ToastContainer.vue'
-import OrderAssignedNoticeModal from '@/components/OrderAssignedNoticeModal.vue'
+import OrderAssignmentRequestModal from '@/components/OrderAssignmentRequestModal.vue'
 import UiAvatar from '@/shared/ui/UiAvatar.vue'
 
 const authStore = useAuthStore()
@@ -88,6 +88,6 @@ onUnmounted(() => presenceStore.leave())
     </main>
 
     <ToastContainer />
-    <OrderAssignedNoticeModal />
+    <OrderAssignmentRequestModal />
   </div>
 </template>

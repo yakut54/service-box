@@ -348,6 +348,8 @@ export interface Order {
   // Живой Sanctum-токен у исполнителя, не "входил когда-то" — см.
   // OrderController::show(). null, когда заказ никем не занят.
   collector_is_online?: boolean | null
+  pending_collector_id?: string | null
+  pending_collector_name?: string | null
   picking_started_at?: string | null
   pick_note?: string | null
   pick_note_at?: string | null
@@ -596,6 +598,17 @@ export interface MailFailuresListResponse {
   // Живая проверка config('mail.default') !== 'log' на момент запроса — не хранится
   // в БД и не завязана на "просмотрено", см. MailFailureController::mailConfigured().
   mail_configured: boolean
+}
+
+// ==========================================
+// ORDER ASSIGNMENT (PLAN.md 2026-10-19)
+// ==========================================
+
+export interface AssignmentCandidate {
+  id: string
+  name: string
+  role: 'owner' | 'admin' | 'collector'
+  is_online: boolean
 }
 
 // ==========================================

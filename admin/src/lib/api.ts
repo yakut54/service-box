@@ -25,6 +25,7 @@ import type {
   SuperadminRevenue,
   SuperadminOwner,
   Commission,
+  AssignmentCandidate,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -410,6 +411,31 @@ class ApiClient {
     return this.request<{ message: string }>(`/admin/orders/${orderId}/release`, {
       method: 'PATCH',
       body: JSON.stringify({ note }),
+    })
+  }
+
+  // Кнопка «В работу» в карточке заказа (PLAN.md 2026-10-19) — выбор
+  // исполнителя из списка, тот же OrderAssignmentFlow, что и у бота.
+  async getAssignmentCandidates(orderId: string) {
+    return this.request<{ data: AssignmentCandidate[] }>(`/admin/orders/${orderId}/assignment-candidates`)
+  }
+
+  async requestOrderAssignment(orderId: string, candidateId: string) {
+    return this.request<{ message: string; pending: boolean }>(
+      `/admin/orders/${orderId}/request-assignment`,
+      { method: 'POST', body: JSON.stringify({ candidate_id: candidateId }) }
+    )
+  }
+
+  async acceptOrderAssignment(orderId: string) {
+    return this.request<{ message: string }>(`/admin/orders/${orderId}/accept-assignment`, {
+      method: 'PATCH',
+    })
+  }
+
+  async declineOrderAssignment(orderId: string) {
+    return this.request<{ message: string }>(`/admin/orders/${orderId}/decline-assignment`, {
+      method: 'PATCH',
     })
   }
 

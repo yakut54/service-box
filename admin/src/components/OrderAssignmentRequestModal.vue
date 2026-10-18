@@ -1,0 +1,124 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
+import { api, ApiError } from '@/lib/api'
+import { getEcho } from '@/lib/echo'
+import UiModal from '@/shared/ui/UiModal.vue'
+
+/**
+ * «Вам предлагают заказ» — всплывает, когда через бота (Telegram/MAX) или
+ * кнопку «В работу» в карточке заказа кто-то выбрал ЭТОГО пользователя
+ * (PLAN.md 2026-10-19). Это ещё не назначение — claimBy() ждёт, пока сам
+ * кандидат примет или откажется здесь. С общего телефона магазина кнопки
+ * может нажимать кто угодно, не обязательно сам выбранный, и живой тест
+ * нашёл дыру: офлайн-человека раньше "назначали" молча, он никогда бы не
+ * узнал. Окно висит, пока не ответят явно — обычный тост, который сам
+ * уезжает за несколько секунд, легко промахнуться.
+ *
+ * Событие order.assignment_requested шлётся всем в канале shop.{id} (том
+ * же, на который и так подписан AppLayout/CollectorLayout) — отдельный
+ * приватный канал на пользователя ради одного события заводить незачем,
+ * фильтр "моё ли это" делаем здесь же, по payload.candidateId.
+ */
+
+interface AssignmentRequestedPayload {
+  orderId: string
+  orderShortId: string
+  candidateId: string
+  candidateName: string
+}
+
+const authStore = useAuthStore()
+const toast = useToast()
+
+const show = ref(false)
+const orderId = ref('')
+const orderShortId = ref('')
+const responding = ref(false)
+
+// Тот же звук и тот же тумблер localStorage, что у остальных сигналов в
+// AppLayout — отдельного звука под это уведомление не заводим.
+const alertAudio = new Audio('/sounds/chat-notify.wav')
+function playAlertSound() {
+  if (localStorage.getItem('chat_sound_enabled') === 'false') return
+  alertAudio.currentTime = 0
+  alertAudio.play().catch(() => { /* автовоспроизведение заблокировано браузером — тихо игнорируем */ })
+}
+
+onMounted(() => {
+  const shopId = authStore.shop?.id
+  if (!shopId) return
+
+  getEcho().private(`shop.${shopId}`).listen('.order.assignment_requested', (payload: AssignmentRequestedPayload) => {
+    if (payload.candidateId !== authStore.user?.id) return
+    orderId.value = payload.orderId
+    orderShortId.value = payload.orderShortId
+    show.value = true
+    playAlertSound()
+  })
+  // Канал не покидаем здесь — им владеет layout (AppLayout/CollectorLayout),
+  // который и отписывается от него при размонтировании.
+})
+
+async function accept() {
+  responding.value = true
+  try {
+    await api.acceptOrderAssignment(orderId.value)
+    toast.success('Вы взяли заказ в работу')
+  } catch (e) {
+    // Запрос уже мог устареть (отменили/заказ закрыли) — всё равно прячем
+    // окно, отвечать больше нечем.
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось принять заказ')
+  } finally {
+    responding.value = false
+    show.value = false
+  }
+}
+
+async function decline() {
+  responding.value = true
+  try {
+    await api.declineOrderAssignment(orderId.value)
+    toast.info('Вы отклонили заказ')
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось отклонить заказ')
+  } finally {
+    responding.value = false
+    show.value = false
+  }
+}
+
+// Клик по затемнению за окном — тот же смысл, что кнопка «Не беру»: не
+// должно быть двух способов закрыть одно и то же окно с разными
+// последствиями (один — отказ, другой — молча ничего).
+function onDismiss(value: boolean) {
+  if (!value) decline()
+}
+</script>
+
+<template>
+  <UiModal :model-value="show" @update:model-value="onDismiss" max-width="max-w-sm">
+    <div class="p-6 text-center">
+      <div class="text-4xl mb-3">📦</div>
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Вам предлагают заказ</h3>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Заказ #{{ orderShortId }} — возьмёте в работу?</p>
+      <div class="flex gap-2">
+        <button
+          @click="decline"
+          :disabled="responding"
+          class="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+        >
+          Не беру
+        </button>
+        <button
+          @click="accept"
+          :disabled="responding"
+          class="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        >
+          {{ responding ? 'Секунду…' : 'Беру' }}
+        </button>
+      </div>
+    </div>
+  </UiModal>
+</template>

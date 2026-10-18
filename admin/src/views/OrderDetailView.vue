@@ -11,6 +11,7 @@ import { formatPrice } from '@/shared/lib/format'
 import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
 import { UiSpinner, UiAvatar, UiSkeleton, UiOrderStepper } from '@/shared/ui'
 import OrderActivityPanel from '@/components/OrderActivityPanel.vue'
+import OrderAssignmentPickerModal from '@/components/OrderAssignmentPickerModal.vue'
 import type { Order } from '@/types'
 
 const route      = useRoute()
@@ -26,6 +27,7 @@ const errorMsg = ref<string | null>(null)
 const downloadingInvoice = ref(false)
 const claiming = ref(false)
 const releasing = ref(false)
+const showAssignmentPicker = ref(false)
 const activityPanel = ref<InstanceType<typeof OrderActivityPanel> | null>(null)
 
 async function claim(takeover = false) {
@@ -220,7 +222,7 @@ async function updateStatus(status: string) {
           <UiSpinner v-if="updating" size="sm" />
         </div>
         <div class="flex flex-wrap gap-2">
-          <button v-if="['pending','needs_attention'].includes(order.status)" @click="updateStatus('processing')" :disabled="updating" class="btn-primary btn-sm">
+          <button v-if="['pending','needs_attention'].includes(order.status)" @click="showAssignmentPicker = true" :disabled="updating" class="btn-primary btn-sm">
             {{ order.status === 'needs_attention' ? 'Вернуть в работу' : 'В работу' }}
           </button>
           <RouterLink
@@ -451,5 +453,12 @@ async function updateStatus(status: string) {
         </div>
       </div>
     </template>
+
+    <OrderAssignmentPickerModal
+      v-if="order"
+      v-model="showAssignmentPicker"
+      :order-id="order.id"
+      @assigned="load"
+    />
   </div>
 </template>
