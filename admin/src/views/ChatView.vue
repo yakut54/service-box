@@ -316,12 +316,24 @@ function cancelReply() {
 // Принимает сообщение, которое ССЫЛАЕТСЯ на reply_to (не сам reply_to) —
 // у него может быть reply_quote (отрывок, выделенный байером на мобильном,
 // 2026-10-18), тогда показываем именно его, а не весь текст оригинала.
+//
+// original.deleted_at (байер удалил оригинал у себя) намеренно НЕ скрывает
+// текст здесь — персонал видит исходное содержимое даже удалённых байером
+// сообщений всегда, только с пометкой «удалено» в самом бабле (см.
+// messageStatusLabel ниже) — байер не может стереть улики (2026-10-18).
 function replyPreviewText(m: ChatMessage): string {
   if (m.reply_quote) return m.reply_quote
   const original = m.reply_to
   if (!original) return ''
-  if (original.deleted_at) return 'Сообщение удалено'
   return original.body || (original.image_url ? '📷 Фото' : '')
+}
+
+// «удалено» вытесняет «изменено» — после удаления сам факт редактирования
+// уже не важен, а одновременно показывать обе пометки — только шум.
+function messageStatusLabel(m: ChatMessage): string | null {
+  if (m.deleted_at) return 'удалено'
+  if (m.edited_at) return 'изменено'
+  return null
 }
 
 // ── Редактирование своего сообщения (переиспользует композер, как в
@@ -757,20 +769,20 @@ loadThreads()
                         Сообщение удалено
                       </div>
 
-                      <p v-if="m.deleted_at" :class="['text-sm italic', m.sender_type === 'shop' ? 'text-white/70' : 'text-gray-400']">
-                        Сообщение удалено
-                      </p>
-                      <template v-else>
-                        <img
-                          v-if="m.image_url"
-                          :src="m.image_url"
-                          class="rounded-lg max-w-full max-h-64 mb-1 cursor-pointer"
-                          @click="openImage(m.image_url)"
-                        />
-                        <p v-if="m.body" class="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{{ m.body }}</p>
-                      </template>
+                      <!-- Удалённое байером у себя (deleted_at) — тело всё
+                           равно показываем настоящее: персонал видит всё
+                           всегда, байер не может стереть улики (2026-10-18,
+                           см. messageStatusLabel ниже и backend
+                           ChatMessage::toCustomerArray()). -->
+                      <img
+                        v-if="m.image_url"
+                        :src="m.image_url"
+                        class="rounded-lg max-w-full max-h-64 mb-1 cursor-pointer"
+                        @click="openImage(m.image_url)"
+                      />
+                      <p v-if="m.body" class="text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">{{ m.body }}</p>
                       <div class="flex items-center gap-1 justify-end mt-0.5">
-                        <span v-if="m.edited_at" :class="['text-[10px] italic', m.sender_type === 'shop' ? 'text-white/60' : 'text-gray-400']">изменено</span>
+                        <span v-if="messageStatusLabel(m)" :class="['text-[10px] italic', m.sender_type === 'shop' ? 'text-white/60' : 'text-gray-400']">{{ messageStatusLabel(m) }}</span>
                         <span :class="['text-[10px]', m.sender_type === 'shop' ? 'text-white/70' : 'text-gray-400']">{{ formatTime(m.created_at) }}</span>
                         <svg v-if="m.sender_type === 'shop'" class="w-4 h-3.5" :class="m.status === 'read' ? 'text-sky-300' : 'text-white/60'" fill="none" stroke="currentColor" viewBox="0 0 24 12">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 6l3 4L11 2" />
