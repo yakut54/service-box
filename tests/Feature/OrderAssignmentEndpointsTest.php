@@ -6,8 +6,10 @@ use App\Models\Order;
 use App\Models\OrderActivity;
 use App\Models\Shop;
 use App\Models\ShopStaff;
+use App\Models\TelegramMessage;
 use App\Models\User;
 use App\Services\TenantService;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -93,6 +95,55 @@ class OrderAssignmentEndpointsTest extends TestCase
             ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
             ->assertStatus(422)
             ->assertJsonPath('message', 'Нельзя выбрать сотрудника, который сейчас не в сети');
+    }
+
+    /**
+     * Живой тест 2026-10-19: "синхронизация есть, но не полная" — выбор
+     * через веб уходил тихо мимо ботов, хотя тот же выбор через сам бот
+     * туда сообщение шлёт. Telegram::sendMessage() кладёт запись в очередь
+     * (TelegramMessage + job), не бьёт по сети напрямую — проверяем через
+     * БД, не через Http::fake().
+     */
+    public function test_request_assignment_notifies_telegram_when_pending(): void
+    {
+        config(['services.telegram.bot_token' => 'test-token']);
+
+        $shop = $this->createTestShop([
+            'telegram_chat_id' => random_int(100_000_000, 999_999_999),
+            'telegram_bot_connected' => true,
+        ]);
+        $order = $this->orderForShop($shop);
+        $staff = $this->staffMember($shop, 'Егорка');
+        $staff->createToken('session');
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        $message = TelegramMessage::where('shop_id', $shop->id)->latest()->first();
+        $this->assertNotNull($message);
+        $this->assertStringContainsString('запрос отправлен Егорка', $message->message_text);
+    }
+
+    public function test_request_assignment_notifies_max_when_pending(): void
+    {
+        config(['services.max.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true])]);
+
+        $shop = $this->createTestShop([
+            'max_chat_id' => random_int(100_000_000, 999_999_999),
+            'max_bot_connected' => true,
+        ]);
+        $order = $this->orderForShop($shop);
+        $staff = $this->staffMember($shop, 'Егорка');
+        $staff->createToken('session');
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/messages')
+            && str_contains($request['text'] ?? '', 'запрос отправлен Егорка'));
     }
 
     public function test_assignment_candidates_lists_owner_and_staff_with_online_status(): void

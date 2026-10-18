@@ -222,8 +222,24 @@ async function updateStatus(status: string) {
           <UiSpinner v-if="updating" size="sm" />
         </div>
         <div class="flex flex-wrap gap-2">
-          <button v-if="['pending','needs_attention'].includes(order.status)" @click="showAssignmentPicker = true" :disabled="updating" class="btn-primary btn-sm">
+          <button
+            v-if="['pending','needs_attention'].includes(order.status) && !order.pending_collector_name"
+            @click="showAssignmentPicker = true"
+            :disabled="updating"
+            class="btn-primary btn-sm"
+          >
             {{ order.status === 'needs_attention' ? 'Вернуть в работу' : 'В работу' }}
+          </button>
+          <!-- Запрос уже висит — "В работу" не предлагаем снова, чтобы не
+               путать повторным кликом; "Выбрать другого" переоткрывает тот
+               же пикер, новый запрос тихо заменит старый. -->
+          <button
+            v-if="['pending','needs_attention'].includes(order.status) && order.pending_collector_name"
+            @click="showAssignmentPicker = true"
+            :disabled="updating"
+            class="btn-secondary btn-sm"
+          >
+            Выбрать другого
           </button>
           <RouterLink
             v-if="(authStore.isOwner || authStore.isAdmin) && ['pending','paid','processing'].includes(order.status)"
@@ -406,6 +422,14 @@ async function updateStatus(status: string) {
                 · не в сети
               </span>
             </div>
+            <!-- Запрос отправлен, но ещё не подтверждён (PLAN.md 2026-10-19,
+                 живой тест: "модалка закрылась, а дальше никакого следа на
+                 экране") — живёт на самой карточке заказа, не только внутри
+                 модалки выбора, иначе состояние терялось бы при перезаходе
+                 на страницу. -->
+            <p v-else-if="order.pending_collector_name" class="text-sm text-amber-600 dark:text-amber-400">
+              ⏳ Предложено {{ order.pending_collector_name }}, ждём ответа
+            </p>
             <p v-else-if="!['completed','cancelled'].includes(order.status)" class="text-sm text-gray-400 dark:text-gray-500">
               Заказ ещё не взят в работу
             </p>

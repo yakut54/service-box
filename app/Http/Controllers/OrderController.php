@@ -1014,6 +1014,22 @@ class OrderController extends Controller
 
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
+        // Симметрично боту (handleOrderAssign) — без этого выбор через
+        // веб проходил тихо мимо Telegram/MAX, хотя тот же выбор через
+        // сам бот туда шлёт сообщение сразу (баг найден живым тестом
+        // 2026-10-19: "синхронизация есть, но не полная").
+        $shortId = substr($orderModel->id, 0, 8);
+        $text = $result['pending']
+            ? "⏳ Заказ #{$shortId} — запрос отправлен {$result['actor_name']}, ждём подтверждения"
+            : "Заказ #{$shortId} — ✅ В работе, собирает {$result['actor_name']}";
+
+        if ($shop->telegram_bot_connected) {
+            try { TelegramService::sendMessage($shop, $text); } catch (\Throwable $e) { Log::warning('requestAssignment notify (telegram) failed', ['error' => $e->getMessage()]); }
+        }
+        if ($shop->max_bot_connected) {
+            try { MaxService::sendMessage($shop, $text); } catch (\Throwable $e) { Log::warning('requestAssignment notify (max) failed', ['error' => $e->getMessage()]); }
+        }
+
         return response()->json([
             'message' => $result['pending']
                 ? "Запрос отправлен {$result['actor_name']}"
