@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Shop;
 use App\Models\ShopStaff;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -25,11 +26,22 @@ class OrderCollectorCandidates
     private const CACHE_TTL_HOURS = 2;
 
     /**
-     * @return array<int, array{id: string, name: string, role: string}>
+     * is_online — живой Sanctum-токен прямо сейчас (User::isOnline(),
+     * тот же источник истины, что уже используется для "Активен" в
+     * Команде и в карточке заказа). Нужен, чтобы пикер в боте/веб-админке
+     * мог сразу показать ✅/❌ на каждой кнопке и отказать в выборе
+     * офлайн-кандидата (живой разбор 2026-10-19).
+     *
+     * @return array<int, array{id: string, name: string, role: string, is_online: bool}>
      */
     public static function listFor(Shop $shop): array
     {
-        $options = [['id' => $shop->user_id, 'name' => $shop->user->name, 'role' => 'owner']];
+        $options = [[
+            'id' => $shop->user_id,
+            'name' => $shop->user->name,
+            'role' => 'owner',
+            'is_online' => User::isOnline($shop->user_id),
+        ]];
 
         $staff = ShopStaff::where('shop_id', $shop->id)
             ->whereIn('role', ['admin', 'collector'])
@@ -39,7 +51,12 @@ class OrderCollectorCandidates
 
         foreach ($staff as $member) {
             if ($member->user) {
-                $options[] = ['id' => $member->user_id, 'name' => $member->user->name, 'role' => $member->role];
+                $options[] = [
+                    'id' => $member->user_id,
+                    'name' => $member->user->name,
+                    'role' => $member->role,
+                    'is_online' => User::isOnline($member->user_id),
+                ];
             }
         }
 

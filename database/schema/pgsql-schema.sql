@@ -359,6 +359,16 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         -- по нему сверяем "редактировал кто-то другой".
                         pick_note_by_name          TEXT,
                         pick_note_original_by_name TEXT,
+                        -- Запрос на назначение, ещё не подтверждённый тем,
+                        -- кого выбрали — заполняется ТОЛЬКО если выбрали не
+                        -- самого себя (OrderAssignmentFlow::request()).
+                        -- claimBy()/collector_id не трогается, пока
+                        -- кандидат сам не подтвердит (живой разбор
+                        -- 2026-10-19: назначение офлайн-человека через
+                        -- бота проходило мгновенно, сам он об этом не знал).
+                        pending_collector_id            UUID,
+                        pending_collector_name          TEXT,
+                        pending_assignment_requested_at TIMESTAMPTZ,
                         -- УСТАРЕЛО (2026-10-17) — был общим на весь магазин
                         -- (баг: открыл Ховар, бейдж погас и у Юлии, хотя она
                         -- не смотрела — тот же класс бага, что уже чинили для
@@ -397,6 +407,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         -- не взвешено).
                         actual_weight_grams INTEGER,
                         actual_price         INTEGER,
+                        -- Кто ввёл текущий факт.вес и когда правил повторно (NULL —
+                        -- ещё ни разу не исправляли). Разрешено исправлять только пока
+                        -- заказ не профинансирован (orders.weighed_at IS NULL) —
+                        -- после списания/доплаты это уже денежный вопрос, не UI.
+                        actual_weight_by_name    TEXT,
+                        actual_weight_edited_at  TIMESTAMPTZ,
                         -- Сколько реально положили в пакет. NULL — ещё не разбирали,
                         -- = quantity — собрано полностью, < quantity (включая 0) —
                         -- недобор. Для sale_mode = weight_variable признаком «собрано»
@@ -714,7 +730,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     CREATE TABLE %I.order_activity (
                         id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                         order_id      UUID NOT NULL REFERENCES %I.orders(id) ON DELETE CASCADE,
-                        action        TEXT NOT NULL CHECK (action IN ('claimed', 'released', 'status_changed', 'problem_reported')),
+                        action        TEXT NOT NULL CHECK (action IN ('claimed', 'released', 'status_changed', 'problem_reported', 'assignment_requested', 'assignment_declined')),
                         from_status   TEXT,
                         to_status     TEXT,
                         note          TEXT,

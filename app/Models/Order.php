@@ -53,6 +53,9 @@ class Order extends Model
         'pick_note_edited_at',
         'pick_note_by_name',
         'pick_note_original_by_name',
+        'pending_collector_id',
+        'pending_collector_name',
+        'pending_assignment_requested_at',
         'seen_at',
     ];
 
@@ -77,6 +80,7 @@ class Order extends Model
         'seen_at'                  => 'datetime',
         'pick_note_at'             => 'datetime',
         'pick_note_edited_at'      => 'datetime',
+        'pending_assignment_requested_at' => 'datetime',
     ];
 
     public function customer()
