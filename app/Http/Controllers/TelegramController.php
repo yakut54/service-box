@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Models\Shop;
 use App\Services\MasterBotService;
 use App\Services\MaxService;
-use App\Services\OrderActivityLog;
+use App\Services\OrderAssignmentFlow;
 use App\Services\OrderCollectorCandidates;
 use App\Services\TelegramService;
 use App\Services\TenantService;
@@ -393,6 +393,11 @@ class TelegramController extends Controller
             return;
         }
 
+        if ($action === 'refresh') {
+            $this->handleOrderRefresh($callbackId, $orderId, $chatId, $messageId);
+            return;
+        }
+
         $order = Order::find($orderId);
 
         if (!$order) {
@@ -483,54 +488,73 @@ class TelegramController extends Controller
         }
 
         $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
-        $actorUserId = $picked['id'];
-        $resolved = $shop ? OrderCollectorCandidates::resolve($shop, $actorUserId) : null;
-
-        if (!$resolved) {
-            $this->answerCallback($callbackId, 'Сотрудник не найден', true);
+        if (!$shop) {
+            $this->answerCallback($callbackId, 'Магазин не найден', true);
             return;
         }
 
-        $actorName = $resolved['name'];
-        $result = $order->claimBy($actorUserId, $actorName);
+        // Бот физически не знает, кто держит телефон магазина — только чей
+        // аккаунт к нему привязан (владелец чата), см. докблок
+        // OrderAssignmentFlow. Выбор САМОГО СЕБЯ — мгновенный claim, выбор
+        // кого-то другого — запрос, который тот должен подтвердить сам
+        // (живой разбор 2026-10-19: офлайн-человека назначали молча).
+        $result = OrderAssignmentFlow::request($order, $shop, $shop->user_id, $picked['id']);
 
         if (!$result['ok']) {
             $this->answerCallback($callbackId, $result['message'], true);
             return;
         }
 
-        OrderActivityLog::record($order, $actorUserId, $actorName, $resolved['role'], 'claimed');
-
-        // Бот не трогал OrdersUpdated вовсе — без него список заказов в
-        // админке не обновился бы, пока кто-то не перезайдёт на страницу.
-        // OrderAssignedNotice — отдельное, адресное: с общего телефона
-        // магазина назначить могли не того, кто сейчас нажимает кнопки,
-        // так что узнать об этом назначенный может только отсюда.
-        \App\Events\OrdersUpdated::dispatch($shop->id);
-        \App\Events\OrderAssignedNotice::dispatch($shop->id, $order->id, $actorUserId, $actorName);
-
-        $this->answerCallback($callbackId, "Заказ закреплён за {$actorName}");
         $this->removeKeyboard($chatId, $messageId);
         MaxService::removeButtonsByEntity('order', $order->id);
-
         $shortId = substr($order->id, 0, 8);
-        $text = "Заказ #{$shortId} — ✅ В работе, собирает {$actorName}";
-        // Назначили с общего телефона магазина — сам назначенный мог не
-        // увидеть уведомление (WS-пуш теряется, если его нет в сети прямо
-        // сейчас). Карточка заказа в админке покажет "не в сети" только
-        // если кто-то туда СЛУЧАЙНО зайдёт — здесь владелец увидит это
-        // сразу, без шанса проглядеть (живой разбор 2026-10-18: "Юлия если
-        // бы не зашла в кабинет — проебали бы заказ").
-        if (!\App\Models\User::isOnline($actorUserId)) {
-            $text .= "\n⚠️ {$actorName} сейчас не в сети — убедитесь, что он(а) увидит заказ";
+
+        if ($result['pending']) {
+            $this->answerCallback($callbackId, "Запрос отправлен {$result['actor_name']}");
+            $text = "⏳ Заказ #{$shortId} — запрос отправлен {$result['actor_name']}, ждём подтверждения";
+            $this->sendReply($chatId, $text);
+            MaxService::sendMessage($shop, $text);
+
+            Log::info('Order assignment requested via Telegram picker', [
+                'order_id' => $order->id,
+                'candidate_user_id' => $picked['id'],
+            ]);
+            return;
         }
+
+        // Выбрали владельца чата самого — claim уже произошёл, он online
+        // по определению (сам только что нажал кнопку).
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+        $this->answerCallback($callbackId, "Заказ закреплён за {$result['actor_name']}");
+        $text = "Заказ #{$shortId} — ✅ В работе, собирает {$result['actor_name']}";
         $this->sendReply($chatId, $text);
-        if ($shop) MaxService::sendMessage($shop, $text);
+        MaxService::sendMessage($shop, $text);
 
         Log::info('Order claimed via Telegram picker', [
             'order_id' => $order->id,
-            'actor_user_id' => $actorUserId,
+            'actor_user_id' => $shop->user_id,
         ]);
+    }
+
+    private function handleOrderRefresh(string $callbackId, string $orderId, int $chatId, ?int $messageId): void
+    {
+        $order = Order::find($orderId);
+        if (!$order || !$messageId) {
+            $this->answerCallback($callbackId, 'Заказ не найден');
+            return;
+        }
+
+        $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
+        if (!$shop) {
+            $this->answerCallback($callbackId, 'Магазин не найден');
+            return;
+        }
+
+        $options = OrderCollectorCandidates::listFor($shop);
+        OrderCollectorCandidates::cache($order->id, $options);
+
+        $this->answerCallback($callbackId, 'Обновлено');
+        TelegramService::showOrderCollectorPicker($chatId, $messageId, $order->id, $options);
     }
 
     private function handleBookingAction(string $callbackId, string $bookingId, string $action, int $chatId, ?int $messageId, Shop $shop): void

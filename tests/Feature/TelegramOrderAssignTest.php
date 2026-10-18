@@ -15,10 +15,10 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Telegram-бот: "Подтвердить" на физическом заказе теперь не пишет
- * processing сам — сначала показывает список сотрудников, и только выбор
- * конкретного человека (action=assign) пишет status+collector вместе через
- * Order::claimBy() (PLAN.md 2026-10-18, этап 3).
+ * Telegram-бот: "Подтвердить" на физическом заказе показывает список
+ * сотрудников (action=confirm), выбор (action=assign) идёт через
+ * OrderAssignmentFlow — себя claim сразу, кого-то другого — запрос,
+ * ждущий подтверждения (PLAN.md 2026-10-19).
  */
 class TelegramOrderAssignTest extends TestCase
 {
@@ -112,7 +112,13 @@ class TelegramOrderAssignTest extends TestCase
         $this->assertSame('owner', $activity->actor_role);
     }
 
-    public function test_assign_sets_status_and_collector_together_for_accepted_staff(): void
+    /**
+     * Выбор КОГО-ТО ДРУГОГО (не владельца чата, который физически нажимает
+     * кнопки) теперь не claim, а запрос — claimBy() ждёт, пока сам Егорка
+     * подтвердит у себя в личном кабинете (PLAN.md 2026-10-19, живой
+     * разбор: офлайн-человека раньше "назначали" молча).
+     */
+    public function test_assign_to_someone_else_online_creates_a_pending_request_without_claiming(): void
     {
         $shop = $this->shopWithBot();
         $order = $this->physicalOrder($shop);
@@ -128,6 +134,7 @@ class TelegramOrderAssignTest extends TestCase
             'role' => 'collector',
             'accepted_at' => now(),
         ]);
+        $staffUser->createToken('session');
 
         $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
         // Владелец — индекс 0, единственный принятый сотрудник — индекс 1.
@@ -135,13 +142,57 @@ class TelegramOrderAssignTest extends TestCase
 
         TenantService::setContext($shop);
         $order->refresh();
-        $this->assertSame('processing', $order->status);
-        $this->assertSame($staffUser->id, $order->collector_id);
-        $this->assertSame('Егорка', $order->collector_name);
+        // Ключевое: claim ЕЩЁ не произошёл.
+        $this->assertSame('pending', $order->status);
+        $this->assertNull($order->collector_id);
+        $this->assertSame($staffUser->id, $order->pending_collector_id);
+        $this->assertSame('Егорка', $order->pending_collector_name);
 
-        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'assignment_requested')->first();
         $this->assertNotNull($activity);
         $this->assertSame('collector', $activity->actor_role);
+    }
+
+    public function test_assign_to_someone_else_who_is_offline_is_rejected(): void
+    {
+        $shop = $this->shopWithBot();
+        $order = $this->physicalOrder($shop);
+
+        $staffUser = User::create([
+            'name' => 'Егорка',
+            'email' => 'egorka-' . Str::uuid() . '@example.test',
+            'password' => bcrypt('password'),
+        ]);
+        ShopStaff::create([
+            'shop_id' => $shop->id,
+            'user_id' => $staffUser->id,
+            'role' => 'collector',
+            'accepted_at' => now(),
+        ]);
+        // Нет createToken() — Егорка нигде не залогинен.
+
+        $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
+        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:1");
+
+        TenantService::setContext($shop);
+        $order->refresh();
+        $this->assertSame('pending', $order->status);
+        $this->assertNull($order->collector_id);
+        $this->assertNull($order->pending_collector_id);
+    }
+
+    public function test_refresh_rerenders_the_picker_with_current_online_statuses(): void
+    {
+        config(['services.telegram.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true])]);
+
+        $shop = $this->shopWithBot();
+        $order = $this->physicalOrder($shop);
+
+        $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
+        $this->sendCallback($shop->telegram_chat_id, "order:refresh:{$order->id}");
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'editMessageReplyMarkup'));
     }
 
     public function test_assign_without_prior_confirm_is_rejected(): void

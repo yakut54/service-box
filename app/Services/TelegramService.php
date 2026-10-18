@@ -1092,7 +1092,7 @@ class TelegramService
      * заказе (PLAN.md 2026-10-18: статус "В работе" пишется только вместе
      * с исполнителем, выбор которого и есть этот список).
      *
-     * @param array<int, array{id: string, name: string}> $options
+     * @param array<int, array{id: string, name: string, is_online?: bool}> $options
      */
     public static function showOrderCollectorPicker(int $chatId, int $messageId, string $orderId, array $options): void
     {
@@ -1102,12 +1102,20 @@ class TelegramService
         // callback_data у Telegram ограничен 64 байтами — "order:assign:" +
         // UUID заказа + UUID сотрудника туда не влезают (см. баг 2026-10-18),
         // поэтому шлём позицию в $options, а не сам userId.
+        //
+        // ✅/❌ прямо на кнопке — чтобы было видно, кого вообще можно
+        // выбрать, не тыкая наугад (живой разбор 2026-10-19: выбор офлайн-
+        // человека через бота проходил молча). «Обновить» перечитывает
+        // статусы без создания нового запроса — например, пока ждут, чтобы
+        // выбранный зашёл в сеть.
         $buttons = [];
         foreach ($options as $i => $opt) {
-            $buttons[] = ['text' => $opt['name'], 'callback_data' => "order:assign:{$orderId}:{$i}"];
+            $prefix = ($opt['is_online'] ?? true) ? '✅ ' : '❌ ';
+            $buttons[] = ['text' => $prefix . $opt['name'], 'callback_data' => "order:assign:{$orderId}:{$i}"];
         }
         // По 2 в ряд — один длинный ряд с именами сотрудников неудобно читать.
         $rows = array_chunk($buttons, 2);
+        $rows[] = [['text' => '🔄 Обновить', 'callback_data' => "order:refresh:{$orderId}"]];
 
         try {
             $response = Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
