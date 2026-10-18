@@ -1344,6 +1344,13 @@ class _MessageBubbleState extends State<_MessageBubble>
       // Обычный тап по баблу, пока активен режим выбора — тоже тоггл-ит
       // выбор (как в Телеграме), не только кружок слева.
       onTap: widget.isSelectionModeActive ? widget.onToggle : null,
+      // behavior: opaque — без этого тап ловился бы ТОЛЬКО там, где
+      // реально что-то нарисовано (сам цветной бабл, см. decoration ниже),
+      // а не во всей ширине ряда (пустое место рядом с коротким баблом —
+      // "мёртвая зона", по умолчанию GestureDetector там не отвечает). Вся
+      // "сущность сообщения" должна быть тапабельна во всю ширину экрана
+      // в режиме выбора — отсюда opaque, не только на самом бабле.
+      behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
           if (_dragOffset > 4)
@@ -1393,7 +1400,14 @@ class _MessageBubbleState extends State<_MessageBubble>
                   children: [
                     if (message.replyTo != null)
                       GestureDetector(
-                        onTap: widget.onQuoteTap,
+                        // В режиме выбора тап по цитате тоже тоггл-ит выбор,
+                        // не прыгает к оригиналу — тот же приём, что у
+                        // картинки выше (behavior: opaque тоже нужен —
+                        // Container ниже без decoration.color не ловит тап
+                        // в своей "пустой" части, только там, где рисуется
+                        // border).
+                        onTap: widget.isSelectionModeActive ? widget.onToggle : widget.onQuoteTap,
+                        behavior: HitTestBehavior.opaque,
                         child: Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         padding: const EdgeInsets.only(left: 8, bottom: 6),
@@ -1480,7 +1494,16 @@ class _MessageBubbleState extends State<_MessageBubble>
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: GestureDetector(
-                            onTap: () => _openFullImage(context, message),
+                            // В режиме выбора тап по картинке тоже тоггл-ит
+                            // выбор, а не открывает просмотр — иначе этот
+                            // внутренний GestureDetector перехватывал бы тап
+                            // раньше внешнего (победил бы в gesture arena,
+                            // так как он глубже), и фото всегда открывалось
+                            // бы вместо выбора.
+                            onTap: widget.isSelectionModeActive
+                                ? widget.onToggle
+                                : () => _openFullImage(context, message),
+                            behavior: HitTestBehavior.opaque,
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxHeight: 220),
                               child: Image.network(message.imageUrl!, fit: BoxFit.cover),
@@ -1618,6 +1641,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                   padding: const EdgeInsets.only(right: 6),
                   child: GestureDetector(
                     onTap: widget.onToggle,
+                    behavior: HitTestBehavior.opaque,
                     child: Icon(
                       widget.isChecked ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
                       color: widget.isChecked
