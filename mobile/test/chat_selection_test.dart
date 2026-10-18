@@ -246,4 +246,41 @@ void main() {
       expect(after, before);
     },
   );
+
+  testWidgets(
+    'у удалённого сообщения с цитатой блок цитаты не остаётся артефактом '
+    '(фото с реального устройства, 2026-10-18)',
+    (tester) async {
+      final original = buildMessage(id: 'm1', body: 'исходное сообщение', isMine: false);
+      final deletedReply = buildMessage(
+        id: 'm2',
+        body: null,
+        deletedAt: DateTime(2026, 10, 18, 12, 30),
+        replyTo: original,
+        replyQuote: 'исходн',
+      );
+      await pumpChatScreen(tester, messages: [original, deletedReply]);
+
+      expect(find.text('Сообщение удалено'), findsOneWidget);
+      expect(find.text('исходн'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'у удалённого сообщения, отвечавшего на уже неизвестный (не загруженный) '
+    'оригинал, тоже нет лишней плашки цитаты поверх "Сообщение удалено"',
+    (tester) async {
+      final deletedReply = buildMessage(
+        id: 'm2',
+        body: null,
+        deletedAt: DateTime(2026, 10, 18, 12, 30),
+        replyToMessageId: 'missing-original',
+      );
+      await pumpChatScreen(tester, messages: [deletedReply]);
+
+      // Если бы плашка цитаты всё ещё рендерилась, "Сообщение удалено"
+      // нашлось бы дважды (один раз в самой плашке цитаты, другой — в теле).
+      expect(find.text('Сообщение удалено'), findsOneWidget);
+    },
+  );
 }

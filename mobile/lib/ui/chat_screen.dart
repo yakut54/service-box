@@ -808,7 +808,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _deleteSelection() async {
     final confirmed = await showConfirmDialog(
       context,
-      title: 'Удалить ${_selectedIds.length} сообщени${_selectedIds.length == 1 ? 'е' : 'я'}?',
+      title: 'Удалить ${_selectedIds.length} '
+          '${pluralRu(_selectedIds.length, 'сообщение', 'сообщения', 'сообщений')}?',
       message: 'Сообщения и приложенные фото (если есть) будут удалены безвозвратно.',
       confirmLabel: 'Удалить',
     );
@@ -1521,7 +1522,13 @@ class _MessageBubbleState extends State<_MessageBubble>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (message.replyTo != null)
+                    // Блок цитаты — только у ЖИВОГО сообщения. У удалённого
+                    // (message.isDeleted, см. ветку ниже) от него остаётся
+                    // только плашка "Сообщение удалено" — сам блок, что
+                    // именно это сообщение когда-то цитировало, не нужен,
+                    // иначе он виснет артефактом поверх уже удалённого
+                    // пузыря (баг с реального устройства, 2026-10-18).
+                    if (message.replyTo != null && !message.isDeleted)
                       GestureDetector(
                         // В режиме выбора тап по цитате тоже тоггл-ит выбор,
                         // не прыгает к оригиналу — тот же приём, что у
@@ -1588,7 +1595,7 @@ class _MessageBubbleState extends State<_MessageBubble>
                         ),
                         ),
                       )
-                    else if (message.replyToMessageId != null)
+                    else if (message.replyToMessageId != null && !message.isDeleted)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Text(

@@ -119,9 +119,13 @@ class _FakeShopRepository implements ShopRepository {
 /// не важны для флоу выделения текста, дефолты просто не должны повторяться.
 ChatMessage buildMessage({
   required String id,
-  required String body,
+  String? body,
   bool isMine = true,
   DateTime? createdAt,
+  DateTime? deletedAt,
+  ChatMessage? replyTo,
+  String? replyToMessageId,
+  String? replyQuote,
 }) {
   return ChatMessage(
     id: id,
@@ -131,6 +135,10 @@ ChatMessage buildMessage({
     status: 'sent',
     createdAt: createdAt ?? DateTime(2026, 10, 18, 12, 0),
     clientMessageId: 'client-$id',
+    deletedAt: deletedAt,
+    replyTo: replyTo,
+    replyToMessageId: replyToMessageId ?? replyTo?.id,
+    replyQuote: replyQuote,
   );
 }
 
