@@ -25,11 +25,11 @@ class OrderCollectorCandidates
     private const CACHE_TTL_HOURS = 2;
 
     /**
-     * @return array<int, array{id: string, name: string}>
+     * @return array<int, array{id: string, name: string, role: string}>
      */
     public static function listFor(Shop $shop): array
     {
-        $options = [['id' => $shop->user_id, 'name' => $shop->user->name]];
+        $options = [['id' => $shop->user_id, 'name' => $shop->user->name, 'role' => 'owner']];
 
         $staff = ShopStaff::where('shop_id', $shop->id)
             ->whereIn('role', ['admin', 'collector'])
@@ -39,7 +39,7 @@ class OrderCollectorCandidates
 
         foreach ($staff as $member) {
             if ($member->user) {
-                $options[] = ['id' => $member->user_id, 'name' => $member->user->name];
+                $options[] = ['id' => $member->user_id, 'name' => $member->user->name, 'role' => $member->role];
             }
         }
 
@@ -47,15 +47,21 @@ class OrderCollectorCandidates
     }
 
     /**
-     * Резолвит имя по userId, но только если это реально владелец или
-     * принятый admin/collector именно этого магазина — callback-данные
+     * Резолвит имя и роль по userId, но только если это реально владелец
+     * или принятый admin/collector именно этого магазина — callback-данные
      * приходят от клиента, доверять userId без проверки нельзя (иначе
-     * можно закрепить заказ за произвольным чужим id).
+     * можно закрепить заказ за произвольным чужим id). Роль нужна не для
+     * отображения — `order_activity.actor_role` в БД колонка NOT NULL, без
+     * неё запись лога падает (баг 2026-10-18: claimBy() успевал отработать,
+     * а OrderActivityLog::record() с null-ролью валил всё, что шло после —
+     * снятие кнопок и подтверждение в чате).
+     *
+     * @return array{name: string, role: string}|null
      */
-    public static function resolveName(Shop $shop, string $actorUserId): ?string
+    public static function resolve(Shop $shop, string $actorUserId): ?array
     {
         if ($shop->user_id === $actorUserId) {
-            return $shop->user->name;
+            return ['name' => $shop->user->name, 'role' => 'owner'];
         }
 
         $staff = ShopStaff::where('shop_id', $shop->id)
@@ -65,7 +71,11 @@ class OrderCollectorCandidates
             ->with('user')
             ->first();
 
-        return $staff?->user?->name;
+        if (!$staff || !$staff->user) {
+            return null;
+        }
+
+        return ['name' => $staff->user->name, 'role' => $staff->role];
     }
 
     /**

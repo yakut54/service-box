@@ -484,13 +484,14 @@ class TelegramController extends Controller
 
         $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
         $actorUserId = $picked['id'];
-        $actorName = $shop ? OrderCollectorCandidates::resolveName($shop, $actorUserId) : null;
+        $resolved = $shop ? OrderCollectorCandidates::resolve($shop, $actorUserId) : null;
 
-        if (!$actorName) {
+        if (!$resolved) {
             $this->answerCallback($callbackId, 'Сотрудник не найден', true);
             return;
         }
 
+        $actorName = $resolved['name'];
         $result = $order->claimBy($actorUserId, $actorName);
 
         if (!$result['ok']) {
@@ -498,7 +499,7 @@ class TelegramController extends Controller
             return;
         }
 
-        OrderActivityLog::record($order, $actorUserId, $actorName, null, 'claimed');
+        OrderActivityLog::record($order, $actorUserId, $actorName, $resolved['role'], 'claimed');
 
         $this->answerCallback($callbackId, "Заказ закреплён за {$actorName}");
         $this->removeKeyboard($chatId, $messageId);

@@ -448,12 +448,13 @@ class MaxController extends Controller
         }
 
         $actorUserId = $picked['id'];
-        $actorName = OrderCollectorCandidates::resolveName($shop, $actorUserId);
-        if (!$actorName) {
+        $resolved = OrderCollectorCandidates::resolve($shop, $actorUserId);
+        if (!$resolved) {
             MaxService::answerCallback($cbId, 'Сотрудник не найден');
             return;
         }
 
+        $actorName = $resolved['name'];
         $result = $order->claimBy($actorUserId, $actorName);
 
         if (!$result['ok']) {
@@ -461,7 +462,7 @@ class MaxController extends Controller
             return;
         }
 
-        OrderActivityLog::record($order, $actorUserId, $actorName, null, 'claimed');
+        OrderActivityLog::record($order, $actorUserId, $actorName, $resolved['role'], 'claimed');
 
         MaxService::answerCallback($cbId, "Заказ закреплён за {$actorName}");
         MaxService::removeButtonsByEntity('order', $order->id);

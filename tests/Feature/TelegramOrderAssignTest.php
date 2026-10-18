@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
+use App\Models\OrderActivity;
 use App\Models\OrderItem;
 use App\Models\Shop;
 use App\Models\ShopStaff;
@@ -96,6 +97,17 @@ class TelegramOrderAssignTest extends TestCase
         $this->assertSame('processing', $order->status);
         $this->assertSame($shop->user_id, $order->collector_id);
         $this->assertSame($shop->user->name, $order->collector_name);
+
+        // webhook() всегда отвечает 200 даже если внутри упало исключение
+        // (см. его try/catch) — assertOk() в sendCallback() само по себе
+        // ничего не доказывает. Нужна прямая проверка, что лог активности
+        // реально записался: именно на этом шаге раньше падало из-за
+        // actor_role NOT NULL (баг 2026-10-18), а claimBy() к этому моменту
+        // уже успевал закоммититься, и симптом внешне выглядел как "почти
+        // всё сработало".
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $this->assertNotNull($activity);
+        $this->assertSame('owner', $activity->actor_role);
     }
 
     public function test_assign_sets_status_and_collector_together_for_accepted_staff(): void
@@ -124,6 +136,10 @@ class TelegramOrderAssignTest extends TestCase
         $this->assertSame('processing', $order->status);
         $this->assertSame($staffUser->id, $order->collector_id);
         $this->assertSame('Егорка', $order->collector_name);
+
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $this->assertNotNull($activity);
+        $this->assertSame('collector', $activity->actor_role);
     }
 
     public function test_assign_without_prior_confirm_is_rejected(): void
@@ -160,7 +176,7 @@ class TelegramOrderAssignTest extends TestCase
 
         $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
         // Между показом списка и нажатием сотрудника отозвали доступ —
-        // resolveName() должен это перепроверить, а не доверять кэшу вслепую.
+        // resolve() должен это перепроверить, а не доверять кэшу вслепую.
         $staff->update(['accepted_at' => null]);
         $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:1");
 

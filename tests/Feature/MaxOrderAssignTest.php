@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
+use App\Models\OrderActivity;
 use App\Models\OrderItem;
 use App\Models\Shop;
 use App\Models\ShopStaff;
@@ -100,6 +101,14 @@ class MaxOrderAssignTest extends TestCase
         $this->assertSame('processing', $order->status);
         $this->assertSame($shop->user_id, $order->collector_id);
         $this->assertSame($shop->user->name, $order->collector_name);
+
+        // webhook() отвечает 200 даже если внутри упало исключение — здесь
+        // раньше падало именно в OrderActivityLog::record() из-за
+        // actor_role NOT NULL (баг 2026-10-18), пока claimBy() уже успевал
+        // закоммититься. Прямая проверка лога — то, что реально ловит регресс.
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $this->assertNotNull($activity);
+        $this->assertSame('owner', $activity->actor_role);
     }
 
     public function test_assign_sets_status_and_collector_together_for_accepted_staff(): void
@@ -127,6 +136,10 @@ class MaxOrderAssignTest extends TestCase
         $this->assertSame('processing', $order->status);
         $this->assertSame($staffUser->id, $order->collector_id);
         $this->assertSame('Егорка', $order->collector_name);
+
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $this->assertNotNull($activity);
+        $this->assertSame('collector', $activity->actor_role);
     }
 
     public function test_assign_without_prior_confirm_is_rejected(): void
