@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SelectedContent;
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
@@ -79,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _loadingOlder = false;
   bool _hasMoreOlder = true;
   bool _isBlockedByShop = false;
-  final Map<String, GlobalKey> _messageKeys = {};
+  final Map<String, GlobalKey<_MessageBubbleState>> _messageKeys = {};
   String? _jumpingToMessageId;
   String? _highlightedMessageId;
   Timer? _highlightTimer;
@@ -643,8 +644,45 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
   }
 
+  /// 1-й "Назад" во время текстового выделения (см. PopScope в build()) — сам
+  /// гасим выделение в бабле (через GlobalKey в _messageKeys), а не просто
+  /// забываем о нём: иначе капли/меню Flutter остались бы висеть на экране,
+  /// хотя _selectingMessageId уже null.
   void _cancelSelecting() {
+    final id = _selectingMessageId;
+    if (id != null) _messageKeys[id]?.currentState?.clearTextSelection();
     setState(() => _selectingMessageId = null);
+  }
+
+  /// Бабл сообщает, что в нём появилось/пропало текстовое выделение (см.
+  /// _MessageBubble.onTextSelectionChanged) — экрану это нужно для
+  /// ступенчатого "Назад" и чтобы увести бабл от поля ввода, если выделили
+  /// самое нижнее сообщение в ленте (см. PLAN.md 2026-10-18).
+  void _onBubbleTextSelectionChanged(String messageId, bool hasSelection) {
+    final wasAlreadySelecting = _selectingMessageId == messageId;
+    setState(() {
+      if (hasSelection) {
+        _selectingMessageId = messageId;
+      } else if (wasAlreadySelecting) {
+        _selectingMessageId = null;
+      }
+    });
+    if (hasSelection && !wasAlreadySelecting) _scrollSelectedBubbleIntoView(messageId);
+  }
+
+  /// Капли/меню выделения рисует Flutter в Overlay поверх всего экрана, он не
+  /// обрезается границами ленты — у самого нижнего пузыря (прижат к полю
+  /// ввода) капля иначе вылезала бы на композер. Подкручиваем бабл к центру —
+  /// тот же вызов, что уже используется для прыжка по цитате (_jumpToMessage).
+  void _scrollSelectedBubbleIntoView(String messageId) {
+    final ctx = _messageKeys[messageId]?.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      alignment: 0.5,
+    );
   }
 
   /// Подтверждение выделенного отрывка — превращается в ответ-с-цитатой
@@ -691,21 +729,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Долгое нажатие на бабл — как в Телеграме: 1-е входит в режим
-  /// множественного выбора (AppBar подменяется на панель выбора), 2-е (на
-  /// уже единственном выбранном) ДОПОЛНИТЕЛЬНО переводит этот бабл в
-  /// посимвольное выделение текста, НЕ выходя из режима выбора — AppBar
-  /// выбора и чекбоксы у всех баблов остаются как были.
+  /// Долгое нажатие на ЕЩЁ не отмеченный бабл — как в Телеграме: входит в
+  /// режим множественного выбора (AppBar подменяется на панель выбора). На
+  /// уже отмеченном бабле долгое нажатие сюда вообще не доходит (см.
+  /// _MessageBubble: onLongPress выключен при isChecked) — его забирает
+  /// SelectionArea и сразу выделяет слово под пальцем, на ЛЮБОМ отмеченном
+  /// бабле, а не только когда отмечен единственный (см. PLAN.md 2026-10-18).
   void _onBubbleLongPress(ChatMessage m) {
     if (m.isDeleted && !m.isMine) return;
-
-    if (_selectedIds.length == 1 && _selectedIds.contains(m.id)) {
-      if (m.body == null || m.body!.isEmpty) return;
-      HapticFeedback.mediumImpact();
-      setState(() => _selectingMessageId = m.id);
-      return;
-    }
-
     HapticFeedback.selectionClick();
     setState(() => _selectedIds.add(m.id));
   }
@@ -968,18 +999,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     final message = _messages[_messages.length - 1 - index];
                     final key = _messageKeys.putIfAbsent(
                       message.id,
-                      () => GlobalKey(),
+                      () => GlobalKey<_MessageBubbleState>(),
                     );
                     return _MessageBubble(
                       key: key,
                       message: message,
                       isHighlighted: _highlightedMessageId == message.id,
-                      isSelecting: _selectingMessageId == message.id,
                       isSelectionModeActive: _selectedIds.isNotEmpty,
                       isChecked: _selectedIds.contains(message.id),
                       onToggle: () => _onBubbleTap(message),
-                      onCancelSelecting: _cancelSelecting,
                       onConfirmQuote: (excerpt) => _confirmQuote(message, excerpt),
+                      onTextSelectionChanged: (hasSelection) =>
+                          _onBubbleTextSelectionChanged(message.id, hasSelection),
                       // Уже удалённому (плашка «Сообщение удалено») своему
                       // сообщению можно предложить только «Удалить» — стереть
                       // саму плашку насовсем (спека 2026-09-16); ответить или
@@ -1279,14 +1310,12 @@ class _MessageBubble extends StatefulWidget {
   final bool isChecked;
   // Тап по кружку/баблу в режиме выбора — тоггл в наборе на экране.
   final VoidCallback? onToggle;
-  // Режим выделения текста — включается ТОЛЬКО вторым долгим нажатием на
-  // уже единственный выбранный бабл (см. PLAN.md 2026-10-18), не через
-  // меню. Один activeId на уровне экрана, не локальное состояние бабла —
-  // иначе переключение между сообщениями не закрывало бы предыдущее
-  // выделение.
-  final bool isSelecting;
-  final VoidCallback? onCancelSelecting;
   final ValueChanged<String>? onConfirmQuote;
+  // Сообщает экрану, что в ЭТОМ бабле появилось/пропало текстовое выделение
+  // (см. PLAN.md 2026-10-18) — экрану нужно это для ступенчатого PopScope
+  // (1-й "Назад" снимает только выделение) и чтобы увести бабл от поля
+  // ввода, если выделили самое нижнее сообщение в ленте.
+  final ValueChanged<bool>? onTextSelectionChanged;
 
   const _MessageBubble({
     super.key,
@@ -1299,9 +1328,8 @@ class _MessageBubble extends StatefulWidget {
     this.isSelectionModeActive = false,
     this.isChecked = false,
     this.onToggle,
-    this.isSelecting = false,
-    this.onCancelSelecting,
     this.onConfirmQuote,
+    this.onTextSelectionChanged,
   });
 
   @override
@@ -1314,26 +1342,51 @@ class _MessageBubbleState extends State<_MessageBubble>
   static const _replyThreshold = 64.0;
   static const _maxDrag = 80.0;
 
-  // Текущее выделение в режиме «Выделить текст» (widget.isSelecting) —
-  // живёт тут, не на уровне экрана: у каждого бабла своя SelectableText.
-  TextSelection? _textSelection;
+  // SelectionArea оборачивает текст ТОЛЬКО когда бабл отмечен (widget.isChecked,
+  // см. build() ниже) — выделение слова по долгому нажатию, капли и плавающее
+  // меню делает сам Flutter, нам остаётся не мешать (см. PLAN.md 2026-10-18,
+  // «отдать выделение самому Flutter»). Ключ — чтобы снять выделение снаружи
+  // (ступенчатый "Назад", см. ChatScreen._cancelSelecting) через _messageKeys.
+  final GlobalKey<SelectionAreaState> _selectionAreaKey = GlobalKey<SelectionAreaState>();
+  String? _selectedExcerpt;
 
-  String? get _selectedExcerpt {
-    final sel = _textSelection;
-    final body = widget.message.body;
-    if (sel == null || body == null || sel.isCollapsed) return null;
-    return body.substring(sel.start, sel.end);
+  void clearTextSelection() {
+    _selectionAreaKey.currentState?.selectableRegion.clearSelection();
   }
 
-  @override
-  void didUpdateWidget(_MessageBubble oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Вышли из режима выделения (например, отменили из другого бабла,
-    // переключая widget.isSelecting глобально) — сбрасываем локальный
-    // диапазон, иначе он «протухшим» всплывёт при следующем входе.
-    if (oldWidget.isSelecting && !widget.isSelecting) {
-      _textSelection = null;
-    }
+  void _onTextSelectionChanged(SelectedContent? content) {
+    final text = content?.plainText;
+    setState(() => _selectedExcerpt = (text == null || text.isEmpty) ? null : text);
+    widget.onTextSelectionChanged?.call(_selectedExcerpt != null);
+  }
+
+  Widget _buildSelectionToolbar(BuildContext context, SelectableRegionState state) {
+    // Отрывок читаем прямо здесь, а не кэшируем на момент onSelectionChanged —
+    // Flutter строит этот тулбар уже ПОСЛЕ того, как _selectedExcerpt успел
+    // обновиться (см. _onTextSelectionChanged), поэтому кнопки всегда видят
+    // актуальный отрывок, без прежнего бага с пустым меню.
+    final excerpt = _selectedExcerpt;
+    return AdaptiveTextSelectionToolbar.buttonItems(
+      anchors: state.contextMenuAnchors,
+      buttonItems: [
+        ContextMenuButtonItem(
+          label: 'Копировать',
+          onPressed: () async {
+            state.hideToolbar();
+            if (excerpt != null) await Clipboard.setData(ClipboardData(text: excerpt));
+            state.clearSelection();
+          },
+        ),
+        ContextMenuButtonItem(
+          label: 'Цитировать',
+          onPressed: () {
+            state.hideToolbar();
+            if (excerpt != null) widget.onConfirmQuote?.call(excerpt);
+            state.clearSelection();
+          },
+        ),
+      ],
+    );
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
@@ -1363,17 +1416,16 @@ class _MessageBubbleState extends State<_MessageBubble>
         '${message.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
 
     final bubble = GestureDetector(
-      // В режиме выделения (widget.isSelecting) эти жесты выключены — иначе
-      // протяжка ручки выделения SelectableText (внутри того же дерева)
-      // соревновалась бы со свайпом-ответом в одной gesture arena (ровно
-      // риск, описанный в PLAN.md 2026-10-18). В режиме множественного
-      // выбора свайп-ответ тоже выключен — долгое нажатие НЕ выключаем, оно
-      // по-прежнему должно сработать 2-м разом на уже единственном
-      // выбранном бабле, переводя в выделение текста (см. _onBubbleLongPress
-      // в ChatScreen).
-      onHorizontalDragUpdate: widget.isSelecting || widget.isSelectionModeActive ? null : _onDragUpdate,
-      onHorizontalDragEnd: widget.isSelecting || widget.isSelectionModeActive ? null : _onDragEnd,
-      onLongPress: widget.isSelecting ? null : widget.onLongPress,
+      // В режиме множественного выбора свайп-ответ выключен у ВСЕХ баблов
+      // (как в Телеграме). Долгое нажатие выключаем только у уже ОТМЕЧЕННОГО
+      // бабла — его перехватывает SelectionArea вокруг текста (см. ниже) и
+      // сразу выделяет слово под пальцем, без конкуренции двух
+      // LongPressGestureRecognizer в одной gesture arena (риск, описанный в
+      // PLAN.md 2026-10-18). На неотмеченном бабле долгое нажатие по-прежнему
+      // добавляет его в выбор (_onBubbleLongPress в ChatScreen).
+      onHorizontalDragUpdate: widget.isSelectionModeActive ? null : _onDragUpdate,
+      onHorizontalDragEnd: widget.isSelectionModeActive ? null : _onDragEnd,
+      onLongPress: widget.isChecked ? null : widget.onLongPress,
       // Обычный тап по баблу, пока активен режим выбора — тоже тоггл-ит
       // выбор (как в Телеграме), не только кружок слева.
       onTap: widget.isSelectionModeActive ? widget.onToggle : null,
@@ -1548,58 +1600,27 @@ class _MessageBubbleState extends State<_MessageBubble>
                           padding: EdgeInsets.only(
                             top: message.imageUrl != null ? 6 : 0,
                           ),
-                          child: widget.isSelecting
-                              ? SelectableText(
-                                  message.body!,
-                                  textAlign: isMine ? TextAlign.right : TextAlign.left,
-                                  style: TextStyle(
-                                    color: isMine
-                                        ? theme.colorScheme.onPrimary
-                                        : theme.colorScheme.onSurface,
+                          // Отмеченный бабл оборачиваем в SelectionArea — долгое
+                          // нажатие на нём больше не ловит onLongPress выше (см.
+                          // GestureDetector), поэтому его забирает сама
+                          // SelectionArea: слово выделяется, капли и плавающее
+                          // меню «Копировать/Цитировать» показывает штатный
+                          // механизм Flutter (см. PLAN.md 2026-10-18).
+                          // Неотмеченный — обычный Text, как раньше.
+                          child: widget.isChecked
+                              ? SelectionArea(
+                                  key: _selectionAreaKey,
+                                  onSelectionChanged: _onTextSelectionChanged,
+                                  contextMenuBuilder: _buildSelectionToolbar,
+                                  child: Text(
+                                    message.body!,
+                                    textAlign: isMine ? TextAlign.right : TextAlign.left,
+                                    style: TextStyle(
+                                      color: isMine
+                                          ? theme.colorScheme.onPrimary
+                                          : theme.colorScheme.onSurface,
+                                    ),
                                   ),
-                                  onSelectionChanged: (selection, cause) {
-                                    // Была реальная (не схлопнутая) выделенная
-                                    // область, а стала схлопнутой — байер тапнул
-                                    // мимо/отпустил выделение — выходим из режима
-                                    // выделения, как это делает настоящий
-                                    // Телеграм (не проверено живьём, нет
-                                    // эмулятора — см. PLAN.md 2026-10-18).
-                                    final hadRealSelection =
-                                        _textSelection != null && !_textSelection!.isCollapsed;
-                                    setState(() => _textSelection = selection);
-                                    if (hadRealSelection && selection.isCollapsed) {
-                                      widget.onCancelSelecting?.call();
-                                    }
-                                  },
-                                  // Плавающая панель ПРЯМО НАД выделением —
-                                  // штатный механизм Flutter (не самодельная
-                                  // панель под текстом, как было раньше), «⋮»
-                                  // сознательно не добавляем (см. PLAN.md —
-                                  // нет форварда/перевода, нечего в неё класть).
-                                  contextMenuBuilder: (menuContext, editableTextState) {
-                                    final excerpt = _selectedExcerpt;
-                                    if (excerpt == null) return const SizedBox.shrink();
-                                    return AdaptiveTextSelectionToolbar.buttonItems(
-                                      anchors: editableTextState.contextMenuAnchors,
-                                      buttonItems: [
-                                        ContextMenuButtonItem(
-                                          label: 'Копировать',
-                                          onPressed: () async {
-                                            await Clipboard.setData(ClipboardData(text: excerpt));
-                                            editableTextState.hideToolbar();
-                                            widget.onCancelSelecting?.call();
-                                          },
-                                        ),
-                                        ContextMenuButtonItem(
-                                          label: 'Цитировать',
-                                          onPressed: () {
-                                            editableTextState.hideToolbar();
-                                            widget.onConfirmQuote?.call(excerpt);
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
                                 )
                               : Text(
                                   message.body!,
