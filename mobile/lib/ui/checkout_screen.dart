@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_exception.dart';
+import '../core/checkout_payment_flow.dart';
 import '../core/format.dart';
 import '../core/phone_input_formatter.dart';
 import '../data/checkout_draft_store.dart';
@@ -138,27 +139,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       cart.clear();
       await _draftStore.clear();
 
-      // Раньше оплата запускалась только для товаров «по весу —
-      // перевзвешивание» (там сразу холд, см. PLAN.md). Обычные заказы не
-      // получали онлайн-оплату вообще — не было ни шага оплаты, ни кнопки,
-      // заказ навсегда оставался «Ожидает оплаты» (найдено живым разбором
-      // 2026-10-17). Теперь это решает не состав корзины, а сам магазин:
-      // если у него подключена ЮKassa — оплата запускается для ЛЮБОГО
-      // заказа; холд это или обычное списание решает бэкенд сам
-      // (PaymentController::createOrderPayment, capture: !$hasWeightVariable).
+      // Решение "создавать ли платёж" и сам вызов вынесены в
+      // CheckoutPaymentFlow — см. его докблок, почему и что именно решает
+      // онлайн-оплату (не состав корзины, а сам магазин).
       if (!mounted) return;
       final onlinePaymentEnabled =
           context.read<ShopState>().shop?.onlinePaymentEnabled ?? false;
-      if (onlinePaymentEnabled) {
-        try {
-          final paymentUrl = await OrderRepository.create().createPayment(order.id);
-          final uri = Uri.parse(paymentUrl);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        } catch (_) {
-          // Не удалось создать холд сразу — не блокируем подтверждение заказа,
-          // владелец магазина увидит его в админке и разберётся вручную.
+      final paymentUrl = await CheckoutPaymentFlow(OrderRepository.create())
+          .maybeCreatePaymentUrl(orderId: order.id, onlinePaymentEnabled: onlinePaymentEnabled);
+      if (paymentUrl != null) {
+        final uri = Uri.parse(paymentUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
       }
 
