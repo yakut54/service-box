@@ -748,7 +748,14 @@ loadThreads()
                         'rounded-2xl px-3 py-2 min-w-0',
                         m.sender_type === 'shop'
                           ? 'bg-primary-600 text-white rounded-br-sm'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'
+                          // Удалённое байером у себя (deleted_at) — тело всё
+                          // ещё настоящее (см. messageStatusLabel выше), но
+                          // чуть красноватый фон, чтобы персонал отличал такой
+                          // пузырь от обычного с одного взгляда, не читая
+                          // мелкую подпись «удалено» (2026-10-18).
+                          : m.deleted_at
+                            ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-gray-900 dark:text-gray-100 rounded-bl-sm'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'
                       ]"
                     >
                       <div
