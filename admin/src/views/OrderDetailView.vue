@@ -397,6 +397,12 @@ async function updateStatus(status: string) {
             <div v-if="order.collector_name" class="text-sm text-gray-700 dark:text-gray-300">
               Собирает {{ order.collector_name }}
               <span v-if="order.picking_started_at" class="text-gray-400">· с {{ formatDate(order.picking_started_at) }}</span>
+              <span v-if="order.collector_is_online" class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 ml-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> в сети
+              </span>
+              <span v-else-if="order.collector_is_online === false" class="text-amber-600 dark:text-amber-400 ml-1">
+                · не в сети
+              </span>
             </div>
             <p v-else-if="!['completed','cancelled'].includes(order.status)" class="text-sm text-gray-400 dark:text-gray-500">
               Заказ ещё не взят в работу

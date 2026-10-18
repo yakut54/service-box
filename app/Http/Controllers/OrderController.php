@@ -623,11 +623,25 @@ class OrderController extends Controller
             }
         }
 
-        return response()->json([
-            'data' => $isCollector
-                ? $this->collectorPayload($order, $request->attributes->get('shop'))
-                : $order,
-        ]);
+        $payload = $isCollector
+            ? $this->collectorPayload($order, $request->attributes->get('shop'))
+            : $order->toArray();
+
+        // «Юля не отвечает на заказ — она вообще сейчас в сети?» (живой
+        // разбор 2026-10-18). Тот же источник истины, что уже есть для
+        // «Активен» в Команде (StaffController::index) — живой
+        // Sanctum-токен, а не last_login_at (не отражает выход) и не
+        // WS-presence (требует открытой вкладки прямо сейчас, не
+        // переживает обрыв соединения). Один запрос, не на список — только
+        // когда реально открыли карточку конкретного заказа.
+        $payload['collector_is_online'] = $order->collector_id
+            ? DB::table('personal_access_tokens')
+                ->where('tokenable_type', \App\Models\User::class)
+                ->where('tokenable_id', $order->collector_id)
+                ->exists()
+            : null;
+
+        return response()->json(['data' => $payload]);
     }
 
     /**

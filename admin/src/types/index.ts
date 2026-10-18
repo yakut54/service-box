@@ -345,6 +345,9 @@ export interface Order {
   surcharge_auto_charged_at?: string | null
   collector_id?: string | null
   collector_name?: string | null
+  // Живой Sanctum-токен у исполнителя, не "входил когда-то" — см.
+  // OrderController::show(). null, когда заказ никем не занят.
+  collector_is_online?: boolean | null
   picking_started_at?: string | null
   pick_note?: string | null
   pick_note_at?: string | null

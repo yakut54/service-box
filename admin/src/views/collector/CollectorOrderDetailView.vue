@@ -311,7 +311,12 @@ onUnmounted(() => {
         </button>
       </div>
       <div v-else-if="!isMine" class="card space-y-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-        <p class="text-sm text-amber-800 dark:text-amber-300">Собирает {{ order.collector_name }}</p>
+        <p class="text-sm text-amber-800 dark:text-amber-300">
+          Собирает {{ order.collector_name }}
+          <span v-if="order.collector_is_online === false" class="block text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+            Сейчас не в сети — возможно, стоит перехватить заказ
+          </span>
+        </p>
         <button @click="claim(true)" :disabled="claiming" class="btn-secondary btn-sm w-full">
           Всё равно взять
         </button>
