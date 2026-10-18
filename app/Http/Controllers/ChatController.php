@@ -307,6 +307,51 @@ class ChatController extends Controller
     }
 
     /**
+     * Байер редактирует СВОЁ сообщение — зеркало Admin\ChatController::editMessage,
+     * но проверка владения как у destroy() выше (sender_type='customer' +
+     * принадлежность треду этого покупателя). Без доп-флага в настройках
+     * магазина (в отличие от удаления) — self-edit у персонала тоже без
+     * такого ограничения, симметрично (2026-10-18, см. PLAN.md).
+     *
+     * PATCH /api/widget/chat/messages/{message}
+     */
+    public function update(Request $request, string $message): JsonResponse
+    {
+        $shop = $request->get('_shop');
+        $customer = $this->customer($request);
+        $thread   = $customer->chatThread;
+
+        if (!$thread) {
+            return response()->json(['message' => 'Диалог не найден'], 404);
+        }
+
+        $chatMessage = ChatMessage::where('thread_id', $thread->id)
+            ->where('sender_type', 'customer')
+            ->findOrFail($message);
+
+        if ($chatMessage->deleted_at) {
+            return response()->json(['message' => 'Нельзя редактировать удалённое сообщение'], 422);
+        }
+
+        $data = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $chatMessage->update([
+            'body'      => $data['body'],
+            'edited_at' => now(),
+        ]);
+
+        if ($thread->last_message_at?->equalTo($chatMessage->created_at)) {
+            $thread->update(['last_message_preview' => mb_substr($data['body'], 0, 80)]);
+        }
+
+        ChatMessageBroadcast::dispatch($shop->api_key, $thread->id, 'message.updated', ['message' => $chatMessage->load('replyTo')]);
+
+        return response()->json(['data' => $chatMessage->load('replyTo')]);
+    }
+
+    /**
      * GET /api/widget/chat/poll?after=<message_id>
      *
      * Компактный маркер вместо полного списка сообщений (PLAN-CHAT.md §4) —

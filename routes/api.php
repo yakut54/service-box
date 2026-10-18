@@ -181,6 +181,7 @@ Route::prefix('widget')->middleware(['api.cors', 'tenant'])->group(function () {
         Route::get('/chat', [ChatController::class, 'index'])->middleware('throttle:chat-read');
         Route::post('/chat/messages', [ChatController::class, 'store'])->middleware('throttle:chat-write');
         Route::delete('/chat/messages/{message}', [ChatController::class, 'destroy'])->middleware('throttle:chat-write');
+        Route::patch('/chat/messages/{message}', [ChatController::class, 'update'])->middleware('throttle:chat-write');
         Route::post('/chat/read', [ChatController::class, 'markRead'])->middleware('throttle:chat-read');
         Route::get('/chat/poll', [ChatController::class, 'poll'])->middleware('throttle:chat-read');
         Route::post('/chat/broadcasting-auth', [ChatController::class, 'broadcastAuth'])->middleware('throttle:chat-read');
