@@ -145,6 +145,45 @@ class Order extends Model
         return in_array($status, self::TRANSITIONS[$this->status] ?? [], true);
     }
 
+    /**
+     * Взять заказ в работу — единственное место, которое пишет status и
+     * collector_id/collector_name ВМЕСТЕ, одной записью (2026-10-18:
+     * раньше только OrderController::claim() так делал, а подтверждение
+     * заказа через Telegram/MAX переводило status в processing само по
+     * себе, без исполнителя — "В работе" повисало без того, кто именно
+     * работает). Не привязан к HTTP Request — вызывается и из
+     * OrderController::claim() (там $actorUserId/$actorName берутся из
+     * Sanctum-сессии), и из бот-контроллеров (там — из выбранного в
+     * списке сотрудника).
+     *
+     * Мягкий лок, не жёсткий — см. комментарий у OrderController::claim().
+     *
+     * @return array{ok: bool, message?: string, collector_name?: string}
+     */
+    public function claimBy(string $actorUserId, string $actorName, bool $takeover = false): array
+    {
+        if (in_array($this->status, ['completed', 'cancelled'], true)) {
+            return ['ok' => false, 'message' => 'Этот заказ уже закрыт'];
+        }
+
+        if ($this->collector_id && $this->collector_id !== $actorUserId && !$takeover) {
+            return [
+                'ok' => false,
+                'message' => "Заказ уже собирает {$this->collector_name}",
+                'collector_name' => $this->collector_name,
+            ];
+        }
+
+        $this->update([
+            'collector_id' => $actorUserId,
+            'collector_name' => $actorName,
+            'picking_started_at' => $this->picking_started_at ?? now(),
+            'status' => in_array($this->status, ['pending', 'paid'], true) ? 'processing' : $this->status,
+        ]);
+
+        return ['ok' => true];
+    }
+
     public function scopeWithStatus($query, string $status)
     {
         return $query->where('status', $status);
