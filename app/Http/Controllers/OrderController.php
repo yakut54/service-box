@@ -755,7 +755,7 @@ class OrderController extends Controller
         }
 
         if ($newStatus !== $oldStatus) {
-            OrderActivityLog::record($order, $request, 'status_changed', $oldStatus, $newStatus, $request->input('note'));
+            OrderActivityLog::record($order, $request->user()->id, $request->user()->name, $request->attributes->get('staff_role'), 'status_changed', $oldStatus, $newStatus, $request->input('note'));
         }
 
         $shop = $request->attributes->get('shop');
@@ -857,33 +857,23 @@ class OrderController extends Controller
             abort(404);
         }
 
-        if (in_array($orderModel->status, ['completed', 'cancelled'], true)) {
-            return response()->json(['message' => 'Этот заказ уже закрыт'], 422);
-        }
-
         // ID ПОЛЬЗОВАТЕЛЯ, не staff_id — у владельца своей записи в shop_staff
         // нет (staff_id = null), а claim() теперь зовёт и он тоже. staff_id
         // здесь никогда и ни с чем не джойнится (shop_staff — другая схема),
         // только сравнивается сам с собой, так что user_id работает так же,
         // но не ломается для владельца.
-        $actorId = $request->user()->id;
+        //
+        // Сама запись (status+collector вместе) — в Order::claimBy(), один
+        // источник истины на админку и на бот (2026-10-18, см. PLAN.md).
+        $result = $orderModel->claimBy($request->user()->id, $request->user()->name, $request->boolean('takeover'));
 
-        if ($orderModel->collector_id && $orderModel->collector_id !== $actorId && !$request->boolean('takeover')) {
-            return response()->json([
-                'message' => "Заказ уже собирает {$orderModel->collector_name}",
-                'collector_name' => $orderModel->collector_name,
-            ], 409);
+        if (!$result['ok']) {
+            $status = ($result['message'] ?? '') === 'Этот заказ уже закрыт' ? 422 : 409;
+            return response()->json(collect($result)->except('ok')->all(), $status);
         }
 
-        $orderModel->update([
-            'collector_id' => $actorId,
-            'collector_name' => $request->user()->name,
-            'picking_started_at' => $orderModel->picking_started_at ?? now(),
-            'status' => in_array($orderModel->status, ['pending', 'paid'], true) ? 'processing' : $orderModel->status,
-        ]);
-
         $shop = $request->attributes->get('shop');
-        OrderActivityLog::record($orderModel, $request, 'claimed');
+        OrderActivityLog::record($orderModel, $request->user()->id, $request->user()->name, $request->attributes->get('staff_role'), 'claimed');
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
         $orderModel->refresh()->load(['items.product.physical', 'customer']);
@@ -952,7 +942,7 @@ class OrderController extends Controller
             DB::table('order_seen')->where('order_id', $orderModel->id)->delete();
         }
 
-        OrderActivityLog::record($orderModel, $request, 'released', null, null, $request->note);
+        OrderActivityLog::record($orderModel, $request->user()->id, $request->user()->name, $request->attributes->get('staff_role'), 'released', null, null, $request->note);
 
         $shop = $request->attributes->get('shop');
         \App\Events\OrdersUpdated::dispatch($shop->id);
@@ -1075,7 +1065,7 @@ class OrderController extends Controller
         // Свежий needs_attention — см. комментарий в release() выше.
         DB::table('order_seen')->where('order_id', $orderModel->id)->delete();
 
-        OrderActivityLog::record($orderModel, $request, 'problem_reported', $oldStatus, 'needs_attention', $request->note);
+        OrderActivityLog::record($orderModel, $request->user()->id, $request->user()->name, $request->attributes->get('staff_role'), 'problem_reported', $oldStatus, 'needs_attention', $request->note);
 
         $shop = $request->attributes->get('shop');
 
