@@ -16,9 +16,40 @@ class YooKassaService
     {
         $this->client = new Client();
         $this->client->setAuth(
-            $shopId    ?? config('services.yookassa.shop_id'),
+            self::normalizeShopId($shopId ?? config('services.yookassa.shop_id')),
             $secretKey ?? config('services.yookassa.secret_key'),
         );
+    }
+
+    /**
+     * ЮKassa SDK типизирует login строго как BaseClient::$login (?int) — у
+     * нас это строка из shops.yookassa_shop_id. Случайный пробел при
+     * копировании значения в настройках (частая ошибка copy-paste) ломает
+     * присвоение TypeError'ом внутри самого SDK, который долетает до
+     * покупателя как молчаливый 502: PaymentController ловит \Throwable и
+     * отвечает понятным сообщением, но мобильное приложение/виджет эту
+     * ошибку тихо проглатывают и просто не редиректят на оплату — заказ
+     * остаётся висеть «Ожидает» без единой подсказки, почему (баг найден
+     * 2026-10-18 живым разбором). Нормализуем здесь явно, а не полагаемся
+     * на неявную PHP-коэрсию typed property внутри чужой библиотеки — и
+     * бросаем понятную ошибку вместо того, чтобы молча прислать (int) 0.
+     */
+    private static function normalizeShopId(mixed $shopId): ?int
+    {
+        if ($shopId === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $shopId);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (!ctype_digit($trimmed)) {
+            throw new \InvalidArgumentException("ЮKassa shop_id должен быть числом, получено: \"{$shopId}\"");
+        }
+
+        return (int) $trimmed;
     }
 
     /**
