@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import type { Channel } from 'laravel-echo'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { api, ApiError } from '@/lib/api'
+import { getEcho } from '@/lib/echo'
 import UiModal from '@/shared/ui/UiModal.vue'
 import UiSpinner from '@/shared/ui/UiSpinner.vue'
 import type { AssignmentCandidate } from '@/types'
@@ -47,6 +49,26 @@ async function load() {
 
 watch(() => props.modelValue, (open) => { if (open) load() })
 
+// Живой статус без ручного «Обновить» (2026-10-19) — тот же .staff.updated,
+// которым уже живёт статус «Активен» в Команде: он летит при каждом
+// логине/логауте. Канал 'shop.{id}' общий на все экраны — добавляем/снимаем
+// СВОЙ листенер (stopListening), не рвём канал целиком через leave() (баг
+// найден живым тестом 2026-09-14, см. CollectorOrderDetailView).
+let channel: Channel | null = null
+const onStaffUpdated = () => { if (props.modelValue) load() }
+
+onMounted(() => {
+  const shopId = authStore.shop?.id
+  if (shopId) {
+    channel = getEcho().private(`shop.${shopId}`)
+    channel.listen('.staff.updated', onStaffUpdated)
+  }
+})
+
+onUnmounted(() => {
+  channel?.stopListening('.staff.updated', onStaffUpdated)
+})
+
 async function choose(candidate: AssignmentCandidate) {
   if (!candidate.is_online) {
     toast.error('Нельзя выбрать сотрудника, который сейчас не в сети')
@@ -70,17 +92,7 @@ async function choose(candidate: AssignmentCandidate) {
 <template>
   <UiModal :model-value="modelValue" @update:model-value="(v) => emit('update:modelValue', v)" max-width="max-w-sm">
     <div class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Кто берёт заказ?</h3>
-        <button
-          type="button"
-          class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-          :disabled="loading"
-          @click="load"
-        >
-          🔄 Обновить
-        </button>
-      </div>
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Кто берёт заказ?</h3>
 
       <div v-if="loading" class="flex justify-center py-6">
         <UiSpinner />
