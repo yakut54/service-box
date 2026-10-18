@@ -9,6 +9,8 @@ use App\Models\Shop;
 use App\Models\ShopStaff;
 use App\Models\User;
 use App\Services\TenantService;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -206,5 +208,35 @@ class MaxOrderAssignTest extends TestCase
         $order->refresh();
         $this->assertSame('completed', $order->status);
         $this->assertNull($order->collector_id);
+    }
+
+    /**
+     * Симметрично Telegram — сбой одного шага (здесь: answerCallback,
+     * эндпоинт /answers) не должен обрывать остальную последовательность
+     * в handleOrderAssign() (баг 2026-10-18, см. TelegramOrderAssignTest).
+     */
+    public function test_a_max_api_failure_on_one_step_does_not_block_the_rest(): void
+    {
+        config(['services.max.bot_token' => 'test-token']);
+        Http::fake([
+            '*answers*' => fn () => throw new ConnectionException('connection timed out'),
+            '*' => Http::response(['ok' => true]),
+        ]);
+
+        $shop = $this->shopWithBot();
+        $order = $this->physicalOrder($shop);
+
+        $this->sendCallback($shop->max_chat_id, "order:confirm:{$order->id}");
+        $this->sendCallback($shop->max_chat_id, "order:assign:{$order->id}:0");
+
+        TenantService::setContext($shop);
+        $order->refresh();
+        $this->assertSame('processing', $order->status);
+        $this->assertSame($shop->user_id, $order->collector_id);
+
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $this->assertNotNull($activity);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/messages'));
     }
 }

@@ -23,6 +23,16 @@ class MaxService
 
     // ── Core send ─────────────────────────────────────────────────────────
 
+    /**
+     * sendMessage/sendRaw/answerCallback — сеть до MAX API (и до Telegram
+     * API симметрично) с этого сервера периодически отваливается (видно в
+     * логах регулярно, не единичный случай). Раньше ни один из трёх не
+     * ловил исключение — сбой одного шага в handleOrderAssign() обрывал
+     * всю последовательность, и финальное сообщение-подтверждение просто
+     * не доходило, хотя claimBy() уже успел записаться (баг, найден
+     * 2026-10-18 по жалобе "в боте должна быть обратная связь, а её нет").
+     * Каждый шаг теперь независим: один таймаут не должен гасить соседние.
+     */
     public static function sendMessage(Shop $shop, string $text, ?array $buttons = null): ?string
     {
         if (!$shop->max_bot_connected || !$shop->max_chat_id) {
@@ -44,18 +54,23 @@ class MaxService
             ]];
         }
 
-        $response = Http::timeout(5)
-            ->withHeaders(['Authorization' => $token])
-            ->post(self::api() . '/messages?user_id=' . $shop->max_chat_id, $body);
+        try {
+            $response = Http::timeout(5)
+                ->withHeaders(['Authorization' => $token])
+                ->post(self::api() . '/messages?user_id=' . $shop->max_chat_id, $body);
 
-        $mid = $response->json('message.body.mid')
-            ?? $response->json('body.mid')
-            ?? $response->json('mid')
-            ?? null;
+            $mid = $response->json('message.body.mid')
+                ?? $response->json('body.mid')
+                ?? $response->json('mid')
+                ?? null;
 
-        Log::info('MAX sendMessage response', ['mid' => $mid, 'status' => $response->status()]);
+            Log::info('MAX sendMessage response', ['mid' => $mid, 'status' => $response->status()]);
 
-        return $mid;
+            return $mid;
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] sendMessage failed', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     public static function sendRaw(int $chatId, string $text, ?array $buttons = null): ?string
@@ -72,14 +87,19 @@ class MaxService
             ]];
         }
 
-        $response = Http::timeout(5)
-            ->withHeaders(['Authorization' => $token])
-            ->post(self::api() . '/messages?user_id=' . $chatId, $body);
+        try {
+            $response = Http::timeout(5)
+                ->withHeaders(['Authorization' => $token])
+                ->post(self::api() . '/messages?user_id=' . $chatId, $body);
 
-        return $response->json('message.body.mid')
-            ?? $response->json('body.mid')
-            ?? $response->json('mid')
-            ?? null;
+            return $response->json('message.body.mid')
+                ?? $response->json('body.mid')
+                ?? $response->json('mid')
+                ?? null;
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] sendRaw failed', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     public static function answerCallback(string $callbackId, string $text): void
@@ -87,12 +107,16 @@ class MaxService
         $token = self::token();
         if (!$token) return;
 
-        Http::timeout(5)
-            ->withHeaders(['Authorization' => $token])
-            ->post(self::api() . '/answers', [
-                'callback' => ['callback_id' => $callbackId],
-                'messages' => [['text' => $text]],
-            ]);
+        try {
+            Http::timeout(5)
+                ->withHeaders(['Authorization' => $token])
+                ->post(self::api() . '/answers', [
+                    'callback' => ['callback_id' => $callbackId],
+                    'messages' => [['text' => $text]],
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] answerCallback failed', ['error' => $e->getMessage()]);
+        }
     }
 
     public static function removeButtons(int $userId, ?string $mid): void

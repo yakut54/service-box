@@ -876,6 +876,16 @@ class TelegramController extends Controller
 
     // ── Telegram Bot API helpers ──────────────────────────────────────
 
+    /**
+     * sendReply/answerCallback/removeKeyboard — сеть до api.telegram.org с
+     * этого сервера периодически отваливается (cURL error 28, видно в логах
+     * регулярно, не единичный случай). Раньше ни один из трёх не ловил
+     * исключение — сбой одного шага в handleOrderAssign() обрывал всю
+     * последовательность, и финальное "Заказ закреплён за {имя}" просто не
+     * доходило, хотя claimBy() уже успел записаться (баг, найден 2026-10-18
+     * по жалобе "в боте должна быть обратная связь, а её нет"). Каждый шаг
+     * теперь независим: один таймаут не должен гасить соседние уведомления.
+     */
     private function sendReply(int $chatId, string $text, ?array $keyboard = null): ?int
     {
         $botToken = config('services.telegram.bot_token');
@@ -887,8 +897,13 @@ class TelegramController extends Controller
             $payload['reply_markup'] = json_encode(['inline_keyboard' => $keyboard]);
         }
 
-        $response = Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
-        return $response->json('result.message_id');
+        try {
+            $response = Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
+            return $response->json('result.message_id');
+        } catch (\Throwable $e) {
+            Log::warning('[TG] sendReply failed', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     private function answerCallback(string $callbackId, string $text, bool $showAlert = false): void
@@ -898,11 +913,15 @@ class TelegramController extends Controller
             return;
         }
 
-        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/answerCallbackQuery", [
-            'callback_query_id' => $callbackId,
-            'text'              => $text,
-            'show_alert'        => $showAlert,
-        ]);
+        try {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/answerCallbackQuery", [
+                'callback_query_id' => $callbackId,
+                'text'              => $text,
+                'show_alert'        => $showAlert,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[TG] answerCallback failed', ['error' => $e->getMessage()]);
+        }
     }
 
     private function removeKeyboard(int $chatId, ?int $messageId): void
@@ -916,11 +935,15 @@ class TelegramController extends Controller
             return;
         }
 
-        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
-            'chat_id'      => $chatId,
-            'message_id'   => $messageId,
-            'reply_markup' => ['inline_keyboard' => []],
-        ]);
+        try {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
+                'chat_id'      => $chatId,
+                'message_id'   => $messageId,
+                'reply_markup' => ['inline_keyboard' => []],
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('[TG] removeKeyboard failed', ['error' => $e->getMessage()]);
+        }
     }
 
     private function handleReviewPub(string $callbackId, string $reviewId, bool $publish, int $chatId, ?int $messageId): void

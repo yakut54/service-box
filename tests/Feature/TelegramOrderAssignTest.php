@@ -9,6 +9,8 @@ use App\Models\Shop;
 use App\Models\ShopStaff;
 use App\Models\User;
 use App\Services\TenantService;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -210,5 +212,39 @@ class TelegramOrderAssignTest extends TestCase
         $order->refresh();
         $this->assertSame('completed', $order->status);
         $this->assertNull($order->collector_id);
+    }
+
+    /**
+     * Сеть до api.telegram.org с сервера периодически рвётся (видно в
+     * продакшен-логах регулярно) — editMessageReplyMarkup таймаутит,
+     * но это НЕ должно мешать claimBy() записаться и финальному
+     * sendMessage всё равно уйти (баг 2026-10-18: "в боте должна быть
+     * обратная связь, а её нет" — removeKeyboard() ловил исключение раньше
+     * никак, сбой обрывал всю оставшуюся последовательность в
+     * handleOrderAssign()).
+     */
+    public function test_a_telegram_api_failure_on_one_step_does_not_block_the_rest(): void
+    {
+        config(['services.telegram.bot_token' => 'test-token']);
+        Http::fake([
+            '*editMessageReplyMarkup*' => fn () => throw new ConnectionException('cURL error 28: Connection timed out'),
+            '*' => Http::response(['ok' => true]),
+        ]);
+
+        $shop = $this->shopWithBot();
+        $order = $this->physicalOrder($shop);
+
+        $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
+        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:0");
+
+        TenantService::setContext($shop);
+        $order->refresh();
+        $this->assertSame('processing', $order->status);
+        $this->assertSame($shop->user_id, $order->collector_id);
+
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $this->assertNotNull($activity);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'sendMessage'));
     }
 }
