@@ -16,9 +16,9 @@ use Tests\TestCase;
 
 /**
  * MAX-бот: симметрично TelegramOrderAssignTest — "Подтвердить" на
- * физическом заказе показывает список сотрудников, и только выбор
- * конкретного человека (action=assign) пишет status+collector вместе
- * через Order::claimBy() (PLAN.md 2026-10-18, этап 4).
+ * физическом заказе показывает список сотрудников, выбор идёт через
+ * OrderAssignmentFlow: себя — claim сразу, кого-то другого — запрос,
+ * ждущий подтверждения (PLAN.md 2026-10-19).
  */
 class MaxOrderAssignTest extends TestCase
 {
@@ -113,7 +113,7 @@ class MaxOrderAssignTest extends TestCase
         $this->assertSame('owner', $activity->actor_role);
     }
 
-    public function test_assign_sets_status_and_collector_together_for_accepted_staff(): void
+    public function test_assign_to_someone_else_online_creates_a_pending_request_without_claiming(): void
     {
         $shop = $this->shopWithBot();
         $order = $this->physicalOrder($shop);
@@ -129,19 +129,70 @@ class MaxOrderAssignTest extends TestCase
             'role' => 'collector',
             'accepted_at' => now(),
         ]);
+        $staffUser->createToken('session');
 
         $this->sendCallback($shop->max_chat_id, "order:confirm:{$order->id}");
         $this->sendCallback($shop->max_chat_id, "order:assign:{$order->id}:1");
 
         TenantService::setContext($shop);
         $order->refresh();
-        $this->assertSame('processing', $order->status);
-        $this->assertSame($staffUser->id, $order->collector_id);
-        $this->assertSame('Егорка', $order->collector_name);
+        $this->assertSame('pending', $order->status);
+        $this->assertNull($order->collector_id);
+        $this->assertSame($staffUser->id, $order->pending_collector_id);
+        $this->assertSame('Егорка', $order->pending_collector_name);
 
-        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'claimed')->first();
+        $activity = OrderActivity::where('order_id', $order->id)->where('action', 'assignment_requested')->first();
         $this->assertNotNull($activity);
         $this->assertSame('collector', $activity->actor_role);
+    }
+
+    public function test_assign_to_someone_else_who_is_offline_is_rejected(): void
+    {
+        $shop = $this->shopWithBot();
+        $order = $this->physicalOrder($shop);
+
+        $staffUser = User::create([
+            'name' => 'Егорка',
+            'email' => 'egorka-' . Str::uuid() . '@example.test',
+            'password' => bcrypt('password'),
+        ]);
+        ShopStaff::create([
+            'shop_id' => $shop->id,
+            'user_id' => $staffUser->id,
+            'role' => 'collector',
+            'accepted_at' => now(),
+        ]);
+        // Нет createToken() — Егорка нигде не залогинен.
+
+        $this->sendCallback($shop->max_chat_id, "order:confirm:{$order->id}");
+        $this->sendCallback($shop->max_chat_id, "order:assign:{$order->id}:1");
+
+        TenantService::setContext($shop);
+        $order->refresh();
+        $this->assertSame('pending', $order->status);
+        $this->assertNull($order->collector_id);
+        $this->assertNull($order->pending_collector_id);
+    }
+
+    public function test_refresh_rerenders_the_picker_with_current_online_statuses(): void
+    {
+        config(['services.max.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true])]);
+
+        $shop = $this->shopWithBot();
+        $order = $this->physicalOrder($shop);
+        // showOrderCollectorPicker достаёт mid из этого кеша (см.
+        // notifyNewOrder) — без него выйдет раньше, HTTP не уйдёт вовсе.
+        \Illuminate\Support\Facades\Cache::put(
+            "max_mid:order:{$order->id}",
+            ['user_id' => $shop->max_chat_id, 'mid' => 'mid-' . Str::uuid()],
+            now()->addMinutes(5),
+        );
+
+        $this->sendCallback($shop->max_chat_id, "order:confirm:{$order->id}");
+        $this->sendCallback($shop->max_chat_id, "order:refresh:{$order->id}");
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/messages'));
     }
 
     public function test_assign_without_prior_confirm_is_rejected(): void

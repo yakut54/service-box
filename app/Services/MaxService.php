@@ -405,11 +405,17 @@ class MaxService
         // Индекс вместо userId в payload — симметрично Telegram (см. баг
         // 2026-10-18: там это превышало лимит callback_data в 64 байта;
         // здесь лимита может и не быть, но короче и единообразнее честнее).
+        //
+        // ✅/❌ на кнопке — видно, кого вообще можно выбрать, без тыка
+        // наугад (живой разбор 2026-10-19). «Обновить» перечитывает
+        // статусы без создания нового запроса.
         $buttons = [];
         foreach ($options as $i => $opt) {
-            $buttons[] = ['type' => 'callback', 'text' => $opt['name'], 'payload' => "order:assign:{$orderId}:{$i}"];
+            $prefix = ($opt['is_online'] ?? true) ? '✅ ' : '❌ ';
+            $buttons[] = ['type' => 'callback', 'text' => $prefix . $opt['name'], 'payload' => "order:assign:{$orderId}:{$i}"];
         }
         $rows = array_chunk($buttons, 2);
+        $rows[] = [['type' => 'callback', 'text' => '🔄 Обновить', 'payload' => "order:refresh:{$orderId}"]];
 
         try {
             $response = Http::timeout(5)

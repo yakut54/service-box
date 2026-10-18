@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Models\Shop;
 use App\Services\MasterBotService;
 use App\Services\MaxService;
-use App\Services\OrderActivityLog;
+use App\Services\OrderAssignmentFlow;
 use App\Services\OrderCollectorCandidates;
 use App\Services\TelegramService;
 use App\Services\TenantService;
@@ -378,6 +378,11 @@ class MaxController extends Controller
             return;
         }
 
+        if ($action === 'refresh') {
+            $this->handleOrderRefresh($cbId, $orderId, $shop);
+            return;
+        }
+
         $order = Order::find($orderId);
 
         if (!$order) {
@@ -447,47 +452,60 @@ class MaxController extends Controller
             return;
         }
 
-        $actorUserId = $picked['id'];
-        $resolved = OrderCollectorCandidates::resolve($shop, $actorUserId);
-        if (!$resolved) {
-            MaxService::answerCallback($cbId, 'Сотрудник не найден');
-            return;
-        }
-
-        $actorName = $resolved['name'];
-        $result = $order->claimBy($actorUserId, $actorName);
+        // Симметрично Telegram (см. комментарий там) — бот физически не
+        // знает, кто держит телефон магазина, только чей аккаунт к нему
+        // привязан (владелец чата). Выбор себя — мгновенный claim, выбор
+        // кого-то другого — запрос, ждущий подтверждения самого кандидата
+        // (PLAN.md 2026-10-19, живой разбор: офлайн-человека назначали молча).
+        $result = OrderAssignmentFlow::request($order, $shop, $shop->user_id, $picked['id']);
 
         if (!$result['ok']) {
             MaxService::answerCallback($cbId, $result['message']);
             return;
         }
 
-        OrderActivityLog::record($order, $actorUserId, $actorName, $resolved['role'], 'claimed');
-
-        // Симметрично Telegram (см. комментарий там) — бот сам не трогал
-        // OrdersUpdated, и узнать о назначении назначенный мог только от
-        // того, кто физически нажал кнопки на телефоне магазина.
-        \App\Events\OrdersUpdated::dispatch($shop->id);
-        \App\Events\OrderAssignedNotice::dispatch($shop->id, $order->id, $actorUserId, $actorName);
-
-        MaxService::answerCallback($cbId, "Заказ закреплён за {$actorName}");
         MaxService::removeButtonsByEntity('order', $order->id);
         TelegramService::removeKeyboardByEntity('Order', $order->id);
+        $shortId = substr($order->id, 0, 8);
 
-        $text = "Заказ #" . substr($order->id, 0, 8) . " — ✅ В работе, собирает {$actorName}";
-        // Симметрично Telegram (см. комментарий там) — владелец должен
-        // увидеть это сразу в самом подтверждении, а не только если
-        // случайно откроет карточку заказа в админке.
-        if (!\App\Models\User::isOnline($actorUserId)) {
-            $text .= "\n⚠️ {$actorName} сейчас не в сети — убедитесь, что он(а) увидит заказ";
+        if ($result['pending']) {
+            MaxService::answerCallback($cbId, "Запрос отправлен {$result['actor_name']}");
+            $text = "⏳ Заказ #{$shortId} — запрос отправлен {$result['actor_name']}, ждём подтверждения";
+            MaxService::sendRaw($shop->max_chat_id, $text);
+            TelegramService::sendMessage(shop: $shop, text: $text);
+
+            Log::info('Order assignment requested via MAX picker', [
+                'order_id' => $order->id,
+                'candidate_user_id' => $picked['id'],
+            ]);
+            return;
         }
+
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+        MaxService::answerCallback($cbId, "Заказ закреплён за {$result['actor_name']}");
+        $text = "Заказ #{$shortId} — ✅ В работе, собирает {$result['actor_name']}";
         MaxService::sendRaw($shop->max_chat_id, $text);
         TelegramService::sendMessage(shop: $shop, text: $text);
 
         Log::info('Order claimed via MAX picker', [
             'order_id' => $order->id,
-            'actor_user_id' => $actorUserId,
+            'actor_user_id' => $shop->user_id,
         ]);
+    }
+
+    private function handleOrderRefresh(string $cbId, string $orderId, Shop $shop): void
+    {
+        $order = Order::find($orderId);
+        if (!$order) {
+            MaxService::answerCallback($cbId, 'Заказ не найден');
+            return;
+        }
+
+        $options = OrderCollectorCandidates::listFor($shop);
+        OrderCollectorCandidates::cache($order->id, $options);
+
+        MaxService::answerCallback($cbId, 'Обновлено');
+        MaxService::showOrderCollectorPicker($order->id, $options);
     }
 
     private function handleBookingAction(string $cbId, string $bookingId, string $action, int $userId, Shop $shop): void
