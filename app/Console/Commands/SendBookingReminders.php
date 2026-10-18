@@ -17,6 +17,13 @@ class SendBookingReminders extends Command
 
     public function handle(): int
     {
+        // Записи в ботах временно отключены целиком (2026-10-18, см.
+        // config/platform.php::booking_bot_enabled) — notify*-методы внутри
+        // и так no-op, но нет смысла гонять запросы по всем магазинам зря.
+        if (!config('platform.booking_bot_enabled')) {
+            return self::SUCCESS;
+        }
+
         $shops = Shop::where(function ($q) {
             $q->where('telegram_bot_connected', true)
               ->orWhere('max_bot_connected', true);

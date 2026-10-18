@@ -158,7 +158,11 @@ class TelegramController extends Controller
         }
 
         // ── Master commands (keyboard buttons + slash commands) ───────────
-        $masterCmd = match(true) {
+        // Записи в ботах временно отключены целиком (2026-10-18) — см.
+        // config/platform.php::booking_bot_enabled. sendMasterMenu/
+        // sendMasterWelcome уже не показывают эти кнопки, но текстовые
+        // /today /week /stats всё ещё можно набрать руками — гасим и их.
+        $masterCmd = !config('platform.booking_bot_enabled') ? null : match(true) {
             in_array($text, ['📅 Сегодня', '/today'])   => 'today',
             in_array($text, ['📅 Неделя',  '/week'])    => 'week',
             in_array($text, ['📊 Статистика', '/stats']) => 'stats',
@@ -411,6 +415,14 @@ class TelegramController extends Controller
 
     private function handleBookingAction(string $callbackId, string $bookingId, string $action, int $chatId, ?int $messageId, Shop $shop): void
     {
+        // Записи в ботах временно отключены (2026-10-18) — новых
+        // уведомлений с этими кнопками больше не шлём, но на старом, ещё
+        // не убранном сообщении кнопка может остаться нажимаемой.
+        if (!config('platform.booking_bot_enabled')) {
+            $this->answerCallback($callbackId, 'Временно недоступно');
+            return;
+        }
+
         $booking = Booking::find($bookingId);
 
         if (!$booking) {
@@ -669,6 +681,11 @@ class TelegramController extends Controller
 
     private function handleMasterBookingAction(string $callbackId, string $action, string $bookingId, int $chatId, ?int $messageId): void
     {
+        if (!config('platform.booking_bot_enabled')) {
+            $this->answerCallback($callbackId, 'Временно недоступно');
+            return;
+        }
+
         $staff = \App\Models\ShopStaff::where('telegram_chat_id', $chatId)
             ->where('role', 'master')
             ->whereNotNull('master_id')

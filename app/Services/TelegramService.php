@@ -126,6 +126,10 @@ class TelegramService
      */
     public static function notifyNewBooking(Shop $shop, $booking): void
     {
+        // Бронирования в ботах временно отключены целиком (2026-10-18,
+        // config/platform.php::booking_bot_enabled) — см. докблок там же.
+        if (!config('platform.booking_bot_enabled')) return;
+
         $tz      = $shop->timezone ?? 'Europe/Moscow';
         $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($tz)->locale('ru');
         $date    = $dt->translatedFormat('j M, D');
@@ -412,6 +416,8 @@ class TelegramService
      */
     public static function notifyBookingStatusToCustomer(Shop $shop, $booking, string $status): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $chatId = \DB::table("{$shop->schema_name}.customers")
             ->where('phone', $booking->customer_phone)
             ->value('telegram_chat_id');
@@ -518,6 +524,8 @@ class TelegramService
      */
     public static function notifyBookingConfirmedToCustomer(Shop $shop, $booking): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $chatId = \DB::table("{$shop->schema_name}.customers")
             ->where('phone', $booking->customer_phone)
             ->value('telegram_chat_id');
@@ -563,6 +571,8 @@ class TelegramService
      */
     public static function notifyBookingReminder(Shop $shop, object $booking, string $type): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $chatId = \DB::table("{$shop->schema_name}.customers")
             ->where('phone', $booking->customer_phone)
             ->value('telegram_chat_id');
@@ -739,6 +749,8 @@ class TelegramService
 
     public static function notifyOwnerBookingStatus(Shop $shop, $booking, string $status): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $label = match($status) {
             'confirmed' => '✅ Подтверждена',
             'cancelled' => '❌ Отменена',
@@ -783,6 +795,8 @@ class TelegramService
 
     public static function notifyMasterNewBooking(int $chatId, $booking, Shop $shop): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) return;
 
@@ -811,6 +825,8 @@ class TelegramService
 
     public static function notifyMasterBookingStatus(int $chatId, $booking, string $status, Shop $shop): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) return;
 
@@ -836,10 +852,22 @@ class TelegramService
      * Send welcome message with persistent ReplyKeyboard to master.
      * Called once on connection — keyboard stays at the bottom forever.
      */
+    // Клавиатура «Сегодня/Неделя/Статистика» — только пока записи в ботах
+    // включены (booking_bot_enabled); иначе это 3 мёртвые кнопки, которые
+    // ведут в гейт-занятый handleMasterLink/TelegramController (2026-10-18).
     public static function sendMasterWelcome(int $chatId): void
     {
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) return;
+
+        if (!config('platform.booking_bot_enabled')) {
+            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
+                'chat_id'    => $chatId,
+                'text'       => '✅ <b>Готово!</b> Привязка выполнена.',
+                'parse_mode' => 'HTML',
+            ]);
+            return;
+        }
 
         Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
             'chat_id'      => $chatId,
@@ -857,30 +885,38 @@ class TelegramService
     }
 
     /**
-     * Send a message to master — always re-attaches the keyboard.
+     * Send a message to master — re-attaches the booking keyboard only when
+     * booking_bot_enabled (иначе используется и для не-бронировочных вещей,
+     * напр. notifyMasterReview, которую НЕ гейтим этим флагом).
      */
     public static function sendToMaster(int $chatId, string $text): void
     {
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) return;
 
-        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", [
-            'chat_id'      => $chatId,
-            'text'         => $text,
-            'parse_mode'   => 'HTML',
-            'reply_markup' => json_encode([
+        $payload = [
+            'chat_id'    => $chatId,
+            'text'       => $text,
+            'parse_mode' => 'HTML',
+        ];
+        if (config('platform.booking_bot_enabled')) {
+            $payload['reply_markup'] = json_encode([
                 'keyboard' => [
                     [['text' => '📅 Сегодня'], ['text' => '📅 Неделя']],
                     [['text' => '📊 Статистика']],
                 ],
                 'resize_keyboard' => true,
                 'persistent'      => true,
-            ]),
-        ]);
+            ]);
+        }
+
+        Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/sendMessage", $payload);
     }
 
     public static function notifyMasterReminder(int $chatId, object $booking, string $type, Shop $shop): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) return;
 

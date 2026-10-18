@@ -150,32 +150,39 @@ class MaxController extends Controller
             return;
         }
 
-        // ── Master slash commands ─────────────────────────────────────────
-        $masterCmd = match(true) {
-            in_array($text, ['/today', 'today']) => 'today',
-            in_array($text, ['/week',  'week'])  => 'week',
-            in_array($text, ['/stats', 'stats']) => 'stats',
-            default => null,
-        };
+        // Записи в ботах временно отключены целиком (2026-10-18) — см.
+        // config/platform.php::booking_bot_enabled. Оба блока ниже только
+        // про расписание мастера, без флага им предложить нечего — без
+        // этой обёртки "неизвестный текст" ниже отвечал бы пустым "Выберите
+        // действие:" на любое сообщение мастера.
+        if (config('platform.booking_bot_enabled')) {
+            // ── Master slash commands ─────────────────────────────────────
+            $masterCmd = match(true) {
+                in_array($text, ['/today', 'today']) => 'today',
+                in_array($text, ['/week',  'week'])  => 'week',
+                in_array($text, ['/stats', 'stats']) => 'stats',
+                default => null,
+            };
 
-        if ($masterCmd !== null) {
-            $ctx = MasterBotService::findByMaxUserId($userId);
-            if ($ctx) {
-                $responseText = match($masterCmd) {
-                    'today' => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'today', $ctx['hide_phone']),
-                    'week'  => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'week',  $ctx['hide_phone']),
-                    'stats' => MasterBotService::getStatsText($ctx['schema'], $ctx['master_id'], $ctx['tz']),
-                };
-                MaxService::sendMasterMenu($userId, $responseText);
+            if ($masterCmd !== null) {
+                $ctx = MasterBotService::findByMaxUserId($userId);
+                if ($ctx) {
+                    $responseText = match($masterCmd) {
+                        'today' => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'today', $ctx['hide_phone']),
+                        'week'  => MasterBotService::getScheduleText($ctx['schema'], $ctx['master_id'], $ctx['tz'], 'week',  $ctx['hide_phone']),
+                        'stats' => MasterBotService::getStatsText($ctx['schema'], $ctx['master_id'], $ctx['tz']),
+                    };
+                    MaxService::sendMasterMenu($userId, $responseText);
+                    return;
+                }
+            }
+
+            // ── If master sends unrecognized text → show menu ────────────
+            $masterCtx = MasterBotService::findByMaxUserId($userId);
+            if ($masterCtx) {
+                MaxService::sendMasterMenu($userId);
                 return;
             }
-        }
-
-        // ── If master sends unrecognized text → show menu ─────────────────
-        $masterCtx = MasterBotService::findByMaxUserId($userId);
-        if ($masterCtx) {
-            MaxService::sendMasterMenu($userId);
-            return;
         }
 
         $pendingBookingId = \Illuminate\Support\Facades\Cache::get("awaiting_review:max:{$userId}");
@@ -620,6 +627,14 @@ class MaxController extends Controller
 
     private function handleMasterBookingAction(string $cbId, string $action, string $bookingId, int $userId): void
     {
+        // Записи в ботах временно отключены (2026-10-18) — новых
+        // напоминаний с этими кнопками больше не рассылаем, но на старом,
+        // ещё не убранном сообщении кнопка может остаться нажимаемой.
+        if (!config('platform.booking_bot_enabled')) {
+            MaxService::answerCallback($cbId, 'Временно недоступно');
+            return;
+        }
+
         $staff = \App\Models\ShopStaff::where('max_user_id', $userId)
             ->where('role', 'master')
             ->whereNotNull('master_id')
@@ -696,6 +711,15 @@ class MaxController extends Controller
 
     private function handleMasterMenuCallback(string $cbId, string $action, int $userId, ?string $mid = null): void
     {
+        // Записи в ботах временно отключены (2026-10-18) — клавиатуру
+        // больше не рассылаем (см. MaxService::sendMasterMenu), но у кого-то
+        // мог остаться старый, ещё не убранный набор кнопок с прошлого
+        // сообщения — на всякий случай гасим и здесь.
+        if (!config('platform.booking_bot_enabled')) {
+            MaxService::answerCallback($cbId, 'Временно недоступно');
+            return;
+        }
+
         $ctx = MasterBotService::findByMaxUserId($userId);
 
         if (!$ctx) {

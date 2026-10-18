@@ -182,6 +182,7 @@ class MaxService
 
     public static function notifyNewBooking(Shop $shop, $booking): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
         if (!$shop->max_bot_connected) return;
 
         $tz      = $shop->timezone ?? 'Europe/Moscow';
@@ -241,6 +242,8 @@ class MaxService
 
     public static function notifyOwnerBookingStatus(Shop $shop, $booking, string $status): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $label = match($status) {
             'confirmed' => '✅ Подтверждена',
             'cancelled' => '❌ Отменена',
@@ -452,6 +455,8 @@ class MaxService
 
     public static function notifyBookingReminder(string $bookingId, object $booking, string $type, string $timezone): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $userId = self::getCustomerUserId($bookingId);
         if (!$userId) return;
 
@@ -611,6 +616,14 @@ class MaxService
     {
         $text = $intro ?: '📋 Выберите действие:';
 
+        // Кнопки записей — только пока booking_bot_enabled (2026-10-18).
+        // Без него этот метод всё равно зовётся для приветствия после
+        // привязки — шлём текст без кнопок, не оставляем мёртвые callback.
+        if (!config('platform.booking_bot_enabled')) {
+            self::sendRaw($userId, $text);
+            return;
+        }
+
         $buttons = [[
             ['type' => 'callback', 'text' => '📅 Сегодня', 'payload' => 'master_menu:today:0'],
             ['type' => 'callback', 'text' => '📅 Неделя',  'payload' => 'master_menu:week:0'],
@@ -626,6 +639,8 @@ class MaxService
 
     public static function notifyMasterNewBooking(int $userId, $booking, string $timezone, bool $hidePhone = false): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');
         $date    = $dt->translatedFormat('j M, D');
         $time    = $dt->format('H:i');
@@ -649,6 +664,8 @@ class MaxService
 
     public static function notifyMasterBookingStatus(int $userId, $booking, string $status, string $timezone): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $label = match($status) {
             'cancelled' => '❌ Запись отменена',
             default     => null,
@@ -665,6 +682,8 @@ class MaxService
 
     public static function notifyMasterReminder(int $userId, object $booking, string $type, string $timezone): void
     {
+        if (!config('platform.booking_bot_enabled')) return;
+
         $label   = $type === '24h' ? 'Завтра' : 'Через 2 часа';
         $dt      = \Carbon\Carbon::parse($booking->start_time)->setTimezone($timezone)->locale('ru');
         $date    = $dt->translatedFormat('j M, D');
