@@ -7,6 +7,8 @@ use App\Models\Order;
 use App\Models\Shop;
 use App\Services\MasterBotService;
 use App\Services\MaxService;
+use App\Services\OrderActivityLog;
+use App\Services\OrderCollectorCandidates;
 use App\Services\TelegramService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
@@ -368,6 +370,14 @@ class MaxController extends Controller
 
     private function handleOrderAction(string $cbId, string $orderId, string $action, int $userId, Shop $shop): void
     {
+        // 'assign' приходит как "order:assign:{orderId}:{actorUserId}" —
+        // upstream-парсер handleCallback() (explode(':', $payload, 3)) кладёт
+        // всё после 2-го ':' в $orderId одним куском, разбираем сами.
+        if ($action === 'assign') {
+            $this->handleOrderAssign($cbId, $orderId, $shop);
+            return;
+        }
+
         $order = Order::find($orderId);
 
         if (!$order) {
@@ -377,8 +387,17 @@ class MaxController extends Controller
 
         $isDigitalOnly = $order->items()->where('product_type', '!=', 'digital')->doesntExist();
 
+        // «Подтвердить» на физическом заказе больше не пишет processing
+        // сразу — сначала спрашиваем, кто берёт собирать, симметрично
+        // Telegram (PLAN.md 2026-10-18).
+        if ($action === 'confirm' && !$isDigitalOnly) {
+            MaxService::answerCallback($cbId, 'Выберите, кто берёт заказ');
+            MaxService::showOrderCollectorPicker($order->id, OrderCollectorCandidates::listFor($shop));
+            return;
+        }
+
         $newStatus = match ($action) {
-            'confirm' => $isDigitalOnly ? 'completed' : 'processing',
+            'confirm' => 'completed', // сюда доходит только digital-only
             'cancel'  => 'cancelled',
             default   => null,
         };
@@ -402,6 +421,50 @@ class MaxController extends Controller
         TelegramService::sendMessage(shop: $shop, text: "Заказ #" . substr($orderId, 0, 8) . " — {$label}");
 
         Log::info('Order updated via MAX', ['order_id' => $orderId, 'status' => $newStatus]);
+    }
+
+    private function handleOrderAssign(string $cbId, string $combined, Shop $shop): void
+    {
+        [$orderId, $actorUserId] = array_pad(explode(':', $combined, 2), 2, null);
+
+        if (!$orderId || !$actorUserId) {
+            MaxService::answerCallback($cbId, 'Некорректные данные');
+            return;
+        }
+
+        $order = Order::find($orderId);
+        if (!$order) {
+            MaxService::answerCallback($cbId, 'Заказ не найден');
+            return;
+        }
+
+        $actorName = OrderCollectorCandidates::resolveName($shop, $actorUserId);
+        if (!$actorName) {
+            MaxService::answerCallback($cbId, 'Сотрудник не найден');
+            return;
+        }
+
+        $result = $order->claimBy($actorUserId, $actorName);
+
+        if (!$result['ok']) {
+            MaxService::answerCallback($cbId, $result['message']);
+            return;
+        }
+
+        OrderActivityLog::record($order, $actorUserId, $actorName, null, 'claimed');
+
+        MaxService::answerCallback($cbId, "Заказ закреплён за {$actorName}");
+        MaxService::removeButtonsByEntity('order', $order->id);
+        TelegramService::removeKeyboardByEntity('Order', $order->id);
+
+        $text = "Заказ #" . substr($order->id, 0, 8) . " — ✅ В работе, собирает {$actorName}";
+        MaxService::sendRaw($shop->max_chat_id, $text);
+        TelegramService::sendMessage(shop: $shop, text: $text);
+
+        Log::info('Order claimed via MAX picker', [
+            'order_id' => $order->id,
+            'actor_user_id' => $actorUserId,
+        ]);
     }
 
     private function handleBookingAction(string $cbId, string $bookingId, string $action, int $userId, Shop $shop): void

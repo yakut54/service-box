@@ -352,6 +352,43 @@ class MaxService
         self::removeButtons((int) $cached['user_id'], $cached['mid']);
     }
 
+    /**
+     * Заменяет кнопки "Подтвердить/Отменить" под сообщением о заказе на
+     * список сотрудников — следующий шаг после "Подтвердить" на физическом
+     * заказе (PLAN.md 2026-10-18, симметрично Telegram::showOrderCollectorPicker).
+     * mid берём из того же кеша, что кладёт notifyNewOrder().
+     *
+     * @param array<int, array{id: string, name: string}> $options
+     */
+    public static function showOrderCollectorPicker(string $orderId, array $options): void
+    {
+        $cached = Cache::get("max_mid:order:{$orderId}");
+        if (!$cached) return;
+
+        $token = self::token();
+        if (!$token) return;
+
+        $buttons = array_map(
+            fn (array $opt) => ['type' => 'callback', 'text' => $opt['name'], 'payload' => "order:assign:{$orderId}:{$opt['id']}"],
+            $options,
+        );
+        $rows = array_chunk($buttons, 2);
+
+        try {
+            Http::timeout(5)
+                ->withHeaders(['Authorization' => $token])
+                ->put(self::api() . '/messages?message_id=' . urlencode($cached['mid']), [
+                    'attachments' => [[
+                        'type'    => 'inline_keyboard',
+                        'payload' => ['buttons' => $rows],
+                    ]],
+                    'notify' => false,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('[MAX] showOrderCollectorPicker failed', ['error' => $e->getMessage()]);
+        }
+    }
+
     // ── Customer subscription flow ────────────────────────────────────────
 
     public static function generateCustomerCode(string $bookingId): string

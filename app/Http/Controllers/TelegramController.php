@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Order;
 use App\Models\Shop;
-use App\Models\ShopStaff;
 use App\Services\MasterBotService;
 use App\Services\MaxService;
 use App\Services\OrderActivityLog;
+use App\Services\OrderCollectorCandidates;
 use App\Services\TelegramService;
 use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
@@ -419,7 +419,7 @@ class TelegramController extends Controller
             }
 
             $this->answerCallback($callbackId, 'Выберите, кто берёт заказ');
-            TelegramService::showOrderCollectorPicker($chatId, $messageId, $order->id, $this->collectorOptions($shop));
+            TelegramService::showOrderCollectorPicker($chatId, $messageId, $order->id, OrderCollectorCandidates::listFor($shop));
             return;
         }
 
@@ -458,54 +458,6 @@ class TelegramController extends Controller
         ]);
     }
 
-    /**
-     * Список кандидатов "кто берёт заказ" — владелец + принятые
-     * admin/collector этого магазина. Роль master сознательно не включаем —
-     * салоны/мастера вне фокуса этой фичи (PLAN.md 2026-10-18).
-     *
-     * @return array<int, array{id: string, name: string}>
-     */
-    private function collectorOptions(Shop $shop): array
-    {
-        $options = [['id' => $shop->user_id, 'name' => $shop->user->name]];
-
-        $staff = ShopStaff::where('shop_id', $shop->id)
-            ->whereIn('role', ['admin', 'collector'])
-            ->whereNotNull('accepted_at')
-            ->with('user')
-            ->get();
-
-        foreach ($staff as $member) {
-            if ($member->user) {
-                $options[] = ['id' => $member->user_id, 'name' => $member->user->name];
-            }
-        }
-
-        return $options;
-    }
-
-    /**
-     * Резолвит имя исполнителя по userId, но ТОЛЬКО если это реально
-     * владелец или принятый admin/collector именно этого магазина —
-     * callback_data приходит от клиента, доверять userId без проверки
-     * нельзя (иначе можно закрепить заказ за произвольным чужим id).
-     */
-    private function resolveCollectorName(Shop $shop, string $actorUserId): ?string
-    {
-        if ($shop->user_id === $actorUserId) {
-            return $shop->user->name;
-        }
-
-        $staff = ShopStaff::where('shop_id', $shop->id)
-            ->where('user_id', $actorUserId)
-            ->whereIn('role', ['admin', 'collector'])
-            ->whereNotNull('accepted_at')
-            ->with('user')
-            ->first();
-
-        return $staff?->user?->name;
-    }
-
     private function handleOrderAssign(string $callbackId, string $combined, int $chatId, ?int $messageId): void
     {
         [$orderId, $actorUserId] = array_pad(explode(':', $combined, 2), 2, null);
@@ -522,7 +474,7 @@ class TelegramController extends Controller
         }
 
         $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
-        $actorName = $shop ? $this->resolveCollectorName($shop, $actorUserId) : null;
+        $actorName = $shop ? OrderCollectorCandidates::resolveName($shop, $actorUserId) : null;
 
         if (!$actorName) {
             $this->answerCallback($callbackId, 'Сотрудник не найден', true);
