@@ -101,4 +101,22 @@ class OrderClaimByTest extends TestCase
         $order->refresh();
         $this->assertNull($order->collector_id);
     }
+
+    /**
+     * needs_attention попадает сюда только через release()/reportProblem()
+     * — оба значат "кому-то нужно взять ответственность", и claim — это и
+     * есть тот акт. Баг найден живым разбором 2026-10-18: статус оставался
+     * "Требует внимания" даже после того, как заказ подхватил другой
+     * сборщик.
+     */
+    public function test_needs_attention_order_resets_to_processing_on_claim(): void
+    {
+        $order = $this->freshOrder(['status' => 'needs_attention', 'pick_note' => 'Нога болит!']);
+
+        $result = $order->claimBy((string) Str::uuid(), 'Егорка');
+
+        $this->assertTrue($result['ok']);
+        $order->refresh();
+        $this->assertSame('processing', $order->status);
+    }
 }

@@ -174,11 +174,18 @@ class Order extends Model
             ];
         }
 
+        // needs_attention попадает сюда только через release()/reportProblem()
+        // — оба семантически значат "кому-то нужно взять ответственность".
+        // claim — это и есть тот акт, поэтому сбрасываем обратно в processing
+        // (баг найден 2026-10-18 живым разбором: Егорка взял заказ после
+        // отказа Юлии, статус так и остался «Требует внимания»). Доплата за
+        // перевес сюда не попадает — у неё отдельное поле surcharge_status,
+        // claimBy() его не трогает и трогать не должен.
         $this->update([
             'collector_id' => $actorUserId,
             'collector_name' => $actorName,
             'picking_started_at' => $this->picking_started_at ?? now(),
-            'status' => in_array($this->status, ['pending', 'paid'], true) ? 'processing' : $this->status,
+            'status' => in_array($this->status, ['pending', 'paid', 'needs_attention'], true) ? 'processing' : $this->status,
         ]);
 
         return ['ok' => true];
