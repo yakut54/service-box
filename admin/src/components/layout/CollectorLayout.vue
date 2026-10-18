@@ -6,6 +6,7 @@ import { usePresenceStore } from '@/stores/presence'
 import { useTheme } from '@/composables/useTheme'
 import ToastContainer from '@/components/ToastContainer.vue'
 import OrderAssignedNoticeModal from '@/components/OrderAssignedNoticeModal.vue'
+import UiAvatar from '@/shared/ui/UiAvatar.vue'
 
 const authStore = useAuthStore()
 const presenceStore = usePresenceStore()
@@ -29,13 +30,18 @@ onUnmounted(() => presenceStore.leave())
     <header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
       <div class="max-w-2xl mx-auto w-full px-4 h-14 flex items-center justify-between">
 
-        <div class="flex flex-col min-w-0">
-          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate leading-tight">
-            {{ authStore.shop?.name }}
-          </span>
-          <span class="text-xs text-gray-500 dark:text-gray-400 truncate leading-tight">
-            {{ authStore.isCollector ? 'Сборщик' : 'Сборка' }} · {{ authStore.user?.name }}
-          </span>
+        <div class="flex items-center gap-2 min-w-0">
+          <!-- Тот же логотип, что в виджете (Настройки → Брендинг) — отдельную
+               аватарку под шапку сборщика заводить незачем, у магазина уже есть. -->
+          <UiAvatar :src="authStore.shop?.widget_config?.logo_url" :name="authStore.shop?.name" size="sm" />
+          <div class="flex flex-col min-w-0">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate leading-tight">
+              {{ authStore.shop?.name }}
+            </span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 truncate leading-tight">
+              {{ authStore.isCollector ? 'Сборщик' : 'Сборка' }} · {{ authStore.user?.name }}
+            </span>
+          </div>
         </div>
 
         <div class="flex items-center gap-2 flex-shrink-0">
