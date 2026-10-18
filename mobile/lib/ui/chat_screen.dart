@@ -684,18 +684,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   /// Долгое нажатие на бабл — как в Телеграме: 1-е входит в режим
   /// множественного выбора (AppBar подменяется на панель выбора), 2-е (на
-  /// уже единственном выбранном) сразу переводит в посимвольное выделение
-  /// текста, минуя режим выбора.
+  /// уже единственном выбранном) ДОПОЛНИТЕЛЬНО переводит этот бабл в
+  /// посимвольное выделение текста, НЕ выходя из режима выбора — AppBar
+  /// выбора и чекбоксы у всех баблов остаются как были.
   void _onBubbleLongPress(ChatMessage m) {
     if (m.isDeleted && !m.isMine) return;
 
     if (_selectedIds.length == 1 && _selectedIds.contains(m.id)) {
       if (m.body == null || m.body!.isEmpty) return;
       HapticFeedback.mediumImpact();
-      setState(() {
-        _selectedIds.clear();
-        _selectingMessageId = m.id;
-      });
+      setState(() => _selectingMessageId = m.id);
       return;
     }
 
@@ -712,7 +710,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _exitSelection() {
-    setState(() => _selectedIds.clear());
+    // Крестик в AppBar режима выбора — явная команда "выйти целиком";
+    // при комбинации (множественный выбор + активное текстовое выделение
+    // на одном из баблов, см. _onBubbleLongPress) сбрасывает оба состояния
+    // сразу, иначе бабл остался бы залипшим в SelectableText-режиме без
+    // AppBar выбора.
+    setState(() {
+      _selectedIds.clear();
+      _selectingMessageId = null;
+    });
   }
 
   Future<void> _copySelection() async {
@@ -828,34 +834,52 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: _selectedIds.isNotEmpty ? _buildSelectionAppBar() : AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Чат с магазином'),
-            if (_shopIsTyping)
-              Text(
-                'печатает…',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontStyle: FontStyle.italic,
+    return PopScope(
+      // Пока активно текстовое выделение ИЛИ множественный выбор — системный
+      // "Назад" (аппаратная кнопка/жест Android, и авто-стрелка в AppBar,
+      // которую Flutter подставляет сам, раз leading не задан явно) не
+      // должен закрывать экран чата, а поэтапно откатывать режимы — иначе
+      // случайный свайп-назад посреди копирования цитаты выкидывал бы байера
+      // из чата целиком.
+      canPop: _selectingMessageId == null && _selectedIds.isEmpty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_selectingMessageId != null) {
+          _cancelSelecting(); // 1-й "Назад" — только текстовое выделение
+        } else if (_selectedIds.isNotEmpty) {
+          _exitSelection(); // 2-й "Назад" — множественный выбор
+        }
+        // 3-й "Назад" — canPop уже true, обычный выход с экрана.
+      },
+      child: Scaffold(
+        appBar: _selectedIds.isNotEmpty ? _buildSelectionAppBar() : AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Чат с магазином'),
+              if (_shopIsTyping)
+                Text(
+                  'печатает…',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              else if (_shopOnline)
+                Text(
+                  'в сети',
+                  style: theme.textTheme.labelSmall?.copyWith(color: Colors.green),
                 ),
-              )
-            else if (_shopOnline)
-              Text(
-                'в сети',
-                style: theme.textTheme.labelSmall?.copyWith(color: Colors.green),
-              ),
+            ],
+          ),
+        ),
+        body: Stack(
+          children: [
+            ChatBackground(color: Theme.of(context).colorScheme.primary),
+            SafeArea(child: _buildBody()),
           ],
         ),
-      ),
-      body: Stack(
-        children: [
-          ChatBackground(color: Theme.of(context).colorScheme.primary),
-          SafeArea(child: _buildBody()),
-        ],
       ),
     );
   }
