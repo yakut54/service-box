@@ -49,14 +49,23 @@ class ChatScreen extends StatefulWidget {
   /// уровне БД — так владелец видит контекст прямо в тексте, без миграции.
   final String? initialDraft;
 
-  const ChatScreen({super.key, this.sharedImagePath, this.initialDraft});
+  // Только для тестов (см. test/helpers/chat_test_harness.dart) — боевой код
+  // всегда оставляет null и получает репозиторий через ChatRepository.create().
+  final ChatRepository? repository;
+
+  const ChatScreen({
+    super.key,
+    this.sharedImagePath,
+    this.initialDraft,
+    this.repository,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
-  final _repository = ChatRepository.create();
+  late final _repository = widget.repository ?? ChatRepository.create();
   // Соединением владеет ChatState (живёт весь сеанс, не только этот экран)
   // — здесь только добавляем/снимаем свой листенер на уже открытый сокет,
   // см. ChatState.realtime.
