@@ -190,4 +190,49 @@ void main() {
 
     expect(find.text('Выбрано 2'), findsOneWidget);
   });
+
+  testWidgets(
+    'короткий тап по тексту УЖЕ отмеченного пузыря снимает галочку '
+    '(SelectionArea своим тапом не должна глушить тоггл)',
+    (tester) async {
+      await pumpChatScreen(tester, messages: [buildMessage(id: 'm1', body: 'тест')]);
+
+      await tester.longPress(find.text('тест'));
+      await tester.pumpAndSettle();
+      expect(find.text('Выбрано 1'), findsOneWidget);
+
+      await tester.tap(find.text('тест'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Выбрано 1'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'выделение на сообщении, которое НЕ у самого низа ленты — лента не трогается',
+    (tester) async {
+      final messages = [
+        for (var i = 0; i < 25; i++) buildMessage(id: 'm$i', body: 'сообщение номер $i'),
+      ];
+      await pumpChatScreen(tester, messages: messages);
+
+      // Самое старое сообщение (номер 24 — см. buildMessage/порядок в
+      // FakeChatRepository) оказывается НАВЕРХУ reverse-ленты — прокручиваем
+      // туда штатным хелпером (ListView.builder ленивый, обычный drag может
+      // не успеть построить нужный элемент).
+      await tester.scrollUntilVisible(
+        find.text('сообщение номер 24'),
+        200.0,
+        scrollable: find.byType(Scrollable).first,
+      );
+      final before = tester.state<ScrollableState>(find.byType(Scrollable).first).position.pixels;
+
+      await tester.longPress(find.text('сообщение номер 24'));
+      await tester.pumpAndSettle();
+      await selectAllInBubble(tester, 'сообщение номер 24');
+
+      final after = tester.state<ScrollableState>(find.byType(Scrollable).first).position.pixels;
+      expect(after, before);
+    },
+  );
 }

@@ -81,6 +81,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _hasMoreOlder = true;
   bool _isBlockedByShop = false;
   final Map<String, GlobalKey<_MessageBubbleState>> _messageKeys = {};
+  // Нужен только чтобы узнать верхнюю границу композера — см.
+  // _scrollSelectedBubbleIntoView.
+  final _composerKey = GlobalKey();
   String? _jumpingToMessageId;
   String? _highlightedMessageId;
   Timer? _highlightTimer;
@@ -672,16 +675,30 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   /// Капли/меню выделения рисует Flutter в Overlay поверх всего экрана, он не
   /// обрезается границами ленты — у самого нижнего пузыря (прижат к полю
-  /// ввода) капля иначе вылезала бы на композер. Подкручиваем бабл к центру —
-  /// тот же вызов, что уже используется для прыжка по цитате (_jumpToMessage).
+  /// ввода) капля иначе вылезала бы на композер. В отличие от _jumpToMessage
+  /// (центрирование по цитате) здесь нужно ровно противоположное: не
+  /// трогать бабл, если он и так не перекрывается, а если перекрывается —
+  /// подвинуть его ровно настолько, чтобы капля освободила поле ввода, не
+  /// утаскивая бабл в середину экрана (пользователь явно просил именно так,
+  /// см. PLAN.md 2026-10-18).
   void _scrollSelectedBubbleIntoView(String messageId) {
-    final ctx = _messageKeys[messageId]?.currentContext;
-    if (ctx == null) return;
-    Scrollable.ensureVisible(
-      ctx,
+    if (!_scrollController.hasClients) return;
+    final bubbleBox = _messageKeys[messageId]?.currentContext?.findRenderObject() as RenderBox?;
+    final composerBox = _composerKey.currentContext?.findRenderObject() as RenderBox?;
+    if (bubbleBox == null || composerBox == null) return;
+
+    const clearance = 40.0; // зазор, чтобы капля не упиралась в поле ввода
+    final bubbleBottom = bubbleBox.localToGlobal(Offset(0, bubbleBox.size.height)).dy;
+    final composerTop = composerBox.localToGlobal(Offset.zero).dy;
+    final overlap = bubbleBottom + clearance - composerTop;
+    if (overlap <= 0) return; // бабл не у самого низа — трогать не нужно
+
+    final position = _scrollController.position;
+    final target = (position.pixels + overlap).clamp(0.0, position.maxScrollExtent);
+    _scrollController.animateTo(
+      target,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
-      alignment: 0.5,
     );
   }
 
@@ -1037,7 +1054,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   },
                 ),
         ),
-        _buildComposer(),
+        KeyedSubtree(key: _composerKey, child: _buildComposer()),
       ],
     );
   }
@@ -1608,17 +1625,48 @@ class _MessageBubbleState extends State<_MessageBubble>
                           // механизм Flutter (см. PLAN.md 2026-10-18).
                           // Неотмеченный — обычный Text, как раньше.
                           child: widget.isChecked
-                              ? SelectionArea(
-                                  key: _selectionAreaKey,
-                                  onSelectionChanged: _onTextSelectionChanged,
-                                  contextMenuBuilder: _buildSelectionToolbar,
-                                  child: Text(
-                                    message.body!,
-                                    textAlign: isMine ? TextAlign.right : TextAlign.left,
-                                    style: TextStyle(
-                                      color: isMine
+                              ? DefaultSelectionStyle(
+                                  // Подсветка выделения по умолчанию —
+                                  // полупрозрачный серый (DefaultSelectionStyle.
+                                  // defaultColor) — на тёмном «своём» бабле
+                                  // (цвет primary) она почти не видна. Берём
+                                  // цвет текста с небольшой прозрачностью —
+                                  // так же, как Flutter берёт цвет курсора/
+                                  // выделения в TextField по умолчанию.
+                                  selectionColor: (isMine
                                           ? theme.colorScheme.onPrimary
-                                          : theme.colorScheme.onSurface,
+                                          : theme.colorScheme.primary)
+                                      .withValues(alpha: 0.35),
+                                  child: SelectionArea(
+                                    key: _selectionAreaKey,
+                                    onSelectionChanged: _onTextSelectionChanged,
+                                    contextMenuBuilder: _buildSelectionToolbar,
+                                    // Тап по тексту отмеченного бабла — тоггл
+                                    // выбора, как и везде в режиме выбора. Без
+                                    // этого отдельного GestureDetector тап
+                                    // проглатывает сама SelectionArea (у неё
+                                    // свой обработчик тапа — схлопнуть
+                                    // выделение), и внешний GestureDetector
+                                    // бабла (см. выше, onTap) до тогла не
+                                    // доходит: во внутренней arena жестов
+                                    // SelectionArea стабильно побеждает внешний
+                                    // GestureDetector на простом тапе — только
+                                    // ВНУТРЕННИЙ (ближе к тексту) выигрывает.
+                                    // Долгое нажатие это не трогает — тут нет
+                                    // onLongPress, им по-прежнему управляет
+                                    // сама SelectionArea.
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: widget.onToggle,
+                                      child: Text(
+                                        message.body!,
+                                        textAlign: isMine ? TextAlign.right : TextAlign.left,
+                                        style: TextStyle(
+                                          color: isMine
+                                              ? theme.colorScheme.onPrimary
+                                              : theme.colorScheme.onSurface,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 )
