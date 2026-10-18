@@ -83,7 +83,13 @@ class TelegramOrderAssignTest extends TestCase
         $shop = $this->shopWithBot();
         $order = $this->physicalOrder($shop);
 
-        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:{$shop->user_id}");
+        // Сначала confirm — он кэширует список кандидатов и только тогда в
+        // кнопках появляется индекс, который assign умеет разобрать (кнопка
+        // шлёт позицию в списке, а не сам userId — см. лимит callback_data
+        // у Telegram в 64 байта, PLAN.md 2026-10-18).
+        $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
+        // Владелец — всегда первый в списке (OrderCollectorCandidates::listFor()).
+        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:0");
 
         TenantService::setContext($shop);
         $order->refresh();
@@ -109,7 +115,9 @@ class TelegramOrderAssignTest extends TestCase
             'accepted_at' => now(),
         ]);
 
-        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:{$staffUser->id}");
+        $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
+        // Владелец — индекс 0, единственный принятый сотрудник — индекс 1.
+        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:1");
 
         TenantService::setContext($shop);
         $order->refresh();
@@ -118,13 +126,43 @@ class TelegramOrderAssignTest extends TestCase
         $this->assertSame('Егорка', $order->collector_name);
     }
 
-    public function test_assign_rejects_a_user_not_on_staff(): void
+    public function test_assign_without_prior_confirm_is_rejected(): void
     {
         $shop = $this->shopWithBot();
         $order = $this->physicalOrder($shop);
-        $strangerId = (string) Str::uuid();
 
-        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:{$strangerId}");
+        // Без confirm список кандидатов никогда не кэшировался — индекс
+        // ни на что не указывает, заказ не должен меняться.
+        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:0");
+
+        TenantService::setContext($shop);
+        $order->refresh();
+        $this->assertSame('pending', $order->status);
+        $this->assertNull($order->collector_id);
+    }
+
+    public function test_assign_rejects_a_candidate_who_lost_access_after_confirm(): void
+    {
+        $shop = $this->shopWithBot();
+        $order = $this->physicalOrder($shop);
+
+        $staffUser = User::create([
+            'name' => 'Егорка',
+            'email' => 'egorka-' . Str::uuid() . '@example.test',
+            'password' => bcrypt('password'),
+        ]);
+        $staff = ShopStaff::create([
+            'shop_id' => $shop->id,
+            'user_id' => $staffUser->id,
+            'role' => 'collector',
+            'accepted_at' => now(),
+        ]);
+
+        $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
+        // Между показом списка и нажатием сотрудника отозвали доступ —
+        // resolveName() должен это перепроверить, а не доверять кэшу вслепую.
+        $staff->update(['accepted_at' => null]);
+        $this->sendCallback($shop->telegram_chat_id, "order:assign:{$order->id}:1");
 
         TenantService::setContext($shop);
         $order->refresh();

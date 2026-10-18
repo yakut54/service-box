@@ -1078,19 +1078,33 @@ class TelegramService
         $botToken = config('services.telegram.bot_token');
         if (!$botToken) return;
 
-        $buttons = array_map(
-            fn (array $opt) => ['text' => $opt['name'], 'callback_data' => "order:assign:{$orderId}:{$opt['id']}"],
-            $options,
-        );
+        // callback_data у Telegram ограничен 64 байтами — "order:assign:" +
+        // UUID заказа + UUID сотрудника туда не влезают (см. баг 2026-10-18),
+        // поэтому шлём позицию в $options, а не сам userId.
+        $buttons = [];
+        foreach ($options as $i => $opt) {
+            $buttons[] = ['text' => $opt['name'], 'callback_data' => "order:assign:{$orderId}:{$i}"];
+        }
         // По 2 в ряд — один длинный ряд с именами сотрудников неудобно читать.
         $rows = array_chunk($buttons, 2);
 
         try {
-            Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
+            $response = Http::timeout(5)->post("https://api.telegram.org/bot{$botToken}/editMessageReplyMarkup", [
                 'chat_id'      => $chatId,
                 'message_id'   => $messageId,
                 'reply_markup' => json_encode(['inline_keyboard' => $rows]),
             ]);
+
+            // Http не бросает исключение сам на 4xx/5xx — без явной проверки
+            // статуса ошибка Telegram (напр. BUTTON_DATA_INVALID) проходит
+            // незамеченной, кнопки остаются старыми, а лог молчит (баг
+            // 2026-10-18, найден только по скриншоту пользователя).
+            if ($response->failed()) {
+                Log::warning('[TG] showOrderCollectorPicker: Telegram rejected the request', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+            }
         } catch (\Throwable $e) {
             Log::warning('[TG] showOrderCollectorPicker failed', ['error' => $e->getMessage()]);
         }

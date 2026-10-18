@@ -385,7 +385,7 @@ class TelegramController extends Controller
 
     private function handleOrderAction(string $callbackId, string $orderId, string $action, int $chatId, ?int $messageId): void
     {
-        // 'assign' приходит как "order:assign:{orderId}:{actorUserId}" —
+        // 'assign' приходит как "order:assign:{orderId}:{index}" —
         // upstream-парсер handleCallbackQuery() (explode(':', $data, 3))
         // кладёт всё после 2-го ':' в $orderId одним куском, разбираем сами.
         if ($action === 'assign') {
@@ -418,8 +418,11 @@ class TelegramController extends Controller
                 return;
             }
 
+            $options = OrderCollectorCandidates::listFor($shop);
+            OrderCollectorCandidates::cache($order->id, $options);
+
             $this->answerCallback($callbackId, 'Выберите, кто берёт заказ');
-            TelegramService::showOrderCollectorPicker($chatId, $messageId, $order->id, OrderCollectorCandidates::listFor($shop));
+            TelegramService::showOrderCollectorPicker($chatId, $messageId, $order->id, $options);
             return;
         }
 
@@ -460,9 +463,9 @@ class TelegramController extends Controller
 
     private function handleOrderAssign(string $callbackId, string $combined, int $chatId, ?int $messageId): void
     {
-        [$orderId, $actorUserId] = array_pad(explode(':', $combined, 2), 2, null);
+        [$orderId, $indexRaw] = array_pad(explode(':', $combined, 2), 2, null);
 
-        if (!$orderId || !$actorUserId) {
+        if (!$orderId || $indexRaw === null || !ctype_digit($indexRaw)) {
             $this->answerCallback($callbackId, 'Некорректные данные');
             return;
         }
@@ -473,7 +476,14 @@ class TelegramController extends Controller
             return;
         }
 
+        $picked = OrderCollectorCandidates::pickFromCache($orderId, (int) $indexRaw);
+        if (!$picked) {
+            $this->answerCallback($callbackId, 'Список устарел, нажмите «Подтвердить» ещё раз', true);
+            return;
+        }
+
         $shop = Shop::where('telegram_chat_id', $chatId)->where('telegram_bot_connected', true)->first();
+        $actorUserId = $picked['id'];
         $actorName = $shop ? OrderCollectorCandidates::resolveName($shop, $actorUserId) : null;
 
         if (!$actorName) {

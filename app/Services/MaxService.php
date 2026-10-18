@@ -368,14 +368,17 @@ class MaxService
         $token = self::token();
         if (!$token) return;
 
-        $buttons = array_map(
-            fn (array $opt) => ['type' => 'callback', 'text' => $opt['name'], 'payload' => "order:assign:{$orderId}:{$opt['id']}"],
-            $options,
-        );
+        // Индекс вместо userId в payload — симметрично Telegram (см. баг
+        // 2026-10-18: там это превышало лимит callback_data в 64 байта;
+        // здесь лимита может и не быть, но короче и единообразнее честнее).
+        $buttons = [];
+        foreach ($options as $i => $opt) {
+            $buttons[] = ['type' => 'callback', 'text' => $opt['name'], 'payload' => "order:assign:{$orderId}:{$i}"];
+        }
         $rows = array_chunk($buttons, 2);
 
         try {
-            Http::timeout(5)
+            $response = Http::timeout(5)
                 ->withHeaders(['Authorization' => $token])
                 ->put(self::api() . '/messages?message_id=' . urlencode($cached['mid']), [
                     'attachments' => [[
@@ -384,6 +387,13 @@ class MaxService
                     ]],
                     'notify' => false,
                 ]);
+
+            if ($response->failed()) {
+                Log::warning('[MAX] showOrderCollectorPicker: MAX rejected the request', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+            }
         } catch (\Throwable $e) {
             Log::warning('[MAX] showOrderCollectorPicker failed', ['error' => $e->getMessage()]);
         }

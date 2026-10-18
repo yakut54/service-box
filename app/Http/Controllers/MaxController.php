@@ -370,7 +370,7 @@ class MaxController extends Controller
 
     private function handleOrderAction(string $cbId, string $orderId, string $action, int $userId, Shop $shop): void
     {
-        // 'assign' приходит как "order:assign:{orderId}:{actorUserId}" —
+        // 'assign' приходит как "order:assign:{orderId}:{index}" —
         // upstream-парсер handleCallback() (explode(':', $payload, 3)) кладёт
         // всё после 2-го ':' в $orderId одним куском, разбираем сами.
         if ($action === 'assign') {
@@ -391,8 +391,11 @@ class MaxController extends Controller
         // сразу — сначала спрашиваем, кто берёт собирать, симметрично
         // Telegram (PLAN.md 2026-10-18).
         if ($action === 'confirm' && !$isDigitalOnly) {
+            $options = OrderCollectorCandidates::listFor($shop);
+            OrderCollectorCandidates::cache($order->id, $options);
+
             MaxService::answerCallback($cbId, 'Выберите, кто берёт заказ');
-            MaxService::showOrderCollectorPicker($order->id, OrderCollectorCandidates::listFor($shop));
+            MaxService::showOrderCollectorPicker($order->id, $options);
             return;
         }
 
@@ -425,9 +428,9 @@ class MaxController extends Controller
 
     private function handleOrderAssign(string $cbId, string $combined, Shop $shop): void
     {
-        [$orderId, $actorUserId] = array_pad(explode(':', $combined, 2), 2, null);
+        [$orderId, $indexRaw] = array_pad(explode(':', $combined, 2), 2, null);
 
-        if (!$orderId || !$actorUserId) {
+        if (!$orderId || $indexRaw === null || !ctype_digit($indexRaw)) {
             MaxService::answerCallback($cbId, 'Некорректные данные');
             return;
         }
@@ -438,6 +441,13 @@ class MaxController extends Controller
             return;
         }
 
+        $picked = OrderCollectorCandidates::pickFromCache($orderId, (int) $indexRaw);
+        if (!$picked) {
+            MaxService::answerCallback($cbId, 'Список устарел, нажмите «Подтвердить» ещё раз');
+            return;
+        }
+
+        $actorUserId = $picked['id'];
         $actorName = OrderCollectorCandidates::resolveName($shop, $actorUserId);
         if (!$actorName) {
             MaxService::answerCallback($cbId, 'Сотрудник не найден');
