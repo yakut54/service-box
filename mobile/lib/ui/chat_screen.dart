@@ -38,6 +38,11 @@ import 'widgets/skeleton.dart';
 /// открыт — системную плашку/баннер не показываем (WS уже доставил).
 bool chatScreenOpen = false;
 
+// Отступ ленты от края экрана — общий для самой ленты (_ChatScreenState),
+// полосы подсветки выбора и спиннера подгрузки старых (_MessageBubbleState) —
+// один литерал на весь экран чата вместо трёх одинаковых чисел порознь.
+const _kChatHorizontalPadding = 12.0;
+
 class ChatScreen extends StatefulWidget {
   /// Путь к файлу, с которым открыли приложение через системное
   /// «Поделиться» (Android, см. main.dart + MainActivity.kt) — фото сразу
@@ -1294,7 +1299,10 @@ class _ChatSkeleton extends StatelessWidget {
     return Shimmer(
       child: ListView.builder(
         reverse: true,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        // Тот же горизонтальный отступ, что и у настоящей ленты (которая
+        // заменит этот скелет после загрузки) — псевдо-баблы должны встать
+        // ровно там же, где появятся настоящие.
+        padding: const EdgeInsets.symmetric(horizontal: _kChatHorizontalPadding, vertical: 8),
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _widths.length,
         itemBuilder: (context, index) {
@@ -1773,7 +1781,7 @@ class _MessageBubbleState extends State<_MessageBubble>
       color: widget.isChecked
           ? theme.colorScheme.primary.withValues(alpha: 0.16)
           : Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: _kChatHorizontalPadding),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
