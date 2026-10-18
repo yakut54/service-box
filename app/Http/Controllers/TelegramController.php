@@ -150,9 +150,15 @@ class TelegramController extends Controller
 
             TelegramService::connectTelegram($shop, $chatId);
 
+            // "о новых записях и" — убрано, пока записи в ботах выключены
+            // целиком (2026-10-18, platform.booking_bot_enabled); иначе
+            // владелец подключает бота и сразу читает обещание про записи,
+            // которых бот в этом режиме никогда не пришлёт.
             $this->sendReply(
                 $chatId,
-                "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
+                config('platform.booking_bot_enabled')
+                    ? "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
+                    : "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых заказах прямо сюда."
             );
             return;
         }
@@ -211,11 +217,24 @@ class TelegramController extends Controller
             return;
         }
 
-        $this->sendReply($chatId, "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись —\nиспользуйте кнопки в сообщениях бота.");
+        // Записи выключены целиком (2026-10-18, platform.booking_bot_enabled)
+        // — этот бот сейчас не умеет ничего, кроме как подтверждать коды и
+        // принимать текст отзыва; не обещаем байеру то, чего он не получит.
+        $this->sendReply($chatId, config('platform.booking_bot_enabled')
+            ? "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись —\nиспользуйте кнопки в сообщениях бота."
+            : 'ℹ️ Чтобы выполнить действие, используйте кнопки в сообщениях бота.');
     }
 
     private function handleCustomerLink(string $token, int $chatId): void
     {
+        // Записи в ботах временно отключены целиком (2026-10-18) — эта
+        // привязка целиком про уведомления о записях (см. текст ниже), без
+        // флага подключать её бессмысленно и вводит в заблуждение байера.
+        if (!config('platform.booking_bot_enabled')) {
+            $this->sendReply($chatId, 'ℹ️ Уведомления о записях временно недоступны.');
+            return;
+        }
+
         // Find the token across all shop schemas
         $schemas = \DB::select("
             SELECT schema_name FROM information_schema.schemata
@@ -609,6 +628,15 @@ class TelegramController extends Controller
 
     private function handleClientAction(string $callbackId, string $action, string $bookingId, int $chatId, ?int $messageId = null): void
     {
+        // Записи в ботах временно отключены (2026-10-18) — новых
+        // уведомлений с этой кнопкой больше не шлём, но на старом, ещё не
+        // убранном сообщении у байера она может остаться нажимаемой (см.
+        // тот же паттерн в handleBookingAction/handleMasterBookingAction).
+        if (!config('platform.booking_bot_enabled')) {
+            $this->answerCallback($callbackId, 'Временно недоступно');
+            return;
+        }
+
         Log::info('[TG] client action', ['action' => $action, 'booking' => $bookingId, 'chat' => $chatId]);
 
         if ($action !== 'cancel') {

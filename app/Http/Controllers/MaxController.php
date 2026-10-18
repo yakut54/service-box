@@ -214,11 +214,23 @@ class MaxController extends Controller
             return;
         }
 
-        MaxService::sendRaw($userId, "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись —\nиспользуйте кнопки в сообщениях бота.");
+        // Записи выключены целиком (2026-10-18, platform.booking_bot_enabled)
+        // — не обещаем байеру то, чего он не получит.
+        MaxService::sendRaw($userId, config('platform.booking_bot_enabled')
+            ? "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись —\nиспользуйте кнопки в сообщениях бота."
+            : 'ℹ️ Чтобы выполнить действие, используйте кнопки в сообщениях бота.');
     }
 
     private function trySubscribeCustomer(int $userId, string $bookingId): void
     {
+        // Записи в ботах временно отключены целиком (2026-10-18) — эта
+        // подписка целиком про уведомления о записях (см. текст ниже), без
+        // флага подключать её бессмысленно и вводит в заблуждение байера.
+        if (!config('platform.booking_bot_enabled')) {
+            MaxService::sendRaw($userId, 'ℹ️ Уведомления о записях временно недоступны.');
+            return;
+        }
+
         MaxService::subscribeCustomer($bookingId, $userId);
 
         MaxService::sendRaw(
@@ -238,9 +250,14 @@ class MaxController extends Controller
 
         MaxService::connectMax($shop, $userId);
 
+        // "о новых записях и" — убрано, пока записи в ботах выключены
+        // целиком (2026-10-18, platform.booking_bot_enabled) — см. то же
+        // в TelegramController::handleMessage.
         MaxService::sendRaw(
             $userId,
-            "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
+            config('platform.booking_bot_enabled')
+                ? "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых записях и заказах прямо сюда."
+                : "✅ <b>Готово!</b> Бот подключён к <b>{$shop->name}</b>\n\nБудете получать уведомления о новых заказах прямо сюда."
         );
     }
 
@@ -262,9 +279,14 @@ class MaxController extends Controller
             return;
         }
 
+        // Текст про "записях" и "кнопки ниже" не подходит, когда флаг
+        // выключен — sendMasterMenu уже не крепит эти кнопки в этом режиме
+        // (см. MaxService::sendMasterMenu), текст должен быть симметричен.
         MaxService::sendMasterMenu(
             $userId,
-            "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.\n\nИспользуйте кнопки ниже 👇"
+            config('platform.booking_bot_enabled')
+                ? "✅ <b>Готово!</b> Теперь вы будете получать уведомления о своих записях прямо сюда.\n\nИспользуйте кнопки ниже 👇"
+                : '✅ <b>Готово!</b> Привязка выполнена.'
         );
     }
 
@@ -384,6 +406,15 @@ class MaxController extends Controller
 
     private function handleBookingAction(string $cbId, string $bookingId, string $action, int $userId, Shop $shop): void
     {
+        // Записи в ботах временно отключены (2026-10-18) — новых
+        // уведомлений с этими кнопками больше не шлём, но на старом, ещё
+        // не убранном сообщении кнопка может остаться нажимаемой (см. тот
+        // же паттерн у TelegramController::handleBookingAction).
+        if (!config('platform.booking_bot_enabled')) {
+            MaxService::answerCallback($cbId, 'Временно недоступно');
+            return;
+        }
+
         $booking = Booking::find($bookingId);
 
         if (!$booking) {
@@ -466,6 +497,15 @@ class MaxController extends Controller
 
     private function handleClientAction(string $cbId, string $action, string $bookingId, int $userId): void
     {
+        // Записи в ботах временно отключены (2026-10-18) — новых
+        // уведомлений с этой кнопкой больше не шлём, но на старом, ещё не
+        // убранном сообщении у байера она может остаться нажимаемой (см.
+        // тот же паттерн в handleBookingAction/handleMasterBookingAction).
+        if (!config('platform.booking_bot_enabled')) {
+            MaxService::answerCallback($cbId, 'Временно недоступно');
+            return;
+        }
+
         if ($action !== 'cancel') {
             MaxService::answerCallback($cbId, 'Неизвестное действие');
             return;
