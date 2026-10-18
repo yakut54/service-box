@@ -47,6 +47,28 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Единая атрибуция pick_note — используется в updateStatus()/release()/
+     * reportProblem(), раньше каждый собирал этот набор полей заново и
+     * забывал об авторе (живой разбор 2026-10-18: Егорка молча перезаписал
+     * заметку Юлии, никто бы не понял, что она уже не её). by_name —
+     * текущий/последний автор, original_by_name — исходный, не трогается
+     * при повторном редактировании; фронт сравнивает их, чтобы показать
+     * «отредактировано {имя}», если это не тот же человек.
+     *
+     * @return array<string, mixed>
+     */
+    private function pickNoteUpdate(Order $order, string $note, string $actorName): array
+    {
+        return [
+            'pick_note' => $note,
+            'pick_note_at' => $order->pick_note_at ?? now(),
+            'pick_note_edited_at' => $order->pick_note !== null ? now() : null,
+            'pick_note_by_name' => $actorName,
+            'pick_note_original_by_name' => $order->pick_note_original_by_name ?? $actorName,
+        ];
+    }
+
     /** @param Order $order с загруженной связью items.product */
     private function orderInScope(Order $order, Request $request): bool
     {
@@ -729,12 +751,9 @@ class OrderController extends Controller
 
         $update = ['status' => $newStatus];
         if ($request->filled('note')) {
-            // Та же заметка (pick_note), что и у «Проблема с заказом» — время
-            // проставляем той же логикой, иначе сохранённая отсюда заметка
-            // показывалась бы в карточке «Сборка» вообще без даты.
-            $update['pick_note'] = $request->note;
-            $update['pick_note_at'] = $order->pick_note_at ?? now();
-            $update['pick_note_edited_at'] = $order->pick_note !== null ? now() : null;
+            // Та же заметка (pick_note), что и у «Проблема с заказом» —
+            // единая атрибуция через pickNoteUpdate(), см. её докблок.
+            $update = array_merge($update, $this->pickNoteUpdate($order, $request->note, $request->user()->name));
         }
         $order->update($update);
 
@@ -925,16 +944,12 @@ class OrderController extends Controller
         }
 
         $becomesNeedsAttention = !in_array($orderModel->status, ['completed', 'cancelled', 'needs_attention'], true);
-        $isEdit = $orderModel->pick_note !== null;
 
-        $orderModel->update([
+        $orderModel->update(array_merge([
             'collector_id' => null,
             'collector_name' => null,
             'status' => $becomesNeedsAttention ? 'needs_attention' : $orderModel->status,
-            'pick_note' => $request->note,
-            'pick_note_at' => $orderModel->pick_note_at ?? now(),
-            'pick_note_edited_at' => $isEdit ? now() : null,
-        ]);
+        ], $this->pickNoteUpdate($orderModel, $request->note, $request->user()->name)));
 
         // Свежий needs_attention — все сотрудники должны снова увидеть заказ
         // непрочитанным (см. order_seen, докблок в show()/needsAttentionCount).
@@ -1049,18 +1064,14 @@ class OrderController extends Controller
         }
 
         // Заметку можно переотправить (исправить текст) сколько угодно раз,
-        // пока заказ активен — время первой отправки не трогаем, время
-        // редактирования проставляем только начиная со второго раза (см.
-        // CollectorOrderDetailView.vue — там это «ред. <время>»).
-        $isEdit = $orderModel->pick_note !== null;
+        // пока заказ активен — атрибуция (кто написал/кто правил последним)
+        // через pickNoteUpdate(), см. её докблок.
         $oldStatus = $orderModel->status;
 
-        $orderModel->update([
-            'status' => 'needs_attention',
-            'pick_note' => $request->note,
-            'pick_note_at' => $orderModel->pick_note_at ?? now(),
-            'pick_note_edited_at' => $isEdit ? now() : null,
-        ]);
+        $orderModel->update(array_merge(
+            ['status' => 'needs_attention'],
+            $this->pickNoteUpdate($orderModel, $request->note, $request->user()->name),
+        ));
 
         // Свежий needs_attention — см. комментарий в release() выше.
         DB::table('order_seen')->where('order_id', $orderModel->id)->delete();

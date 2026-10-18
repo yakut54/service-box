@@ -51,6 +51,8 @@ class Order extends Model
         'pick_note',
         'pick_note_at',
         'pick_note_edited_at',
+        'pick_note_by_name',
+        'pick_note_original_by_name',
         'seen_at',
     ];
 

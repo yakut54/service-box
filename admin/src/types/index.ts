@@ -349,6 +349,8 @@ export interface Order {
   pick_note?: string | null
   pick_note_at?: string | null
   pick_note_edited_at?: string | null
+  pick_note_by_name?: string | null
+  pick_note_original_by_name?: string | null
   items?: OrderItem[]
   customer?: Customer | null
   created_at: string

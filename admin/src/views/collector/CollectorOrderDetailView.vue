@@ -452,7 +452,9 @@ onUnmounted(() => {
 
       <div v-if="order.pick_note" class="card bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 text-sm text-pink-800 dark:text-pink-300 space-y-1">
         <div class="flex items-start justify-between gap-2">
-          <p class="flex-1">Заметка: «{{ order.pick_note }}»</p>
+          <p class="flex-1">
+            Заметка<template v-if="order.pick_note_original_by_name"> от {{ order.pick_note_original_by_name }}</template>: «{{ order.pick_note }}»
+          </p>
           <button
             v-if="isMine && isClaimed && order.status !== 'completed' && order.status !== 'cancelled'"
             type="button"
@@ -466,7 +468,14 @@ onUnmounted(() => {
           </button>
         </div>
         <p class="text-xs text-pink-500 dark:text-pink-400">
-          <template v-if="order.pick_note_edited_at">ред. {{ formatDateTime(order.pick_note_edited_at, authStore.shop?.timezone ?? undefined) }}</template>
+          <!-- Кто-то ДРУГОЙ (не исходный автор) переписал заметку — явно
+               подписываем, иначе выглядит так, будто автор сам её правил
+               (живой разбор 2026-10-18: Егорка мог молча перезаписать
+               жалобу Юлии). -->
+          <template v-if="order.pick_note_edited_at && order.pick_note_by_name && order.pick_note_by_name !== order.pick_note_original_by_name">
+            изменено {{ order.pick_note_by_name }}, {{ formatDateTime(order.pick_note_edited_at, authStore.shop?.timezone ?? undefined) }}
+          </template>
+          <template v-else-if="order.pick_note_edited_at">ред. {{ formatDateTime(order.pick_note_edited_at, authStore.shop?.timezone ?? undefined) }}</template>
           <template v-else-if="order.pick_note_at">{{ formatDateTime(order.pick_note_at, authStore.shop?.timezone ?? undefined) }}</template>
         </p>
       </div>

@@ -402,9 +402,12 @@ async function updateStatus(status: string) {
               Заказ ещё не взят в работу
             </p>
             <div v-if="order.pick_note" class="mt-2 text-sm text-pink-700 dark:text-pink-400 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-lg px-3 py-2">
-              «{{ order.pick_note }}»
+              <template v-if="order.pick_note_original_by_name">{{ order.pick_note_original_by_name }}: </template>«{{ order.pick_note }}»
               <div class="text-xs text-pink-500 dark:text-pink-500 mt-1">
-                <template v-if="order.pick_note_edited_at">ред. {{ formatDate(order.pick_note_edited_at) }}</template>
+                <template v-if="order.pick_note_edited_at && order.pick_note_by_name && order.pick_note_by_name !== order.pick_note_original_by_name">
+                  изменено {{ order.pick_note_by_name }}, {{ formatDate(order.pick_note_edited_at) }}
+                </template>
+                <template v-else-if="order.pick_note_edited_at">ред. {{ formatDate(order.pick_note_edited_at) }}</template>
                 <template v-else-if="order.pick_note_at">{{ formatDate(order.pick_note_at) }}</template>
               </div>
             </div>
