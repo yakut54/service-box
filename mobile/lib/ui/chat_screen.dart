@@ -1724,7 +1724,12 @@ class _MessageBubbleState extends State<_MessageBubble>
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
                       children: [
-                        if (message.editedAt != null) ...[
+                        // «удалено» вытесняет «изменено» — после удаления
+                        // сам факт редактирования уже не важен, а
+                        // одновременно показывать обе пометки — только шум
+                        // (тот же приём, что уже есть в веб-админке,
+                        // ChatView.vue messageStatusLabel()).
+                        if (message.editedAt != null && !message.isDeleted) ...[
                           Text(
                             'изменено',
                             style: theme.textTheme.labelSmall?.copyWith(
