@@ -43,15 +43,21 @@ class StaffController extends Controller
 
         // "Онлайн" — не "входил в последние 5 минут" (last_login_at не
         // отражает выход: logout() ничего в нём не меняет, поэтому вышедший
-        // ещё до 5 минут выглядел бы активным). Настоящий источник истины —
-        // есть ли у аккаунта хоть один живой Sanctum-токен прямо сейчас:
-        // login() всегда сносит старые токены перед выдачей нового
-        // (tokens()->delete()), logout() удаляет свой при выходе — значит
-        // "нет токена" = точно не в системе. Один запрос на всех, не N+1.
+        // ещё до 5 минут выглядел бы активным), и не просто "есть живой
+        // токен" — Sanctum-токен сам по себе никогда не истекает, закрыл
+        // вкладку/сел телефон — токен остаётся в базе сколько угодно
+        // (живой разбор 2026-10-19: "Егорка не онлайн, а показывает
+        // онлайн"). Источник истины — токен ЕЩЁ И использовался недавно
+        // (last_used_at, Sanctum обновляет сам на каждом запросе), то же
+        // окно, что в User::isOnline() — см. его докблок. Один запрос на
+        // всех, не N+1, поэтому не через isOnline() по одному.
         $userIds = $staffRows->pluck('user_id')->filter()->values();
         $onlineUserIds = $userIds->isEmpty() ? collect() : DB::table('personal_access_tokens')
             ->where('tokenable_type', User::class)
             ->whereIn('tokenable_id', $userIds)
+            // COALESCE: см. докблок User::isOnline() — свежесозданный
+            // токен ещё не имеет last_used_at.
+            ->whereRaw('COALESCE(last_used_at, created_at) >= ?', [now()->subMinutes(User::ONLINE_WINDOW_MINUTES)])
             ->pluck('tokenable_id')
             ->unique();
 
