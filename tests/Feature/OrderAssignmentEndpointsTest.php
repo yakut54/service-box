@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Shop;
 use App\Models\TelegramMessage;
 use App\Services\TenantService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -470,5 +471,193 @@ class OrderAssignmentEndpointsTest extends TestCase
             ->getJson('/api/admin/my-pending-assignment')
             ->assertOk()
             ->assertJsonPath('data.candidateId', $egorka->id);
+    }
+
+    // ── Снятие клавиатуры со старых сообщений бота (живой разбор 2026-10-19:
+    // "кнопки должны исчезать, когда становятся неактуальными — боты
+    // дублируют веб-админку") ──────────────────────────────────────────────
+
+    private function staleTelegramPicker(Shop $shop, Order $order): void
+    {
+        TelegramMessage::create([
+            'shop_id' => $shop->id,
+            'telegram_chat_id' => $shop->telegram_chat_id,
+            'telegram_message_id' => 555,
+            'type' => 'system_notification',
+            'entity_type' => 'Order',
+            'entity_id' => $order->id,
+            'message_text' => 'Старый пикер',
+            'status' => 'sent',
+        ]);
+    }
+
+    private function staleMaxPicker(Shop $shop, Order $order, string $mid = 'old-mid-123'): void
+    {
+        Cache::put("max_mid:order:{$order->id}", ['user_id' => $shop->max_chat_id, 'mid' => $mid], now()->addDays(7));
+    }
+
+    public function test_decline_assignment_removes_the_stale_telegram_keyboard(): void
+    {
+        config(['services.telegram.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true, 'result' => ['message_id' => 999]])]);
+
+        $shop = $this->createTestShop(['telegram_chat_id' => random_int(100_000_000, 999_999_999), 'telegram_bot_connected' => true]);
+        $order = $this->orderForShop($shop);
+        $staff = $this->staffMember($shop, 'Егорка');
+        $staff->createToken('session');
+        $this->staleTelegramPicker($shop, $order);
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        $this->actingAs($staff, 'sanctum')
+            ->patchJson("/api/admin/orders/{$order->id}/decline-assignment")
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'editMessageReplyMarkup')
+            && $request['message_id'] === 555
+            && $request['reply_markup'] === ['inline_keyboard' => []]);
+    }
+
+    public function test_decline_assignment_removes_the_stale_max_keyboard(): void
+    {
+        config(['services.max.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true, 'message' => ['body' => ['mid' => 'new-mid-999']]])]);
+
+        $shop = $this->createTestShop(['max_chat_id' => random_int(100_000_000, 999_999_999), 'max_bot_connected' => true]);
+        $order = $this->orderForShop($shop);
+        $staff = $this->staffMember($shop, 'Егорка');
+        $staff->createToken('session');
+        $this->staleMaxPicker($shop, $order);
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        $this->actingAs($staff, 'sanctum')
+            ->patchJson("/api/admin/orders/{$order->id}/decline-assignment")
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'message_id=old-mid-123')
+            && $request->method() === 'PUT'
+            && ($request['attachments'] ?? null) === []);
+    }
+
+    public function test_cancel_assignment_removes_the_stale_keyboards(): void
+    {
+        config(['services.telegram.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true, 'result' => ['message_id' => 999]])]);
+
+        $shop = $this->createTestShop(['telegram_chat_id' => random_int(100_000_000, 999_999_999), 'telegram_bot_connected' => true]);
+        $order = $this->orderForShop($shop);
+        $staff = $this->staffMember($shop, 'Егорка');
+        $staff->createToken('session');
+        $this->staleTelegramPicker($shop, $order);
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->patchJson("/api/admin/orders/{$order->id}/cancel-assignment")
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'editMessageReplyMarkup')
+            && $request['message_id'] === 555);
+    }
+
+    public function test_accept_assignment_removes_the_stale_keyboards(): void
+    {
+        config(['services.telegram.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true, 'result' => ['message_id' => 999]])]);
+
+        $shop = $this->createTestShop(['telegram_chat_id' => random_int(100_000_000, 999_999_999), 'telegram_bot_connected' => true]);
+        $order = $this->orderForShop($shop);
+        $staff = $this->staffMember($shop, 'Егорка');
+        $staff->createToken('session');
+        $this->staleTelegramPicker($shop, $order);
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        $this->actingAs($staff, 'sanctum')
+            ->patchJson("/api/admin/orders/{$order->id}/accept-assignment")
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'editMessageReplyMarkup')
+            && $request['message_id'] === 555);
+    }
+
+    public function test_request_assignment_removes_the_stale_keyboards(): void
+    {
+        config(['services.telegram.bot_token' => 'test-token']);
+        Http::fake(['*' => Http::response(['ok' => true, 'result' => ['message_id' => 999]])]);
+
+        $shop = $this->createTestShop(['telegram_chat_id' => random_int(100_000_000, 999_999_999), 'telegram_bot_connected' => true]);
+        $order = $this->orderForShop($shop);
+        $staff = $this->staffMember($shop, 'Егорка');
+        $staff->createToken('session');
+        $this->staleTelegramPicker($shop, $order);
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'editMessageReplyMarkup')
+            && $request['message_id'] === 555);
+    }
+
+    /**
+     * Самая тонкая часть живого разбора: ДВА отказа подряд. Первый отказ
+     * шлёт новый пикер и ОБЯЗАН переставить кеш max_mid:order:{id} на него
+     * (MaxService::notifyAssignmentDeclined) — иначе второй отказ снял бы
+     * кнопки с ПЕРВОГО (уже неактуального) пикера, а не со второго, и
+     * второй пикер остался бы висеть кликабельным навсегда.
+     */
+    public function test_max_cache_tracks_the_newest_picker_across_consecutive_declines(): void
+    {
+        config(['services.max.bot_token' => 'test-token']);
+        $midCounter = 0;
+        Http::fake(function () use (&$midCounter) {
+            $midCounter++;
+            return Http::response(['ok' => true, 'message' => ['body' => ['mid' => "mid-{$midCounter}"]]]);
+        });
+
+        $shop = $this->createTestShop(['max_chat_id' => random_int(100_000_000, 999_999_999), 'max_bot_connected' => true]);
+        $order = $this->orderForShop($shop);
+        $egorka = $this->staffMember($shop, 'Егорка');
+        $egorka->createToken('session');
+        $julia = $this->staffMember($shop, 'Юлия', 'admin');
+        $julia->createToken('session');
+        $this->staleMaxPicker($shop, $order, 'original-confirm-mid');
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $egorka->id])
+            ->assertOk();
+
+        // Первый отказ — должен снять кнопки с 'original-confirm-mid' и
+        // переставить кеш на mid только что отправленного им пикера.
+        $this->actingAs($egorka, 'sanctum')
+            ->patchJson("/api/admin/orders/{$order->id}/decline-assignment")
+            ->assertOk();
+
+        $cachedAfterFirstDecline = Cache::get("max_mid:order:{$order->id}");
+        $this->assertNotSame('original-confirm-mid', $cachedAfterFirstDecline['mid']);
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $julia->id])
+            ->assertOk();
+
+        // Второй отказ — обязан снять кнопки с пикера ПЕРВОГО отказа
+        // (cachedAfterFirstDecline['mid']), не с изначального сообщения.
+        $this->actingAs($julia, 'sanctum')
+            ->patchJson("/api/admin/orders/{$order->id}/decline-assignment")
+            ->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'message_id=' . $cachedAfterFirstDecline['mid'])
+            && $request->method() === 'PUT'
+            && ($request['attachments'] ?? null) === []);
     }
 }

@@ -439,22 +439,35 @@ class MaxService
         return $rows;
     }
 
-    /** Симметрично TelegramService::notifyAssignmentDeclined — см. её докблок. */
+    /**
+     * Симметрично TelegramService::notifyAssignmentDeclined — см. её докблок.
+     * Живой разбор 2026-10-19 (висящие кнопки в боте): кеш max_mid:order:{id}
+     * обновляет только notifyNewOrder() — до этой правки отказ слал новый
+     * пикер, но НЕ переставлял кеш на него, и следующий removeButtonsByEntity
+     * бил бы по самому первому сообщению (Подтвердить/Отменить), а не по
+     * актуальному пикеру.
+     */
     public static function notifyAssignmentDeclined(Shop $shop, $order, string $declinerName, array $options): void
     {
         $shortId = substr($order->id, 0, 8);
         $text = "❌ <b>{$declinerName}</b> отклонил(а) заказ №{$shortId}. Выберите другого:";
 
-        self::sendMessage($shop, $text, self::collectorPickerButtons($order->id, $options));
+        $mid = self::sendMessage($shop, $text, self::collectorPickerButtons($order->id, $options));
+        if ($mid) {
+            Cache::put("max_mid:order:{$order->id}", ['user_id' => $shop->max_chat_id, 'mid' => $mid], now()->addDays(7));
+        }
     }
 
-    /** Симметрично TelegramService::notifyAssignmentCancelled — см. её докблок. */
+    /** Симметрично TelegramService::notifyAssignmentCancelled — см. докблок notifyAssignmentDeclined() выше про кеш. */
     public static function notifyAssignmentCancelled(Shop $shop, $order, string $candidateName, array $options): void
     {
         $shortId = substr($order->id, 0, 8);
         $text = "🚫 Запрос к <b>{$candidateName}</b> по заказу №{$shortId} снят. Выберите другого:";
 
-        self::sendMessage($shop, $text, self::collectorPickerButtons($order->id, $options));
+        $mid = self::sendMessage($shop, $text, self::collectorPickerButtons($order->id, $options));
+        if ($mid) {
+            Cache::put("max_mid:order:{$order->id}", ['user_id' => $shop->max_chat_id, 'mid' => $mid], now()->addDays(7));
+        }
     }
 
     // ── Customer subscription flow ────────────────────────────────────────

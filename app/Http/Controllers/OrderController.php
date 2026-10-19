@@ -1021,6 +1021,15 @@ class OrderController extends Controller
 
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
+        // Снимаем клавиатуру со СТАРОГО сообщения бота — ОБЯЗАТЕЛЬНО до
+        // отправки нового ниже (handleOrderAssign в боте делает ровно так
+        // же, без условий, до ветвления). Живой разбор 2026-10-19: "кнопки
+        // должны исчезать, когда становятся неактуальными — боты дублируют
+        // веб-админку", а этот веб-путь раньше вообще не трогал старые
+        // сообщения бота.
+        TelegramService::removeKeyboardByEntity('Order', $orderModel->id);
+        MaxService::removeButtonsByEntity('order', $orderModel->id);
+
         // Симметрично боту (handleOrderAssign) — без этого выбор через
         // веб проходил тихо мимо Telegram/MAX, хотя тот же выбор через
         // сам бот туда шлёт сообщение сразу (баг найден живым тестом
@@ -1120,6 +1129,11 @@ class OrderController extends Controller
 
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
+        // Снимаем клавиатуру со старого пикера — заказ уже в работе,
+        // выбирать больше нечего (живой разбор 2026-10-19).
+        TelegramService::removeKeyboardByEntity('Order', $orderModel->id);
+        MaxService::removeButtonsByEntity('order', $orderModel->id);
+
         $text = "Заказ #" . substr($orderModel->id, 0, 8) . " — ✅ В работе, собирает {$result['actor_name']}";
         if ($shop->telegram_bot_connected) {
             try { TelegramService::sendMessage($shop, $text); } catch (\Throwable $e) { Log::warning('acceptAssignment notify (telegram) failed', ['error' => $e->getMessage()]); }
@@ -1163,6 +1177,12 @@ class OrderController extends Controller
             \App\Events\OrderAssignmentDeclined::dispatch($shop->id, $orderModel->id, $result['initiator_id'], $result['decliner_name']);
         }
 
+        // Снимаем клавиатуру со старого пикера ДО отправки нового ниже —
+        // иначе снесли бы кнопки у пикера, который сами только что
+        // отправили (живой разбор 2026-10-19).
+        TelegramService::removeKeyboardByEntity('Order', $orderModel->id);
+        MaxService::removeButtonsByEntity('order', $orderModel->id);
+
         $options = OrderCollectorCandidates::listFor($shop);
         OrderCollectorCandidates::cache($orderModel->id, $options);
 
@@ -1199,6 +1219,11 @@ class OrderController extends Controller
         }
 
         \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        // Снимаем клавиатуру со старого пикера ДО отправки нового ниже —
+        // та же причина, что в declineAssignment() выше.
+        TelegramService::removeKeyboardByEntity('Order', $orderModel->id);
+        MaxService::removeButtonsByEntity('order', $orderModel->id);
 
         $options = OrderCollectorCandidates::listFor($shop);
         OrderCollectorCandidates::cache($orderModel->id, $options);
