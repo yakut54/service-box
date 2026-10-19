@@ -6,7 +6,6 @@ use App\Models\Order;
 use App\Models\OrderActivity;
 use App\Models\Shop;
 use App\Models\ShopStaff;
-use App\Models\User;
 use App\Events\OrderAssignmentRequested;
 use App\Services\OrderAssignmentFlow;
 use App\Services\TenantService;
@@ -29,23 +28,6 @@ class OrderAssignmentFlowTest extends TestCase
             'customer_name' => 'Тест',
             'customer_phone' => '+70000000000',
         ], $overrides))->refresh();
-    }
-
-    private function staffMember(Shop $shop, string $name): User
-    {
-        $user = User::create([
-            'name' => $name,
-            'email' => Str::lower($name) . '-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $user->id,
-            'role' => 'collector',
-            'accepted_at' => now(),
-        ]);
-
-        return $user;
     }
 
     public function test_choosing_yourself_claims_immediately_without_a_pending_request(): void

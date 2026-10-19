@@ -3,6 +3,7 @@
 namespace Tests;
 
 use App\Models\Shop;
+use App\Models\ShopStaff;
 use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +43,29 @@ abstract class TestCase extends BaseTestCase
         $this->testShopSchemas[] = $shop->schema_name;
 
         return $shop;
+    }
+
+    /**
+     * Принятый сотрудник магазина (admin/collector) с собственным User —
+     * раньше была одинаковая копия этого метода в OrderAssignmentFlowTest
+     * и OrderAssignmentEndpointsTest (всегда role=collector); вынесено сюда
+     * и параметризовано ролью, чтобы третья копия не завелась.
+     */
+    protected function staffMember(Shop $shop, string $name, string $role = 'collector'): User
+    {
+        $user = User::create([
+            'name' => $name,
+            'email' => Str::lower($name) . '-' . Str::uuid() . '@example.test',
+            'password' => bcrypt('password'),
+        ]);
+        ShopStaff::create([
+            'shop_id' => $shop->id,
+            'user_id' => $user->id,
+            'role' => $role,
+            'accepted_at' => now(),
+        ]);
+
+        return $user;
     }
 
     protected function tearDown(): void
