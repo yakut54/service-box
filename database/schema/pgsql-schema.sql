@@ -67,6 +67,33 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                 EXECUTE format('CREATE INDEX ON %I.categories(parent_id)', p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.categories(is_visible)', p_schema_name);
 
+                -- category_changes: журнал РУЧНЫХ правок категории (владелец/
+                -- администратор создал/переименовал/удалил категорию, поменял
+                -- родителя/описание/фото/видимость/флаги 18+ и "не подлежит
+                -- возврату") — та же идея, что у product_changes, но для
+                -- дерева категорий. category_name — снапшот на момент правки,
+                -- чтобы строка оставалась читаемой и после удаления категории
+                -- (ON DELETE SET NULL, не CASCADE — журнал переживает удаление).
+                -- action='created'/'deleted' — событие целиком, field=NULL;
+                -- action='updated' — одна строка на каждое изменённое поле.
+                EXECUTE format($sql$
+                    CREATE TABLE %I.category_changes (
+                        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        category_id   UUID REFERENCES %I.categories(id) ON DELETE SET NULL,
+                        category_name TEXT NOT NULL,
+                        action        TEXT NOT NULL CHECK (action IN ('created', 'updated', 'deleted')),
+                        field         TEXT,
+                        old_value     TEXT,
+                        new_value     TEXT,
+                        actor_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+                        actor_name    TEXT NOT NULL,
+                        actor_role    TEXT NOT NULL CHECK (actor_role IN ('owner', 'admin')),
+                        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                    )
+                $sql$, p_schema_name, p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.category_changes(category_id, created_at DESC)', p_schema_name);
+                EXECUTE format('CREATE INDEX ON %I.category_changes(created_at DESC)', p_schema_name);
+
                 -- size_charts: размерные сетки уровня магазина, переиспользуются
                 -- многими товарами. columns — заголовки ["Размер","Обхват груди, см"],
                 -- rows — строки [["S","82-86"],["M","86-90"]] (всё строками).

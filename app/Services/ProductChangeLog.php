@@ -29,7 +29,7 @@ class ProductChangeLog
      * используется и здесь, и в ProductController::update() (снимок ДО
      * через Product::only(self::TRACKED_FIELDS)), чтобы список не дублировался.
      */
-    public const TRACKED_FIELDS = ['name', 'price', 'compare_price', 'is_active', 'category_id'];
+    public const TRACKED_FIELDS = ['name', 'description', 'image_url', 'price', 'compare_price', 'is_active', 'category_id'];
 
     public static function recordProductCreate(Product $product, Request $request): void
     {
@@ -130,6 +130,14 @@ class ProductChangeLog
 
         if (array_key_exists('name', $oldAttrs) && $oldAttrs['name'] !== $product->name) {
             $rows[] = self::row($product, null, 'name', null, $oldAttrs['name'], $product->name);
+        }
+
+        if (array_key_exists('description', $oldAttrs) && $oldAttrs['description'] !== $product->description) {
+            $rows[] = self::row($product, null, 'description', null, $oldAttrs['description'], $product->description);
+        }
+
+        if (array_key_exists('image_url', $oldAttrs) && $oldAttrs['image_url'] !== $product->image_url) {
+            $rows[] = self::row($product, null, 'image_url', null, $oldAttrs['image_url'], $product->image_url);
         }
 
         if (array_key_exists('price', $oldAttrs) && $oldAttrs['price'] !== $product->price) {

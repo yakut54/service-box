@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\CategoryChange;
 use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Order;
@@ -78,15 +79,20 @@ class NavCountsController extends Controller
             ))
             ->count();
 
+        $categoryChanges = CategoryChange::query()
+            ->when($allowedCategoryIds !== null, fn ($q) => $q->whereIn('category_id', $allowedCategoryIds))
+            ->count();
+
         return response()->json([
-            'orders'          => $orders,
-            'customers'       => $customers,
-            'products'        => $products,
-            'categories'      => $categories,
-            'discounts'       => $discounts,
-            'reviews'         => $reviews,
-            'staff'           => $staff,
-            'product_changes' => $productChanges,
+            'orders'           => $orders,
+            'customers'        => $customers,
+            'products'         => $products,
+            'categories'       => $categories,
+            'discounts'        => $discounts,
+            'reviews'          => $reviews,
+            'staff'            => $staff,
+            'product_changes'  => $productChanges,
+            'category_changes' => $categoryChanges,
         ]);
     }
 }

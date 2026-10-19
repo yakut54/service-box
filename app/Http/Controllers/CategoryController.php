@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\NavCountsUpdated;
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\CategoryChangeLog;
 use App\Services\StorageService;
 use App\Services\TenantService;
 use App\Support\CategoryAccess;
@@ -83,6 +84,7 @@ class CategoryController extends Controller
         $data['slug'] = $this->uniqueSlug($data['slug'] ?? null, $data['name']);
 
         $category = Category::create($data);
+        CategoryChangeLog::recordCategoryCreate($category, $request);
 
         return response()->json(['data' => $category->load('children')], 201);
     }
@@ -127,14 +129,17 @@ class CategoryController extends Controller
             $data['slug'] = $this->uniqueSlug($data['slug'], $category->name, $category->id);
         }
 
-        $oldImageUrl = $category->image_url;
+        $oldAttrs = $category->only(CategoryChangeLog::TRACKED_FIELDS);
         $category->update($data);
+        $category = $category->fresh();
 
-        if (isset($data['image_url']) && $data['image_url'] !== $oldImageUrl) {
-            StorageService::deleteByUrl($oldImageUrl);
+        if (isset($data['image_url']) && $data['image_url'] !== $oldAttrs['image_url']) {
+            StorageService::deleteByUrl($oldAttrs['image_url']);
         }
 
-        return response()->json(['data' => $category->fresh()->load('children')]);
+        CategoryChangeLog::recordCategoryUpdate($category, $oldAttrs, $request);
+
+        return response()->json(['data' => $category->load('children')]);
     }
 
     /**
@@ -153,13 +158,17 @@ class CategoryController extends Controller
         $action   = $request->query('action', 'hide');
 
         if ($action === 'hide') {
+            $oldAttrs = $category->only(CategoryChangeLog::TRACKED_FIELDS);
             $category->update(['is_visible' => false]);
             Category::where('parent_id', $category->id)->update(['is_visible' => false]);
+            CategoryChangeLog::recordCategoryUpdate($category->fresh(), $oldAttrs, $request);
 
             return response()->json(['message' => 'Категория скрыта']);
         }
 
         if ($action === 'delete') {
+            CategoryChangeLog::recordCategoryDelete($category, $request);
+
             $productsAction = $request->query('products', 'nullify');
             $targetId       = $request->query('target_id');
 
