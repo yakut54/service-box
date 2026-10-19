@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Events\OrderAssignmentDeclined;
 use App\Models\Order;
 use App\Models\OrderActivity;
+use App\Models\OrderItem;
 use App\Models\Shop;
 use App\Models\TelegramMessage;
 use App\Services\TenantService;
@@ -373,5 +374,101 @@ class OrderAssignmentEndpointsTest extends TestCase
         TenantService::setContext($shop);
         $order->refresh();
         $this->assertNotNull($order->pending_collector_id);
+    }
+
+    /**
+     * Живой разбор 2026-10-19: "Юлия зашла с другого устройства и не видит
+     * всплывающего окна" — WS-пуш (.order.assignment_requested) живёт
+     * только пока кандидат подключён к каналу В МОМЕНТ dispatch, без
+     * replay. Этот эндпоинт — опрос-страховка (GET
+     * /admin/my-pending-assignment), которым OrderAssignmentRequestModal.vue
+     * теперь проверяет состояние периодически, не полагаясь только на WS.
+     */
+    public function test_my_pending_assignment_returns_null_when_nothing_is_pending(): void
+    {
+        $shop = $this->createTestShop();
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->getJson('/api/admin/my-pending-assignment')
+            ->assertOk()
+            ->assertJsonPath('data', null);
+    }
+
+    public function test_my_pending_assignment_returns_the_offer_addressed_to_me(): void
+    {
+        $shop = $this->createTestShop();
+        $order = $this->orderForShop($shop);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_name' => 'Молоко',
+            'product_type' => 'physical',
+            'price' => 100,
+            'quantity' => 2,
+        ]);
+        $staff = $this->staffMember($shop, 'Юлия', 'admin');
+        $staff->createToken('session');
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $staff->id])
+            ->assertOk();
+
+        $response = $this->actingAs($staff, 'sanctum')
+            ->getJson('/api/admin/my-pending-assignment')
+            ->assertOk();
+
+        $response->assertJsonPath('data.orderId', $order->id);
+        $response->assertJsonPath('data.candidateId', $staff->id);
+        $response->assertJsonPath('data.candidateName', 'Юлия');
+        $response->assertJsonPath('data.initiatorName', $shop->user->name);
+        $response->assertJsonPath('data.itemsCount', 1);
+        $response->assertJsonPath('data.deliveryMethod', null);
+    }
+
+    /**
+     * Тот же заказ, но спросил кто-то ДРУГОЙ — не кандидат. Важно: это
+     * ровно та же гонка, которую легко перепутать с чужим запросом (см.
+     * cancel-assignment "нельзя снять чужой" выше) — тут наоборот, мы
+     * убеждаемся, что эндпоинт не "утекает" предложение постороннему.
+     */
+    public function test_my_pending_assignment_does_not_leak_someone_elses_offer(): void
+    {
+        $shop = $this->createTestShop();
+        $order = $this->orderForShop($shop);
+        $julia = $this->staffMember($shop, 'Юлия', 'admin');
+        $julia->createToken('session');
+        $egorka = $this->staffMember($shop, 'Егорка', 'collector');
+        $egorka->createToken('session');
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $julia->id])
+            ->assertOk();
+
+        $this->actingAs($egorka, 'sanctum')
+            ->getJson('/api/admin/my-pending-assignment')
+            ->assertOk()
+            ->assertJsonPath('data', null);
+    }
+
+    /**
+     * Сам попап доступен и сборщику (роль collector), не только
+     * владельцу/админу — allow-list в RequireCollectorAccess должен
+     * пропускать этот GET, иначе эндпоинт отвечал бы 403 ровно той роли,
+     * ради которой его и делали (Егорка из живого разбора).
+     */
+    public function test_my_pending_assignment_is_reachable_by_a_collector(): void
+    {
+        $shop = $this->createTestShop();
+        $order = $this->orderForShop($shop);
+        $egorka = $this->staffMember($shop, 'Егорка', 'collector');
+        $egorka->createToken('session');
+
+        $this->actingAs($shop->user, 'sanctum')
+            ->postJson("/api/admin/orders/{$order->id}/request-assignment", ['candidate_id' => $egorka->id])
+            ->assertOk();
+
+        $this->actingAs($egorka, 'sanctum')
+            ->getJson('/api/admin/my-pending-assignment')
+            ->assertOk()
+            ->assertJsonPath('data.candidateId', $egorka->id);
     }
 }

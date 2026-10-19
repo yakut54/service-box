@@ -48,7 +48,12 @@ class RequireCollectorAccess
             || ($request->isMethod('POST') && preg_match('#^api/admin/orders/' . self::UUID . '/request-assignment$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/accept-assignment$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/decline-assignment$#i', $path) === 1)
-            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/cancel-assignment$#i', $path) === 1);
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/cancel-assignment$#i', $path) === 1)
+            // Опрос-страховка попапа "вам предлагают заказ" (живой разбор
+            // 2026-10-19: кандидат на другом устройстве не видел живой
+            // WS-пуш) — тот же пользователь, что и сам попап, доступен
+            // ровно тем же ролям.
+            || ($request->isMethod('GET') && $path === 'api/admin/my-pending-assignment');
 
         if ($allowed) {
             return $next($request);

@@ -1064,6 +1064,41 @@ class OrderController extends Controller
     }
 
     /**
+     * Живой разбор 2026-10-19: попап "вам предлагают заказ"
+     * (OrderAssignmentRequestModal.vue) раньше показывался ТОЛЬКО по живому
+     * WS-событию — если кандидат не был подключён к каналу в этот момент
+     * (зашёл с другого устройства позже, обновил страницу), он никогда не
+     * узнавал о предложении вообще, хотя состояние в БД есть
+     * (pending_collector_id). Этот эндпоинт — опрос-страховка (тот же
+     * приём, что уже используют chat/reviews/mail_failures в AppLayout.vue:
+     * WS для живого пуша, опрос на случай пропущенного события).
+     *
+     * GET /api/admin/my-pending-assignment
+     */
+    public function myPendingAssignment(Request $request): JsonResponse
+    {
+        $order = Order::where('pending_collector_id', $request->user()->id)
+            ->latest('pending_assignment_requested_at')
+            ->with('items')
+            ->first();
+
+        if (!$order) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json(['data' => [
+            'orderId'        => $order->id,
+            'orderShortId'   => substr($order->id, 0, 8),
+            'candidateId'    => $request->user()->id,
+            'candidateName'  => $order->pending_collector_name,
+            'initiatorName'  => $order->pending_initiator_name,
+            'itemsCount'     => $order->items->count(),
+            'totalPrice'     => $order->total_price,
+            'deliveryMethod' => $order->delivery_method,
+        ]]);
+    }
+
+    /**
      * Кандидат подтверждает запрос ("Беру") — только теперь реально
      * claimBy() (PLAN.md 2026-10-19).
      *
