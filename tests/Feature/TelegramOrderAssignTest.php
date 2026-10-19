@@ -7,7 +7,6 @@ use App\Models\OrderActivity;
 use App\Models\OrderItem;
 use App\Models\Shop;
 use App\Models\ShopStaff;
-use App\Models\User;
 use App\Services\TenantService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -123,17 +122,7 @@ class TelegramOrderAssignTest extends TestCase
         $shop = $this->shopWithBot();
         $order = $this->physicalOrder($shop);
 
-        $staffUser = User::create([
-            'name' => 'Егорка',
-            'email' => 'egorka-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'collector',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Егорка', 'collector');
         $staffUser->createToken('session');
 
         $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
@@ -164,17 +153,7 @@ class TelegramOrderAssignTest extends TestCase
         $shop = $this->shopWithBot();
         $order = $this->physicalOrder($shop);
 
-        $staffUser = User::create([
-            'name' => 'Егорка',
-            'email' => 'egorka-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'collector',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Егорка', 'collector');
         // Нет createToken() — Егорка нигде не залогинен.
 
         $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
@@ -221,17 +200,8 @@ class TelegramOrderAssignTest extends TestCase
         $shop = $this->shopWithBot();
         $order = $this->physicalOrder($shop);
 
-        $staffUser = User::create([
-            'name' => 'Егорка',
-            'email' => 'egorka-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        $staff = ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'collector',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Егорка', 'collector');
+        $staff = ShopStaff::where('user_id', $staffUser->id)->firstOrFail();
 
         $this->sendCallback($shop->telegram_chat_id, "order:confirm:{$order->id}");
         // Между показом списка и нажатием сотрудника отозвали доступ —

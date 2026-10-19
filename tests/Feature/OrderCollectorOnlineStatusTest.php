@@ -4,10 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\Shop;
-use App\Models\ShopStaff;
-use App\Models\User;
 use App\Services\TenantService;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -34,17 +31,7 @@ class OrderCollectorOnlineStatusTest extends TestCase
         $shop = $this->createTestShop();
         $order = $this->orderForShop($shop);
 
-        $staffUser = User::create([
-            'name' => 'Юлия',
-            'email' => 'yulia-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'admin',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Юлия', 'admin');
         $staffUser->createToken('session');
 
         $order->claimBy($staffUser->id, 'Юлия');
@@ -61,17 +48,7 @@ class OrderCollectorOnlineStatusTest extends TestCase
         $shop = $this->createTestShop();
         $order = $this->orderForShop($shop);
 
-        $staffUser = User::create([
-            'name' => 'Юлия',
-            'email' => 'yulia-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'admin',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Юлия', 'admin');
         // Нет createToken() — аккаунт существует, но нигде не залогинен.
 
         $order->claimBy($staffUser->id, 'Юлия');
@@ -108,17 +85,7 @@ class OrderCollectorOnlineStatusTest extends TestCase
         $shop = $this->createTestShop();
         $order = $this->orderForShop($shop);
 
-        $staffUser = User::create([
-            'name' => 'Егорка',
-            'email' => 'egorka-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'collector',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Егорка', 'collector');
         $token = $staffUser->createToken('session');
         \Illuminate\Support\Facades\DB::table('personal_access_tokens')
             ->where('id', $token->accessToken->id)
@@ -148,17 +115,7 @@ class OrderCollectorOnlineStatusTest extends TestCase
         $shop = $this->createTestShop();
         $order = $this->orderForShop($shop);
 
-        $staffUser = User::create([
-            'name' => 'Юлия',
-            'email' => 'yulia-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'admin',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Юлия', 'admin');
         $staffUser->createToken('session');
         $this->assertNull(
             \Illuminate\Support\Facades\DB::table('personal_access_tokens')

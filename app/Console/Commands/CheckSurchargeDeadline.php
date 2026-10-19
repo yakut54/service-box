@@ -36,7 +36,7 @@ class CheckSurchargeDeadline extends Command
         $s = $shop->schema_name;
 
         $orders = DB::select("
-            SELECT id, customer_name, customer_phone, surcharge_amount
+            SELECT id, customer_name, customer_phone, surcharge_amount, status
             FROM {$s}.orders
             WHERE surcharge_status = 'pending'
               AND surcharge_deadline_at < NOW()
@@ -59,6 +59,19 @@ class CheckSurchargeDeadline extends Command
                 // Свежий needs_attention — все сотрудники должны снова
                 // увидеть заказ непрочитанным (см. order_seen, OrderController).
                 DB::statement("DELETE FROM {$s}.order_seen WHERE order_id = ?", [$order->id]);
+
+                // "История заказа" иначе осталась бы пустой для этого перехода
+                // (живой разбор 2026-10-19) — у остальных путей в needs_attention
+                // (release()/reportProblem()) запись пишет OrderActivityLog::
+                // record(), но он принимает Eloquent-модель, а этот крон
+                // намеренно работает сырым SQL вне тенантного контекста (см.
+                // докблок класса) — здесь тот же формат, что у updateStatus()
+                // (action=status_changed, from/to/note), просто своей вставкой.
+                DB::statement(
+                    "INSERT INTO {$s}.order_activity (order_id, action, from_status, to_status, note, actor_user_id, actor_name, actor_role)
+                     VALUES (?, 'status_changed', ?, 'needs_attention', ?, NULL, 'Система', 'system')",
+                    [$order->id, $order->status, 'Доплата за перевес не подтверждена вовремя — дедлайн истёк']
+                );
 
                 if ($shop->telegram_bot_connected) {
                     try { TelegramService::notifyOwnerSurchargeExpired($shop, $order); } catch (\Throwable) {}

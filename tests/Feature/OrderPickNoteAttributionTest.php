@@ -4,10 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\Shop;
-use App\Models\ShopStaff;
-use App\Models\User;
 use App\Services\TenantService;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -73,17 +70,7 @@ class OrderPickNoteAttributionTest extends TestCase
         $shop = $this->createTestShop();
         $order = $this->orderForShop($shop);
 
-        $staffUser = User::create([
-            'name' => 'Егорка',
-            'email' => 'egorka-' . Str::uuid() . '@example.test',
-            'password' => bcrypt('password'),
-        ]);
-        ShopStaff::create([
-            'shop_id' => $shop->id,
-            'user_id' => $staffUser->id,
-            'role' => 'admin',
-            'accepted_at' => now(),
-        ]);
+        $staffUser = $this->staffMember($shop, 'Егорка', 'admin');
 
         $this->actingAs($shop->user, 'sanctum')
             ->patchJson("/api/admin/orders/{$order->id}/problem", ['note' => 'Нога болит!'])

@@ -12,13 +12,17 @@ use Illuminate\Support\Str;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Схемы тенантов, созданные через createTestShop() в этом тесте —
-     * дропаются в tearDown(). Таблицы в public-схеме (shops/users) чистит
-     * сам тест (здесь намеренно нет глобального DatabaseTransactions/
-     * RefreshDatabase — у проекта нет миграций, "чистая" БД — это
-     * database/schema/pgsql-schema.sql, прогнанный один раз при подъёме
-     * тестовой БД, см. memory о тестовом окружении).
+     * Живой разбор 2026-10-19: tearDown() дропал тенантную Postgres-схему,
+     * но НИКОГДА не удалял саму строку в public.shops (и users) — за одну
+     * сессию интенсивных прогонов набралось 856 "мёртвых" строк, указывающих
+     * на уже снесённые схемы. Незаметно, пока ни один код не делал Shop::all()
+     * по ВСЕМ магазинам сразу — первой об это споткнулась команда
+     * CheckSurchargeDeadline (ровно так и нашли). Теперь createTestShop()/
+     * staffMember() сами запоминают, что создали, и tearDown() убирает это
+     * целиком — public.shops/public.users тоже, не только схему.
      */
+    private array $testShopIds = [];
+    private array $testUserIds = [];
     private array $testShopSchemas = [];
 
     /**
@@ -41,6 +45,8 @@ abstract class TestCase extends BaseTestCase
         ], $overrides));
 
         $this->testShopSchemas[] = $shop->schema_name;
+        $this->testShopIds[] = $shop->id;
+        $this->testUserIds[] = $user->id;
 
         return $shop;
     }
@@ -65,11 +71,25 @@ abstract class TestCase extends BaseTestCase
             'accepted_at' => now(),
         ]);
 
+        $this->testUserIds[] = $user->id;
+
         return $user;
     }
 
     protected function tearDown(): void
     {
+        // Сначала шопы (shop_staff каскадится через shop_id ON DELETE
+        // CASCADE), потом пользователи (owner + staffMember()) — иначе
+        // shops.user_id/shop_staff.user_id помешали бы удалить users.
+        if (!empty($this->testShopIds)) {
+            Shop::whereIn('id', $this->testShopIds)->delete();
+        }
+        if (!empty($this->testUserIds)) {
+            User::whereIn('id', $this->testUserIds)->delete();
+        }
+        $this->testShopIds = [];
+        $this->testUserIds = [];
+
         foreach ($this->testShopSchemas as $schema) {
             DB::statement('DROP SCHEMA IF EXISTS "' . $schema . '" CASCADE');
         }
