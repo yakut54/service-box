@@ -448,6 +448,15 @@ class MaxService
         self::sendMessage($shop, $text, self::collectorPickerButtons($order->id, $options));
     }
 
+    /** Симметрично TelegramService::notifyAssignmentCancelled — см. её докблок. */
+    public static function notifyAssignmentCancelled(Shop $shop, $order, string $candidateName, array $options): void
+    {
+        $shortId = substr($order->id, 0, 8);
+        $text = "🚫 Запрос к <b>{$candidateName}</b> по заказу №{$shortId} снят. Выберите другого:";
+
+        self::sendMessage($shop, $text, self::collectorPickerButtons($order->id, $options));
+    }
+
     // ── Customer subscription flow ────────────────────────────────────────
 
     public static function generateCustomerCode(string $bookingId): string

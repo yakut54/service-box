@@ -56,6 +56,8 @@ class Order extends Model
         'pending_collector_id',
         'pending_collector_name',
         'pending_assignment_requested_at',
+        'pending_initiator_id',
+        'pending_initiator_name',
         'seen_at',
     ];
 

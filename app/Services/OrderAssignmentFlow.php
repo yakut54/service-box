@@ -55,14 +55,23 @@ class OrderAssignmentFlow
             return ['ok' => false, 'message' => 'Нельзя выбрать сотрудника, который сейчас не в сети'];
         }
 
+        $initiatorResolved = OrderCollectorCandidates::resolve($shop, $initiatorUserId);
+        $initiatorName = $initiatorResolved['name'] ?? 'Система';
+
         $order->update([
             'pending_collector_id' => $candidateId,
             'pending_collector_name' => $resolved['name'],
             'pending_assignment_requested_at' => now(),
+            'pending_initiator_id' => $initiatorUserId,
+            'pending_initiator_name' => $initiatorName,
         ]);
 
-        OrderActivityLog::record($order, $candidateId, $resolved['name'], $resolved['role'], 'assignment_requested');
-        OrderAssignmentRequested::dispatch($shop->id, $order->id, $candidateId, $resolved['name']);
+        // Актёр записи — инициатор (это ЕГО действие "предложил заказ"),
+        // имя кандидата — в note. Раньше актёром писался кандидат с пустым
+        // note, из-за чего "История заказа" показывала запись без названия
+        // действия (ACTION_LABELS на фронте её не знал вообще).
+        OrderActivityLog::record($order, $initiatorUserId, $initiatorName, $initiatorResolved['role'] ?? 'owner', 'assignment_requested', null, null, $resolved['name']);
+        OrderAssignmentRequested::dispatch($shop->id, $order->id, $candidateId, $resolved['name'], $initiatorName);
 
         return ['ok' => true, 'pending' => true, 'actor_name' => $resolved['name']];
     }
@@ -92,6 +101,8 @@ class OrderAssignmentFlow
             'pending_collector_id' => null,
             'pending_collector_name' => null,
             'pending_assignment_requested_at' => null,
+            'pending_initiator_id' => null,
+            'pending_initiator_name' => null,
         ]);
 
         if ($result['ok']) {
@@ -104,8 +115,11 @@ class OrderAssignmentFlow
     /**
      * Кандидат отказывается ("Не беру") — claim так и не произошёл,
      * status/collector_id не трогаются, просто снимаем pending-запрос.
+     * initiator_id в ответе — тот, кто предлагал: единственный способ
+     * адресовать ему попап "вам отказали" (живой разбор 2026-10-19: отказ
+     * раньше менял карточку тихо, у инициатора не было уведомления вообще).
      *
-     * @return array{ok: bool, message?: string, decliner_name?: string}
+     * @return array{ok: bool, message?: string, decliner_name?: string, initiator_id?: string}
      */
     public static function decline(Order $order, Shop $shop, string $userId): array
     {
@@ -115,15 +129,62 @@ class OrderAssignmentFlow
 
         $resolved = OrderCollectorCandidates::resolve($shop, $userId);
         $declinerName = $resolved['name'] ?? $order->pending_collector_name;
+        $initiatorId = $order->pending_initiator_id;
 
         $order->update([
             'pending_collector_id' => null,
             'pending_collector_name' => null,
             'pending_assignment_requested_at' => null,
+            'pending_initiator_id' => null,
+            'pending_initiator_name' => null,
         ]);
 
         OrderActivityLog::record($order, $userId, $declinerName, $resolved['role'] ?? 'collector', 'assignment_declined');
 
-        return ['ok' => true, 'decliner_name' => $declinerName];
+        return ['ok' => true, 'decliner_name' => $declinerName, 'initiator_id' => $initiatorId];
+    }
+
+    /**
+     * Инициатор (или владелец/админ) снимает зависший запрос — кандидат не
+     * ответил и не обязан отвечать прямо сейчас (живой разбор 2026-10-19:
+     * пользователь явно отказался от авто-снятия по таймеру — "никакой
+     * автоматики, решает человек"). Не наказываем кандидата записью вроде
+     * "отклонил" — это не его решение, поэтому отдельное действие.
+     *
+     * @return array{ok: bool, message?: string, candidate_name?: string}
+     */
+    public static function cancel(Order $order, Shop $shop, string $userId): array
+    {
+        if (!$order->pending_collector_id) {
+            return ['ok' => false, 'message' => 'Запрос уже не висит'];
+        }
+
+        $resolved = OrderCollectorCandidates::resolve($shop, $userId);
+        if (!$resolved) {
+            return ['ok' => false, 'message' => 'Сотрудник не найден'];
+        }
+
+        // Снять может инициатор или владелец/админ магазина — не обязательно
+        // тот же человек, кто создавал запрос (например, владелец видит,
+        // что его админ предложил заказ и подвис, и снимает сам).
+        $isInitiator = $order->pending_initiator_id === $userId;
+        $isManager = in_array($resolved['role'], ['owner', 'admin'], true);
+        if (!$isInitiator && !$isManager) {
+            return ['ok' => false, 'message' => 'Нельзя снять чужой запрос'];
+        }
+
+        $candidateName = $order->pending_collector_name;
+
+        $order->update([
+            'pending_collector_id' => null,
+            'pending_collector_name' => null,
+            'pending_assignment_requested_at' => null,
+            'pending_initiator_id' => null,
+            'pending_initiator_name' => null,
+        ]);
+
+        OrderActivityLog::record($order, $userId, $resolved['name'], $resolved['role'], 'assignment_cancelled', null, null, $candidateName);
+
+        return ['ok' => true, 'candidate_name' => $candidateName];
     }
 }

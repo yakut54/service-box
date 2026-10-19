@@ -640,6 +640,13 @@ class OrderController extends Controller
             ? \App\Models\User::isOnline($order->collector_id)
             : null;
 
+        // "Запрос висит, а Юлия уже вышла" — тот же источник истины, нужен
+        // отдельно от collector_is_online: кандидат ещё не исполнитель,
+        // только предложенный (живой разбор 2026-10-19).
+        $payload['pending_collector_is_online'] = $order->pending_collector_id
+            ? \App\Models\User::isOnline($order->pending_collector_id)
+            : null;
+
         return response()->json(['data' => $payload]);
     }
 
@@ -1112,6 +1119,15 @@ class OrderController extends Controller
 
         \App\Events\OrdersUpdated::dispatch($shop->id);
 
+        // Попап тому, кто предлагал (живой разбор 2026-10-19: раньше
+        // карточка у инициатора тихо меняла текст без объяснений — бот
+        // уже показывал явное сообщение про отказ, веб — нет). Если
+        // initiator_id нет (запрос создан до этого поля/legacy-данные) —
+        // просто не адресуем никому, молча пропускаем.
+        if (!empty($result['initiator_id'])) {
+            \App\Events\OrderAssignmentDeclined::dispatch($shop->id, $orderModel->id, $result['initiator_id'], $result['decliner_name']);
+        }
+
         $options = OrderCollectorCandidates::listFor($shop);
         OrderCollectorCandidates::cache($orderModel->id, $options);
 
@@ -1123,6 +1139,43 @@ class OrderController extends Controller
         }
 
         return response()->json(['message' => 'Вы отклонили заказ']);
+    }
+
+    /**
+     * Инициатор (или владелец/админ) снимает зависший запрос — кандидат не
+     * ответил, ждать подтверждения сколько угодно не обязательно (живой
+     * разбор 2026-10-19: пользователь явно отказался от авто-снятия по
+     * таймеру — решение принимает человек, не крон).
+     *
+     * PATCH /api/admin/orders/{order}/cancel-assignment
+     */
+    public function cancelAssignment(Request $request, string $order): JsonResponse
+    {
+        $orderModel = Order::findOrFail($order);
+        if (!$this->orderInScope($orderModel, $request)) {
+            abort(404);
+        }
+
+        $shop = $request->attributes->get('shop');
+        $result = OrderAssignmentFlow::cancel($orderModel, $shop, $request->user()->id);
+
+        if (!$result['ok']) {
+            return response()->json(collect($result)->except('ok')->all(), 422);
+        }
+
+        \App\Events\OrdersUpdated::dispatch($shop->id);
+
+        $options = OrderCollectorCandidates::listFor($shop);
+        OrderCollectorCandidates::cache($orderModel->id, $options);
+
+        if ($shop->telegram_bot_connected) {
+            try { TelegramService::notifyAssignmentCancelled($shop, $orderModel, $result['candidate_name'], $options); } catch (\Throwable $e) { Log::warning('cancelAssignment notify (telegram) failed', ['error' => $e->getMessage()]); }
+        }
+        if ($shop->max_bot_connected) {
+            try { MaxService::notifyAssignmentCancelled($shop, $orderModel, $result['candidate_name'], $options); } catch (\Throwable $e) { Log::warning('cancelAssignment notify (max) failed', ['error' => $e->getMessage()]); }
+        }
+
+        return response()->json(['message' => 'Запрос снят']);
     }
 
     /**

@@ -148,9 +148,15 @@ class TelegramOrderAssignTest extends TestCase
         $this->assertSame($staffUser->id, $order->pending_collector_id);
         $this->assertSame('Егорка', $order->pending_collector_name);
 
+        // Актёр записи — инициатор (в боте это всегда владелец привязанного
+        // чата, бот физически не знает, кто держит телефон), не кандидат —
+        // живой разбор 2026-10-19: имя кандидата теперь в note.
         $activity = OrderActivity::where('order_id', $order->id)->where('action', 'assignment_requested')->first();
         $this->assertNotNull($activity);
-        $this->assertSame('collector', $activity->actor_role);
+        $this->assertSame('owner', $activity->actor_role);
+        $this->assertSame($shop->user_id, $activity->actor_user_id);
+        $this->assertSame('Егорка', $activity->note);
+        $this->assertSame($shop->user_id, $order->pending_initiator_id);
     }
 
     public function test_assign_to_someone_else_who_is_offline_is_rejected(): void

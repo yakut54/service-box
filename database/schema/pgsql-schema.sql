@@ -369,6 +369,13 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         pending_collector_id            UUID,
                         pending_collector_name          TEXT,
                         pending_assignment_requested_at TIMESTAMPTZ,
+                        -- Кто отправил запрос (живой разбор 2026-10-19:
+                        -- отказ кандидата менял карточку тихо, у инициатора
+                        -- не было ни попапа, ни понимания, кого выбрать
+                        -- вместо отказавшегося — адресовать уведомление
+                        -- было физически нечем, этого поля не было).
+                        pending_initiator_id             UUID,
+                        pending_initiator_name           TEXT,
                         -- УСТАРЕЛО (2026-10-17) — был общим на весь магазин
                         -- (баг: открыл Ховар, бейдж погас и у Юлии, хотя она
                         -- не смотрела — тот же класс бага, что уже чинили для
@@ -730,7 +737,7 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     CREATE TABLE %I.order_activity (
                         id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                         order_id      UUID NOT NULL REFERENCES %I.orders(id) ON DELETE CASCADE,
-                        action        TEXT NOT NULL CHECK (action IN ('claimed', 'released', 'status_changed', 'problem_reported', 'assignment_requested', 'assignment_declined')),
+                        action        TEXT NOT NULL CHECK (action IN ('claimed', 'released', 'status_changed', 'problem_reported', 'assignment_requested', 'assignment_declined', 'assignment_cancelled')),
                         from_status   TEXT,
                         to_status     TEXT,
                         note          TEXT,

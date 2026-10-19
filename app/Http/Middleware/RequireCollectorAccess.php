@@ -47,7 +47,8 @@ class RequireCollectorAccess
             || ($request->isMethod('GET') && preg_match('#^api/admin/orders/' . self::UUID . '/assignment-candidates$#i', $path) === 1)
             || ($request->isMethod('POST') && preg_match('#^api/admin/orders/' . self::UUID . '/request-assignment$#i', $path) === 1)
             || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/accept-assignment$#i', $path) === 1)
-            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/decline-assignment$#i', $path) === 1);
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/decline-assignment$#i', $path) === 1)
+            || ($request->isMethod('PATCH') && preg_match('#^api/admin/orders/' . self::UUID . '/cancel-assignment$#i', $path) === 1);
 
         if ($allowed) {
             return $next($request);

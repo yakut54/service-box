@@ -1175,6 +1175,29 @@ class TelegramService
         );
     }
 
+    /**
+     * Запрос сняли вручную (кнопка "Отменить запрос" в веб-карточке,
+     * PLAN.md 2026-10-19 — кандидат не ответил, инициатор не стал ждать) —
+     * тот же пикер, что и при отказе, чтобы сразу выбрать другого, без
+     * второго похода в карточку.
+     *
+     * @param array<int, array{id: string, name: string, is_online?: bool}> $options
+     */
+    public static function notifyAssignmentCancelled(Shop $shop, $order, string $candidateName, array $options): void
+    {
+        $shortId = substr($order->id, 0, 8);
+        $text = "🚫 Запрос к <b>{$candidateName}</b> по заказу №{$shortId} снят. Выберите другого:";
+
+        self::sendMessage(
+            shop: $shop,
+            text: $text,
+            inlineKeyboard: self::collectorPickerRows($order->id, $options),
+            type: 'system_notification',
+            entityType: 'Order',
+            entityId: $order->id,
+        );
+    }
+
     public static function notifyMasterReview(int $chatId, string $customerName, int $score, ?string $text): void
     {
         $botToken = config('services.telegram.bot_token');

@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Order;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -30,6 +31,7 @@ class OrderAssignmentRequested implements ShouldBroadcastNow
         public string $orderId,
         public string $candidateId,
         public string $candidateName,
+        public string $initiatorName,
     ) {}
 
     public function broadcastOn(): Channel
@@ -42,13 +44,25 @@ class OrderAssignmentRequested implements ShouldBroadcastNow
         return 'order.assignment_requested';
     }
 
+    /**
+     * Сводка заказа (позиции/сумма/доставка) — чтобы кандидат не отвечал
+     * вслепую, видя в попапе только номер заказа (живой разбор 2026-10-19:
+     * "Юлия не знает, что берёт"). Собирается здесь же, одним местом, а не
+     * копипастой в каждом контроллере, который дёргает request().
+     */
     public function broadcastWith(): array
     {
+        $order = Order::find($this->orderId);
+
         return [
-            'orderId'       => $this->orderId,
-            'orderShortId'  => substr($this->orderId, 0, 8),
-            'candidateId'   => $this->candidateId,
-            'candidateName' => $this->candidateName,
+            'orderId'        => $this->orderId,
+            'orderShortId'   => substr($this->orderId, 0, 8),
+            'candidateId'    => $this->candidateId,
+            'candidateName'  => $this->candidateName,
+            'initiatorName'  => $this->initiatorName,
+            'itemsCount'     => $order?->items?->count(),
+            'totalPrice'     => $order?->total_price,
+            'deliveryMethod' => $order?->delivery_method,
         ];
     }
 }
