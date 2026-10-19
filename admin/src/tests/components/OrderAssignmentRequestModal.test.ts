@@ -122,7 +122,14 @@ describe('OrderAssignmentRequestModal', () => {
     expect(acceptOrderAssignment).not.toHaveBeenCalled()
   })
 
-  test('клик по затемнению — тот же эффект, что "Не беру" (не два разных способа закрыть окно)', async () => {
+  /**
+   * Живой разбор 2026-10-19: раньше клик по затемнению приравнивался к
+   * "Не беру" — Юлия случайно задела серое поле мимо кнопок и реально
+   * отклонила заказ, лишившись премии. Цена случайного промаха выше, чем
+   * неудобство "нельзя закрыть кликом в сторону" — теперь это вообще
+   * ничего не делает, окно остаётся открытым до явного ответа.
+   */
+  test('клик по затемнению НИЧЕГО не делает — окно остаётся открытым, заказ не отклоняется', async () => {
     const wrapper = setup('user-me')
     channelHandlers['.order.assignment_requested'](PAYLOAD)
     await wrapper.vm.$nextTick()
@@ -130,7 +137,9 @@ describe('OrderAssignmentRequestModal', () => {
     await wrapper.find('.bg-gray-900\\/50').trigger('click')
     await flushPromises()
 
-    expect(declineOrderAssignment).toHaveBeenCalledWith('order-1')
+    expect(declineOrderAssignment).not.toHaveBeenCalled()
+    expect(acceptOrderAssignment).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Ховар предлагает вам заказ')
   })
 
   /**

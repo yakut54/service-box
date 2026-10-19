@@ -117,16 +117,16 @@ async function decline() {
   }
 }
 
-// Клик по затемнению за окном — тот же смысл, что кнопка «Не беру»: не
-// должно быть двух способов закрыть одно и то же окно с разными
-// последствиями (один — отказ, другой — молча ничего).
-function onDismiss(value: boolean) {
-  if (!value) decline()
-}
 </script>
 
 <template>
-  <UiModal :model-value="show" @update:model-value="onDismiss" max-width="max-w-sm">
+  <!-- Клик по затемнению намеренно НИЧЕГО не делает — раньше приравнивался
+       к «Не беру» (см. git-историю), но живой разбор 2026-10-19 показал
+       цену промаха: Юлия случайно задела серое поле мимо кнопок и реально
+       отклонила заказ, лишившись премии. Цена ошибочного отказа выше, чем
+       неудобство "нельзя закрыть кликом в сторону" — отказ теперь только
+       явной кнопкой. -->
+  <UiModal :model-value="show" max-width="max-w-sm">
     <div class="p-6 text-center">
       <div class="text-4xl mb-3">📦</div>
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
