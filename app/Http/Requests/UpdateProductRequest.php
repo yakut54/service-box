@@ -23,7 +23,8 @@ class UpdateProductRequest extends FormRequest
             'currency' => 'nullable|string|size:3',
             'image_url' => 'nullable|url|max:500',
             'is_active' => 'sometimes|boolean',
-            'category_id' => 'nullable|string',
+            // Живой разбор 2026-10-19 — та же дыра, что у StoreProductRequest.
+            'category_id' => ['nullable', 'uuid', Rule::exists('categories', 'id')],
             'size_chart_id' => 'nullable|uuid',
             'sort_order' => 'sometimes|integer|min:0',
 
@@ -99,6 +100,7 @@ class UpdateProductRequest extends FormRequest
     {
         return [
             'physical.sku.unique' => 'Товар с таким SKU уже есть в магазине',
+            'category_id.exists' => 'Такой категории не существует',
         ];
     }
 }
