@@ -170,6 +170,17 @@ class StaffController extends Controller
             }
         }
 
+        // Живой разбор 2026-10-19 ("Мякиш" задвоился в списке) — побочная
+        // находка: ответ на создание не содержал admin_name (только
+        // "сырой" admin_id), хотя index() его резолвит. Карточка в вебе
+        // показывает "Администратор: X" по admin_name, не по admin_id —
+        // короткое окно до первого фонового обновления списка карточка
+        // необоснованно показывала "Подчиняется владельцу" для сборщика,
+        // которого только что явно привязали к админу.
+        $adminName = $adminId
+            ? ($isActingAdmin ? $request->user()->name : ShopStaff::find($adminId)?->user?->name)
+            : null;
+
         $existingUser = User::where('email', $email)->first();
 
         // Настоящая причина запрета — не «уже есть магазин» сама по себе, а
@@ -252,6 +263,7 @@ class StaffController extends Controller
                     'role'              => $pendingStaff->role,
                     'master_id'         => $pendingStaff->master_id,
                     'admin_id'          => $pendingStaff->admin_id,
+                    'admin_name'        => $pendingStaff->admin_id ? ShopStaff::find($pendingStaff->admin_id)?->user?->name : null,
                     'category_ids'      => $pendingStaff->category_ids,
                     'is_pending'        => true,
                     'is_expired'        => false,
@@ -302,6 +314,7 @@ class StaffController extends Controller
                 'role'         => $role,
                 'master_id'    => $masterId,
                 'admin_id'     => $adminId,
+                'admin_name'   => $adminName,
                 'category_ids' => $categoryIds,
                 'is_pending'   => true,
                 'is_expired'   => false,

@@ -55,15 +55,21 @@ function openEdit(admin: StaffMember) {
   showModal.value = true
 }
 
+// Живой разбор 2026-10-19: "Мякиш" задвоился в списке — StaffUpdated
+// (см. onStaffUpdated → load() ниже) успевал долететь и перезагрузить
+// список ДО того, как этот же созданный сотрудник приходил сюда через
+// 'saved' от модалки, и слепой unshift() добавлял его ВТОРОЙ раз поверх
+// уже загруженного. Теперь это upsert, как и у 'edit' — если запись с
+// этим id уже в списке (реально с сервера или от более ранней гонки),
+// обновляем её вместо дублирования.
 function handleSaved(admin: StaffMember, mode: 'create' | 'edit') {
-  if (mode === 'create') {
-    staff.value.unshift(admin)
-    toast.success('Приглашение отправлено')
+  const idx = staff.value.findIndex(s => s.id === admin.id)
+  if (idx !== -1) {
+    staff.value[idx] = admin
   } else {
-    const idx = staff.value.findIndex(s => s.id === admin.id)
-    if (idx !== -1) staff.value[idx] = admin
-    toast.success('Сохранено')
+    staff.value.unshift(admin)
   }
+  toast.success(mode === 'create' ? 'Приглашение отправлено' : 'Сохранено')
 }
 
 async function resend(admin: StaffMember) {
