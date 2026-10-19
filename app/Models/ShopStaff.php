@@ -66,4 +66,23 @@ class ShopStaff extends Model
     {
         return $this->accepted_at !== null;
     }
+
+    /**
+     * Ограничение по категориям, которое реально действует на этого
+     * сотрудника — для admin это его собственный category_ids; для
+     * collector, привязанного к админу, это ограничение НАСЛЕДУЕТСЯ от
+     * админа (та же логика, что раньше была продублирована инлайном в
+     * SetShopFromAuth — вынесено сюда, чтобы остаться одной копией:
+     * нужна и там, и в фильтре кандидатов на делегирование заказа).
+     * null — ограничения нет (владелец, обычный админ, сборщик без
+     * привязки к админу).
+     */
+    public function effectiveCategoryIds(): ?array
+    {
+        if ($this->role === 'collector' && $this->admin_id) {
+            return $this->admin?->category_ids;
+        }
+
+        return $this->category_ids;
+    }
 }

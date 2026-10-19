@@ -396,7 +396,7 @@ class MaxController extends Controller
         // сразу — сначала спрашиваем, кто берёт собирать, симметрично
         // Telegram (PLAN.md 2026-10-18).
         if ($action === 'confirm' && !$isDigitalOnly) {
-            $options = OrderCollectorCandidates::listFor($shop);
+            $options = OrderCollectorCandidates::listFor($shop, $order);
             OrderCollectorCandidates::cache($order->id, $options);
 
             MaxService::answerCallback($cbId, 'Выберите, кто берёт заказ');
@@ -501,7 +501,7 @@ class MaxController extends Controller
             return;
         }
 
-        $options = OrderCollectorCandidates::listFor($shop);
+        $options = OrderCollectorCandidates::listFor($shop, $order);
         OrderCollectorCandidates::cache($order->id, $options);
 
         MaxService::answerCallback($cbId, 'Обновлено');

@@ -423,7 +423,7 @@ class TelegramController extends Controller
                 return;
             }
 
-            $options = OrderCollectorCandidates::listFor($shop);
+            $options = OrderCollectorCandidates::listFor($shop, $order);
             OrderCollectorCandidates::cache($order->id, $options);
 
             $this->answerCallback($callbackId, 'Выберите, кто берёт заказ');
@@ -550,7 +550,7 @@ class TelegramController extends Controller
             return;
         }
 
-        $options = OrderCollectorCandidates::listFor($shop);
+        $options = OrderCollectorCandidates::listFor($shop, $order);
         OrderCollectorCandidates::cache($order->id, $options);
 
         $this->answerCallback($callbackId, 'Обновлено');

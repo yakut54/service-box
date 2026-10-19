@@ -32,11 +32,10 @@ class SetShopFromAuth
         // staff_category_ids (CategoryAccess, OrderController, NavCounts),
         // начинает резать видимость сборщику без отдельных правок. Сборщик
         // без admin_id («подчиняется владельцу») или с неограниченным
-        // администратором — видит всё, как раньше.
-        $categoryIds = $staff?->category_ids;
-        if ($staff && $staff->role === 'collector' && $staff->admin_id) {
-            $categoryIds = $staff->admin?->category_ids;
-        }
+        // администратором — видит всё, как раньше. Логика — в
+        // ShopStaff::effectiveCategoryIds() (нужна и здесь, и в фильтре
+        // кандидатов на делегирование заказа — раньше была только здесь).
+        $categoryIds = $staff?->effectiveCategoryIds();
 
         $request->attributes->set('shop', $shop);
         $request->attributes->set('staff_role', $ctx['role']);

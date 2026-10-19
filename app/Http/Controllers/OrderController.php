@@ -1069,7 +1069,7 @@ class OrderController extends Controller
 
         $shop = $request->attributes->get('shop');
 
-        return response()->json(['data' => OrderCollectorCandidates::listFor($shop)]);
+        return response()->json(['data' => OrderCollectorCandidates::listFor($shop, $orderModel)]);
     }
 
     /**
@@ -1183,7 +1183,7 @@ class OrderController extends Controller
         TelegramService::removeKeyboardByEntity('Order', $orderModel->id);
         MaxService::removeButtonsByEntity('order', $orderModel->id);
 
-        $options = OrderCollectorCandidates::listFor($shop);
+        $options = OrderCollectorCandidates::listFor($shop, $orderModel);
         OrderCollectorCandidates::cache($orderModel->id, $options);
 
         if ($shop->telegram_bot_connected) {
@@ -1225,7 +1225,7 @@ class OrderController extends Controller
         TelegramService::removeKeyboardByEntity('Order', $orderModel->id);
         MaxService::removeButtonsByEntity('order', $orderModel->id);
 
-        $options = OrderCollectorCandidates::listFor($shop);
+        $options = OrderCollectorCandidates::listFor($shop, $orderModel);
         OrderCollectorCandidates::cache($orderModel->id, $options);
 
         if ($shop->telegram_bot_connected) {

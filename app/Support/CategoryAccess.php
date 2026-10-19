@@ -26,14 +26,24 @@ final class CategoryAccess
      */
     public static function expandedIds(Request $request): ?array
     {
-        $topLevel = self::allowedTopLevelIds($request);
+        return self::expand(self::allowedTopLevelIds($request));
+    }
 
-        if ($topLevel === null) {
+    /**
+     * Чистая версия expandedIds() — без $request, на произвольном наборе
+     * верхнеуровневых id. Нужна там, где ограничение проверяется НЕ для
+     * текущего актора запроса, а для КОГО-ТО ДРУГОГО — например, для
+     * кандидата на делегирование заказа (см. OrderCollectorCandidates) —
+     * $request там не про того человека, чьё ограничение проверяем.
+     */
+    public static function expand(?array $topLevelIds): ?array
+    {
+        if ($topLevelIds === null) {
             return null;
         }
 
-        $childIds = Category::whereIn('parent_id', $topLevel)->pluck('id')->all();
+        $childIds = Category::whereIn('parent_id', $topLevelIds)->pluck('id')->all();
 
-        return array_values(array_unique([...$topLevel, ...$childIds]));
+        return array_values(array_unique([...$topLevelIds, ...$childIds]));
     }
 }

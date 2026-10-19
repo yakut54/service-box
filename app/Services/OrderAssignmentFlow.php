@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Events\OrderAssignmentRequested;
 use App\Models\Order;
 use App\Models\Shop;
+use App\Models\ShopStaff;
 use App\Models\User;
 
 /**
@@ -53,6 +54,18 @@ class OrderAssignmentFlow
 
         if (!User::isOnline($candidateId)) {
             return ['ok' => false, 'message' => 'Нельзя выбрать сотрудника, который сейчас не в сети'];
+        }
+
+        // Живой разбор 2026-10-19: список кандидатов (OrderCollectorCandidates::
+        // listFor()) уже прячет сотрудников вне их категории — без этой же
+        // проверки здесь это было бы только украшением UI: прямой вызов API с
+        // candidate_id в обход списка всё равно прошёл бы. Владелец — всегда
+        // без ограничений, этот блок его не касается.
+        if ($candidateId !== $shop->user_id) {
+            $candidateStaff = ShopStaff::where('shop_id', $shop->id)->where('user_id', $candidateId)->first();
+            if ($candidateStaff && !OrderCollectorCandidates::inCategoryScope($candidateStaff, OrderCollectorCandidates::categoryIdsFor($order))) {
+                return ['ok' => false, 'message' => 'Этот сотрудник не занимается товарами этого заказа'];
+            }
         }
 
         $initiatorResolved = OrderCollectorCandidates::resolve($shop, $initiatorUserId);
