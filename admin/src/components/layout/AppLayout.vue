@@ -413,7 +413,7 @@ async function handleLogout() {
               </button>
 
               <RouterLink
-                v-if="authStore.isOwner"
+                v-if="authStore.isOwner || authStore.isAdmin"
                 :to="{ path: '/settings', query: { tab: 'profile' } }"
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 @click="menuOpen = false"

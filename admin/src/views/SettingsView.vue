@@ -30,9 +30,13 @@ const mailFailuresStore = useMailFailuresStore()
 // 'widget' скрыта из таб-бара (2026-08-20) — цвет+лого переехали в SettingsBrand
 // на вкладке "Основное", остальное (тема/шрифт/embed/аналитика) пока не в фокусе
 // (см. PLAN.md). Компонент и вкладка остаются в коде, просто недоступны из UI.
-// 'profile' — ownerOnly: аватар/телефон владельца живут в public.users, у
-// сотрудников (admin/collector) своя запись в shop_staff и своё редактирование
-// через "Команду" (см. AdminFormModal) — самообслуживание для них не добавляли.
+// 'profile' — ownerOrAdmin: смена пароля (SettingsPassword) ролей не
+// касается вообще, но раньше вкладка была ownerOnly целиком и админ до
+// неё не добирался (живой вопрос 2026-10-19 — "как Юлии сменить пароль
+// через админку"). Аватар/телефон (SettingsProfile) при этом остаются
+// только владельцу — они живут в public.users, у сотрудников
+// (admin/collector) своя запись в shop_staff и своё редактирование через
+// "Команду" (см. AdminFormModal), это разведено явно внутри блока ниже.
 // 'notifications'/'payments' — ownerOnly: боты магазина и платёжные ключи
 // остаются владельцу, управляющему точки (роль admin) видна вкладка
 // "Основное" (там часы работы), "Доставка" и своя "Мои уведомления".
@@ -41,7 +45,7 @@ const mailFailuresStore = useMailFailuresStore()
 // role-agnostic компоненты, что и у портала мастера, см. PLAN.md). Мастер
 // сюда не заходит — у него свой отдельный портал (/master/notifications).
 const tabs = [
-  { id: 'profile',         label: 'Профиль', ownerOnly: true },
+  { id: 'profile',         label: 'Профиль', ownerOrAdmin: true },
   { id: 'main',            label: 'Основное' },
   { id: 'widget',          label: 'Виджет', hidden: true },
   { id: 'notifications',   label: 'Уведомления', ownerOnly: true },
@@ -56,6 +60,7 @@ function tabVisible(tab: (typeof tabs)[number]): boolean {
   if ('hidden' in tab && tab.hidden) return false
   if ('ownerOnly' in tab && tab.ownerOnly && !authStore.isOwner) return false
   if ('adminOnly' in tab && tab.adminOnly && !authStore.isAdmin) return false
+  if ('ownerOrAdmin' in tab && tab.ownerOrAdmin && !authStore.isOwner && !authStore.isAdmin) return false
   return true
 }
 
@@ -99,9 +104,10 @@ function setTab(id: TabId) {
       </button>
     </div>
 
-    <!-- Профиль (только владелец) -->
+    <!-- Профиль (владелец и администратор) — аватар/телефон только
+         владельцу (public.users), смена пароля ролей не касается -->
     <div v-show="activeTab === 'profile'" class="max-w-xl space-y-6">
-      <SettingsProfile />
+      <SettingsProfile v-if="authStore.isOwner" />
       <SettingsPassword />
     </div>
 
