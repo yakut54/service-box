@@ -3,11 +3,13 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import { useAlertSound } from '@/composables/useAlertSound'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
 import { formatPrice } from '@/shared/lib/format'
 import { DELIVERY_METHOD_LABELS } from '@/shared/lib/labels'
 import UiModal from '@/shared/ui/UiModal.vue'
+import type { AssignmentOffer } from '@/types'
 
 /**
  * «Вам предлагают заказ» — всплывает, когда через бота (Telegram/MAX) или
@@ -23,18 +25,15 @@ import UiModal from '@/shared/ui/UiModal.vue'
  * же, на который и так подписан AppLayout/CollectorLayout) — отдельный
  * приватный канал на пользователя ради одного события заводить незачем,
  * фильтр "моё ли это" делаем здесь же, по payload.candidateId.
+ *
+ * Живой разбор 2026-10-19 (второе устройство): WS — только живой пуш, без
+ * replay — кандидат, который не был подключён к каналу В ТОТ МОМЕНТ
+ * (другое устройство, обновил страницу, была сетевая заминка), никогда бы
+ * не увидел предложение вообще, хотя оно реально висит в БД. Опрос
+ * (GET /admin/my-pending-assignment) — та же страховка на случай
+ * пропущенного события, что уже стоит в AppLayout.vue под chat/reviews/
+ * mail_failures.
  */
-
-interface AssignmentRequestedPayload {
-  orderId: string
-  orderShortId: string
-  candidateId: string
-  candidateName: string
-  initiatorName: string
-  itemsCount: number | null
-  totalPrice: number | null
-  deliveryMethod: string | null
-}
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -49,24 +48,46 @@ const totalPrice = ref<number | null>(null)
 const deliveryMethod = ref<string | null>(null)
 const responding = ref(false)
 
+function applyOffer(offer: AssignmentOffer) {
+  orderId.value = offer.orderId
+  orderShortId.value = offer.orderShortId
+  initiatorName.value = offer.initiatorName
+  itemsCount.value = offer.itemsCount
+  totalPrice.value = offer.totalPrice
+  deliveryMethod.value = offer.deliveryMethod
+  show.value = true
+}
+
 onMounted(() => {
   const shopId = authStore.shop?.id
   if (!shopId) return
 
-  getEcho().private(`shop.${shopId}`).listen('.order.assignment_requested', (payload: AssignmentRequestedPayload) => {
+  getEcho().private(`shop.${shopId}`).listen('.order.assignment_requested', (payload: AssignmentOffer) => {
     if (payload.candidateId !== authStore.user?.id) return
-    orderId.value = payload.orderId
-    orderShortId.value = payload.orderShortId
-    initiatorName.value = payload.initiatorName
-    itemsCount.value = payload.itemsCount
-    totalPrice.value = payload.totalPrice
-    deliveryMethod.value = payload.deliveryMethod
-    show.value = true
+    applyOffer(payload)
     playAlertSound()
   })
   // Канал не покидаем здесь — им владеет layout (AppLayout/CollectorLayout),
   // который и отписывается от него при размонтировании.
 })
+
+async function pollForPendingOffer() {
+  // Окно уже открыто (живым WS-пушем или предыдущим опросом) — не
+  // перезатираем его состояние на середине ответа.
+  if (show.value) return
+  try {
+    const resp = await api.getMyPendingAssignment()
+    if (resp.data) {
+      applyOffer(resp.data)
+      playAlertSound()
+    }
+  } catch {
+    // Опрос — страховка, не основной путь; молчим, подождём следующего тика.
+  }
+}
+
+if (authStore.shop) pollForPendingOffer()
+useAutoRefresh(pollForPendingOffer, 15_000)
 
 async function accept() {
   responding.value = true

@@ -369,6 +369,23 @@ export interface Order {
   updated_at: string
 }
 
+/**
+ * "Вам предлагают заказ" — общая форма и для живого WS-события
+ * (order.assignment_requested), и для опроса-страховки
+ * (GET /admin/my-pending-assignment), чтобы OrderAssignmentRequestModal.vue
+ * обрабатывал оба пути одним и тем же кодом (живой разбор 2026-10-19).
+ */
+export interface AssignmentOffer {
+  orderId: string
+  orderShortId: string
+  candidateId: string
+  candidateName: string
+  initiatorName: string
+  itemsCount: number | null
+  totalPrice: number | null
+  deliveryMethod: string | null
+}
+
 export interface OrderStats {
   total_orders: number
   total_revenue: number

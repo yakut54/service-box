@@ -26,6 +26,7 @@ import type {
   SuperadminOwner,
   Commission,
   AssignmentCandidate,
+  AssignmentOffer,
 } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -415,6 +416,13 @@ class ApiClient {
   }
 
   // Кнопка «В работу» в карточке заказа (PLAN.md 2026-10-19) — выбор
+  // Опрос-страховка попапа "вам предлагают заказ" — на случай, если живой
+  // WS-пуш не долетел (другое устройство, обновление страницы, см.
+  // OrderAssignmentRequestModal.vue).
+  async getMyPendingAssignment() {
+    return this.request<{ data: AssignmentOffer | null }>('/admin/my-pending-assignment')
+  }
+
   // исполнителя из списка, тот же OrderAssignmentFlow, что и у бота.
   async getAssignmentCandidates(orderId: string) {
     return this.request<{ data: AssignmentCandidate[] }>(`/admin/orders/${orderId}/assignment-candidates`)
