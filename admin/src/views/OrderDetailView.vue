@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
@@ -35,13 +35,17 @@ const activityPanel = ref<InstanceType<typeof OrderActivityPanel> | null>(null)
 // Попап "Юлия отказалась" (OrderAssignmentDeclinedModal.vue) ведёт сюда с
 // ?reassign=1, чтобы сразу открыть пикер, а не просто показать карточку —
 // не нужно второй раз искать кнопку "Выбрать другого" (живой разбор
-// 2026-10-19). Query чистим сразу же, чтобы не открывать пикер повторно
-// при обновлении страницы (F5).
-if (route.query.reassign === '1') {
+// 2026-10-19). watch(), а не разовый if при setup() — живой тест нашёл
+// баг: Ховар и так уже стоит на странице ЭТОГО заказа, router.push на тот
+// же путь с другим query не пересоздаёт компонент, разовая проверка при
+// setup() просто не срабатывает второй раз. Query чистим сразу же, чтобы
+// не открывать пикер повторно при обновлении страницы (F5).
+watch(() => route.query.reassign, (value) => {
+  if (value !== '1') return
   showAssignmentPicker.value = true
   const { reassign: _reassign, ...restQuery } = route.query
   router.replace({ query: restQuery })
-}
+}, { immediate: true })
 
 async function cancelAssignment() {
   if (!order.value) return
