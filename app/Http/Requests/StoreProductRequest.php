@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
@@ -49,7 +50,15 @@ class StoreProductRequest extends FormRequest
 
         if ($this->type === 'physical') {
             $rules = array_merge($rules, [
-                'physical.sku' => 'nullable|string|max:100',
+                // Живой разбор 2026-10-19: SKU — складской идентификатор
+                // (штрихкод/инвентаризация), два товара с одним и тем же
+                // SKU через API раньше проходили молча. Пустую строку не
+                // считаем значением — такого SKU может быть сколько угодно
+                // (та же логика, что у partial unique индекса в схеме).
+                'physical.sku' => [
+                    'nullable', 'string', 'max:100',
+                    Rule::unique('products_physical', 'sku')->where(fn ($q) => $q->where('sku', '!=', '')),
+                ],
                 // required только для штучного режима — весовые товары ведут
                 // остаток в граммах (stock_weight_grams), не в штуках.
                 'physical.stock_quantity' => 'nullable|required_if:physical.sale_mode,piece|integer|min:0',
@@ -104,6 +113,7 @@ class StoreProductRequest extends FormRequest
             'name.required' => 'Укажите название товара',
             'price.required' => 'Укажите цену товара',
             'price.integer' => 'Цена должна быть целым числом (в копейках)',
+            'physical.sku.unique' => 'Товар с таким SKU уже есть в магазине',
             'physical.stock_quantity.required_if' => 'Укажите количество на складе',
             'physical.stock_weight_grams.required_if' => 'Укажите остаток на складе (г)',
             'digital.delivery_type.required' => 'Укажите способ доставки',

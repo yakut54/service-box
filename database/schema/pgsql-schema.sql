@@ -135,6 +135,17 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                         marking_code         TEXT
                     )
                 $sql$, p_schema_name, p_schema_name);
+                -- Живой разбор 2026-10-19 ("охота за дырами"): SKU не был
+                -- ничем защищён от дублей — два разных товара спокойно
+                -- создавались с одинаковым SKU через API, хотя это
+                -- складской идентификатор (штрихкод/инвентаризация), который
+                -- обязан быть уникальным. Пустую строку/NULL не считаем
+                -- конфликтом — это "SKU не задан", а не настоящее значение,
+                -- таких записей может быть сколько угодно.
+                EXECUTE format(
+                    'CREATE UNIQUE INDEX ON %I.products_physical(sku) WHERE sku IS NOT NULL AND sku <> %L',
+                    p_schema_name, ''
+                );
 
                 -- products_digital
                 EXECUTE format($sql$
@@ -203,6 +214,12 @@ CREATE FUNCTION public.create_shop_schema(p_schema_name text) RETURNS void
                     )
                 $sql$, p_schema_name, p_schema_name);
                 EXECUTE format('CREATE INDEX ON %I.product_variants(product_id)', p_schema_name);
+                -- Та же дыра, что у products_physical.sku выше — варианты
+                -- (размер/цвет) тоже заводят свой SKU, тоже без защиты.
+                EXECUTE format(
+                    'CREATE UNIQUE INDEX ON %I.product_variants(sku) WHERE sku IS NOT NULL AND sku <> %L',
+                    p_schema_name, ''
+                );
 
                 -- product_images
                 EXECUTE format($sql$

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -53,7 +54,15 @@ class UpdateProductRequest extends FormRequest
         ];
 
         $rules = array_merge($rules, [
-            'physical.sku' => 'nullable|string|max:100',
+            // Живой разбор 2026-10-19 — см. StoreProductRequest. ignore()
+            // по product_id — этот же товар не конфликтует сам с собой,
+            // когда SKU не менялся.
+            'physical.sku' => [
+                'nullable', 'string', 'max:100',
+                Rule::unique('products_physical', 'sku')
+                    ->where(fn ($q) => $q->where('sku', '!=', ''))
+                    ->ignore($this->route('product'), 'product_id'),
+            ],
             'physical.stock_quantity' => 'sometimes|nullable|integer|min:0',
             'physical.allow_backorder' => 'sometimes|boolean',
             'physical.weight_grams' => 'nullable|integer|min:0',
@@ -84,5 +93,12 @@ class UpdateProductRequest extends FormRequest
         ]);
 
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'physical.sku.unique' => 'Товар с таким SKU уже есть в магазине',
+        ];
     }
 }
