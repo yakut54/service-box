@@ -3824,3 +3824,58 @@ feature-тесты этот баг не ловили, потому что в т�
   `note`, плюс крон `CheckSurchargeDeadline` сам пишет заметку в
   `order_activity` — отдельно исправленный в тот же день смежный пробел,
   крон раньше не писал историю).
+
+## 2026-10-20 — Журнал изменений категорий + вкладки Товары/Категории
+
+Пользователь спросил, куда сохраняется история заказа (нашёлся и описан
+`order_activity`, см. выше) и покрывает ли журнал товара переименование/
+удаление/все поля — выяснилось, что `ProductChangeLog` не следил за
+описанием и главным фото карточки, а создание/переименование/удаление
+самой категории как сущности вообще нигде не логировалось. По запросу:
+
+- **Новый журнал категорий** — тенантная таблица `category_changes`
+  (калька `product_changes`: `category_id` ON DELETE SET NULL +
+  `category_name` снапшот, `action` created/updated/deleted, `field`/
+  `old_value`/`new_value`) + `App\Services\CategoryChangeLog` (отслеживает
+  `name`/`parent_id`/`description`/`image_url`/`is_visible`/
+  `age_restricted`/`no_return`; `slug`/`sort_order` сознательно не трогаем
+  — техническое производное и шумный bulk-reorder). Подключено в
+  `CategoryController::store/update/destroy` (скрытие через `?action=hide`
+  — тоже лог изменения `is_visible`, каскадные дочерние категории НЕ
+  логируются отдельно — только явно выбранная). `App\Http\Controllers\
+  CategoryChangeController` — read-only калька `ProductChangeController`
+  (index/export csv-xlsx/pending-count/mark-seen/owner-only destroy),
+  маршруты `/api/admin/category-changes*`. `NavCountsController` отдаёт
+  `category_changes` отдельным полем для серого счётчика.
+- **`ProductChangeLog::TRACKED_FIELDS`** расширен на `description` и
+  `image_url` (только главное фото карточки — вся галерея
+  `product_images` сознательно не входит, это отдельный экран загрузки и
+  отдельная, более шумная история).
+- **Админка**: `ProductChangesView.vue` переименован в
+  `components/changes/ProductChangesTab.vue`, добавлен
+  `CategoryChangesTab.vue` — оба хостятся во вкладках внутри нового
+  `views/ChangesView.vue` (вкладка — в query `?tab=`, чтобы ссылку можно
+  было сохранить). Каждая вкладка полностью самостоятельна (свой
+  export/select-mode/фильтры/пагинация) — проще и безопаснее, чем тащить
+  общий родительский стейт через `defineExpose`. Маршрут сайдбара
+  `/product-changes` → `/changes`, оба бейджа (серый «всего» и красный
+  «новое») в пункте меню теперь суммируют товары+категории.
+- Новый стор `stores/categoryChanges.ts` — та же фабрика
+  `createPendingCountStore`, что у товаров.
+
+**Проверено:** `tests/Feature/CategoryChangeLogTest.php` (7 тестов —
+создание/переименование/перемещение с подстановкой ИМЕНИ родителя, не
+UUID/скрытие/удаление/категорийный админ не может трогать категории вообще
+→ ничего не пишется/неограниченный админ пишется с его ролью),
+`tests/Feature/CategoryChangeControllerTest.php` (4 теста — index/
+pending-count исключает собственные правки/mark-seen/только владелец
+удаляет), `tests/Feature/ProductChangeLogDescriptionAndImageTest.php`
+(3 теста). Все регрессионные — подтверждён провал без фикса через
+`git stash`. `vue-tsc --noEmit` + `vitest run` (35/35) + `vite build`
+чисты. Живая проверка на `shop_xdirmgfxyd7u`: создание/переименование/
+удаление категории и изменение описания/фото товара корректно появляются
+в соответствующих журналах с верной атрибуцией; тестовые записи и товар
+подчищены. Таблица `category_changes` и обновлённая функция
+`create_shop_schema()` применены вручную и на тестовой, и на боевой БД
+(функция — хранится в Postgres, правка файла её не обновляет сама по
+себе, нужен `DROP FUNCTION` + повторная загрузка файла).
