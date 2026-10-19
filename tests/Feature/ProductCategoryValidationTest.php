@@ -3,15 +3,16 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\SizeChart;
 use App\Models\Shop;
 use App\Services\TenantService;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Живой разбор 2026-10-19 — несуществующий category_id (или category_id из
- * чужого магазина) долетал до INSERT и падал foreign key violation'ом
- * (500 Server Error) вместо понятного 422.
+ * Живой разбор 2026-10-19 — несуществующий category_id/size_chart_id (или
+ * принадлежащий чужому магазину) долетал до INSERT и падал foreign key
+ * violation'ом (500 Server Error) вместо понятного 422.
  */
 class ProductCategoryValidationTest extends TestCase
 {
@@ -19,6 +20,12 @@ class ProductCategoryValidationTest extends TestCase
     {
         TenantService::setContext($shop);
         return Category::create(['name' => $name, 'slug' => 'cat-' . Str::random(10), 'parent_id' => null]);
+    }
+
+    private function sizeChartFor(Shop $shop, string $name): SizeChart
+    {
+        TenantService::setContext($shop);
+        return SizeChart::create(['name' => $name]);
     }
 
     public function test_store_rejects_a_non_existent_category_id(): void
@@ -96,5 +103,39 @@ class ProductCategoryValidationTest extends TestCase
 
         $response->assertStatus(422);
         $this->assertSame('Такой категории не существует', $response->json('errors.category_id')[0] ?? null);
+    }
+
+    public function test_store_rejects_a_non_existent_size_chart_id(): void
+    {
+        $shop = $this->createTestShop();
+
+        $response = $this->actingAs($shop->user, 'sanctum')
+            ->postJson('/api/admin/products', [
+                'type' => 'physical',
+                'name' => 'Товар',
+                'price' => 10000,
+                'size_chart_id' => (string) Str::uuid(),
+                'physical' => ['sale_mode' => 'piece', 'stock_quantity' => 5],
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertSame('Такой размерной сетки не существует', $response->json('errors.size_chart_id')[0] ?? null);
+    }
+
+    public function test_store_accepts_a_real_size_chart_id(): void
+    {
+        $shop = $this->createTestShop();
+        $sizeChart = $this->sizeChartFor($shop, 'Одежда S-XL');
+
+        $response = $this->actingAs($shop->user, 'sanctum')
+            ->postJson('/api/admin/products', [
+                'type' => 'physical',
+                'name' => 'Товар',
+                'price' => 10000,
+                'size_chart_id' => $sizeChart->id,
+                'physical' => ['sale_mode' => 'piece', 'stock_quantity' => 5],
+            ]);
+
+        $response->assertCreated();
     }
 }

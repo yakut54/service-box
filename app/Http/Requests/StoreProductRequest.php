@@ -27,7 +27,8 @@ class StoreProductRequest extends FormRequest
             // долетал до INSERT и падал foreign key violation'ом (500)
             // вместо понятного 422.
             'category_id' => ['nullable', 'uuid', Rule::exists('categories', 'id')],
-            'size_chart_id' => 'nullable|uuid',
+            // Та же дыра, что у category_id выше.
+            'size_chart_id' => ['nullable', 'uuid', Rule::exists('size_charts', 'id')],
             'sort_order' => 'nullable|integer|min:0',
 
             // Произвольные характеристики «label: value» (см. ProductController::syncAttributes)
@@ -115,6 +116,7 @@ class StoreProductRequest extends FormRequest
             'type.in' => 'Тип товара должен быть: physical, digital или service',
             'name.required' => 'Укажите название товара',
             'category_id.exists' => 'Такой категории не существует',
+            'size_chart_id.exists' => 'Такой размерной сетки не существует',
             'price.required' => 'Укажите цену товара',
             'price.integer' => 'Цена должна быть целым числом (в копейках)',
             'physical.sku.unique' => 'Товар с таким SKU уже есть в магазине',
