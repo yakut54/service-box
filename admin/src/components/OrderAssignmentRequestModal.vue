@@ -2,8 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
+import { useAlertSound } from '@/composables/useAlertSound'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
+import { formatPrice } from '@/shared/lib/format'
+import { DELIVERY_METHOD_LABELS } from '@/shared/lib/labels'
 import UiModal from '@/shared/ui/UiModal.vue'
 
 /**
@@ -27,24 +30,24 @@ interface AssignmentRequestedPayload {
   orderShortId: string
   candidateId: string
   candidateName: string
+  initiatorName: string
+  itemsCount: number | null
+  totalPrice: number | null
+  deliveryMethod: string | null
 }
 
 const authStore = useAuthStore()
 const toast = useToast()
+const { playAlertSound } = useAlertSound()
 
 const show = ref(false)
 const orderId = ref('')
 const orderShortId = ref('')
+const initiatorName = ref('')
+const itemsCount = ref<number | null>(null)
+const totalPrice = ref<number | null>(null)
+const deliveryMethod = ref<string | null>(null)
 const responding = ref(false)
-
-// Тот же звук и тот же тумблер localStorage, что у остальных сигналов в
-// AppLayout — отдельного звука под это уведомление не заводим.
-const alertAudio = new Audio('/sounds/chat-notify.wav')
-function playAlertSound() {
-  if (localStorage.getItem('chat_sound_enabled') === 'false') return
-  alertAudio.currentTime = 0
-  alertAudio.play().catch(() => { /* автовоспроизведение заблокировано браузером — тихо игнорируем */ })
-}
 
 onMounted(() => {
   const shopId = authStore.shop?.id
@@ -54,6 +57,10 @@ onMounted(() => {
     if (payload.candidateId !== authStore.user?.id) return
     orderId.value = payload.orderId
     orderShortId.value = payload.orderShortId
+    initiatorName.value = payload.initiatorName
+    itemsCount.value = payload.itemsCount
+    totalPrice.value = payload.totalPrice
+    deliveryMethod.value = payload.deliveryMethod
     show.value = true
     playAlertSound()
   })
@@ -101,9 +108,24 @@ function onDismiss(value: boolean) {
   <UiModal :model-value="show" @update:model-value="onDismiss" max-width="max-w-sm">
     <div class="p-6 text-center">
       <div class="text-4xl mb-3">📦</div>
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Вам предлагают заказ</h3>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">Заказ #{{ orderShortId }} — возьмёте в работу?</p>
-      <div class="flex gap-2">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+        {{ initiatorName }} предлагает вам заказ
+      </h3>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">#{{ orderShortId }}</p>
+
+      <!-- Сводка заказа — чтобы отвечать не вслепую (живой разбор
+           2026-10-19: раньше тут был только номер заказа). -->
+      <div v-if="itemsCount != null || totalPrice != null || deliveryMethod" class="text-sm text-gray-600 dark:text-gray-300 mb-5 space-x-1">
+        <span v-if="itemsCount != null">{{ itemsCount }} {{ itemsCount === 1 ? 'позиция' : 'позиции' }}</span>
+        <span v-if="itemsCount != null && totalPrice != null">·</span>
+        <span v-if="totalPrice != null">{{ formatPrice(totalPrice) }}</span>
+        <span v-if="deliveryMethod" class="block text-gray-400 dark:text-gray-500 mt-0.5">
+          {{ DELIVERY_METHOD_LABELS[deliveryMethod] || deliveryMethod }}
+        </span>
+      </div>
+      <p v-else class="text-sm text-gray-500 dark:text-gray-400 mb-5">Возьмёте в работу?</p>
+
+      <div class="flex flex-col sm:flex-row gap-2">
         <button
           @click="decline"
           :disabled="responding"

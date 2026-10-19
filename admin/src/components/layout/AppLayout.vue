@@ -12,10 +12,12 @@ import { usePresenceStore } from '@/stores/presence'
 import { getEcho } from '@/lib/echo'
 import { useTheme } from '@/composables/useTheme'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { useAlertSound } from '@/composables/useAlertSound'
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import SessionSupersededModal from '@/components/SessionSupersededModal.vue'
 import OrderAssignmentRequestModal from '@/components/OrderAssignmentRequestModal.vue'
+import OrderAssignmentDeclinedModal from '@/components/OrderAssignmentDeclinedModal.vue'
 import UiTooltip from '@/shared/ui/UiTooltip.vue'
 import UiAvatar from '@/shared/ui/UiAvatar.vue'
 import UiSkeleton from '@/shared/ui/UiSkeleton.vue'
@@ -37,13 +39,9 @@ const { isDark, toggle } = useTheme()
 // заказ/отзыв/сообщение/несработавшее письмо — это всегда один и тот же
 // смысл «появилось что-то новое, требующее внимания». Общий тумблер
 // localStorage 'chat_sound_enabled' — заводить отдельный под каждый бейдж
-// незачем.
-const alertAudio = new Audio('/sounds/chat-notify.wav')
-function playAlertSound() {
-  if (localStorage.getItem('chat_sound_enabled') === 'false') return
-  alertAudio.currentTime = 0
-  alertAudio.play().catch(() => { /* автовоспроизведение заблокировано браузером — тихо игнорируем */ })
-}
+// незачем. Вынесено в useAlertSound — тот же звук нужен и модалкам
+// предложения/отказа от заказа.
+const { playAlertSound } = useAlertSound()
 
 // AppLayout хостит и обычную админку, и раздел Суперадмина — «чистый»
 // суперадмин (аккаунт управления платформой, без своего магазина) сюда тоже
@@ -512,4 +510,5 @@ async function handleLogout() {
 
   <SessionSupersededModal />
   <OrderAssignmentRequestModal />
+  <OrderAssignmentDeclinedModal />
 </template>

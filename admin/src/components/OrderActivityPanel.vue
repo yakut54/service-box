@@ -21,6 +21,9 @@ const ACTION_LABELS: Record<OrderActivity['action'], string> = {
   released: 'Отказался от заказа',
   status_changed: 'Сменил статус',
   problem_reported: 'Отметил проблему',
+  assignment_requested: 'Предложил(а) заказ',
+  assignment_declined: 'Отказался(ась) от предложения',
+  assignment_cancelled: 'Отменил(а) запрос',
 }
 
 function statusLabel(status: string | null) {

@@ -350,6 +350,13 @@ export interface Order {
   collector_is_online?: boolean | null
   pending_collector_id?: string | null
   pending_collector_name?: string | null
+  // Живой Sanctum-токен у ПРЕДЛОЖЕННОГО кандидата, не у исполнителя — см.
+  // OrderController::show(). Отличается от collector_is_online: кандидат
+  // ещё не исполнитель, только ждёт ответа.
+  pending_collector_is_online?: boolean | null
+  pending_assignment_requested_at?: string | null
+  pending_initiator_id?: string | null
+  pending_initiator_name?: string | null
   picking_started_at?: string | null
   pick_note?: string | null
   pick_note_at?: string | null
@@ -706,7 +713,7 @@ export interface ProductChange {
 export interface OrderActivity {
   id: string
   order_id: string
-  action: 'claimed' | 'released' | 'status_changed' | 'problem_reported'
+  action: 'claimed' | 'released' | 'status_changed' | 'problem_reported' | 'assignment_requested' | 'assignment_declined' | 'assignment_cancelled'
   from_status: string | null
   to_status: string | null
   note: string | null

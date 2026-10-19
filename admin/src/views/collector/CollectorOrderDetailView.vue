@@ -497,7 +497,7 @@ onUnmounted(() => {
             v-model="releaseNote"
             rows="2"
             placeholder="Почему отказываетесь? (нужно для следующего сборщика)"
-            class="input w-full"
+            class="input w-full placeholder:text-[0.5em]"
           />
           <div class="flex gap-2">
             <button class="btn-secondary btn-sm flex-1" @click="showReleaseForm = false">Отмена</button>

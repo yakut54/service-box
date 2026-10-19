@@ -439,6 +439,12 @@ class ApiClient {
     })
   }
 
+  async cancelOrderAssignment(orderId: string) {
+    return this.request<{ message: string }>(`/admin/orders/${orderId}/cancel-assignment`, {
+      method: 'PATCH',
+    })
+  }
+
   async getOrderActivity(orderId: string) {
     return this.request<{ data: OrderActivity[] }>(`/admin/orders/${orderId}/activity`)
   }

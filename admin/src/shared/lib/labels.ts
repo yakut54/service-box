@@ -61,6 +61,12 @@ export const PRODUCT_CHANGE_ACTION_LABELS: Record<string, string> = {
   deleted: 'Товар удалён',
 }
 
+export const DELIVERY_METHOD_LABELS: Record<string, string> = {
+  pickup:  'Самовывоз',
+  courier: 'Курьер',
+  postal:  'Почта / СДЭК',
+}
+
 export const BOOKING_STATUS_LABELS: Record<string, string> = {
   pending:   'Ожидает',
   confirmed: 'Подтверждена',

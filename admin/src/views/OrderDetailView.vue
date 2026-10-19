@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { api, ApiError } from '@/lib/api'
 import { getEcho } from '@/lib/echo'
 import type { Channel } from 'laravel-echo'
 import { useToast } from '@/composables/useToast'
 import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
-import { formatPrice } from '@/shared/lib/format'
-import { ORDER_STATUS_LABELS } from '@/shared/lib/labels'
+import { formatPrice, formatRelativeTime } from '@/shared/lib/format'
+import { ORDER_STATUS_LABELS, DELIVERY_METHOD_LABELS } from '@/shared/lib/labels'
 import { UiSpinner, UiAvatar, UiSkeleton, UiOrderStepper } from '@/shared/ui'
 import OrderActivityPanel from '@/components/OrderActivityPanel.vue'
 import OrderAssignmentPickerModal from '@/components/OrderAssignmentPickerModal.vue'
 import type { Order } from '@/types'
 
 const route      = useRoute()
+const router     = useRouter()
 const ordersStore = useOrdersStore()
 const authStore  = useAuthStore()
 const shopTz     = computed(() => authStore.shop?.timezone || 'Europe/Moscow')
@@ -28,7 +29,33 @@ const downloadingInvoice = ref(false)
 const claiming = ref(false)
 const releasing = ref(false)
 const showAssignmentPicker = ref(false)
+const cancellingAssignment = ref(false)
 const activityPanel = ref<InstanceType<typeof OrderActivityPanel> | null>(null)
+
+// Попап "Юлия отказалась" (OrderAssignmentDeclinedModal.vue) ведёт сюда с
+// ?reassign=1, чтобы сразу открыть пикер, а не просто показать карточку —
+// не нужно второй раз искать кнопку "Выбрать другого" (живой разбор
+// 2026-10-19). Query чистим сразу же, чтобы не открывать пикер повторно
+// при обновлении страницы (F5).
+if (route.query.reassign === '1') {
+  showAssignmentPicker.value = true
+  const { reassign: _reassign, ...restQuery } = route.query
+  router.replace({ query: restQuery })
+}
+
+async function cancelAssignment() {
+  if (!order.value) return
+  cancellingAssignment.value = true
+  try {
+    const resp = await api.cancelOrderAssignment(order.value.id)
+    toast.success(resp.message)
+    await load()
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось снять запрос')
+  } finally {
+    cancellingAssignment.value = false
+  }
+}
 
 async function claim(takeover = false) {
   if (!order.value) return
@@ -241,6 +268,17 @@ async function updateStatus(status: string) {
           >
             Выбрать другого
           </button>
+          <!-- Зависший запрос — кандидат не обязан отвечать прямо сейчас,
+               снимаем руками, без авто-таймера (живой разбор 2026-10-19:
+               пользователь явно отказался от автоматики по таймеру). -->
+          <button
+            v-if="order.pending_collector_name"
+            @click="cancelAssignment"
+            :disabled="cancellingAssignment"
+            class="btn-secondary btn-sm text-red-600 dark:text-red-400"
+          >
+            {{ cancellingAssignment ? 'Снимаем…' : 'Отменить запрос' }}
+          </button>
           <RouterLink
             v-if="(authStore.isOwner || authStore.isAdmin) && ['pending','paid','processing'].includes(order.status)"
             :to="{ name: 'collector-order-detail', params: { id: order.id } }"
@@ -327,7 +365,7 @@ async function updateStatus(status: string) {
             </h3>
             <div v-if="order.delivery_method" class="flex items-center justify-between mb-2">
               <span class="text-gray-700 dark:text-gray-300 font-medium">
-                {{ { pickup: 'Самовывоз', courier: 'Курьер', postal: 'Почта / СДЭК' }[order.delivery_method] || order.delivery_method }}
+                {{ DELIVERY_METHOD_LABELS[order.delivery_method] || order.delivery_method }}
               </span>
               <span v-if="order.delivery_price > 0" class="text-sm font-semibold text-gray-900 dark:text-white tabular-nums">
                 {{ formatPrice(order.delivery_price) }}
@@ -428,7 +466,13 @@ async function updateStatus(status: string) {
                  модалки выбора, иначе состояние терялось бы при перезаходе
                  на страницу. -->
             <p v-else-if="order.pending_collector_name" class="text-sm text-amber-600 dark:text-amber-400">
-              ⏳ Предложено {{ order.pending_collector_name }}, ждём ответа
+              ⏳ Предложено {{ order.pending_collector_name }}
+              <span v-if="order.pending_assignment_requested_at" class="text-amber-500/80">
+                · {{ formatRelativeTime(order.pending_assignment_requested_at) }}
+              </span>
+              <span v-if="order.pending_collector_is_online === false" class="text-gray-400 dark:text-gray-500 ml-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span> не в сети
+              </span>
             </p>
             <p v-else-if="!['completed','cancelled'].includes(order.status)" class="text-sm text-gray-400 dark:text-gray-500">
               Заказ ещё не взят в работу
@@ -461,7 +505,7 @@ async function updateStatus(status: string) {
                 v-model="releaseNote"
                 rows="2"
                 placeholder="Почему отказываетесь? (нужно для следующего сборщика)"
-                class="input w-full mt-2"
+                class="input w-full mt-2 placeholder:text-[0.5em]"
               />
               <div class="flex gap-2 mt-2">
                 <button class="btn-secondary btn-sm flex-1" @click="showReleaseForm = false">Отмена</button>
