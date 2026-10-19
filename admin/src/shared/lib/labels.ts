@@ -52,6 +52,8 @@ export const PRODUCT_CHANGE_FIELD_LABELS: Record<string, string> = {
   price:          'Цена',
   compare_price:  'Старая цена',
   name:           'Название',
+  description:    'Описание',
+  image_url:      'Фото',
   category:       'Категория',
   active:         'Показ в каталоге',
 }
@@ -59,6 +61,21 @@ export const PRODUCT_CHANGE_FIELD_LABELS: Record<string, string> = {
 export const PRODUCT_CHANGE_ACTION_LABELS: Record<string, string> = {
   created: 'Товар создан',
   deleted: 'Товар удалён',
+}
+
+export const CATEGORY_CHANGE_FIELD_LABELS: Record<string, string> = {
+  name:           'Название',
+  parent_id:      'Родительская категория',
+  description:    'Описание',
+  image_url:      'Фото',
+  visible:        'Показ в каталоге',
+  age_restricted: '18+',
+  no_return:      'Не подлежит возврату',
+}
+
+export const CATEGORY_CHANGE_ACTION_LABELS: Record<string, string> = {
+  created: 'Категория создана',
+  deleted: 'Категория удалена',
 }
 
 export const DELIVERY_METHOD_LABELS: Record<string, string> = {

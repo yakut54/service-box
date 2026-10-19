@@ -6,6 +6,7 @@ import { useChatStore } from '@/stores/chat'
 import { useReviewsStore } from '@/stores/reviews'
 import { useMailFailuresStore } from '@/stores/mailFailures'
 import { useProductChangesStore } from '@/stores/productChanges'
+import { useCategoryChangesStore } from '@/stores/categoryChanges'
 import { useOrdersStore } from '@/stores/orders'
 import { useNavCountsStore } from '@/stores/navCounts'
 import { usePresenceStore } from '@/stores/presence'
@@ -28,6 +29,7 @@ const chatStore = useChatStore()
 const reviewsStore = useReviewsStore()
 const mailFailuresStore = useMailFailuresStore()
 const productChangesStore = useProductChangesStore()
+const categoryChangesStore = useCategoryChangesStore()
 const ordersStore = useOrdersStore()
 const navCountsStore = useNavCountsStore()
 const presenceStore = usePresenceStore()
@@ -79,6 +81,12 @@ async function refreshProductChanges() {
 if (authStore.shop) refreshProductChanges()
 useAutoRefresh(() => { if (authStore.shop) refreshProductChanges() }, 60_000)
 
+async function refreshCategoryChanges() {
+  if (await categoryChangesStore.fetchPendingCount()) playAlertSound()
+}
+if (authStore.shop) refreshCategoryChanges()
+useAutoRefresh(() => { if (authStore.shop) refreshCategoryChanges() }, 60_000)
+
 async function refreshNeedsAttention() {
   if (await ordersStore.fetchNeedsAttentionCount()) playAlertSound()
 }
@@ -121,6 +129,7 @@ onMounted(() => {
       .listen('.chat.updated', () => refreshChat())
       .listen('.mail_failures.updated', () => { if (authStore.isOwner) refreshMailFailures() })
       .listen('.product_changes.updated', () => refreshProductChanges())
+      .listen('.category_changes.updated', () => refreshCategoryChanges())
       .listen('.nav_counts.updated', () => navCountsStore.fetch())
       .listen('.staff.updated', () => navCountsStore.fetch())
     presenceStore.join(shopId)
@@ -160,7 +169,7 @@ const navigation = [
   { name: 'Чат',       href: '/chat',         icon: 'chat' },
   // Каталог
   { name: 'Товары',    href: '/products',     icon: 'package' },
-  { name: 'Журнал изменений', href: '/product-changes', icon: 'stock-journal' },
+  { name: 'Журнал изменений', href: '/changes', icon: 'stock-journal' },
   { name: 'Категории', href: '/categories',   icon: 'categories' },
   // Маркетинг
   { name: 'Скидки',    href: '/discounts',    icon: 'discount' },
@@ -311,12 +320,12 @@ async function handleLogout() {
           <NavBadge v-if="item.href === '/discounts'" variant="muted" show-zero :count="navCountsStore.counts.discounts ?? 0" />
           <NavBadge v-if="item.href === '/reviews'" variant="muted" show-zero :count="navCountsStore.counts.reviews ?? 0" />
           <NavBadge v-if="item.href === '/staff'" variant="muted" show-zero :count="navCountsStore.counts.staff ?? 0" />
-          <NavBadge v-if="item.href === '/product-changes'" variant="muted" show-zero :count="navCountsStore.counts.product_changes ?? 0" />
+          <NavBadge v-if="item.href === '/changes'" variant="muted" show-zero :count="(navCountsStore.counts.product_changes ?? 0) + (navCountsStore.counts.category_changes ?? 0)" />
           <NavBadge v-if="item.href === '/chat'" :count="chatStore.totalUnread" />
           <NavBadge v-if="item.href === '/reviews'" :count="reviewsStore.pendingCount" />
           <NavBadge v-if="item.href === '/orders'" :count="ordersStore.needsAttentionCount" />
           <NavBadge v-if="item.href === '/settings'" :count="mailFailuresStore.pendingCount" />
-          <NavBadge v-if="item.href === '/product-changes'" :count="productChangesStore.pendingCount" />
+          <NavBadge v-if="item.href === '/changes'" :count="productChangesStore.pendingCount + categoryChangesStore.pendingCount" />
         </RouterLink>
       </nav>
 

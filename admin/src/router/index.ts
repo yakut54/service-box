@@ -66,9 +66,9 @@ const router = createRouter({
           component: () => import('@/views/ProductEditView.vue'),
         },
         {
-          path: 'product-changes',
-          name: 'product-changes',
-          component: () => import('@/views/ProductChangesView.vue'),
+          path: 'changes',
+          name: 'changes',
+          component: () => import('@/views/ChangesView.vue'),
         },
         {
           path: 'categories',

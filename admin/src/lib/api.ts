@@ -14,6 +14,7 @@ import type {
   MailFailuresListResponse,
   StaffMember,
   ProductChange,
+  CategoryChange,
   OrderActivity,
   ChatThread,
   ChatMessage,
@@ -304,6 +305,32 @@ class ApiClient {
 
   async deleteProductChanges(ids: string[]) {
     return this.request<{ message: string; deleted: number }>('/admin/product-changes', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
+    })
+  }
+
+  async getCategoryChanges(params?: Record<string, string>) {
+    const query = params ? '?' + new URLSearchParams(params).toString() : ''
+    return this.request<
+      PageResponse<CategoryChange> & { category_changes_last_seen_at: string | null }
+    >(`/admin/category-changes${query}`)
+  }
+
+  async getCategoryChangesPendingCount() {
+    return this.request<{ count: number }>('/admin/category-changes/pending-count')
+  }
+
+  async markCategoryChangesSeen() {
+    return this.request<{ message: string }>('/admin/category-changes/mark-seen', { method: 'POST' })
+  }
+
+  async exportCategoryChanges(params?: Record<string, string>) {
+    return this.download('/admin/category-changes/export', params)
+  }
+
+  async deleteCategoryChanges(ids: string[]) {
+    return this.request<{ message: string; deleted: number }>('/admin/category-changes', {
       method: 'DELETE',
       body: JSON.stringify({ ids }),
     })

@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useProductChangesStore } from '@/stores/productChanges'
 import { useHighlightNew } from '@/composables/useHighlightNew'
 import CustomSelect from '@/components/CustomSelect.vue'
-import PageHeader from '@/components/PageHeader.vue'
 import { UiSkeleton, UiEmptyState, UiPagination, UiHint } from '@/shared/ui'
 import UiConfirmDialog from '@/shared/ui/UiConfirmDialog.vue'
 import { formatDateTime, formatProductChangeValue } from '@/shared/lib/format'
@@ -18,9 +17,7 @@ const productChangesStore = useProductChangesStore()
 const { markNew, highlightClass } = useHighlightNew<ProductChange>()
 
 // Отметка "просмотрено" и подсветка новых — только на САМОМ ПЕРВОМ заходе
-// на страницу, не на каждой перелистке/смене фильтра (в отличие от
-// Отзывов, где load() вызывается один раз). Иначе смена страницы
-// пагинации сдвигала бы курсор "просмотрено" на бэкенде.
+// на вкладку, не на каждой перелистке/смене фильтра.
 const seenHandled = ref(false)
 
 const rows    = ref<ProductChange[]>([])
@@ -35,9 +32,6 @@ const filterProduct = ref('')
 const productOptions = ref<{ value: string; label: string }[]>([{ value: '', label: 'Все товары' }])
 
 const filterActor = ref('')
-// Только реально встреченные в журнале сотрудники (а не весь теоретический
-// состав команды) — проще и честнее, чем тянуть права на /admin/staff ещё
-// раз (у админа они и так урезаны до его собственных сборщиков).
 const actorOptions = ref<{ value: string; label: string }[]>([{ value: '', label: 'Все сотрудники' }])
 
 function buildParams() {
@@ -64,8 +58,6 @@ async function load() {
     if (!seenHandled.value) {
       seenHandled.value = true
       markNew(res.data, res.product_changes_last_seen_at)
-      // Важно: сначала markSeen, потом pendingCount — тот же приём, что в
-      // ReviewsView.vue (гонка иначе отдаёт устаревший бейдж).
       await api.markProductChangesSeen().catch(() => {})
       productChangesStore.fetchPendingCount()
     }
@@ -102,8 +94,6 @@ async function doExport(format: 'csv' | 'xlsx') {
 }
 
 // ── Выборочное удаление (владелец) ──────────────────────────────
-// Один механизм и на одну запись, и на несколько — чекбоксы + общая
-// кнопка «Удалить», без отдельной урны на каждой строке.
 const selectMode  = ref(false)
 const selectedIds = ref<Set<string>>(new Set())
 const confirmOpen = ref(false)
@@ -141,6 +131,8 @@ async function doDelete() {
   }
 }
 
+defineExpose({ doExport, toggleSelectMode, selectMode })
+
 onMounted(async () => {
   load()
   try {
@@ -157,14 +149,16 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <PageHeader title="Журнал изменений" subtitle="Кто, когда и что поменял в товарах — остаток, цена, название, категория, видимость">
-      <UiHint align="end">Экспортируется с учётом применённых выше фильтров. Чтобы выгрузить весь журнал — сначала нажмите «Сбросить».</UiHint>
-      <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
-      <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
-      <button v-if="authStore.isOwner" @click="toggleSelectMode" class="btn-secondary text-sm">
-        {{ selectMode ? 'Отмена' : 'Выбрать' }}
-      </button>
-    </PageHeader>
+    <div class="card flex flex-wrap items-center gap-3 py-3">
+      <UiHint>Экспортируется с учётом применённых ниже фильтров. Чтобы выгрузить весь журнал — сначала нажмите «Сбросить».</UiHint>
+      <div class="flex items-center gap-2 ml-auto">
+        <button @click="doExport('csv')" :disabled="exporting" class="btn-secondary text-sm">CSV</button>
+        <button @click="doExport('xlsx')" :disabled="exporting" class="btn-secondary text-sm">Excel</button>
+        <button v-if="authStore.isOwner" @click="toggleSelectMode" class="btn-secondary text-sm">
+          {{ selectMode ? 'Отмена' : 'Выбрать' }}
+        </button>
+      </div>
+    </div>
 
     <div v-if="selectMode" class="card flex flex-wrap items-center gap-3 py-3">
       <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
@@ -208,7 +202,7 @@ onMounted(async () => {
     <UiEmptyState
       v-else-if="rows.length === 0"
       title="Изменений ещё не было"
-      description="Здесь появятся записи, когда кто-то поправит товар — остаток, цену, название, категорию или видимость"
+      description="Здесь появятся записи, когда кто-то поправит товар — остаток, цену, название, описание, фото, категорию или видимость"
     >
       <template #icon>
         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

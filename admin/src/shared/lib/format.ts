@@ -41,13 +41,22 @@ export function formatWeight(grams: number): string {
 /** Значение строки «Журнала изменений» (product_changes.old_value/new_value,
  * всегда TEXT) — формат зависит от поля: остаток/цена/видимость читаются не
  * как голая строка, название/категория — как есть. Общая для
- * ProductChangesView.vue и карточки товара (ProductEditView.vue), чтобы не
+ * ProductChangesTab.vue и карточки товара (ProductEditView.vue), чтобы не
  * дублировать правило форматирования в двух местах. */
 export function formatProductChangeValue(field: string | null, unit: string | null, raw: string | null): string {
+  if (field === 'image_url') return raw ? 'задано' : 'не задано'
   if (raw === null) return '—'
   if (field === 'stock') return unit === 'g' ? formatWeight(Number(raw)) : raw
   if (field === 'price' || field === 'compare_price') return formatPrice(Number(raw))
   if (field === 'active') return raw === '1' ? 'Показан' : 'Скрыт'
+  return raw
+}
+
+export function formatCategoryChangeValue(field: string | null, raw: string | null): string {
+  if (field === 'image_url') return raw ? 'задано' : 'не задано'
+  if (raw === null) return '—'
+  if (field === 'visible') return raw === '1' ? 'Показана' : 'Скрыта'
+  if (field === 'age_restricted' || field === 'no_return') return raw === '1' ? 'Да' : 'Нет'
   return raw
 }
 

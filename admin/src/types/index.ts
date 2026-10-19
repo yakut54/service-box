@@ -712,7 +712,7 @@ export interface ProductChange {
   product_name: string
   variant_label: string | null
   action: 'created' | 'updated' | 'deleted'
-  field: 'stock' | 'price' | 'compare_price' | 'name' | 'category' | 'active' | null
+  field: 'stock' | 'price' | 'compare_price' | 'name' | 'description' | 'image_url' | 'category' | 'active' | null
   unit: 'pcs' | 'g' | null
   old_value: string | null
   new_value: string | null
@@ -720,6 +720,24 @@ export interface ProductChange {
   actor_name: string
   actor_role: 'owner' | 'admin'
   reason: string | null
+  created_at: string
+}
+
+// ==========================================
+// CATEGORY CHANGES (журнал изменений категории)
+// ==========================================
+
+export interface CategoryChange {
+  id: string
+  category_id: string | null
+  category_name: string
+  action: 'created' | 'updated' | 'deleted'
+  field: 'name' | 'parent_id' | 'description' | 'image_url' | 'visible' | 'age_restricted' | 'no_return' | null
+  old_value: string | null
+  new_value: string | null
+  actor_user_id: string | null
+  actor_name: string
+  actor_role: 'owner' | 'admin'
   created_at: string
 }
 
