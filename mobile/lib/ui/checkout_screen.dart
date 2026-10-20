@@ -157,7 +157,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => OrderConfirmationScreen(order: order),
+          builder: (_) => OrderConfirmationScreen(order: order, paymentUrl: paymentUrl),
         ),
       );
     } on AppException catch (e) {

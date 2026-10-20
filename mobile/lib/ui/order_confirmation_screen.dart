@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/format.dart';
 import '../models/order.dart';
@@ -12,13 +13,40 @@ import 'widgets/order_status_badge.dart';
 class OrderConfirmationScreen extends StatefulWidget {
   final Order order;
 
-  const OrderConfirmationScreen({super.key, required this.order});
+  /// Ссылка на оплату, которую CheckoutScreen уже попытался открыть сам —
+  /// если это не удалось (например, браузер не открылся), кнопка ниже даёт
+  /// открыть её ещё раз вручную, не оставляя покупателя в тупике (найдено
+  /// живым тестом 2026-10-20 — автооткрытие на Android молча не срабатывало).
+  final String? paymentUrl;
+
+  const OrderConfirmationScreen({super.key, required this.order, this.paymentUrl});
 
   @override
   State<OrderConfirmationScreen> createState() => _OrderConfirmationScreenState();
 }
 
 class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
+  bool _opening = false;
+
+  Future<void> _openPayment() async {
+    final url = widget.paymentUrl;
+    if (url == null) return;
+
+    setState(() => _opening = true);
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось открыть страницу оплаты')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +103,13 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                 ),
                 const SizedBox(height: 8),
                 OrderStatusBadge(status: order.status),
+                if (widget.paymentUrl != null) ...[
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: _opening ? null : _openPayment,
+                    child: Text(_opening ? 'Открываем оплату...' : 'Оплатить'),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: () =>

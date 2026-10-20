@@ -78,5 +78,23 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="geo"/>
         </intent>
+        <!-- Та же история с https/http-ссылками — без неё canLaunchUrl()
+             в checkout_screen.dart (открытие страницы оплаты ЮKassa после
+             оформления заказа) возвращает false даже при установленном
+             браузере, и оплата молча не открывается (найдено живым тестом
+             2026-10-20). Отдельный <intent> на каждую схему — у <queries>,
+             в отличие от обычных intent-filter, в одном <intent> разрешена
+             только ОДНА <data android:scheme>, иначе Android отказывается
+             ставить APK вообще (INSTALL_PARSE_FAILED_MANIFEST_MALFORMED:
+             "intent tag may have at most one data scheme" — найдено тем же
+             живым тестом). -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http"/>
+        </intent>
     </queries>
 </manifest>
