@@ -67,6 +67,7 @@ onUnmounted(() => presenceStore.leave())
           </RouterLink>
 
           <button
+            v-if="authStore.isCollector"
             @click="showPasswordModal = true"
             class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Сменить пароль"
@@ -89,8 +90,10 @@ onUnmounted(() => presenceStore.leave())
           </button>
 
           <button
+            v-if="authStore.isCollector"
             @click="logout"
             class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            title="Выйти"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -111,7 +114,7 @@ onUnmounted(() => presenceStore.leave())
     <OrderAssignmentRequestModal />
     <OrderAssignmentDeclinedModal />
 
-    <UiModal v-model="showPasswordModal" max-width="max-w-md">
+    <UiModal v-if="authStore.isCollector" v-model="showPasswordModal" max-width="max-w-md">
       <div class="p-4">
         <SettingsPassword />
       </div>

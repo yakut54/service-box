@@ -22,6 +22,7 @@ const error      = ref('')
 const claiming   = ref(false)
 const releasing  = ref(false)
 const finishing  = ref(false)
+const resolvingProblem = ref(false)
 const savingItem = ref<string | null>(null)
 const activityPanel = ref<InstanceType<typeof OrderActivityPanel> | null>(null)
 
@@ -79,6 +80,11 @@ const hasShortage = computed(() =>
 // Причина, по которой кнопка «Готово» сейчас неактивна — без неё выглядит
 // как баг, а не как «сначала сделай вот это».
 const finishBlockedReason = computed(() => {
+  // needs_attention не входит в Order::TRANSITIONS → 'collected' (только
+  // → processing/cancelled) — кнопка «Готово» раньше выглядела активной и
+  // падала необъяснённым 422 (живой разбор 2026-10-20: товар уже взвешен,
+  // а заказ, отмеченный проблемным, дальше не пускает).
+  if (order.value?.status === 'needs_attention') return 'Сначала снимите отметку о проблеме'
   if (order.value && !order.value.paid_at) return 'Заказ ещё не оплачен'
   if (order.value?.surcharge_status === 'pending') {
     return order.value?.surcharge_auto_charged_at
@@ -185,6 +191,28 @@ async function confirmWeight(item: OrderItem) {
     toast.error(e instanceof ApiError ? e.message : 'Не удалось сохранить вес')
   } finally {
     savingItem.value = null
+  }
+}
+
+/**
+ * Снимает отметку «Требует внимания», возвращая заказ в работу —
+ * processing легален из needs_attention (Order::TRANSITIONS), в отличие
+ * от collected. Без этой кнопки взвешенный, но помеченный проблемным
+ * заказ был тупиком: «Готово» падало 422 без объяснения (живой разбор
+ * 2026-10-20).
+ */
+async function resolveProblem() {
+  if (!order.value) return
+  resolvingProblem.value = true
+  try {
+    const resp = await api.updateOrderStatus(order.value.id, 'processing')
+    order.value = resp.data
+    toast.success('Отметка о проблеме снята')
+    activityPanel.value?.reload()
+  } catch (e) {
+    toast.error(e instanceof ApiError ? e.message : 'Не удалось снять отметку')
+  } finally {
+    resolvingProblem.value = false
   }
 }
 
@@ -483,6 +511,24 @@ onUnmounted(() => {
           <template v-else-if="order.pick_note_edited_at">ред. {{ formatDateTime(order.pick_note_edited_at, authStore.shop?.timezone ?? undefined) }}</template>
           <template v-else-if="order.pick_note_at">{{ formatDateTime(order.pick_note_at, authStore.shop?.timezone ?? undefined) }}</template>
         </p>
+        <!-- needs_attention не пускает дальше в collected напрямую — нужно
+             явно вернуть заказ в работу (живой разбор 2026-10-20).
+             !isCollector — осознанно: OrderController::updateStatus()
+             разрешает роли collector ставить только collected/completed,
+             processing ей недоступен вообще (и так было до этой правки,
+             не трогаю) — кнопка показана только владельцу/админу,
+             которые лично собирают заказ. Настоящему сборщику, попавшему
+             в этот тупик, пока нужен владелец/админ — известный смежный
+             пробел, не этот баг. -->
+        <button
+          v-if="order.status === 'needs_attention' && isMine && isClaimed && !authStore.isCollector"
+          type="button"
+          class="btn-secondary btn-sm"
+          :disabled="resolvingProblem"
+          @click="resolveProblem"
+        >
+          {{ resolvingProblem ? 'Снимаем…' : 'Проблема решена' }}
+        </button>
       </div>
 
       <!-- Отказаться от заказа — только пока «В работе» (2026-10-18): на
@@ -497,7 +543,7 @@ onUnmounted(() => {
             v-model="releaseNote"
             rows="2"
             placeholder="Почему отказываетесь? (нужно для следующего сборщика)"
-            class="input w-full placeholder:text-[0.5em]"
+            class="input w-full text-sm resize-none"
           />
           <div class="flex gap-2">
             <button class="btn-secondary btn-sm flex-1" @click="showReleaseForm = false">Отмена</button>
@@ -518,12 +564,12 @@ onUnmounted(() => {
             v-model="problemNote"
             rows="2"
             placeholder="Что случилось? (брак, просрочка и т.п.)"
-            class="input w-full"
+            class="input w-full text-sm resize-none"
           />
           <div class="flex gap-2">
             <button class="btn-secondary btn-sm flex-1" @click="showProblemForm = false">Отмена</button>
-            <button class="btn-danger btn-sm flex-1" :disabled="!problemNote.trim() || reportingProblem" @click="submitProblem">
-              {{ order.pick_note ? 'Сохранить' : 'Сообщить о проблеме' }}
+            <button class="btn-danger btn-sm flex-1 whitespace-pre-line leading-tight" :disabled="!problemNote.trim() || reportingProblem" @click="submitProblem">
+              {{ order.pick_note ? 'Сохранить' : 'Сообщить\nо проблеме' }}
             </button>
           </div>
         </template>

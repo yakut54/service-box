@@ -39,11 +39,11 @@ import { api } from '@/lib/api'
 import CollectorLayout from '@/components/layout/CollectorLayout.vue'
 import SettingsPassword from '@/components/settings/SettingsPassword.vue'
 
-async function setup() {
+async function setup(role: 'collector' | 'admin' | 'owner' = 'collector') {
   setActivePinia(createPinia())
   const authStore = useAuthStore()
   authStore.shop = { id: 'shop-1', name: 'Барбариска' } as never
-  authStore.user = { id: 'egorka-1', name: 'Егорка', role: 'collector' } as never
+  authStore.user = { id: 'egorka-1', name: role === 'collector' ? 'Егорка' : 'Юлия', role } as never
 
   const router = createRouter({
     history: createMemoryHistory(),
@@ -85,6 +85,35 @@ describe('CollectorLayout — смена пароля у сборщика', () =
     await flushPromises()
 
     expect(changePassword).toHaveBeenCalledWith('old-password', 'new-password-123', 'new-password-123')
+  })
+})
+
+/**
+ * Живой разбор 2026-10-20 — админ (Юлия) и владелец (Ховар) заходят на эту
+ * же страницу, когда сами собирают заказ, и видели смену пароля/выход —
+ * хотя у них это уже есть в личном кабинете (SettingsView). На странице
+ * «Сборка» это должно быть только у роли collector.
+ */
+describe('CollectorLayout — смена пароля/выход только у сборщика', () => {
+  test('у сборщика кнопки смены пароля и выхода видны', async () => {
+    const wrapper = await setup('collector')
+
+    expect(wrapper.find('button[title="Сменить пароль"]').exists()).toBe(true)
+    expect(wrapper.find('button[title="Выйти"]').exists()).toBe(true)
+  })
+
+  test('у админа кнопки смены пароля и выхода скрыты', async () => {
+    const wrapper = await setup('admin')
+
+    expect(wrapper.find('button[title="Сменить пароль"]').exists()).toBe(false)
+    expect(wrapper.find('button[title="Выйти"]').exists()).toBe(false)
+  })
+
+  test('у владельца кнопки смены пароля и выхода скрыты', async () => {
+    const wrapper = await setup('owner')
+
+    expect(wrapper.find('button[title="Сменить пароль"]').exists()).toBe(false)
+    expect(wrapper.find('button[title="Выйти"]').exists()).toBe(false)
   })
 })
 

@@ -344,16 +344,26 @@ function startEdit(m: ChatMessage) {
   if (m.sender_type !== 'shop' || m.image_url) return
   editingMessage.value = m
   draft.value = m.body ?? ''
+  hasText.value = !!m.body?.trim()
   replyTarget.value = null
 }
 
 function cancelEdit() {
   editingMessage.value = null
   draft.value = ''
+  hasText.value = false
 }
 
 // ── Отправка сообщений ───────────────────────────────────────────────────────
 const draft = ref('')
+// Живой разбор 2026-10-20 — на телефоне, пока открыта экранная клавиатура
+// с предиктивным набором (Gboard и т.п.), Vue не обновляет draft через
+// v-model до compositionend (слово ещё "в процессе композиции") — кнопка
+// отправки, завязанная на draft.trim(), оставалась неактивной, хотя текст
+// на экране уже есть. draft не трогаем (нужен v-model для корректной
+// финальной отправки) — hasText обновляется отдельным @input, который
+// видит value сразу, без деферинга композиции.
+const hasText = ref(false)
 
 // ── Отправка своих "печатает" покупателю ────────────────────────────
 // Дебаунс, не на каждый символ: is_typing:true сразу при первом вводе
@@ -446,6 +456,7 @@ async function sendMessage() {
     })
     messages.value.push(data)
     draft.value = ''
+    hasText.value = false
     pendingImageUrl.value = null
     cancelReply()
     selectedThread.value.last_message_preview = body || '📷 Фото'
@@ -858,6 +869,7 @@ loadThreads()
                 class="flex-1 min-w-0 resize-none text-sm rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 border-0 px-4 py-2 max-h-32 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset disabled:opacity-60"
                 :placeholder="editingMessage ? 'Изменить текст…' : 'Сообщение…'"
                 :disabled="selectedThread.is_blocked_by_shop"
+                @input="hasText = !!($event.target as HTMLTextAreaElement).value.trim()"
                 @keydown.enter.exact.prevent="sendMessage"
                 @keydown.esc="cancelEdit(); cancelReply()"
               />
@@ -866,7 +878,7 @@ loadThreads()
                 :title="editingMessage ? 'Сохранить' : 'Отправить'"
                 :aria-label="editingMessage ? 'Сохранить' : 'Отправить'"
                 class="shrink-0 w-9 h-9 grid place-items-center rounded-full bg-primary-600 hover:bg-primary-700 text-white transition-colors disabled:opacity-40 disabled:hover:bg-primary-600"
-                :disabled="sending || selectedThread.is_blocked_by_shop || (!draft.trim() && !pendingImageUrl)"
+                :disabled="sending || selectedThread.is_blocked_by_shop || (!hasText && !pendingImageUrl)"
               >
                 <svg v-if="editingMessage" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 12.75l6 6 9-13.5" />

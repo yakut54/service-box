@@ -60,13 +60,13 @@ const isStuck = computed(() => props.status === 'needs_attention')
             <div v-else-if="i === currentIndex" class="w-2 h-2 rounded-full bg-white" />
           </div>
           <span
-            :class="['mt-1.5 text-[11px] text-center leading-tight px-0.5',
+            :class="['mt-1.5 text-[11px] text-center leading-tight px-0.5 whitespace-nowrap',
               i === currentIndex ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500']"
           >{{ step.label }}</span>
         </div>
         <div
           v-if="i < steps.length - 1"
-          :class="['h-0.5 flex-1 mt-3 -mx-1', i < currentIndex ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700']"
+          :class="['h-0.5 flex-1 max-[360px]:flex-[0.2] mt-3 -mx-1', i < currentIndex ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700']"
         />
       </template>
     </div>
