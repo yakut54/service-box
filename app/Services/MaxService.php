@@ -304,13 +304,14 @@ class MaxService
     }
 
     /** См. TelegramService::notifyOwnerOrderProblem — тот же текст, тот же повод. */
-    public static function notifyOwnerOrderProblem(Shop $shop, $order, string $note): void
+    public static function notifyOwnerOrderProblem(Shop $shop, $order, string $note, string $actorName): void
     {
         $name = $order->customer_name ?? $order->customer_phone;
 
         $text = "⚠️ <b>Проблема с заказом №" . substr($order->id, 0, 8) . "</b>\n\n"
               . "Клиент: " . self::esc($name) . "\n"
-              . "Сообщение сборщика: " . self::esc($note);
+              . "Телефон: " . self::esc($order->customer_phone) . "\n"
+              . "Сообщение от " . self::esc($actorName) . ": " . self::esc($note);
 
         self::sendMessage($shop, $text);
     }

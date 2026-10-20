@@ -1358,10 +1358,10 @@ class OrderController extends Controller
         // в Telegram/MAX, тот же канал/приём, что у
         // notifyOwnerSurchargeExpired (см. CheckSurchargeDeadline).
         if ($shop->telegram_bot_connected) {
-            try { TelegramService::notifyOwnerOrderProblem($shop, $orderModel, $request->note); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderProblem (telegram) failed', ['error' => $e->getMessage()]); }
+            try { TelegramService::notifyOwnerOrderProblem($shop, $orderModel, $request->note, $request->user()->name); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderProblem (telegram) failed', ['error' => $e->getMessage()]); }
         }
         if ($shop->max_bot_connected) {
-            try { MaxService::notifyOwnerOrderProblem($shop, $orderModel, $request->note); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderProblem (max) failed', ['error' => $e->getMessage()]); }
+            try { MaxService::notifyOwnerOrderProblem($shop, $orderModel, $request->note, $request->user()->name); } catch (\Throwable $e) { Log::warning('notifyOwnerOrderProblem (max) failed', ['error' => $e->getMessage()]); }
         }
 
         \App\Events\OrdersUpdated::dispatch($shop->id);
@@ -1635,6 +1635,13 @@ class OrderController extends Controller
                 \App\Services\PhysicalStockService::release($item);
             }
         }
+
+        // Снимаем клавиатуру со старого сообщения бота — иначе кнопки
+        // "Подтвердить"/"Отменить" остаются кликабельными у удалённого
+        // заказа навсегда, клик отвечает "Заказ не найден" без следа
+        // очистки (живой разбор 2026-10-20).
+        try { TelegramService::removeKeyboardByEntity('Order', $order->id); } catch (\Throwable) {}
+        try { MaxService::removeButtonsByEntity('order', $order->id); } catch (\Throwable) {}
 
         $order->items()->delete();
         $order->delete();

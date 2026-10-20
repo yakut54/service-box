@@ -218,9 +218,10 @@ class MaxController extends Controller
 
         // Записи выключены целиком (2026-10-18, platform.booking_bot_enabled)
         // — не обещаем байеру то, чего он не получит.
+        // Живой разбор 2026-10-20 — симметрично Telegram (тот же повод).
         MaxService::sendRaw($userId, config('platform.booking_bot_enabled')
             ? "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись —\nиспользуйте кнопки в сообщениях бота."
-            : 'ℹ️ Чтобы выполнить действие, используйте кнопки в сообщениях бота.');
+            : 'ℹ️ Чтобы подтвердить, отменить заказ или выполнить другое действие — используйте кнопки в сообщении об этом заказе выше. Обычный текст бот не обрабатывает.');
     }
 
     private function trySubscribeCustomer(int $userId, string $bookingId): void
@@ -359,7 +360,7 @@ class MaxController extends Controller
 
         try {
             match ($entityType) {
-                'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $userId, $shop),
+                'order'   => $this->handleOrderAction($callbackId, $entityId, $action, $userId, $shop, $mid),
                 'booking' => $this->handleBookingAction($callbackId, $entityId, $action, $userId, $shop),
                 default   => MaxService::answerCallback($callbackId, 'Неизвестный тип'),
             };
@@ -368,24 +369,27 @@ class MaxController extends Controller
         }
     }
 
-    private function handleOrderAction(string $cbId, string $orderId, string $action, int $userId, Shop $shop): void
+    private function handleOrderAction(string $cbId, string $orderId, string $action, int $userId, Shop $shop, ?string $mid = null): void
     {
         // 'assign' приходит как "order:assign:{orderId}:{index}" —
         // upstream-парсер handleCallback() (explode(':', $payload, 3)) кладёт
         // всё после 2-го ':' в $orderId одним куском, разбираем сами.
         if ($action === 'assign') {
-            $this->handleOrderAssign($cbId, $orderId, $shop);
+            $this->handleOrderAssign($cbId, $orderId, $shop, $userId, $mid);
             return;
         }
 
         if ($action === 'refresh') {
-            $this->handleOrderRefresh($cbId, $orderId, $shop);
+            $this->handleOrderRefresh($cbId, $orderId, $shop, $userId, $mid);
             return;
         }
 
         $order = Order::find($orderId);
 
         if (!$order) {
+            // Заказ удалён, а кнопка под старым сообщением ещё жива — снимаем
+            // здесь же (живой разбор 2026-10-20, симметрично Telegram).
+            MaxService::removeButtons($userId, $mid);
             MaxService::answerCallback($cbId, 'Заказ не найден');
             return;
         }
@@ -431,7 +435,7 @@ class MaxController extends Controller
         Log::info('Order updated via MAX', ['order_id' => $orderId, 'status' => $newStatus]);
     }
 
-    private function handleOrderAssign(string $cbId, string $combined, Shop $shop): void
+    private function handleOrderAssign(string $cbId, string $combined, Shop $shop, ?int $userId = null, ?string $mid = null): void
     {
         [$orderId, $indexRaw] = array_pad(explode(':', $combined, 2), 2, null);
 
@@ -442,6 +446,9 @@ class MaxController extends Controller
 
         $order = Order::find($orderId);
         if (!$order) {
+            if ($userId) {
+                MaxService::removeButtons($userId, $mid);
+            }
             MaxService::answerCallback($cbId, 'Заказ не найден');
             return;
         }
@@ -493,10 +500,13 @@ class MaxController extends Controller
         ]);
     }
 
-    private function handleOrderRefresh(string $cbId, string $orderId, Shop $shop): void
+    private function handleOrderRefresh(string $cbId, string $orderId, Shop $shop, ?int $userId = null, ?string $mid = null): void
     {
         $order = Order::find($orderId);
         if (!$order) {
+            if ($userId) {
+                MaxService::removeButtons($userId, $mid);
+            }
             MaxService::answerCallback($cbId, 'Заказ не найден');
             return;
         }

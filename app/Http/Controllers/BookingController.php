@@ -506,6 +506,12 @@ class BookingController extends Controller
     public function destroy(string $booking): JsonResponse
     {
         $booking = Booking::findOrFail($booking);
+
+        // Снимаем клавиатуру со старого сообщения бота — та же дыра, что
+        // у OrderController::destroy() (живой разбор 2026-10-20).
+        try { \App\Services\TelegramService::removeKeyboardByEntity('Booking', $booking->id); } catch (\Throwable) {}
+        try { \App\Services\MaxService::removeButtonsByEntity('booking', $booking->id); } catch (\Throwable) {}
+
         $booking->delete();
 
         return response()->json(['message' => 'Запись удалена']);

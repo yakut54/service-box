@@ -222,9 +222,13 @@ class TelegramController extends Controller
         // Записи выключены целиком (2026-10-18, platform.booking_bot_enabled)
         // — этот бот сейчас не умеет ничего, кроме как подтверждать коды и
         // принимать текст отзыва; не обещаем байеру то, чего он не получит.
+        // Живой разбор 2026-10-20: прежний текст "используйте кнопки в
+        // сообщениях бота" не говорил, В КАКОМ именно сообщении — непонятно,
+        // о каких кнопках речь. Указываем прямо: кнопки под сообщением о
+        // конкретном заказе/записи, не здесь.
         $this->sendReply($chatId, config('platform.booking_bot_enabled')
             ? "ℹ️ Этот бот отправляет уведомления о ваших записях.\n\nЧтобы подтвердить или отменить запись —\nиспользуйте кнопки в сообщениях бота."
-            : 'ℹ️ Чтобы выполнить действие, используйте кнопки в сообщениях бота.');
+            : 'ℹ️ Чтобы подтвердить, отменить заказ или выполнить другое действие — используйте кнопки в сообщении об этом заказе выше. Обычный текст бот не обрабатывает.');
     }
 
     private function handleCustomerLink(string $token, int $chatId): void
@@ -401,6 +405,10 @@ class TelegramController extends Controller
         $order = Order::find($orderId);
 
         if (!$order) {
+            // Заказ удалён, а кнопка под старым сообщением ещё жива —
+            // снимаем её здесь же, раз уж узнали, что он не существует
+            // (живой разбор 2026-10-20).
+            $this->removeKeyboard($chatId, $messageId);
             $this->answerCallback($callbackId, 'Заказ не найден');
             return;
         }
@@ -477,6 +485,7 @@ class TelegramController extends Controller
 
         $order = Order::find($orderId);
         if (!$order) {
+            $this->removeKeyboard($chatId, $messageId);
             $this->answerCallback($callbackId, 'Заказ не найден');
             return;
         }
@@ -540,6 +549,7 @@ class TelegramController extends Controller
     {
         $order = Order::find($orderId);
         if (!$order || !$messageId) {
+            $this->removeKeyboard($chatId, $messageId);
             $this->answerCallback($callbackId, 'Заказ не найден');
             return;
         }
