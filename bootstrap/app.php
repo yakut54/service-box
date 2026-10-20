@@ -1,8 +1,15 @@
 <?php
 
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -64,5 +71,43 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Живой разбор 2026-10-20 — провал route-model-binding/findOrFail()
+        // (неверный/удалённый id в URL) долетал до JSON-ответа сырым текстом
+        // вида "No query results for model [App\Models\Order] <uuid>" даже с
+        // APP_DEBUG=false. Ловим не сам ModelNotFoundException — Laravel уже
+        // успевает завернуть его в NotFoundHttpException до того, как
+        // кастомные render()-колбэки вообще видят исключение (prepareException()
+        // отрабатывает раньше) — а именно эту обёртку, отличая её от
+        // bare abort(404) по наличию "предыдущего" исключения: abort(404)
+        // создаёт NotFoundHttpException с нуля, без getPrevious().
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/*') && $e->getPrevious() instanceof ModelNotFoundException) {
+                return response()->json(['message' => 'Запись не найдена'], 404);
+            }
+        });
+
+        // Та же дыра у ошибок БД — getMessage() у QueryException содержит
+        // сырой SQL и значения параметров, это НЕЛЬЗЯ показывать пользователю
+        // ни при каких обстоятельствах.
+        $exceptions->render(function (QueryException $e, Request $request) {
+            if ($request->is('api/*')) {
+                Log::error('Unhandled QueryException', ['message' => $e->getMessage()]);
+                return response()->json(['message' => 'Ошибка сервера. Попробуйте позже.'], 500);
+            }
+        });
+
+        // Переводим дефолтные английские тексты Laravel/Sanctum на русский —
+        // остального (ValidationException, обычные 500 без debug) Laravel и
+        // так отдаёт чисто, не трогаем.
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => 'Не авторизован'], 401);
+            }
+        });
+
+        $exceptions->render(function (AuthorizationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(['message' => 'Доступ запрещён'], 403);
+            }
+        });
     })->create();

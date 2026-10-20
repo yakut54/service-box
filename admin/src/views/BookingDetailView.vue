@@ -82,7 +82,7 @@ onMounted(async () => {
     console.error('[BookingDetail] fetch failed:', err)
     if (!booking.value) {
       errorMsg.value = err instanceof ApiError
-        ? `Ошибка ${err.status}: ${err.message}`
+        ? err.message
         : 'Не удалось загрузить запись'
     }
   } finally {

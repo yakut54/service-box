@@ -140,7 +140,7 @@ async function load() {
     }
   } catch (err) {
     if (!order.value) {
-      errorMsg.value = err instanceof ApiError ? `Ошибка ${err.status}: ${err.message}` : 'Не удалось загрузить заказ'
+      errorMsg.value = err instanceof ApiError ? err.message : 'Не удалось загрузить заказ'
     }
   } finally {
     loading.value = false
