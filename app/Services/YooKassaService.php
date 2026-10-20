@@ -166,6 +166,24 @@ class YooKassaService
     }
 
     /**
+     * Реальный статус платежа у ЮKassa — для сверки, когда свой вебхук не
+     * долетел (см. App\Console\Commands\ReconcileYooKassaPayments: живым
+     * тестом 2026-10-20 поймана потеря payment.succeeded — деньги списаны у
+     * ЮKassa, а к нам уведомление не пришло вообще, ни одной строки в логе).
+     *
+     * @return array{status: string, paid: bool}
+     */
+    public function getPaymentStatus(string $paymentId): array
+    {
+        $response = $this->client->getPaymentInfo($paymentId);
+
+        return [
+            'status' => $response->getStatus(),
+            'paid'   => (bool) $response->getPaid(),
+        ];
+    }
+
+    /**
      * Частичный возврат уже списанного платежа — например сборщик не нашёл
      * часть штучного товара при сборке (см. OrderController::updateStatus,
      * недобор по picked_qty). В отличие от capturePayment (снять МЕНЬШЕ с
